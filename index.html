@@ -52,7 +52,6 @@ padding:14px 14px 10px;
 background:rgba(10,14,26,.8);backdrop-filter:blur(20px);
 border-bottom:1px solid rgba(255,255,255,.06);
 position:sticky;top:57px;z-index:99;
-display:flex;flex-direction:column;align-items:center;
 }
 .search-box{
 background:rgba(255,255,255,.07);
@@ -103,7 +102,7 @@ display:flex;align-items:center;gap:8px;
 .pv-del{background:none;border:none;color:#475569;font-size:16px;cursor:pointer;}
 
 /* 빠른 검색 칩 */
-.chips-wrap{padding:10px 14px 0;display:flex;gap:7px;overflow-x:auto;padding-bottom:8px;background:#0a0e1a;justify-content:center;flex-wrap:wrap;}
+.chips-wrap{padding:10px 14px 0;display:flex;gap:7px;overflow-x:auto;padding-bottom:8px;background:#0a0e1a;}
 .chips-wrap::-webkit-scrollbar{display:none;}
 .chip{
 background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);
@@ -114,7 +113,7 @@ cursor:pointer;white-space:nowrap;transition:all .15s;
 .chip:active{background:rgba(99,102,241,.25);}
 
 /* CONTENT */
-.content{padding:16px 14px 40px;background:#0a0e1a;min-height:100vh;max-width:640px;margin:0 auto;}
+.content{padding:16px 14px 40px;background:#0a0e1a;min-height:100vh;}
 
 /* WELCOME */
 .welcome{text-align:center;padding:20px 20px;background:#0a0e1a;}
@@ -136,7 +135,7 @@ display:flex;align-items:center;justify-content:center;font-size:11px;
 .msg.user .msg-label .dot{background:rgba(255,255,255,.1);}
 .msg.ai .msg-label .dot{background:linear-gradient(135deg,#6366f1,#06b6d4);font-size:10px;font-weight:900;color:#fff;}
 .msg-body{
-font-size:14px;line-height:1.75;color:#e2e8f0;
+font-size:14px;line-height:1.75;color:#e2e8f0;text-align:left;
 }
 .msg.user .msg-body{
 background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);
@@ -163,7 +162,13 @@ animation:bounce .8s infinite;
 @keyframes bounce{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-7px);}}
 
 #fileInput{display:none;}
-.search-hint{font-size:11px;color:#475569;margin-top:7px;padding:0 4px;line-height:1.5;}
+.res-table{width:100%;border-collapse:collapse;margin:8px 0;font-size:13px;}
+.res-table td{padding:7px 10px;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;}
+.res-table tr:first-child td{background:rgba(99,102,241,.2);font-weight:700;color:#a5b4fc;}
+.rc-section-title{font-size:13px;font-weight:700;color:#818cf8;margin:12px 0 6px;letter-spacing:.03em;}
+.rc-hr{border:none;border-top:1px solid rgba(255,255,255,.08);margin:10px 0;}
+
+.search-hint{font-size:11px;color:#475569;margin-top:7px;padding:0 4px;line-height:1.5;width:100%;max-width:500px;}
 
 /* 결과 카드 */
 .result-card{
@@ -375,7 +380,23 @@ function addAiMsg(text){
   div.className='msg ai';
   const formatted=text
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    // 표 렌더링
+    .replace(/\|(.+)\|/g, (m) => {
+      if(m.includes('----')) return '';
+      const cells = m.split('|').filter(c=>c.trim());
+      return '<tr>' + cells.map(c=>'<td>'+c.trim()+'</td>').join('') + '</tr>';
+    })
+    .replace(/(<tr>.*<\/tr>)/gs, '<table class="res-table">$1</table>')
+    // 헤더
+    .replace(/## ✅ (.*)/g,'<div class="rc-badge">✅ 이거요</div><div class="rc-title">$1</div>')
+    .replace(/## 📊 비교/g,'<div class="rc-section-title">📊 비교</div>')
+    .replace(/## ❌ 탈락 이유/g,'<div class="rc-section-title">❌ 탈락 이유</div>')
+    .replace(/## .*/g,'')
+    // 구분선
+    .replace(/^---$/gm,'<hr class="rc-hr">')
+    // 볼드
     .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    // 줄바꿈
     .replace(/\n/g,'<br>');
   div.innerHTML=`<div class="msg-label"><div class="dot">T</div> ThisOne 분석</div><div class="msg-body">${formatted}</div>`;
   document.getElementById('content').appendChild(div);

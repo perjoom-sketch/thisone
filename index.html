@@ -1,362 +1,705 @@
-<!DOCTYPE html>
+import { useState, useRef, useEffect } from “react”;
 
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="ThisOne">
-<meta property="og:title" content="ThisOne - 구매결정 AI">
-<meta name="theme-color" content="#0A0A0F">
-<title>ThisOne</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
-:root{
-  --bg-primary:#0A0A0F;--bg-secondary:#12121A;--bg-card:#1A1A25;--bg-card-hover:#222233;
-  --accent:#6C5CE7;--accent-light:#A29BFE;--accent-glow:rgba(108,92,231,0.3);
-  --text-primary:#F0F0F5;--text-secondary:#8888AA;--text-muted:#55556E;
-  --border:rgba(255,255,255,0.06);--border-accent:rgba(108,92,231,0.3);
-  --gradient-1:linear-gradient(135deg,#6C5CE7,#a855f7,#ec4899);
+const suggestions = [
+{ emoji: “🎧”, text: “에어팟 프로 2세대” },
+{ emoji: “💨”, text: “배송비 포함 공기청정기” },
+{ emoji: “🍼”, text: “맘카페 추천 유모차” },
+{ emoji: “🖨️”, text: “유지비 포함 프린터” },
+{ emoji: “🌀”, text: “산업용 선풍기 30인치” },
+{ emoji: “🧹”, text: “다이슨 청소기” },
+{ emoji: “📺”, text: “삼성 65인치 TV” },
+{ emoji: “📱”, text: “아이패드 프로” },
+];
+
+const mockResults = {
+“에어팟 프로 2세대”: {
+pick: {
+name: “Apple 에어팟 프로 2세대 (USB-C)”,
+price: “329,000”,
+originalPrice: “359,000”,
+store: “쿠팡”,
+badge: “AI 추천”,
+rating: 4.8,
+reviews: “12,847”,
+delivery: “내일 도착”,
+image: “🎧”,
+reason: “가격·리뷰·배송 종합 1위. 맘카페·커뮤니티 만족도 최상위.”,
+},
+others: [
+{ name: “에어팟 프로 2 (Lightning)”, price: “289,000”, store: “네이버 최저가”, rating: 4.7, image: “🎧” },
+{ name: “에어팟 프로 2 (USB-C)”, price: “335,000”, store: “11번가”, rating: 4.8, image: “🎧” },
+{ name: “에어팟 프로 2 (USB-C)”, price: “342,000”, store: “SSG”, rating: 4.6, image: “🎧” },
+],
+analysis: {
+reviewSummary: “노이즈캔슬링 성능, 착용감, 음질 순으로 호평이 많습니다. 일부 사용자에서 이어팁 사이즈 불만 있음.”,
+priceHistory: “최근 3개월 평균가 340,200원 대비 약 3% 저렴한 시점입니다.”,
+communityScore: 94,
+},
+},
+};
+
+function getResults(q) {
+for (const key of Object.keys(mockResults)) {
+if (q.includes(key) || key.includes(q)) return mockResults[key];
 }
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{background:var(--bg-primary);color:var(--text-primary);font-family:'Noto Sans KR',sans-serif;min-height:100vh;overflow-x:hidden;}
-
-.app{min-height:100vh;display:flex;flex-direction:column;align-items:center;position:relative;overflow:hidden;}
-
-/* Ambient */
-.orb{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0;}
-.orb-1{width:500px;height:500px;background:radial-gradient(circle,rgba(108,92,231,.15),transparent 70%);top:-10%;left:-10%;}
-.orb-2{width:400px;height:400px;background:radial-gradient(circle,rgba(168,85,247,.1),transparent 70%);bottom:-5%;right:-10%;}
-.orb-3{width:300px;height:300px;background:radial-gradient(circle,rgba(236,72,153,.08),transparent 70%);top:40%;right:10%;}
-.grid-overlay{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);background-size:80px 80px;pointer-events:none;z-index:0;}
-
-.floating-emoji{position:fixed;pointer-events:none;z-index:0;opacity:.12;animation:floatBob 6s ease-in-out infinite;}
-@keyframes floatBob{0%,100%{transform:translateY(0);}50%{transform:translateY(-12px);}}
-
-/* Header */
-.header{width:100%;max-width:800px;padding:28px 24px 0;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:10;}
-.logo-group{display:flex;align-items:center;gap:12px;}
-.logo-mark{width:40px;height:40px;border-radius:12px;background:var(–gradient-1);display:flex;align-items:center;justify-content:center;font-family:‘Outfit’,sans-serif;font-weight:800;font-size:18px;color:#fff;box-shadow:0 4px 20px var(–accent-glow);}
-.logo-text{font-family:‘Outfit’,sans-serif;font-weight:700;font-size:22px;letter-spacing:-.5px;background:var(–gradient-1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.beta-badge{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:1px;background:rgba(108,92,231,.15);color:var(–accent-light);border:1px solid rgba(108,92,231,.2);}
-
-/* Hero */
-.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;max-width:700px;padding:0 24px;position:relative;z-index:10;}
-.hero-title{text-align:center;margin-bottom:36px;}
-.hero-title h1{font-family:‘Outfit’,sans-serif;font-size:42px;font-weight:900;letter-spacing:-1.5px;line-height:1.15;margin-bottom:14px;}
-.gradient-text{background:var(–gradient-1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.hero-subtitle{font-size:15px;color:var(–text-secondary);line-height:1.6;font-weight:300;}
-
-/* Search */
-.search-wrapper{width:100%;}
-.search-box{width:100%;background:var(–bg-card);border:1px solid var(–border);border-radius:20px;padding:6px;transition:all .3s;}
-.search-box.focused{border-color:var(–border-accent);box-shadow:0 0 0 4px rgba(108,92,231,.08),0 8px 40px rgba(0,0,0,.3);background:var(–bg-secondary);}
-.search-inner{display:flex;align-items:center;gap:4px;}
-.search-input{flex:1;background:none;border:none;outline:none;padding:14px 16px;font-size:15px;color:var(–text-primary);font-family:‘Noto Sans KR’,sans-serif;}
-.search-input::placeholder{color:var(–text-muted);font-weight:300;}
-.search-actions{display:flex;align-items:center;gap:4px;padding-right:4px;}
-.icon-btn{width:42px;height:42px;border-radius:12px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s;background:transparent;color:var(–text-muted);}
-.icon-btn:hover{background:rgba(255,255,255,.05);color:var(–text-secondary);}
-.submit-btn{background:var(–gradient-1);color:#fff;box-shadow:0 4px 16px var(–accent-glow);}
-.submit-btn:hover{transform:translateY(-1px);box-shadow:0 6px 24px var(–accent-glow);}
-.submit-btn:active{transform:translateY(0);}
-.submit-btn:disabled{opacity:.4;transform:none;}
-
-.img-preview-strip{padding:8px 12px 4px;display:flex;gap:8px;}
-.preview-thumb{position:relative;width:56px;height:56px;border-radius:10px;overflow:hidden;border:1px solid var(–border);}
-.preview-thumb img{width:100%;height:100%;object-fit:cover;}
-.preview-remove{position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:#ff4757;border:2px solid var(–bg-card);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
-
-.search-hint{text-align:center;margin-top:12px;font-size:12px;color:var(–text-muted);font-weight:300;}
-.search-hint span{color:var(–text-secondary);}
-
-/* Chips */
-.chips-area{width:100%;margin-top:28px;}
-.chips-scroll{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
-.chip{display:flex;align-items:center;gap:7px;padding:9px 16px;background:var(–bg-card);border:1px solid var(–border);border-radius:100px;cursor:pointer;transition:all .25s;font-size:13px;color:var(–text-secondary);white-space:nowrap;-webkit-tap-highlight-color:transparent;}
-.chip:hover{background:var(–bg-card-hover);border-color:var(–border-accent);color:var(–text-primary);transform:translateY(-2px);}
-
-/* Results */
-.results{width:100%;max-width:700px;padding:20px 24px 40px;position:relative;z-index:10;}
-.user-q{background:var(–bg-card);border:1px solid var(–border);border-radius:14px;padding:14px 18px;margin-bottom:16px;font-size:14px;color:var(–text-secondary);}
-.user-q-label{font-size:10px;color:var(–text-muted);margin-bottom:6px;letter-spacing:.05em;}
-
-/* Result Cards */
-.pick-card{background:linear-gradient(135deg,rgba(108,92,231,.12),rgba(168,85,247,.06));border:1.5px solid rgba(108,92,231,.3);border-radius:18px;padding:22px;margin-bottom:12px;}
-.pick-badge{display:inline-block;background:var(–gradient-1);color:#fff;font-size:11px;font-weight:700;border-radius:8px;padding:4px 12px;margin-bottom:14px;}
-.pick-title{font-family:‘Outfit’,sans-serif;font-size:20px;font-weight:700;color:var(–text-primary);margin-bottom:18px;line-height:1.3;}
-.pick-reasons{display:flex;flex-direction:column;gap:12px;}
-.pick-reason{display:flex;gap:12px;align-items:flex-start;}
-.reason-num{width:24px;height:24px;border-radius:50%;background:rgba(108,92,231,.2);color:var(–accent-light);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
-.reason-text{font-size:14px;color:#CBD5E1;line-height:1.6;}
-
-.compare-card{background:var(–bg-card);border:1px solid var(–border);border-radius:18px;overflow:hidden;margin-bottom:12px;}
-.compare-title{padding:14px 18px;font-size:13px;font-weight:700;color:var(–accent-light);border-bottom:1px solid var(–border);}
-.compare-table{width:100%;border-collapse:collapse;}
-.compare-table th{padding:10px 14px;text-align:left;font-size:11px;color:var(–text-muted);font-weight:600;background:var(–bg-secondary);}
-.compare-table td{padding:13px 14px;font-size:13px;color:var(–text-primary);border-bottom:1px solid var(–border);}
-.compare-table tr:last-child td{border-bottom:none;}
-.compare-table tr:first-child td{color:var(–accent-light);font-weight:700;background:rgba(108,92,231,.08);}
-
-.reject-card{background:var(–bg-card);border:1px solid var(–border);border-radius:18px;padding:18px;margin-bottom:12px;}
-.reject-title{font-size:13px;font-weight:700;color:#F87171;margin-bottom:12px;}
-.reject-item{display:flex;gap:8px;margin-bottom:8px;font-size:13px;color:var(–text-muted);line-height:1.6;}
-.reject-item:last-child{margin-bottom:0;}
-.reject-name{color:var(–text-secondary);font-weight:600;}
-
-/* Typing */
-.typing-card{background:var(–bg-card);border:1px solid var(–border);border-radius:18px;padding:22px;margin-bottom:12px;}
-.typing{display:flex;gap:5px;align-items:center;}
-.typing span{width:7px;height:7px;border-radius:50%;background:var(–accent);animation:bounce .8s infinite;}
-.typing span:nth-child(2){animation-delay:.15s;}
-.typing span:nth-child(3){animation-delay:.3s;}
-@keyframes bounce{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-7px);}}
-
-.footer{width:100%;max-width:700px;padding:20px 24px 28px;text-align:center;position:relative;z-index:10;font-size:13px;color:var(–text-muted);font-weight:300;line-height:1.7;}
-.footer strong{color:var(–text-secondary);font-weight:500;}
-
-#fileInput{display:none;}
-
-@media(max-width:640px){
-.hero-title h1{font-size:30px;}
-.chips-scroll{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;-webkit-overflow-scrolling:touch;}
-.chips-scroll::-webkit-scrollbar{display:none;}
-.header{padding:20px 16px 0;}
-.hero,.results{padding-left:16px;padding-right:16px;}
+return null;
 }
-</style>
 
-</head>
-<body>
-<div class="app" id="app">
-  <div class="orb orb-1"></div>
-  <div class="orb orb-2"></div>
-  <div class="orb orb-3"></div>
-  <div class="grid-overlay"></div>
+export default function ThisOne() {
+const [query, setQuery] = useState(””);
+const [imagePreview, setImagePreview] = useState(null);
+const [focused, setFocused] = useState(false);
+const [searched, setSearched] = useState(false);
+const [results, setResults] = useState(null);
+const [loading, setLoading] = useState(false);
+const [showResults, setShowResults] = useState(false);
+const fileRef = useRef(null);
+const resultsRef = useRef(null);
 
-  <!-- 떠다니는 이모지 -->
+const doSearch = (text) => {
+const q = text || query;
+if (!q.trim()) return;
+setSearched(true);
+setLoading(true);
+setShowResults(false);
+setTimeout(() => {
+setResults(getResults(q));
+setLoading(false);
+setTimeout(() => {
+setShowResults(true);
+resultsRef.current?.scrollIntoView({ behavior: “smooth”, block: “start” });
+}, 100);
+}, 1200);
+};
 
-  <div class="floating-emoji" style="left:8%;top:18%;font-size:28px;animation-delay:0s">📦</div>
-  <div class="floating-emoji" style="left:82%;top:12%;font-size:24px;animation-delay:1.2s">💳</div>
-  <div class="floating-emoji" style="left:15%;top:72%;font-size:22px;animation-delay:.6s">🏷️</div>
-  <div class="floating-emoji" style="left:88%;top:65%;font-size:26px;animation-delay:1.8s">⭐</div>
-  <div class="floating-emoji" style="left:50%;top:8%;font-size:20px;animation-delay:2.4s">🛒</div>
-  <div class="floating-emoji" style="left:75%;top:80%;font-size:22px;animation-delay:.3s">💡</div>
+const handleChip = (text) => {
+setQuery(text);
+doSearch(text);
+};
 
-  <header class="header">
-    <div class="logo-group">
-      <div class="logo-mark">T</div>
-      <span class="logo-text">ThisOne</span>
-    </div>
-    <span class="beta-badge">BETA</span>
-  </header>
+const handleKey = (e) => {
+if (e.key === “Enter”) doSearch();
+};
 
-  <!-- 초기 화면 -->
+const handleImage = (e) => {
+const f = e.target.files[0];
+if (f) {
+const r = new FileReader();
+r.onload = (ev) => setImagePreview(ev.target.result);
+r.readAsDataURL(f);
+}
+};
 
-  <main class="hero" id="heroSection">
-    <div class="hero-title">
-      <h1>고민 끝. <span class="gradient-text">This One.</span></h1>
-      <p class="hero-subtitle">리뷰, 배송, 평판까지 분석하고 — AI가 최선의 선택을 찾아드립니다</p>
-    </div>
+const StarRating = ({ rating }) => {
+const full = Math.floor(rating);
+const half = rating % 1 >= 0.5;
+return (
+<span className="stars">
+{“★”.repeat(full)}
+{half && “½”}
+<span className="star-num">{rating}</span>
+</span>
+);
+};
+
+return (
+<>
+<style>{`
+@import url(‘https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap’);
 
 ```
-<div class="search-wrapper">
-  <div class="search-box" id="searchBox">
-    <div class="img-preview-strip" id="imgStrip" style="display:none">
-      <div class="preview-thumb">
-        <img id="previewImg" src="" alt="">
-        <div class="preview-remove" onclick="removeImg()">✕</div>
-      </div>
-    </div>
-    <div class="search-inner">
-      <input class="search-input" id="searchInput" type="text"
-        placeholder="어떤 제품을 찾고 있나요?"
-        onfocus="document.getElementById('searchBox').classList.add('focused')"
-        onblur="document.getElementById('searchBox').classList.remove('focused')"
-        onkeydown="if(event.key==='Enter')sendMsg()">
-      <div class="search-actions">
-        <button class="icon-btn" onclick="document.getElementById('fileInput').click()">📷</button>
-        <button class="icon-btn submit-btn" id="sendBtn" onclick="sendMsg()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
-            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-  </div>
-  <p class="search-hint">예: <span>맘카페 반응 좋은 유모차</span> · <span>배송비 포함 가장 합리적인 공기청정기</span></p>
-</div>
+    *{margin:0;padding:0;box-sizing:border-box}
 
-<div class="chips-area">
-  <div class="chips-scroll">
-    <div class="chip" onclick="quick('에어팟 프로 2세대')"><span>🎧</span>에어팟 프로 2세대</div>
-    <div class="chip" onclick="quick('배송비 포함 가장 나은 공기청정기')"><span>💨</span>공기청정기</div>
-    <div class="chip" onclick="quick('맘카페 반응 좋은 유모차')"><span>🍼</span>맘카페 추천 유모차</div>
-    <div class="chip" onclick="quick('회사에서 쓸 프린터 유지비까지 고려해서')"><span>🖨️</span>유지비 포함 프린터</div>
-    <div class="chip" onclick="quick('30인치 산업용 선풍기 플라스틱 날개')"><span>🌀</span>산업용 선풍기</div>
-    <div class="chip" onclick="quick('다이슨 청소기 추천')"><span>🧹</span>다이슨 청소기</div>
+    :root {
+      --paper: #F4F1EC;
+      --white: #FFFFFF;
+      --warm: #E8E2D8;
+      --clay: #D4CBC0;
+      --stone: #9C9488;
+      --charcoal: #3D3A35;
+      --ink: #1A1917;
+      --ember: #E8553D;
+      --ember-soft: rgba(232,85,61,0.06);
+      --ember-light: rgba(232,85,61,0.12);
+      --teal: #2D9B8A;
+      --teal-soft: rgba(45,155,138,0.08);
+      --gold: #C4973B;
+      --gold-soft: rgba(196,151,59,0.08);
+    }
+
+    body {
+      background: var(--paper);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    .noise {
+      position: fixed; inset: 0; opacity: 0.25; pointer-events: none; z-index: 100;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-repeat: repeat; background-size: 256px;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* === HEADER === */
+    .hdr {
+      padding: 24px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(244,241,236,0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.3s;
+    }
+    .hdr.scrolled {
+      border-bottom-color: var(--warm);
+    }
+    .logo-area {
+      display: flex; align-items: center; gap: 12px; cursor: pointer;
+    }
+    .logo-icon {
+      width: 34px; height: 34px;
+      border: 2px solid var(--charcoal);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Instrument Serif', serif;
+      font-size: 18px; font-style: italic; color: var(--charcoal);
+      position: relative; overflow: hidden;
+    }
+    .logo-icon::after {
+      content:''; position:absolute; inset:0;
+      background: var(--ember);
+      transform: translateY(100%);
+      transition: transform 0.4s cubic-bezier(0.76,0,0.24,1);
+    }
+    .logo-area:hover .logo-icon::after { transform: translateY(0); }
+    .logo-icon span { position:relative;z-index:2;transition:color 0.3s; }
+    .logo-area:hover .logo-icon span { color:white; }
+    .logo-name {
+      font-family:'Instrument Serif',serif;
+      font-size: 21px; font-style: italic; color: var(--charcoal);
+    }
+    .badge {
+      padding: 3px 8px; font-size: 9px; font-weight: 700;
+      letter-spacing: 2px; color: var(--ember);
+      border: 1px solid var(--ember); border-radius: 4px;
+    }
+
+    /* === SEARCH SECTION === */
+    .search-section {
+      padding: 0 24px;
+      transition: all 0.5s cubic-bezier(0.4,0,0.2,1);
+    }
+    .search-section.initial {
+      padding-top: 18vh;
+      padding-bottom: 0;
+    }
+    .search-section.compact {
+      padding-top: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--warm);
+    }
+
+    .search-inner {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Hero text — only in initial state */
+    .hero-text {
+      text-align: center;
+      margin-bottom: 40px;
+      opacity: 1;
+      max-height: 200px;
+      transition: all 0.5s ease;
+      overflow: hidden;
+    }
+    .hero-text.hidden {
+      opacity: 0;
+      max-height: 0;
+      margin-bottom: 0;
+    }
+    .hero-label {
+      display: inline-block;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 3px; text-transform: uppercase;
+      color: var(--stone); margin-bottom: 16px;
+      position: relative;
+    }
+    .hero-label::before,.hero-label::after {
+      content:''; position:absolute; top:50%; width:20px; height:1px;
+      background: var(--clay);
+    }
+    .hero-label::before { right:calc(100% + 10px); }
+    .hero-label::after { left:calc(100% + 10px); }
+    .hero-title {
+      font-family:'Instrument Serif',serif;
+      font-size: 52px; font-weight:400; color:var(--charcoal);
+      line-height:1.1; letter-spacing:-2px; margin-bottom:12px;
+    }
+    .hero-title em {
+      font-style:italic; color:var(--ember); position:relative;
+    }
+    .hero-title em::after {
+      content:'';position:absolute;bottom:4px;left:0;right:0;
+      height:3px;background:var(--ember);opacity:0.3;border-radius:2px;
+    }
+    .hero-desc {
+      font-size: 14px; color:var(--stone); line-height:1.7; max-width:340px; margin:0 auto;
+    }
+
+    /* Search card */
+    .search-card {
+      background: var(--white);
+      border-radius: 14px;
+      border: 1.5px solid transparent;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03), 0 6px 24px rgba(0,0,0,0.04);
+      transition: all 0.4s ease;
+      overflow: hidden;
+    }
+    .search-card.active {
+      border-color: var(--ember);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03), 0 8px 32px rgba(232,85,61,0.07);
+    }
+    .img-strip { padding:10px 14px 0; display:flex; gap:8px; }
+    .img-thumb {
+      position:relative; width:48px;height:48px;
+      border-radius:7px; overflow:hidden; border:1px solid var(--warm);
+    }
+    .img-thumb img { width:100%;height:100%;object-fit:cover; }
+    .img-remove {
+      position:absolute;top:-4px;right:-4px;width:16px;height:16px;
+      border-radius:50%;background:var(--charcoal);color:white;font-size:8px;
+      display:flex;align-items:center;justify-content:center;cursor:pointer;
+      border:2px solid white;
+    }
+    .search-row { display:flex; align-items:center; padding:4px 4px 4px 0; }
+    .search-input {
+      flex:1; padding:14px 18px; border:none; outline:none; background:none;
+      font-size:14px; font-family:'Plus Jakarta Sans',sans-serif;
+      color:var(--charcoal); font-weight:400;
+    }
+    .search-input::placeholder { color:var(--clay); }
+    .s-actions { display:flex; align-items:center; gap:2px; }
+    .s-btn {
+      width:38px;height:38px;border:none;border-radius:9px;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      font-size:15px;background:none;color:var(--stone);transition:all 0.2s;
+    }
+    .s-btn:hover { background:var(--warm); color:var(--charcoal); }
+    .s-go {
+      background:var(--charcoal);color:var(--paper);margin-left:2px;
+    }
+    .s-go:hover { background:var(--ember);color:white;transform:scale(1.05); }
+    .s-go svg { width:15px;height:15px;transition:transform 0.2s; }
+    .s-go:hover svg { transform:translateX(2px); }
+
+    .search-hint {
+      text-align:center; margin-top:10px;
+      font-size:11px; color:var(--stone);
+    }
+
+    /* Chips */
+    .chips {
+      display:flex; flex-wrap:wrap; gap:7px;
+      justify-content:center; margin-top:20px;
+      transition: all 0.5s ease;
+    }
+    .chips.hidden { opacity:0; max-height:0; margin:0; overflow:hidden; }
+    .chip {
+      display:flex;align-items:center;gap:5px;
+      padding:7px 13px 7px 10px;
+      background:var(--white);border:1px solid var(--warm);
+      border-radius:100px;cursor:pointer;
+      font-size:12px;color:var(--charcoal);font-weight:500;
+      transition:all 0.25s ease;white-space:nowrap;user-select:none;
+    }
+    .chip:hover {
+      border-color:var(--ember);background:var(--ember-soft);
+      transform:translateY(-1px);
+    }
+    .chip-e { font-size:13px; }
+
+    /* === RESULTS SECTION === */
+    .results-section {
+      flex:1;
+      max-width: 640px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Loading */
+    .loading {
+      display:flex; flex-direction:column; align-items:center;
+      padding: 60px 0; gap: 16px;
+    }
+    .loading-spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--warm);
+      border-top-color: var(--ember);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .loading-text {
+      font-size: 13px; color: var(--stone); font-weight: 500;
+    }
+
+    /* Result cards */
+    .results-enter { animation: resultsIn 0.6s ease forwards; }
+    @keyframes resultsIn {
+      from { opacity:0; transform:translateY(20px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+
+    /* AI Pick card */
+    .pick-card {
+      background: var(--white);
+      border: 1.5px solid var(--ember-light);
+      border-radius: 16px;
+      padding: 24px;
+      margin-top: 28px;
+      position: relative;
+      box-shadow: 0 2px 8px rgba(232,85,61,0.04);
+    }
+    .pick-badge {
+      position: absolute;
+      top: -10px; left: 20px;
+      background: var(--ember);
+      color: white;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 1px;
+      padding: 4px 12px;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(232,85,61,0.3);
+    }
+    .pick-header {
+      display: flex; align-items: flex-start; gap: 16px;
+      margin-top: 6px;
+    }
+    .pick-emoji {
+      width: 60px; height: 60px;
+      background: var(--ember-soft);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; flex-shrink: 0;
+    }
+    .pick-info { flex:1; }
+    .pick-name {
+      font-size: 16px; font-weight: 700; color: var(--ink);
+      margin-bottom: 6px; line-height: 1.3;
+    }
+    .pick-meta {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .pick-price {
+      font-family:'Instrument Serif',serif;
+      font-size: 26px; color: var(--ember); font-style:italic;
+    }
+    .pick-original {
+      font-size: 13px; color: var(--clay);
+      text-decoration: line-through;
+    }
+    .pick-store {
+      font-size: 11px; font-weight:600; color:var(--teal);
+      background:var(--teal-soft); padding:3px 8px; border-radius:4px;
+    }
+    .pick-details {
+      display: flex; gap: 16px; margin-top: 14px; flex-wrap: wrap;
+    }
+    .pick-detail {
+      font-size: 12px; color: var(--stone); font-weight: 500;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .stars { color: var(--gold); font-size: 12px; letter-spacing: 1px; }
+    .star-num { color: var(--charcoal); font-weight: 600; margin-left: 3px; font-size: 12px; }
+    .pick-reason {
+      margin-top: 14px; padding-top: 14px;
+      border-top: 1px solid var(--warm);
+      font-size: 13px; color: var(--stone); line-height: 1.6;
+    }
+    .pick-reason strong { color: var(--charcoal); }
+
+    /* Analysis */
+    .analysis {
+      background: var(--white);
+      border: 1px solid var(--warm);
+      border-radius: 14px;
+      padding: 20px;
+      margin-top: 14px;
+    }
+    .analysis-title {
+      font-size: 12px; font-weight: 700; color: var(--charcoal);
+      letter-spacing: 1px; text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .analysis-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    .analysis-item {
+      padding: 12px;
+      background: var(--paper);
+      border-radius: 10px;
+    }
+    .analysis-item.full { grid-column: 1 / -1; }
+    .ai-label {
+      font-size: 10px; font-weight: 700; color: var(--stone);
+      letter-spacing: 1px; text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .ai-value {
+      font-size: 13px; color: var(--charcoal); line-height: 1.5;
+    }
+    .ai-score {
+      font-family:'Instrument Serif',serif;
+      font-size: 32px; color: var(--teal); font-style: italic;
+    }
+    .ai-score span {
+      font-size: 14px; color: var(--stone);
+      font-family:'Plus Jakarta Sans',sans-serif;
+      font-style:normal; font-weight:500;
+    }
+
+    /* Alternatives */
+    .alts-title {
+      font-size: 12px; font-weight: 700; color: var(--charcoal);
+      letter-spacing: 1px; text-transform: uppercase;
+      margin: 24px 0 12px;
+    }
+    .alt-card {
+      background: var(--white);
+      border: 1px solid var(--warm);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 8px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .alt-card:hover {
+      border-color: var(--clay);
+      transform: translateX(4px);
+    }
+    .alt-emoji {
+      width: 40px; height: 40px;
+      background: var(--paper);
+      border-radius: 10px;
+      display:flex;align-items:center;justify-content:center;
+      font-size: 18px; flex-shrink:0;
+    }
+    .alt-info { flex:1; }
+    .alt-name { font-size:13px; font-weight:600; color:var(--charcoal); margin-bottom:3px; }
+    .alt-sub {
+      font-size:11px; color:var(--stone);
+      display:flex; align-items:center; gap:8px;
+    }
+    .alt-price {
+      font-family:'Instrument Serif',serif;
+      font-size:18px; color:var(--charcoal); font-style:italic;
+      flex-shrink:0;
+    }
+
+    /* no results */
+    .no-results {
+      text-align:center; padding:60px 0;
+    }
+    .no-results-emoji { font-size:40px; margin-bottom:12px; }
+    .no-results-text {
+      font-size:14px; color:var(--stone); line-height:1.6;
+    }
+    .no-results-text strong { color:var(--charcoal); }
+
+    /* bottom spacing */
+    .bottom-pad { height: 60px; }
+
+    .hidden { display:none; }
+
+    @media (max-width:640px) {
+      .hero-title { font-size:38px; letter-spacing:-1px; }
+      .hero-desc { font-size:13px; }
+      .search-section.initial { padding-top:12vh; }
+      .chips {
+        flex-wrap:nowrap; overflow-x:auto;
+        justify-content:flex-start; padding-bottom:4px;
+        scrollbar-width:none;
+      }
+      .chips::-webkit-scrollbar{display:none}
+      .analysis-grid { grid-template-columns:1fr; }
+      .pick-header { flex-direction:column; }
+    }
+  `}</style>
+
+  <div className="app">
+    <div className="noise" />
+
+    {/* Header */}
+    <header className="hdr">
+      <div className="logo-area" onClick={() => {
+        setSearched(false); setResults(null); setQuery(""); setShowResults(false);
+      }}>
+        <div className="logo-icon"><span>T</span></div>
+        <span className="logo-name">ThisOne</span>
+      </div>
+      <div className="badge">BETA</div>
+    </header>
+
+    {/* Search Section */}
+    <section className={`search-section ${searched ? "compact" : "initial"}`}>
+      <div className="search-inner">
+        <div className={`hero-text ${searched ? "hidden" : ""}`}>
+          <div className="hero-label">구매결정 AI</div>
+          <h1 className="hero-title">고민 끝,<br /><em>This One.</em></h1>
+          <p className="hero-desc">리뷰 · 배송 · 평판까지 보고<br />AI가 최선의 선택을 찾아드립니다</p>
+        </div>
+
+        <div className={`search-card ${focused ? "active" : ""}`}>
+          {imagePreview && (
+            <div className="img-strip">
+              <div className="img-thumb">
+                <img src={imagePreview} alt="" />
+                <div className="img-remove" onClick={() => {
+                  setImagePreview(null);
+                  if (fileRef.current) fileRef.current.value = "";
+                }}>✕</div>
+              </div>
+            </div>
+          )}
+          <div className="search-row">
+            <input
+              className="search-input"
+              placeholder="어떤 제품을 찾고 있나요?"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              onKeyDown={handleKey}
+            />
+            <div className="s-actions">
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
+              <button className="s-btn" onClick={() => fileRef.current?.click()}>📷</button>
+              <button className="s-btn s-go" onClick={() => doSearch()}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M13 6l6 6-6 6"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {!searched && (
+          <p className="search-hint">예: 맘카페 반응 좋은 유모차 · 배송비 포함 가장 합리적인 공기청정기</p>
+        )}
+
+        <div className={`chips ${searched ? "hidden" : ""}`}>
+          {suggestions.map((s, i) => (
+            <div key={i} className="chip" onClick={() => handleChip(s.text)}>
+              <span className="chip-e">{s.emoji}</span>{s.text}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    {/* Results Section */}
+    <section className="results-section" ref={resultsRef}>
+      {loading && (
+        <div className="loading">
+          <div className="loading-spinner" />
+          <div className="loading-text">AI가 최적의 제품을 분석하고 있어요...</div>
+        </div>
+      )}
+
+      {!loading && showResults && results && (
+        <div className="results-enter">
+          {/* AI Pick */}
+          <div className="pick-card">
+            <div className="pick-badge">{results.pick.badge}</div>
+            <div className="pick-header">
+              <div className="pick-emoji">{results.pick.image}</div>
+              <div className="pick-info">
+                <div className="pick-name">{results.pick.name}</div>
+                <div className="pick-meta">
+                  <span className="pick-price">₩{results.pick.price}</span>
+                  <span className="pick-original">₩{results.pick.originalPrice}</span>
+                  <span className="pick-store">{results.pick.store}</span>
+                </div>
+                <div className="pick-details">
+                  <span className="pick-detail">
+                    <StarRating rating={results.pick.rating} />
+                    ({results.pick.reviews})
+                  </span>
+                  <span className="pick-detail">🚚 {results.pick.delivery}</span>
+                </div>
+              </div>
+            </div>
+            <div className="pick-reason">
+              <strong>AI 분석: </strong>{results.pick.reason}
+            </div>
+          </div>
+
+          {/* Analysis */}
+          <div className="analysis">
+            <div className="analysis-title">📊 종합 분석</div>
+            <div className="analysis-grid">
+              <div className="analysis-item full">
+                <div className="ai-label">리뷰 요약</div>
+                <div className="ai-value">{results.analysis.reviewSummary}</div>
+              </div>
+              <div className="analysis-item">
+                <div className="ai-label">가격 동향</div>
+                <div className="ai-value">{results.analysis.priceHistory}</div>
+              </div>
+              <div className="analysis-item">
+                <div className="ai-label">커뮤니티 평판</div>
+                <div className="ai-score">{results.analysis.communityScore}<span>/100</span></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Alternatives */}
+          <div className="alts-title">🔄 다른 선택지</div>
+          {results.others.map((alt, i) => (
+            <div key={i} className="alt-card">
+              <div className="alt-emoji">{alt.image}</div>
+              <div className="alt-info">
+                <div className="alt-name">{alt.name}</div>
+                <div className="alt-sub">
+                  <span>{alt.store}</span>
+                  <StarRating rating={alt.rating} />
+                </div>
+              </div>
+              <div className="alt-price">₩{alt.price}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!loading && showResults && !results && (
+        <div className="no-results">
+          <div className="no-results-emoji">🔍</div>
+          <div className="no-results-text">
+            <strong>"{query}"</strong>에 대한 결과를 준비 중입니다.<br />
+            데모에서는 <strong>"에어팟 프로 2세대"</strong> 칩을 눌러 체험해보세요.
+          </div>
+        </div>
+      )}
+    </section>
+
+    <div className="bottom-pad" />
   </div>
-</div>
+</>
 ```
 
-  </main>
-
-  <!-- 결과 영역 (검색 후) -->
-
-  <div class="results" id="results" style="display:none"></div>
-
-  <footer class="footer">
-    <strong>구매결정 AI</strong> · 최선의 선택을 도와드립니다
-  </footer>
-</div>
-<input type="file" id="fileInput" accept="image/*" onchange="handleImg(event)">
-
-<script>
-const MODEL='claude-sonnet-4-20250514';
-let pendingImg=null, loading=false, history=[];
-
-const PROMPT=`당신은 ThisOne 구매결정 AI입니다.
-사용자가 상품을 물어보면 웹 검색으로 네이버 쇼핑, 쿠팡 등에서 실제 가격을 찾아 분석하고, 반드시 아래 JSON 형식으로만 답하세요. JSON 외 다른 텍스트 없이.
-
-{
-  "pick": "추천 상품명",
-  "reasons": ["이유1(가격/배송)", "이유2(리뷰/평판)", "이유3(실용성)"],
-  "compare": [
-    {"name":"상품명","price":"가격","delivery":"배송","review":"⭐4.5"},
-    {"name":"상품명","price":"가격","delivery":"배송","review":"⭐4.2"}
-  ],
-  "rejects": [
-    {"name":"탈락상품명","reason":"탈락이유"}
-  ]
-}`;
-
-function quick(t){document.getElementById('searchInput').value=t;sendMsg();}
-
-function handleImg(e){
-  const file=e.target.files[0];if(!file)return;
-  const r=new FileReader();
-  r.onload=ev=>{
-    pendingImg={data:ev.target.result.split(',')[1],src:ev.target.result};
-    document.getElementById('previewImg').src=ev.target.result;
-    document.getElementById('imgStrip').style.display='flex';
-  };
-  r.readAsDataURL(file);e.target.value='';
+);
 }
-function removeImg(){pendingImg=null;document.getElementById('imgStrip').style.display='none';}
-
-async function sendMsg(){
-  if(loading)return;
-  const inp=document.getElementById('searchInput');
-  const txt=inp.value.trim();
-  if(!txt&&!pendingImg)return;
-
-  // 히어로 숨기고 결과 표시
-  document.getElementById('heroSection').style.display='none';
-  const resultsEl=document.getElementById('results');
-  resultsEl.style.display='block';
-
-  // 검색창을 상단에 고정으로 이동
-  const searchWrapper=document.querySelector('.search-wrapper');
-  const hdr=document.querySelector('.header');
-  hdr.after(searchWrapper);
-  searchWrapper.style.padding='12px 24px';
-  searchWrapper.style.borderBottom='1px solid rgba(255,255,255,.06)';
-  searchWrapper.style.position='sticky';
-  searchWrapper.style.top='73px';
-  searchWrapper.style.zIndex='99';
-  searchWrapper.style.background='var(--bg-primary)';
-
-  const uc=[];
-  if(pendingImg) uc.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:pendingImg.data}});
-  uc.push({type:'text',text:txt||'이 이미지 상품을 가격비교해줘'});
-
-  addUserQ(txt||'📷 이미지로 검색');
-  history.push({role:'user',content:uc});
-  inp.value='';removeImg();
-
-  loading=true;
-  document.getElementById('sendBtn').disabled=true;
-  const typingEl=addTyping();
-
-  try{
-    const res=await fetch('/api/chat',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:MODEL,max_tokens:1500,system:PROMPT,messages:history})
-    });
-    const data=await res.json();
-    typingEl.remove();
-    const raw=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
-    history.push({role:'assistant',content:raw});
-    try{
-      const j=JSON.parse(raw.replace(/```json|```/g,'').trim());
-      addResultCard(j);
-    }catch{addFallback(raw);}
-  }catch{
-    typingEl.remove();
-    addFallback('검색 중 오류가 발생했습니다. 다시 시도해주세요.');
-  }
-  loading=false;
-  document.getElementById('sendBtn').disabled=false;
-}
-
-function addUserQ(txt){
-  const d=document.createElement('div');
-  d.innerHTML=`<div class="user-q-label">🔍 검색</div><div class="user-q">${esc(txt)}</div>`;
-  document.getElementById('results').appendChild(d);
-  d.scrollIntoView({behavior:'smooth'});
-}
-
-function addResultCard(j){
-  const d=document.createElement('div');
-  let html=`<div class="pick-card">
-    <div class="pick-badge">✅ 이거요</div>
-    <div class="pick-title">${esc(j.pick)}</div>
-    <div class="pick-reasons">`;
-  (j.reasons||[]).forEach((r,i)=>{
-    html+=`<div class="pick-reason"><div class="reason-num">${i+1}</div><div class="reason-text">${esc(r)}</div></div>`;
-  });
-  html+=`</div></div>`;
-
-  if(j.compare?.length){
-    html+=`<div class="compare-card"><div class="compare-title">📊 비교</div>
-      <table class="compare-table"><tr><th>상품</th><th>가격</th><th>배송</th><th>리뷰</th></tr>`;
-    j.compare.forEach(c=>{
-      html+=`<tr><td>${esc(c.name)}</td><td>${esc(c.price)}</td><td>${esc(c.delivery)}</td><td>${esc(c.review)}</td></tr>`;
-    });
-    html+=`</table></div>`;
-  }
-
-  if(j.rejects?.length){
-    html+=`<div class="reject-card"><div class="reject-title">❌ 탈락 이유</div>`;
-    j.rejects.forEach(r=>{
-      html+=`<div class="reject-item">✕ <span class="reject-name">${esc(r.name)}</span>&nbsp;— ${esc(r.reason)}</div>`;
-    });
-    html+=`</div>`;
-  }
-  d.innerHTML=html;
-  document.getElementById('results').appendChild(d);
-  d.scrollIntoView({behavior:'smooth'});
-}
-
-function addFallback(txt){
-  const d=document.createElement('div');
-  d.innerHTML=`<div class="pick-card">${txt.replace(/\n/g,'<br>')}</div>`;
-  document.getElementById('results').appendChild(d);
-  d.scrollIntoView({behavior:'smooth'});
-}
-
-function addTyping(){
-  const d=document.createElement('div');
-  d.className='typing-card';
-  d.innerHTML=`<div class="typing"><span></span><span></span><span></span></div>`;
-  document.getElementById('results').appendChild(d);
-  d.scrollIntoView({behavior:'smooth'});
-  return d;
-}
-
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-</script>
-
-</body>
-</html>

@@ -212,17 +212,24 @@ background:linear-gradient(135deg,#4f46e5,#4338ca);color:#fff;
 font-size:11px;font-weight:700;border-radius:8px;padding:5px 12px;margin-bottom:14px;
 box-shadow:0 2px 8px var(–accent-glow);letter-spacing:.01em;
 }
-.pick-title{font-family:var(–display);font-size:19px;font-weight:700;color:var(–text1);margin-bottom:18px;line-height:1.4;letter-spacing:-.02em}
-.pick-reasons{display:flex;flex-direction:column;gap:12px}
-.pick-reason{display:flex;gap:12px;align-items:flex-start}
-.reason-num{
-width:24px;height:24px;border-radius:8px;
-background:rgba(79,70,229,.06);border:1px solid rgba(79,70,229,.12);
-color:var(–accent);font-size:11px;font-weight:700;
-display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;
-font-family:var(–mono);
+.pick-title{font-family:var(–display);font-size:19px;font-weight:700;color:var(–text1);margin-bottom:12px;line-height:1.4;letter-spacing:-.02em}
+.pick-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.pick-price{font-family:var(–display);font-size:20px;font-weight:800;color:var(–accent)}
+.pick-store{font-size:11px;font-weight:600;color:#0d9488;background:rgba(13,148,136,.08);padding:3px 8px;border-radius:4px}
+.pick-delivery{font-size:12px;color:var(–text2)}
+.pick-review{font-size:12px;color:var(–text2)}
+.pick-reason-text{font-size:13px;color:var(–text2);line-height:1.6;padding-top:10px;border-top:1px solid var(–border)}
+.pick-badge-sub{background:var(–bg-hover);color:var(–text2);box-shadow:none}
+.pick-first{border-color:rgba(79,70,229,.3)}
+
+/* Verdict */
+.verdict-card{
+background:linear-gradient(135deg,rgba(79,70,229,.04),rgba(13,148,136,.04));
+border:1.5px solid rgba(79,70,229,.15);
+border-radius:14px;padding:18px 20px;margin-bottom:12px;
 }
-.reason-text{font-size:13.5px;color:var(–text2);line-height:1.7}
+.verdict-label{font-size:13px;font-weight:700;color:var(–accent);margin-bottom:8px}
+.verdict-text{font-size:14px;color:var(–text1);line-height:1.7}
 
 .compare-card{
 background:var(–bg-card);border:1px solid var(–border);
@@ -387,13 +394,18 @@ let isSearchMode=false;
 const PROMPT=`당신은 ThisOne 구매결정 AI입니다.
 사용자가 상품을 물어보면 웹 검색으로 네이버 쇼핑, 쿠팡 등에서 실제 가격을 찾아 분석하고, 반드시 아래 JSON 형식으로만 답하세요. JSON 외 다른 텍스트 없이.
 
+3가지 관점에서 각각 최선의 상품을 추천하세요:
+- A안: 가성비 최고 (가격 우선)
+- B안: 믿을 수 있는 브랜드 (신뢰 우선)  
+- C안: ThisOne 추천 (종합 최선)
+
 {
-  "pick": "추천 상품명",
-  "reasons": ["이유1(가격/배송)", "이유2(리뷰/평판)", "이유3(실용성)"],
-  "compare": [
-    {"name":"상품명","price":"가격","delivery":"배송","review":"⭐4.5"},
-    {"name":"상품명","price":"가격","delivery":"배송","review":"⭐4.2"}
+  "picks": [
+    {"type":"A","label":"가성비 최고","name":"상품명","price":"가격","store":"판매처","delivery":"배송정보","review":"⭐4.5","reason":"추천 이유 한줄"},
+    {"type":"B","label":"신뢰 브랜드","name":"상품명","price":"가격","store":"판매처","delivery":"배송정보","review":"⭐4.8","reason":"추천 이유 한줄"},
+    {"type":"C","label":"ThisOne 추천","name":"상품명","price":"가격","store":"판매처","delivery":"배송정보","review":"⭐4.7","reason":"추천 이유 한줄"}
   ],
+  "verdict":"그래도 하나만 고르자면 — C안을 추천하는 이유 한두 문장",
   "rejects": [
     {"name":"탈락상품명","reason":"탈락이유"}
   ]
@@ -462,7 +474,7 @@ async function sendMsg(){
     const res=await fetch('/api/chat',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:MODEL,max_tokens:1500,system:PROMPT,messages:history})
+      body:JSON.stringify({model:MODEL,max_tokens:2000,system:PROMPT,messages:history})
     });
     const data=await res.json();
     typingEl.remove();
@@ -497,26 +509,34 @@ function addResultCard(j){
   const d=document.createElement('div');
   d.className='ai-result';
 
+  const icons={A:'💰',B:'🏆',C:'🎯'};
+  const colors={A:'#16a34a',B:'#2563eb',C:'var(--accent)'};
+
   let html=`<div class="ai-label"><div class="dot">T</div> ThisOne 분석</div>`;
 
-  html+=`<div class="pick-card">
-    <div class="pick-badge">✅ 이거요</div>
-    <div class="pick-title">${esc(j.pick)}</div>
-    <div class="pick-reasons">`;
-  (j.reasons||[]).forEach((r,i)=>{
-    html+=`<div class="pick-reason"><div class="reason-num">${i+1}</div><div class="reason-text">${esc(r)}</div></div>`;
-  });
-  html+=`</div></div>`;
-
-  if(j.compare&&j.compare.length){
-    html+=`<div class="compare-card">
-      <div class="compare-title">📊 비교</div>
-      <table class="compare-table">
-        <tr><th>상품</th><th>가격</th><th>배송</th><th>리뷰</th></tr>`;
-    j.compare.forEach(c=>{
-      html+=`<tr><td>${esc(c.name)}</td><td>${esc(c.price)}</td><td>${esc(c.delivery)}</td><td>${esc(c.review)}</td></tr>`;
+  if(j.picks&&j.picks.length){
+    j.picks.forEach(p=>{
+      const t=p.type||'C';
+      const isC=t==='C';
+      html+=`<div class="pick-card ${isC?'pick-first':''}">
+        <div class="pick-badge" style="${isC?'':'background:'+colors[t]+';box-shadow:none'}">${icons[t]||'🎯'} ${esc(t)}안 · ${esc(p.label)}</div>
+        <div class="pick-title">${esc(p.name)}</div>
+        <div class="pick-meta">
+          <span class="pick-price">${esc(p.price)}</span>
+          <span class="pick-store">${esc(p.store)}</span>
+          <span class="pick-delivery">🚚 ${esc(p.delivery)}</span>
+          <span class="pick-review">${esc(p.review)}</span>
+        </div>
+        <div class="pick-reason-text">${esc(p.reason)}</div>
+      </div>`;
     });
-    html+=`</table></div>`;
+  }
+
+  if(j.verdict){
+    html+=`<div class="verdict-card">
+      <div class="verdict-label">🎯 그래도 하나만 고르자면</div>
+      <div class="verdict-text">${esc(j.verdict)}</div>
+    </div>`;
   }
 
   if(j.rejects&&j.rejects.length){

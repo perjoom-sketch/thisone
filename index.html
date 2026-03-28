@@ -13,37 +13,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=DM+Mono:wght@400;500&family=Outfit:wght@400;500;600;700;800;900&display=swap');
 
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{background:#08090e}
+html,body{background:#08090e;overflow-x:hidden}
 body{color:#c9cdd8;font-family:‘Noto Sans KR’,sans-serif;min-height:100vh;
 -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 
-/* === NOISE === */
 body::before{content:’’;position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.35;
 background-image:url(“data:image/svg+xml,%3Csvg viewBox=‘0 0 256 256’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cfilter id=‘n’%3E%3CfeTurbulence type=‘fractalNoise’ baseFrequency=‘0.85’ numOctaves=‘4’ stitchTiles=‘stitch’/%3E%3C/filter%3E%3Crect width=‘100%25’ height=‘100%25’ filter=‘url(%23n)’ opacity=‘0.035’/%3E%3C/svg%3E”);
 background-repeat:repeat;background-size:200px}
 
-/* === SCROLLBAR === */
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#1e2235;border-radius:4px}
 
-/* === ACCENT VARS === */
 :root{
-–bg: #08090e;
-–bg-raised: #0e1018;
-–bg-card: #12141e;
-–bg-hover: #181b28;
-–border: #1a1d2e;
-–border-accent: rgba(110,96,255,.25);
-–accent: #6e60ff;
-–accent2: #3ecfb2;
-–accent-glow: rgba(110,96,255,.2);
-–red: #f05252;
-–text1: #eaecf3;
-–text2: #8b90a5;
-–text3: #4a4e65;
-–mono: ‘DM Mono’, monospace;
-–display: ‘Outfit’, sans-serif;
+–bg:#08090e;–bg-card:#12141e;–bg-hover:#181b28;
+–border:#1a1d2e;–border-accent:rgba(110,96,255,.25);
+–accent:#6e60ff;–accent2:#3ecfb2;–accent-glow:rgba(110,96,255,.2);
+–red:#f05252;
+–text1:#eaecf3;–text2:#8b90a5;–text3:#4a4e65;
+–mono:‘DM Mono’,monospace;–display:‘Outfit’,sans-serif;
 }
 
 /* === HEADER === */
@@ -51,7 +39,7 @@ background-repeat:repeat;background-size:200px}
 padding:14px 20px;display:flex;align-items:center;justify-content:space-between;
 border-bottom:1px solid var(–border);background:rgba(8,9,14,.82);
 backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
-position:sticky;top:0;z-index:100;
+position:fixed;top:0;left:0;right:0;z-index:100;height:55px;
 }
 .logo{display:flex;align-items:center;gap:11px;cursor:default}
 .logo-mark{
@@ -66,23 +54,39 @@ box-shadow:0 0 20px var(–accent-glow),inset 0 1px 0 rgba(255,255,255,.2);
 background:linear-gradient(135deg,#6e60ff,#3ecfb2);
 -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
 }
-.logo-sub{font-size:10px;color:var(–text3);margin-top:0;letter-spacing:.02em;font-weight:400}
+.logo-sub{font-size:10px;color:var(–text3);letter-spacing:.02em;font-weight:400}
 .badge{
 font-family:var(–mono);font-size:10px;letter-spacing:.08em;
 color:var(–accent);border:1px solid var(–border-accent);
 background:rgba(110,96,255,.06);border-radius:6px;padding:4px 10px;
 }
 
-/* === SEARCH AREA === */
-.search-area{
-padding:14px 20px 10px;background:rgba(8,9,14,.75);
-backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-border-bottom:1px solid var(–border);position:sticky;top:55px;z-index:99;
+/* ===================================================
+LANDING: 화면 중앙에 타이틀 + 검색 + 칩 모아놓기
+=================================================== */
+#landing{
+min-height:100vh;padding-top:55px;
+display:flex;flex-direction:column;
+align-items:center;justify-content:center;
 }
+
+#welcome{text-align:center;margin-bottom:28px;animation:fadeUp .6s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.welcome-icon{font-size:44px;margin-bottom:14px;filter:drop-shadow(0 4px 12px rgba(110,96,255,.3))}
+#welcome h2{
+font-family:var(–display);font-size:28px;font-weight:800;color:#fff;
+margin-bottom:10px;letter-spacing:-.04em;line-height:1.2;
+}
+#welcome h2 em{
+font-style:normal;
+background:linear-gradient(135deg,#6e60ff,#3ecfb2);
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+#welcome p{font-size:14px;color:var(–text3);line-height:1.8;font-weight:300}
+
+/* Search box (shared) */
 .search-box{
-max-width:580px;margin:0 auto;
-background:var(–bg-card);
-border:1.5px solid var(–border);
+background:var(–bg-card);border:1.5px solid var(–border);
 border-radius:14px;display:flex;align-items:center;
 padding:6px 6px 6px 18px;gap:6px;
 transition:border-color .3s,box-shadow .3s;
@@ -91,12 +95,12 @@ transition:border-color .3s,box-shadow .3s;
 border-color:var(–accent);
 box-shadow:0 0 0 3px rgba(110,96,255,.08),0 8px 32px rgba(0,0,0,.3);
 }
-#msgInput{
+.msg-input{
 flex:1;background:none;border:none;outline:none;
 font-family:‘Noto Sans KR’,sans-serif;font-size:15px;color:var(–text1);
 padding:8px 0;resize:none;max-height:100px;line-height:1.6;font-weight:400;
 }
-#msgInput::placeholder{color:var(–text3);font-weight:300}
+.msg-input::placeholder{color:var(–text3);font-weight:300}
 
 .img-btn{
 width:36px;height:36px;border-radius:9px;border:none;
@@ -118,48 +122,59 @@ box-shadow:0 2px 16px var(–accent-glow);transition:all .15s;
 .send-btn:active{transform:scale(.92)}
 .send-btn:disabled{background:var(–bg-hover);color:var(–text3);box-shadow:none}
 
-.search-hint{
-max-width:580px;margin:8px auto 0;font-size:10.5px;color:var(–text3);
-padding:0 4px;font-weight:300;letter-spacing:.01em;
-}
+/* Landing search wrapper */
+.search-wrap{width:100%;max-width:580px;padding:0 20px;animation:fadeUp .6s ease .1s both}
+.search-hint{margin:8px 0 0;font-size:10.5px;color:var(–text3);font-weight:300;letter-spacing:.01em}
 
-/* === CHIPS === */
-.chips{
-padding:10px 20px;display:flex;gap:6px;overflow-x:auto;
-border-bottom:1px solid var(–border);background:var(–bg);
-scrollbar-width:none;
+/* Image preview */
+.img-preview{
+display:none;margin:8px 0 0;
+background:rgba(110,96,255,.05);border:1px solid var(–border-accent);
+border-radius:10px;padding:8px 12px;align-items:center;gap:10px;
 }
-.chips::-webkit-scrollbar{display:none}
+.img-preview.show{display:flex}
+.pv-img{width:38px;height:38px;border-radius:8px;object-fit:cover;border:1px solid var(–border)}
+.pv-name{font-size:11px;color:var(–accent);flex:1;font-weight:500}
+.pv-del{
+background:none;border:none;color:var(–text3);font-size:15px;cursor:pointer;
+width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+transition:all .15s;
+}
+.pv-del:hover{background:rgba(240,82,82,.08);color:var(–red)}
+
+/* Chips */
+#chips{
+display:flex;gap:6px;flex-wrap:wrap;justify-content:center;
+margin-top:14px;max-width:580px;padding:0 20px;
+animation:fadeUp .6s ease .2s both;
+}
 .chip{
 background:var(–bg-card);border:1px solid var(–border);border-radius:100px;
 padding:7px 14px;font-size:12px;color:var(–text2);cursor:pointer;white-space:nowrap;
--webkit-tap-highlight-color:transparent;transition:all .2s;flex-shrink:0;font-weight:400;
+-webkit-tap-highlight-color:transparent;transition:all .2s;
 }
 .chip:hover{border-color:var(–border-accent);color:#b8b0ff;background:rgba(110,96,255,.05)}
 .chip:active{transform:scale(.96)}
 
-/* === CONTENT === */
-.content{padding:20px;max-width:700px;margin:0 auto;
-min-height:calc(100vh - 55px - 75px - 45px);
-display:flex;flex-direction:column;align-items:center;justify-content:center}
-.content.has-results{justify-content:flex-start}
-
-/* === WELCOME === */
-.welcome{text-align:center;padding:0 20px 60px;animation:fadeUp .8s ease}
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-.welcome-icon{font-size:44px;margin-bottom:14px;filter:drop-shadow(0 4px 12px rgba(110,96,255,.3))}
-.welcome h2{
-font-family:var(–display);font-size:28px;font-weight:800;color:#fff;
-margin-bottom:12px;letter-spacing:-.04em;line-height:1.2;
+/* ===================================================
+STICKY SEARCH: 검색 후 상단에 고정
+=================================================== */
+#stickySearch{
+display:none;
+position:sticky;top:55px;z-index:99;
+padding:12px 20px 10px;
+background:rgba(8,9,14,.82);
+backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+border-bottom:1px solid var(–border);
 }
-.welcome h2 em{
-font-style:normal;
-background:linear-gradient(135deg,#6e60ff,#3ecfb2);
--webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.welcome p{font-size:14px;color:var(–text3);line-height:1.8;font-weight:300}
+#stickySearch .search-box{max-width:580px;margin:0 auto}
+#stickySearch .img-preview{max-width:580px;margin:6px auto 0}
 
-/* === USER MSG === */
+/* ===================================================
+RESULTS
+=================================================== */
+.content{padding:20px;max-width:700px;margin:0 auto;display:none}
+
 .user-msg-wrap{animation:msgIn .4s ease}
 @keyframes msgIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .user-msg-label{
@@ -176,7 +191,6 @@ background:var(–bg-card);border:1px solid var(–border);border-radius:13px;
 padding:14px 18px;margin-bottom:24px;font-size:14px;color:var(–text2);line-height:1.6;
 }
 
-/* === AI RESULT === */
 .ai-result{margin-bottom:28px;animation:msgIn .5s ease}
 .ai-label{
 font-size:10px;color:var(–text3);margin-bottom:10px;
@@ -190,10 +204,8 @@ font-family:var(–display);font-size:9px;font-weight:800;color:#fff;
 box-shadow:0 0 10px var(–accent-glow);
 }
 
-/* === 이거요 카드 === */
 .pick-card{
-background:var(–bg-card);
-border:1.5px solid var(–border-accent);
+background:var(–bg-card);border:1.5px solid var(–border-accent);
 border-radius:16px;padding:22px;margin-bottom:12px;
 position:relative;overflow:hidden;
 }
@@ -217,9 +229,8 @@ color:var(–accent);font-size:11px;font-weight:700;
 display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;
 font-family:var(–mono);
 }
-.reason-text{font-size:13.5px;color:var(–text2);line-height:1.7;font-weight:400}
+.reason-text{font-size:13.5px;color:var(–text2);line-height:1.7}
 
-/* === 비교표 === */
 .compare-card{
 background:var(–bg-card);border:1px solid var(–border);
 border-radius:16px;overflow:hidden;margin-bottom:12px;
@@ -227,7 +238,6 @@ border-radius:16px;overflow:hidden;margin-bottom:12px;
 .compare-title{
 padding:14px 20px;font-size:12px;font-weight:600;color:var(–accent);
 border-bottom:1px solid var(–border);display:flex;align-items:center;gap:7px;
-letter-spacing:.01em;
 }
 .compare-table{width:100%;border-collapse:collapse}
 .compare-table th{
@@ -240,33 +250,27 @@ padding:12px 16px;font-size:13px;color:var(–text2);
 border-bottom:1px solid var(–border);transition:background .15s;
 }
 .compare-table tr:last-child td{border-bottom:none}
-.compare-table tr:first-child td{
-color:#b8b0ff;font-weight:600;
-background:rgba(110,96,255,.04);
-}
+.compare-table tr:first-child td{color:#b8b0ff;font-weight:600;background:rgba(110,96,255,.04)}
 .compare-table tr:hover td{background:rgba(255,255,255,.015)}
 
-/* === 탈락 카드 === */
 .reject-card{
 background:var(–bg-card);border:1px solid var(–border);
 border-radius:16px;padding:18px 20px;margin-bottom:12px;
 }
 .reject-title{
 font-size:12px;font-weight:600;color:var(–red);margin-bottom:14px;
-display:flex;align-items:center;gap:7px;letter-spacing:.01em;
+display:flex;align-items:center;gap:7px;
 }
 .reject-item{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}
 .reject-item:last-child{margin-bottom:0}
 .reject-dot{
 color:var(–red);margin-top:4px;flex-shrink:0;font-size:10px;
-width:16px;height:16px;border-radius:50%;
-background:rgba(240,82,82,.08);
+width:16px;height:16px;border-radius:50%;background:rgba(240,82,82,.08);
 display:flex;align-items:center;justify-content:center;
 }
 .reject-text{font-size:13px;color:var(–text3);line-height:1.65}
 .reject-name{color:var(–text2);font-weight:600}
 
-/* === TYPING === */
 .typing-wrap{
 background:var(–bg-card);border:1px solid var(–border);
 border-radius:16px;padding:22px;
@@ -274,8 +278,7 @@ border-radius:16px;padding:22px;
 .typing{display:flex;gap:6px;align-items:center}
 .typing span{
 width:6px;height:6px;border-radius:50%;
-background:var(–accent);animation:pulse 1.2s ease-in-out infinite;
-opacity:.4;
+background:var(–accent);animation:pulse 1.2s ease-in-out infinite;opacity:.4;
 }
 .typing span:nth-child(2){animation-delay:.2s}
 .typing span:nth-child(3){animation-delay:.4s}
@@ -284,31 +287,15 @@ opacity:.4;
 30%{transform:translateY(-6px);opacity:1}
 }
 
-/* === IMG PREVIEW === */
 #fileInput{display:none}
-.img-preview{
-display:none;margin:8px auto 0;max-width:580px;
-background:rgba(110,96,255,.05);border:1px solid var(–border-accent);
-border-radius:10px;padding:8px 12px;align-items:center;gap:10px;
-}
-.img-preview.show{display:flex}
-.pv-img{width:38px;height:38px;border-radius:8px;object-fit:cover;border:1px solid var(–border)}
-.pv-name{font-size:11px;color:var(–accent);flex:1;font-weight:500}
-.pv-del{
-background:none;border:none;color:var(–text3);font-size:15px;cursor:pointer;
-width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;
-transition:all .15s;
-}
-.pv-del:hover{background:rgba(240,82,82,.08);color:var(–red)}
 
-/* === MOBILE === */
 @media(max-width:640px){
 .hdr{padding:12px 16px}
-.search-area{padding:12px 16px 8px}
-.chips{padding:8px 16px}
+#welcome h2{font-size:24px}
+#chips{padding:0 16px}
+.search-wrap{padding:0 16px}
+#stickySearch{padding:10px 16px 8px}
 .content{padding:16px}
-.welcome{padding:0 16px 40px}
-.welcome h2{font-size:24px}
 .pick-title{font-size:17px}
 .compare-table th,.compare-table td{padding:9px 10px;font-size:11.5px}
 }
@@ -316,6 +303,8 @@ transition:all .15s;
 
 </head>
 <body>
+
+<!-- HEADER -->
 
 <div class="hdr">
   <div class="logo">
@@ -328,36 +317,58 @@ transition:all .15s;
   <div class="badge">BETA</div>
 </div>
 
-<div class="search-area">
-  <div class="search-box">
-    <textarea id="msgInput" placeholder="뭐 사면 될지 물어보세요" rows="1"
-      oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
-    <button class="img-btn" onclick="document.getElementById('fileInput').click()">📷</button>
-    <button class="send-btn" id="sendBtn" onclick="sendMsg()">↑</button>
-  </div>
-  <div class="img-preview" id="imgPreview">
-    <img class="pv-img" id="previewImg" src="" alt="">
-    <span class="pv-name" id="previewName"></span>
-    <button class="pv-del" onclick="removeImg()">✕</button>
-  </div>
-  <div class="search-hint">예: 맘카페 반응 좋은 유모차 &nbsp;·&nbsp; 배송비 포함 가장 합리적인 공기청정기</div>
-</div>
+<!-- LANDING -->
 
-<div class="chips" id="chips">
-  <div class="chip" onclick="quick('에어팟 프로 2세대')">🎧 에어팟 프로 2세대</div>
-  <div class="chip" onclick="quick('배송비 포함 가장 나은 공기청정기')">💨 공기청정기</div>
-  <div class="chip" onclick="quick('맘카페 반응 좋은 유모차')">🍼 맘카페 추천 유모차</div>
-  <div class="chip" onclick="quick('회사에서 쓸 프린터 유지비까지 고려해서')">🖨️ 유지비 포함 프린터</div>
-  <div class="chip" onclick="quick('30인치 산업용 선풍기 플라스틱 날개')">🌀 산업용 선풍기</div>
-</div>
-
-<div class="content" id="content">
-  <div class="welcome" id="welcome">
+<div id="landing">
+  <div id="welcome">
     <div class="welcome-icon">🎯</div>
     <h2>고민 끝. <em>This One.</em></h2>
     <p>리뷰, 배송, 평판까지 보고<br>AI가 최선의 선택을 찾아드립니다.</p>
   </div>
+
+  <div class="search-wrap" id="landingSearch">
+    <div class="search-box">
+      <textarea class="msg-input" id="msgInput" placeholder="뭐 사면 될지 물어보세요" rows="1"
+        oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+      <button class="img-btn" onclick="document.getElementById('fileInput').click()">📷</button>
+      <button class="send-btn" id="sendBtn" onclick="sendMsg()">↑</button>
+    </div>
+    <div class="img-preview" id="imgPreview">
+      <img class="pv-img" id="previewImg" src="" alt="">
+      <span class="pv-name" id="previewName"></span>
+      <button class="pv-del" onclick="removeImg()">✕</button>
+    </div>
+    <div class="search-hint">예: 맘카페 반응 좋은 유모차 &nbsp;·&nbsp; 배송비 포함 가장 합리적인 공기청정기</div>
+  </div>
+
+  <div id="chips">
+    <div class="chip" onclick="quick('에어팟 프로 2세대')">🎧 에어팟 프로 2세대</div>
+    <div class="chip" onclick="quick('배송비 포함 가장 나은 공기청정기')">💨 공기청정기</div>
+    <div class="chip" onclick="quick('맘카페 반응 좋은 유모차')">🍼 맘카페 추천 유모차</div>
+    <div class="chip" onclick="quick('회사에서 쓸 프린터 유지비까지 고려해서')">🖨️ 유지비 포함 프린터</div>
+    <div class="chip" onclick="quick('30인치 산업용 선풍기 플라스틱 날개')">🌀 산업용 선풍기</div>
+  </div>
 </div>
+
+<!-- STICKY SEARCH (검색 후) -->
+
+<div id="stickySearch">
+  <div class="search-box">
+    <textarea class="msg-input" id="msgInput2" placeholder="다른 상품도 물어보세요" rows="1"
+      oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+    <button class="img-btn" onclick="document.getElementById('fileInput').click()">📷</button>
+    <button class="send-btn" id="sendBtn2" onclick="sendMsg()">↑</button>
+  </div>
+  <div class="img-preview" id="imgPreview2">
+    <img class="pv-img" id="previewImg2" src="" alt="">
+    <span class="pv-name" id="previewName2"></span>
+    <button class="pv-del" onclick="removeImg()">✕</button>
+  </div>
+</div>
+
+<!-- RESULTS -->
+
+<div class="content" id="content"></div>
 
 <input type="file" id="fileInput" accept="image/*" onchange="handleImg(event)">
 
@@ -366,6 +377,7 @@ const MODEL='claude-sonnet-4-20250514';
 let pendingImg=null;
 let loading=false;
 let history=[];
+let isSearchMode=false;
 
 const PROMPT=`당신은 ThisOne 구매결정 AI입니다.
 사용자가 상품을 물어보면 웹 검색으로 네이버 쇼핑, 쿠팡 등에서 실제 가격을 찾아 분석하고, 반드시 아래 JSON 형식으로만 답하세요. JSON 외 다른 텍스트 없이.
@@ -382,6 +394,17 @@ const PROMPT=`당신은 ThisOne 구매결정 AI입니다.
   ]
 }`;
 
+function getInput(){return document.getElementById(isSearchMode?'msgInput2':'msgInput');}
+function getSendBtn(){return document.getElementById(isSearchMode?'sendBtn2':'sendBtn');}
+
+function switchToSearchMode(){
+  if(isSearchMode)return;
+  isSearchMode=true;
+  document.getElementById('landing').style.display='none';
+  document.getElementById('stickySearch').style.display='block';
+  document.getElementById('content').style.display='block';
+}
+
 function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
 function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
 function quick(t){document.getElementById('msgInput').value=t;autoResize(document.getElementById('msgInput'));sendMsg();}
@@ -391,23 +414,32 @@ function handleImg(e){
   const r=new FileReader();
   r.onload=ev=>{
     pendingImg={data:ev.target.result.split(',')[1],src:ev.target.result};
-    document.getElementById('previewImg').src=ev.target.result;
-    document.getElementById('previewName').textContent=file.name;
-    document.getElementById('imgPreview').classList.add('show');
+    ['','2'].forEach(s=>{
+      const el=document.getElementById('previewImg'+s);
+      const nm=document.getElementById('previewName'+s);
+      const pv=document.getElementById('imgPreview'+s);
+      if(el)el.src=ev.target.result;
+      if(nm)nm.textContent=file.name;
+      if(pv)pv.classList.add('show');
+    });
   };
   r.readAsDataURL(file);e.target.value='';
 }
-function removeImg(){pendingImg=null;document.getElementById('imgPreview').classList.remove('show');}
+function removeImg(){
+  pendingImg=null;
+  ['','2'].forEach(s=>{
+    const pv=document.getElementById('imgPreview'+s);
+    if(pv)pv.classList.remove('show');
+  });
+}
 
 async function sendMsg(){
   if(loading)return;
-  const inp=document.getElementById('msgInput');
+  const inp=getInput();
   const txt=inp.value.trim();
   if(!txt&&!pendingImg)return;
 
-  document.getElementById('welcome')?.remove();
-  document.getElementById('chips').style.display='none';
-  document.getElementById('content').classList.add('has-results');
+  switchToSearchMode();
 
   const uc=[];
   if(pendingImg)uc.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:pendingImg.data}});
@@ -418,7 +450,7 @@ async function sendMsg(){
   inp.value='';autoResize(inp);removeImg();
 
   loading=true;
-  document.getElementById('sendBtn').disabled=true;
+  getSendBtn().disabled=true;
   const typingEl=addTyping();
 
   try{
@@ -443,7 +475,8 @@ async function sendMsg(){
     addFallback('검색 중 오류가 발생했습니다. 다시 시도해주세요.');
   }
   loading=false;
-  document.getElementById('sendBtn').disabled=false;
+  getSendBtn().disabled=false;
+  getInput().focus();
 }
 
 function addUserMsg(txt,imgSrc){

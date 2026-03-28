@@ -340,7 +340,6 @@ async function sendMessage(){
         model:CLAUDE_MODEL,
         max_tokens:1500,
         system:SYSTEM_PROMPT,
-        tools:[{type:'web_search_20250305',name:'web_search'}],
         messages:conversationHistory
       })
     });

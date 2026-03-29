@@ -14,6 +14,7 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { background: #F5F5F3; overflow-x: hidden; }
+
     body {
       color: #1a1a1a;
       font-family: 'Noto Sans KR', sans-serif;
@@ -53,7 +54,9 @@
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       position: fixed;
-      top: 0; left: 0; right: 0;
+      top: 0;
+      left: 0;
+      right: 0;
       z-index: 100;
       height: 55px;
     }
@@ -253,6 +256,7 @@
     }
 
     .send-btn:active { transform: scale(.92); }
+
     .send-btn:disabled {
       background: #d1d5db;
       color: #9ca3af;
@@ -381,4 +385,1020 @@
 
     @keyframes msgIn {
       from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translate
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .user-msg-label {
+      font-size: 10px;
+      color: var(--text3);
+      margin-bottom: 7px;
+      font-family: var(--mono);
+      letter-spacing: .04em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .user-msg-label::before {
+      content: '';
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(0,0,0,.04);
+      display: inline-flex;
+    }
+
+    .user-msg {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      color: var(--text2);
+      line-height: 1.6;
+      box-shadow: 0 1px 4px rgba(0,0,0,.03);
+    }
+
+    .ai-result {
+      margin-bottom: 28px;
+      animation: msgIn .5s ease;
+    }
+
+    .ai-label {
+      font-size: 10px;
+      color: var(--text3);
+      margin-bottom: 10px;
+      font-family: var(--mono);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      letter-spacing: .04em;
+    }
+
+    .ai-label .dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, #4f46e5, #0d9488);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+
+    .pick-card-link {
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
+    .pick-card {
+      background: var(--bg-card);
+      border: 1.5px solid var(--border-accent);
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 12px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(79,70,229,.05);
+      transition: transform .15s, box-shadow .15s, border-color .15s;
+    }
+
+    .pick-card-link:hover .pick-card {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(79,70,229,.09);
+    }
+
+    .pick-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #4f46e5, #0d9488, transparent);
+    }
+
+    .pick-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: linear-gradient(135deg, #4f46e5, #4338ca);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 8px;
+      padding: 5px 12px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 8px var(--accent-glow);
+      letter-spacing: .01em;
+    }
+
+    .pick-title {
+      font-family: var(--display);
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--text1);
+      margin-bottom: 12px;
+      line-height: 1.4;
+      letter-spacing: -.02em;
+    }
+
+    .pick-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .pick-price {
+      font-family: var(--display);
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .pick-store {
+      font-size: 11px;
+      font-weight: 600;
+      color: #0d9488;
+      background: rgba(13,148,136,.08);
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    .pick-delivery,
+    .pick-review {
+      font-size: 12px;
+      color: var(--text2);
+    }
+
+    .pick-reason-text {
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.6;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    .pick-first { border-color: rgba(79,70,229,.3); }
+
+    .pick-body {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .pick-media {
+      width: 90px;
+      flex-shrink: 0;
+    }
+
+    .pick-img {
+      width: 90px;
+      height: 90px;
+      border-radius: 10px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+      background: var(--bg-hover);
+      display: block;
+    }
+
+    .pick-img-placeholder {
+      width: 90px;
+      height: 90px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg-hover);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+
+    .pick-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .verdict-card {
+      background: linear-gradient(135deg, rgba(79,70,229,.04), rgba(13,148,136,.04));
+      border: 1.5px solid rgba(79,70,229,.15);
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 12px;
+    }
+
+    .verdict-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .verdict-text {
+      font-size: 14px;
+      color: var(--text1);
+      line-height: 1.7;
+    }
+
+    .reject-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.03);
+    }
+
+    .reject-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--red);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .reject-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .reject-item:last-child { margin-bottom: 0; }
+
+    .reject-dot {
+      color: var(--red);
+      margin-top: 4px;
+      flex-shrink: 0;
+      font-size: 10px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(239,68,68,.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .reject-text {
+      font-size: 13px;
+      color: var(--text3);
+      line-height: 1.65;
+    }
+
+    .reject-name {
+      color: var(--text2);
+      font-weight: 600;
+    }
+
+    .typing-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.03);
+      text-align: center;
+    }
+
+    .typing-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .typing-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin-bottom: 4px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .typing-msg {
+      font-size: 13px;
+      color: var(--text2);
+      font-weight: 400;
+      animation: typingFade 2s ease-in-out infinite;
+    }
+
+    .typing-sub {
+      font-size: 11px;
+      color: var(--text3);
+      font-weight: 300;
+    }
+
+    @keyframes typingFade {
+      0%, 100% { opacity: .6; }
+      50% { opacity: 1; }
+    }
+
+    .history-bar {
+      max-width: 640px;
+      margin: 0 auto 14px;
+      padding: 4px 0;
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .history-bar::-webkit-scrollbar { display: none; }
+
+    .history-chip {
+      flex-shrink: 0;
+      padding: 5px 12px;
+      border-radius: 100px;
+      font-size: 11px;
+      color: var(--text3);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all .2s;
+    }
+
+    .history-chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    #fileInput { display: none; }
+
+    @media (max-width: 640px) {
+      .hdr { padding: 12px 16px; height: 50px; }
+
+      #landing {
+        padding-top: 50px;
+        min-height: 0;
+        justify-content: flex-start;
+        padding-bottom: 40px;
+      }
+
+      #welcome { margin-top: 28px; margin-bottom: 18px; }
+      #welcome h2 { font-size: 22px; }
+      #welcome p { font-size: 13px; }
+      .welcome-icon { margin-bottom: 10px; }
+      .welcome-icon svg { width: 48px; height: 48px; }
+      #chips { padding: 0 16px; gap: 8px; }
+      .chip { padding: 8px 14px; font-size: 12.5px; }
+      .search-wrap { padding: 0 16px; }
+      .search-hint { font-size: 10px; }
+      #stickySearch { padding: 10px 16px 8px; top: 50px; }
+      .content { padding: 16px; }
+      .pick-title { font-size: 17px; }
+      .pick-media,
+      .pick-img,
+      .pick-img-placeholder { width: 70px; height: 70px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="hdr">
+    <div class="logo" onclick="goHome()">
+      <div class="logo-mark">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <defs>
+            <linearGradient id="lg" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#4f46e5"></stop>
+              <stop offset="1" stop-color="#0d9488"></stop>
+            </linearGradient>
+          </defs>
+          <circle cx="12" cy="12" r="7" stroke="url(#lg)" stroke-width="1.8" fill="none" opacity=".5"></circle>
+          <circle cx="12" cy="12" r="2" fill="url(#lg)"></circle>
+          <line x1="12" y1="1" x2="12" y2="5" stroke="url(#lg)" stroke-width="1.8" stroke-linecap="round"></line>
+          <line x1="12" y1="19" x2="12" y2="23" stroke="url(#lg)" stroke-width="1.8" stroke-linecap="round"></line>
+          <line x1="1" y1="12" x2="5" y2="12" stroke="url(#lg)" stroke-width="1.8" stroke-linecap="round"></line>
+          <line x1="19" y1="12" x2="23" y2="12" stroke="url(#lg)" stroke-width="1.8" stroke-linecap="round"></line>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-name">This<span>One</span></div>
+        <div class="logo-sub">구매결정 AI · 최선의 선택</div>
+      </div>
+    </div>
+    <div class="badge">BETA</div>
+  </div>
+
+  <div id="landing">
+    <div id="welcome">
+      <div class="welcome-icon">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="glow" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#6366f1"></stop>
+              <stop offset="1" stop-color="#06b6d4"></stop>
+            </linearGradient>
+            <radialGradient id="center-glow" cx="32" cy="32" r="16" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#a5b4fc" stop-opacity=".6"></stop>
+              <stop offset="1" stop-color="#6366f1" stop-opacity="0"></stop>
+            </radialGradient>
+          </defs>
+          <circle cx="32" cy="32" r="22" stroke="url(#glow)" stroke-width="3" fill="none" opacity=".35"></circle>
+          <circle cx="32" cy="32" r="14" stroke="url(#glow)" stroke-width="2.5" fill="none" opacity=".6"></circle>
+          <circle cx="32" cy="32" r="12" fill="url(#center-glow)"></circle>
+          <circle cx="32" cy="32" r="4" fill="url(#glow)"></circle>
+          <line x1="32" y1="4" x2="32" y2="16" stroke="url(#glow)" stroke-width="2.5" stroke-linecap="round" opacity=".7"></line>
+          <line x1="32" y1="48" x2="32" y2="60" stroke="url(#glow)" stroke-width="2.5" stroke-linecap="round" opacity=".7"></line>
+          <line x1="4" y1="32" x2="16" y2="32" stroke="url(#glow)" stroke-width="2.5" stroke-linecap="round" opacity=".7"></line>
+          <line x1="48" y1="32" x2="60" y2="32" stroke="url(#glow)" stroke-width="2.5" stroke-linecap="round" opacity=".7"></line>
+        </svg>
+      </div>
+      <h2>고민 끝. <em>This One.</em></h2>
+      <p>구매결정 AI "디스원"<br>수량, 배송비, 리뷰까지 꼼꼼히 살펴보고<br>가장 좋은 것으로 추천해 드려요.</p>
+    </div>
+
+    <div class="search-wrap" id="landingSearch">
+      <div class="search-box">
+        <textarea class="msg-input" id="msgInput" placeholder="뭐 사면 될지 물어보세요" rows="1" oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+        <button class="img-btn" type="button" onclick="document.getElementById('fileInput').click()">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="4"></circle>
+          </svg>
+        </button>
+        <button class="send-btn" id="sendBtn" type="button" onclick="sendMsg()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="img-preview" id="imgPreview">
+        <img class="pv-img" id="previewImg" src="" alt="">
+        <span class="pv-name" id="previewName"></span>
+        <button class="pv-del" type="button" onclick="removeImg()">✕</button>
+      </div>
+
+      <div class="search-hint">예: 맘카페 반응 좋은 유모차 · 배송비 포함 가장 합리적인 공기청정기</div>
+    </div>
+
+    <div id="chips">
+      <div class="chip" onclick="quick('에어팟 프로 2세대')">🎧 에어팟 프로 2세대</div>
+      <div class="chip" onclick="quick('배송비 포함 가장 나은 공기청정기')">💨 공기청정기</div>
+      <div class="chip" onclick="quick('맘카페 반응 좋은 유모차')">🍼 맘카페 추천 유모차</div>
+      <div class="chip" onclick="quick('회사에서 쓸 프린터 유지비까지 고려해서')">🖨️ 유지비 포함 프린터</div>
+      <div class="chip" onclick="quick('30인치 산업용 선풍기 플라스틱 날개')">🌀 산업용 선풍기</div>
+    </div>
+  </div>
+
+  <div id="stickySearch">
+    <div class="search-box">
+      <textarea class="msg-input" id="msgInput2" placeholder="다른 상품도 물어보세요" rows="1" oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+      <button class="img-btn" type="button" onclick="document.getElementById('fileInput').click()">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+          <circle cx="12" cy="13" r="4"></circle>
+        </svg>
+      </button>
+      <button class="send-btn" id="sendBtn2" type="button" onclick="sendMsg()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"></circle>
+          <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="img-preview" id="imgPreview2">
+      <img class="pv-img" id="previewImg2" src="" alt="">
+      <span class="pv-name" id="previewName2"></span>
+      <button class="pv-del" type="button" onclick="removeImg()">✕</button>
+    </div>
+  </div>
+
+  <div class="content" id="content"></div>
+  <input type="file" id="fileInput" accept="image/*" onchange="handleImg(event)">
+
+  <script>
+    const MODEL = 'claude-sonnet-4-20250514';
+    const MINI_SCOPE = '<svg width="10" height="10" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="14" stroke="#fff" stroke-width="4" fill="none" opacity=".7"/><circle cx="32" cy="32" r="5" fill="#fff"/><line x1="32" y1="6" x2="32" y2="18" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="32" y1="46" x2="32" y2="58" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="6" y1="32" x2="18" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="46" y1="32" x2="58" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/></svg>';
+
+    let pendingImg = null;
+    let loading = false;
+    let history = [];
+    let isSearchMode = false;
+    let searchHistory = [];
+
+    const PROMPT = `당신은 ThisOne 구매결정 AI입니다.
+절대 <cite>, </cite>, <b>, </b> 같은 태그를 출력하지 마세요.
+모든 값은 순수한 텍스트만 사용하세요.
+
+사용자가 상품을 물어보면 웹 검색으로 실제 정보를 찾아 분석하고, 반드시 아래 JSON 형식으로만 답하세요. JSON 외 다른 텍스트 없이.
+
+3가지 관점에서 각각 최선의 상품을 추천하세요:
+- 가성비 최고 (가격 우선)
+- 신뢰 브랜드 (브랜드/신뢰 우선)
+- ThisOne 추천 (종합 최선)
+
+중요:
+- image 필드에는 가능하면 실제 상품 이미지 URL을 넣으세요.
+- link 필드에는 실제 상품 구매 링크를 넣으세요.
+- 값이 없으면 빈 문자열("")로 넣으세요.
+
+{
+  "picks": [
+    {
+      "type":"A",
+      "label":"가성비 최고",
+      "name":"상품명",
+      "price":"가격",
+      "store":"판매처",
+      "delivery":"배송정보",
+      "review":"⭐4.5",
+      "reason":"추천 이유 한줄",
+      "image":"실제 상품 이미지 URL",
+      "link":"실제 상품 구매 링크"
+    },
+    {
+      "type":"B",
+      "label":"신뢰 브랜드",
+      "name":"상품명",
+      "price":"가격",
+      "store":"판매처",
+      "delivery":"배송정보",
+      "review":"⭐4.8",
+      "reason":"추천 이유 한줄",
+      "image":"실제 상품 이미지 URL",
+      "link":"실제 상품 구매 링크"
+    },
+    {
+      "type":"C",
+      "label":"ThisOne 추천",
+      "name":"상품명",
+      "price":"가격",
+      "store":"판매처",
+      "delivery":"배송정보",
+      "review":"⭐4.7",
+      "reason":"추천 이유 한줄",
+      "image":"실제 상품 이미지 URL",
+      "link":"실제 상품 구매 링크"
+    }
+  ],
+  "verdict":"그래도 하나만 고르자면 — 추천하는 이유 한두 문장",
+  "rejects": [
+    {"name":"탈락상품명","reason":"탈락이유"}
+  ]
+}`;
+
+    function getInput() {
+      return document.getElementById(isSearchMode ? 'msgInput2' : 'msgInput');
+    }
+
+    function getSendBtn() {
+      return document.getElementById(isSearchMode ? 'sendBtn2' : 'sendBtn');
+    }
+
+    function goHome() {
+      isSearchMode = false;
+      document.getElementById('landing').style.display = '';
+      document.getElementById('stickySearch').style.display = 'none';
+      document.getElementById('content').style.display = 'none';
+      document.getElementById('content').innerHTML = '';
+    }
+
+    function switchToSearchMode() {
+      if (isSearchMode) return;
+      isSearchMode = true;
+      document.getElementById('landing').style.display = 'none';
+      document.getElementById('stickySearch').style.display = 'block';
+      document.getElementById('content').style.display = 'block';
+    }
+
+    function autoResize(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+    }
+
+    function handleKey(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMsg();
+      }
+    }
+
+    function quick(t) {
+      document.getElementById('msgInput').value = t;
+      autoResize(document.getElementById('msgInput'));
+      sendMsg();
+    }
+
+    function handleImg(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const r = new FileReader();
+      r.onload = (ev) => {
+        pendingImg = {
+          data: ev.target.result.split(',')[1],
+          src: ev.target.result
+        };
+
+        ['', '2'].forEach((s) => {
+          const el = document.getElementById('previewImg' + s);
+          const nm = document.getElementById('previewName' + s);
+          const pv = document.getElementById('imgPreview' + s);
+
+          if (el) el.src = ev.target.result;
+          if (nm) nm.textContent = file.name;
+          if (pv) pv.classList.add('show');
+        });
+      };
+
+      r.readAsDataURL(file);
+      e.target.value = '';
+    }
+
+    function removeImg() {
+      pendingImg = null;
+      ['', '2'].forEach((s) => {
+        const pv = document.getElementById('imgPreview' + s);
+        if (pv) pv.classList.remove('show');
+      });
+    }
+
+    async function safeFetchJson(url, options) {
+      const res = await fetch(url, options);
+      const text = await res.text();
+
+      if (!res.ok) {
+        throw new Error(text || `HTTP ${res.status}`);
+      }
+
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        throw new Error(`JSON 파싱 실패: ${text}`);
+      }
+    }
+
+    function stripCitations(text) {
+      return String(text || '')
+        .replace(/<cite\b[^>]*>/gi, '')
+        .replace(/<\/cite>/gi, '')
+        .replace(/<b>/gi, '')
+        .replace(/<\/b>/gi, '')
+        .trim();
+    }
+
+    function deepClean(value) {
+      if (typeof value === 'string') {
+        return stripCitations(value);
+      }
+      if (Array.isArray(value)) {
+        return value.map(deepClean);
+      }
+      if (value && typeof value === 'object') {
+        const out = {};
+        for (const key in value) {
+          out[key] = deepClean(value[key]);
+        }
+        return out;
+      }
+      return value;
+    }
+
+    async function sendMsg() {
+      if (loading) return;
+
+      const inp = getInput();
+      const txt = inp.value.trim();
+      if (!txt && !pendingImg) return;
+
+      switchToSearchMode();
+      document.getElementById('content').innerHTML = '';
+
+      if (txt) searchHistory.push(txt);
+
+      const uc = [];
+      if (pendingImg) {
+        uc.push({
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: 'image/jpeg',
+            data: pendingImg.data
+          }
+        });
+      }
+
+      uc.push({
+        type: 'text',
+        text: txt || '이 이미지 상품을 가격비교해줘'
+      });
+
+      renderHistoryBar();
+      addUserMsg(txt || '📷 이미지로 검색', pendingImg?.src);
+      history.push({ role: 'user', content: uc });
+
+      inp.value = '';
+      autoResize(inp);
+      removeImg();
+
+      loading = true;
+      getSendBtn().disabled = true;
+      const typingEl = addTyping();
+
+      try {
+        let data;
+
+        try {
+          data = await safeFetchJson('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: MODEL,
+              max_tokens: 4096,
+              system: PROMPT,
+              messages: history,
+              tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }]
+            })
+          });
+
+          if (data.error) {
+            throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error));
+          }
+        } catch (err) {
+          console.warn('웹 검색 포함 요청 실패, 일반 요청으로 재시도:', err);
+
+          data = await safeFetchJson('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: MODEL,
+              max_tokens: 4096,
+              system: PROMPT,
+              messages: history
+            })
+          });
+        }
+
+        typingEl.remove();
+
+        if (data.error) {
+          addFallback('API 오류: ' + (typeof data.error === 'string' ? data.error : JSON.stringify(data.error)));
+        } else {
+          const raw = Array.isArray(data.content)
+            ? data.content.filter((b) => b.type === 'text').map((b) => b.text).join('')
+            : '';
+
+          history.push({ role: 'assistant', content: raw });
+
+          try {
+            let clean = raw.replace(/```json|```/g, '').trim();
+            const jsonMatch = clean.match(/\{[\s\S]*\}/);
+            if (jsonMatch) clean = jsonMatch[0];
+
+            const j = JSON.parse(clean);
+            const cleaned = deepClean(j);
+            addResultCard(cleaned);
+          } catch (e) {
+            addFallback(raw || '응답을 파싱할 수 없습니다.');
+          }
+        }
+      } catch (err) {
+        typingEl.remove();
+        addFallback('검색 중 오류: ' + err.message);
+      }
+
+      loading = false;
+      getSendBtn().disabled = false;
+      getInput().focus();
+    }
+
+    function renderHistoryBar() {
+      if (searchHistory.length < 2) return;
+
+      let existing = document.getElementById('historyBar');
+      if (existing) existing.remove();
+
+      const bar = document.createElement('div');
+      bar.className = 'history-bar';
+      bar.id = 'historyBar';
+
+      searchHistory.slice(-10).forEach((q) => {
+        const c = document.createElement('div');
+        c.className = 'history-chip';
+        c.textContent = '🔍 ' + q;
+        c.onclick = () => {
+          document.getElementById('msgInput2').value = q;
+          autoResize(document.getElementById('msgInput2'));
+          sendMsg();
+        };
+        bar.appendChild(c);
+      });
+
+      document.getElementById('content').appendChild(bar);
+    }
+
+    function addUserMsg(txt, imgSrc) {
+      const d = document.createElement('div');
+      d.className = 'user-msg-wrap';
+      d.innerHTML = `
+        <div class="user-msg-label">🔍 검색</div>
+        <div class="user-msg">
+          ${imgSrc ? `<img src="${escAttr(imgSrc)}" style="max-width:160px;border-radius:8px;margin-bottom:8px;display:block;" alt="preview">` : ''}
+          ${esc(txt)}
+        </div>
+      `;
+      document.getElementById('content').appendChild(d);
+      d.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function addResultCard(j) {
+      const d = document.createElement('div');
+      d.className = 'ai-result';
+
+      const icons = { A: '💰', B: '🏆', C: '🎯' };
+      const colors = { A: '#16a34a', B: '#2563eb', C: 'var(--accent)' };
+
+      let html = `<div class="ai-label"><div class="dot">${MINI_SCOPE}</div> ThisOne 분석</div>`;
+
+      if (j.picks && j.picks.length) {
+        j.picks.forEach((p) => {
+          const t = p.type || 'C';
+          const isC = t === 'C';
+          const initial = p.name ? p.name.charAt(0) : '?';
+
+          const bgColors = { A: '#dcfce7', B: '#dbeafe', C: '#ede9fe' };
+          const fgColors = { A: '#16a34a', B: '#2563eb', C: '#4f46e5' };
+
+          const placeholderHtml = `
+            <div class="pick-img-placeholder" style="background:${bgColors[t]};color:${fgColors[t]};font-weight:700;font-size:22px;">
+              ${esc(initial)}
+            </div>
+          `;
+
+          const imgHtml = p.image
+            ? `
+              <div class="pick-media">
+                <img
+                  class="pick-img"
+                  src="${escAttr(p.image)}"
+                  alt="${escAttr(p.name)}"
+                  referrerpolicy="no-referrer"
+                  loading="lazy"
+                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                >
+                <div class="pick-img-placeholder" style="display:none;background:${bgColors[t]};color:${fgColors[t]};font-weight:700;font-size:22px;">
+                  ${esc(initial)}
+                </div>
+              </div>
+            `
+            : `<div class="pick-media">${placeholderHtml}</div>`;
+
+          const cardStart = p.link
+            ? `<a class="pick-card-link" href="${escAttr(p.link)}" target="_blank" rel="noopener noreferrer">`
+            : '';
+          const cardEnd = p.link ? '</a>' : '';
+
+          html += `
+            ${cardStart}
+            <div class="pick-card ${isC ? 'pick-first' : ''}">
+              <div class="pick-badge" style="${isC ? '' : 'background:' + colors[t] + ';box-shadow:none'}">${icons[t] || '🎯'} ${esc(p.label)}</div>
+              <div class="pick-body">
+                ${imgHtml}
+                <div class="pick-info">
+                  <div class="pick-title">${esc(p.name)}</div>
+                  <div class="pick-meta">
+                    <span class="pick-price">${esc(p.price)}</span>
+                    <span class="pick-store">${esc(p.store)}</span>
+                    <span class="pick-delivery">🚚 ${esc(p.delivery)}</span>
+                    <span class="pick-review">${esc(p.review)}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="pick-reason-text">${esc(p.reason)}</div>
+            </div>
+            ${cardEnd}
+          `;
+        });
+      }
+
+      if (j.verdict) {
+        html += `
+          <div class="verdict-card">
+            <div class="verdict-label">🎯 그래도 하나만 고르자면</div>
+            <div class="verdict-text">${esc(j.verdict)}</div>
+          </div>
+        `;
+      }
+
+      if (j.rejects && j.rejects.length) {
+        html += `<div class="reject-card"><div class="reject-title">❌ 탈락 이유</div>`;
+        j.rejects.forEach((r) => {
+          html += `
+            <div class="reject-item">
+              <div class="reject-dot">✕</div>
+              <div class="reject-text"><span class="reject-name">${esc(r.name)}</span> — ${esc(r.reason)}</div>
+            </div>
+          `;
+        });
+        html += `</div>`;
+      }
+
+      d.innerHTML = html;
+      document.getElementById('content').appendChild(d);
+      d.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function addFallback(txt) {
+      txt = stripCitations(txt);
+
+      const d = document.createElement('div');
+      d.className = 'ai-result';
+
+      const fmt = txt
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+        .replace(/\n/g,'<br>');
+
+      d.innerHTML = `
+        <div class="ai-label"><div class="dot">${MINI_SCOPE}</div> ThisOne 분석</div>
+        <div class="pick-card" style="border-color:var(--border)">${fmt}</div>
+      `;
+
+      document.getElementById('content').appendChild(d);
+      d.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function addTyping() {
+      const d = document.createElement('div');
+      d.className = 'ai-result';
+      d.innerHTML = `
+        <div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 검색 중...</div>
+        <div class="typing-wrap">
+          <div class="typing-steps">
+            <div class="typing-spinner"></div>
+            <div class="typing-msg">상품을 검색하고 있어요...</div>
+            <div class="typing-sub">가격, 리뷰, 배송 정보를 비교하는 중</div>
+          </div>
+        </div>
+      `;
+      document.getElementById('content').appendChild(d);
+      d.scrollIntoView({ behavior: 'smooth' });
+
+      const msgs = [
+        '상품을 검색하고 있어요...',
+        '가격을 비교하고 있어요...',
+        '리뷰를 분석하고 있어요...',
+        '최선의 선택을 고르는 중...'
+      ];
+
+      const subs = [
+        '가격, 리뷰, 배송 정보를 비교하는 중',
+        '여러 쇼핑몰에서 최저가 확인 중',
+        '실구매자 후기를 살펴보는 중',
+        'A·B·C 안을 정리하고 있어요'
+      ];
+
+      let idx = 0;
+      d._timer = setInterval(() => {
+        idx = (idx + 1) % msgs.length;
+        const m = d.querySelector('.typing-msg');
+        const s = d.querySelector('.typing-sub');
+        if (m) m.textContent = msgs[idx];
+        if (s) s.textContent = subs[idx];
+      }, 3000);
+
+      const origRemove = d.remove.bind(d);
+      d.remove = () => {
+        clearInterval(d._timer);
+        origRemove();
+      };
+
+      return d;
+    }
+
+    function esc(s) {
+      return String(s || '')
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;');
+    }
+
+    function escAttr(s) {
+      return String(s || '')
+        .replace(/&/g,'&amp;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#39;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;');
+    }
+  </script>
+</body>
+</html>

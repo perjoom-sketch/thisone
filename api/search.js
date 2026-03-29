@@ -1,5 +1,7 @@
 // api/search.js
 
+const { applyUniversalAIFilter } = require('../lib/universalFilter');
+
 function stripTags(text) {
   return String(text || '')
     .replace(/<[^>]*>/g, '')
@@ -22,27 +24,12 @@ async function handler(req, res) {
   try {
     const q = String(req.query.q || req.query.query || '').trim();
 
-    console.log('--- NAVER SEARCH DEBUG START ---');
-    console.log('query:', q);
-    console.log('NAVER_CLIENT_ID exists:', !!process.env.NAVER_CLIENT_ID);
-    console.log('NAVER_CLIENT_SECRET exists:', !!process.env.NAVER_CLIENT_SECRET);
-    console.log(
-      'NAVER_CLIENT_ID length:',
-      process.env.NAVER_CLIENT_ID ? process.env.NAVER_CLIENT_ID.length : 0
-    );
-    console.log(
-      'NAVER_CLIENT_SECRET length:',
-      process.env.NAVER_CLIENT_SECRET ? process.env.NAVER_CLIENT_SECRET.length : 0
-    );
-
     if (!q) {
       return res.status(400).json({ error: '검색어가 없습니다.' });
     }
 
     const url =
-      `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(q)}&display=12&start=1&sort=sim`;
-
-    console.log('request url:', url);
+      `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(q)}&display=20&start=1&sort=sim`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -53,10 +40,6 @@ async function handler(req, res) {
     });
 
     const text = await response.text();
-
-    console.log('naver status:', response.status);
-    console.log('naver raw response:', text);
-    console.log('--- NAVER SEARCH DEBUG END ---');
 
     if (!response.ok) {
       return res.status(response.status).json({
@@ -75,7 +58,7 @@ async function handler(req, res) {
       });
     }
 
-    const items = (data.items || []).map((item, idx) => ({
+    let items = (data.items || []).map((item, idx) => ({
       id: String(idx + 1),
       name: stripTags(item.title),
       link: item.link || '',
@@ -86,13 +69,23 @@ async function handler(req, res) {
       productId: item.productId || ''
     }));
 
+    const filterResult = await applyUniversalAIFilter({
+      query: q,
+      items
+    });
+
+    items = filterResult.filteredItems.length
+      ? filterResult.filteredItems
+      : items.slice(0, 10);
+
     return res.status(200).json({
       query: q,
       total: data.total || 0,
-      items
+      items,
+      filterDebug: filterResult.debug,
+      rejectedItems: filterResult.rejectedItems
     });
   } catch (err) {
-    console.error('api/search fatal error:', err);
     return res.status(500).json({
       error: err.message || 'Server error'
     });
@@ -101,5 +94,5 @@ async function handler(req, res) {
 
 module.exports = handler;
 module.exports.config = {
-  maxDuration: 15
+  maxDuration: 30
 };

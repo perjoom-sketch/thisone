@@ -1,3 +1,8 @@
+// Vercel 함수 타임아웃 60초로 확장 (웹 검색은 시간이 걸림)
+export const config = {
+maxDuration: 60
+};
+
 export default async function handler(req, res) {
 res.setHeader(‘Access-Control-Allow-Origin’, ‘*’);
 res.setHeader(‘Access-Control-Allow-Methods’, ‘POST, OPTIONS’);

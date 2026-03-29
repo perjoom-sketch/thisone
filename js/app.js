@@ -106,7 +106,14 @@ const MODEL = 'claude-sonnet-4-20250514';
         if (pv) pv.classList.remove('show');
       });
     }
-
+unction stripCitations(text) {
+  return String(text || '')
+    .replace(/<cite\b[^>]*>/gi, '')
+    .replace(/<\/cite>/gi, '')
+    .replace(/<b>/gi, '')
+    .replace(/<\/b>/gi, '')
+    .trim();
+}
     function deepClean(value) {
       if (typeof value === 'string') return stripCitations(value);
       if (Array.isArray(value)) return value.map(deepClean);
@@ -628,43 +635,107 @@ function getCandidateBonus(candidate, profile) {
     }
 
     async function sendMsg() {
-      if (loading) return;
+  if (loading) return;
 
-      const inp = getInput();
-      const txt = inp.value.trim();
-      if (!txt && !pendingImg) return;
+  const inp = getInput();
+  const txt = inp.value.trim();
+  if (!txt && !pendingImg) return;
 
-      switchToSearchMode();
-      document.getElementById('content').innerHTML = '';
+  switchToSearchMode();
+  document.getElementById('content').innerHTML = '';
 
-      if (txt) searchHistory.push(txt);
+  if (txt) searchHistory.push(txt);
 
-      renderHistoryBar();
-      addUserMsg(txt || '📷 이미지로 검색', pendingImg?.src);
+  renderHistoryBar();
+  addUserMsg(txt || '📷 이미지로 검색', pendingImg?.src);
 
-      const queryText = txt || '이미지 기반 상품 검색';
+  const queryText = txt || '이미지 기반 상품 검색';
+  const searchQuery = queryText;
 
-      inp.value = '';
-      autoResize(inp);
-      removeImg();
+  inp.value = '';
+  autoResize(inp);
+  removeImg();
 
-      loading = true;
-      getSendBtn().disabled = true;
-      const typingEl = addTyping();
+  loading = true;
+  getSendBtn().disabled = true;
+  const typingEl = addTyping();
+
+  try {
+    const searchData = await window.ThisOneAPI.requestSearch(searchQuery);
+    const candidates = buildCandidates(searchData.items || [], queryText);
+
+    if (!candidates.length) {
+      typingEl.remove();
+      addFallback('검색 결과가 없습니다.');
+      loading = false;
+      getSendBtn().disabled = false;
+      getInput().focus();
+      return;
+    }
+
+    const aiData = await window.ThisOneAPI.requestChat({
+      model: MODEL,
+      max_tokens: 1200,
+      system: RANKING_PROMPT,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `사용자 질문:
+${queryText}
+
+후보 상품 목록(JSON):
+${JSON.stringify(candidates, null, 2)}
+
+지시:
+- 반드시 후보 상품 목록 안에서만 선택하세요.
+- cards 배열로만 답하세요.
+- 허용 카드 type: "price", "review", "popular", "trust"
+- 각 카드의 sourceId는 반드시 후보 상품의 id를 그대로 사용하세요.
+- aiPickSourceType은 반드시 "price", "review", "popular", "trust" 중 하나만 사용하세요.
+- bonusScore와 bonusReasons를 꼭 참고하세요.
+- AI추천은 bonusScore가 높은 후보를 우선 고려하세요.
+- name, price, store, image, link는 직접 생성하지 말고 sourceId로 연결만 하세요.
+- JSON만 출력하세요.`
+            }
+          ]
+        }
+      ]
+    });
+
+    typingEl.remove();
+
+    if (aiData.error) {
+      addFallback('API 오류: ' + (typeof aiData.error === 'string' ? aiData.error : JSON.stringify(aiData.error)));
+    } else {
+      const raw = Array.isArray(aiData.content)
+        ? aiData.content.filter((b) => b.type === 'text').map((b) => b.text).join('')
+        : '';
 
       try {
-        const searchData = await window.ThisOneAPI.requestSearch(searchQuery);
+        let clean = raw.replace(/```json|```/g, '').trim();
+        const jsonMatch = clean.match(/\{[\s\S]*\}/);
+        if (jsonMatch) clean = jsonMatch[0];
 
-        const candidates = buildCandidates(searchData.items || [], queryText);
+        const parsed = JSON.parse(clean);
+        const cleaned = deepClean(parsed);
+        const merged = mergeAiWithCandidates(cleaned, candidates);
+        addResultCard(merged);
+      } catch (e) {
+        addFallback(raw || '응답을 파싱할 수 없습니다.');
+      }
+    }
+  } catch (err) {
+    typingEl.remove();
+    addFallback('검색 중 오류: ' + err.message);
+  }
 
-        if (!candidates.length) {
-          typingEl.remove();
-          addFallback('검색 결과가 없습니다.');
-          loading = false;
-          getSendBtn().disabled = false;
-          getInput().focus();
-          return;
-        }
+  loading = false;
+  getSendBtn().disabled = false;
+  getInput().focus();
+}
 
         const aiData = await window.ThisOneAPI.requestChat({
   model: MODEL,

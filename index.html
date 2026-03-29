@@ -39,11 +39,8 @@ position:fixed;top:0;left:0;right:0;z-index:100;height:55px;
 }
 .logo{display:flex;align-items:center;gap:11px;cursor:default}
 .logo-mark{
-width:32px;height:32px;border-radius:9px;
-background:linear-gradient(135deg,#4f46e5,#0d9488);
+width:28px;height:28px;
 display:flex;align-items:center;justify-content:center;
-font-family:var(–display);font-size:15px;font-weight:800;color:#fff;
-box-shadow:0 2px 12px var(–accent-glow);
 }
 .logo-name{font-family:var(–display);font-size:19px;font-weight:800;color:var(–text1);letter-spacing:-.04em}
 .logo-name span{
@@ -192,7 +189,6 @@ font-family:var(–mono);display:flex;align-items:center;gap:7px;letter-spacing:
 width:20px;height:20px;border-radius:7px;
 background:linear-gradient(135deg,#4f46e5,#0d9488);
 display:flex;align-items:center;justify-content:center;
-font-family:var(–display);font-size:9px;font-weight:800;color:#fff;
 box-shadow:0 2px 8px var(–accent-glow);
 }
 
@@ -348,7 +344,15 @@ padding-bottom:40px;
 
 <div class="hdr">
   <div class="logo" onclick="goHome()" style="cursor:pointer">
-    <div class="logo-mark">T</div>
+    <div class="logo-mark"><svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <defs><linearGradient id="lg" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop stop-color="#4f46e5"/><stop offset="1" stop-color="#0d9488"/></linearGradient></defs>
+      <circle cx="12" cy="12" r="7" stroke="url(#lg)" stroke-width="1.8" fill="none" opacity=".5"/>
+      <circle cx="12" cy="12" r="2" fill="url(#lg)"/>
+      <line x1="12" y1="1" x2="12" y2="5" stroke="url(#lg)" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="12" y1="19" x2="12" y2="23" stroke="url(#lg)" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="1" y1="12" x2="5" y2="12" stroke="url(#lg)" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="19" y1="12" x2="23" y2="12" stroke="url(#lg)" stroke-width="1.8" stroke-linecap="round"/>
+    </svg></div>
     <div>
       <div class="logo-name">This<span>One</span></div>
       <div class="logo-sub">구매결정 AI · 최선의 선택</div>
@@ -433,6 +437,7 @@ padding-bottom:40px;
 
 <script>
 const MODEL='claude-sonnet-4-20250514';
+const MINI_SCOPE='<svg width="10" height="10" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="14" stroke="#fff" stroke-width="4" fill="none" opacity=".7"/><circle cx="32" cy="32" r="5" fill="#fff"/><line x1="32" y1="6" x2="32" y2="18" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="32" y1="46" x2="32" y2="58" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="6" y1="32" x2="18" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="46" y1="32" x2="58" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/></svg>';
 let pendingImg=null;
 let loading=false;
 let history=[];
@@ -597,7 +602,7 @@ function addResultCard(j){
   const colors={A:'#16a34a',B:'#2563eb',C:'var(--accent)'};
   const fallbackEmoji={A:'📦',B:'🏅',C:'🎯'};
 
-  let html=`<div class="ai-label"><div class="dot">T</div> ThisOne 분석</div>`;
+  let html=`<div class="ai-label"><div class="dot">${MINI_SCOPE}</div> ThisOne 분석</div>`;
 
   if(j.picks&&j.picks.length){
     j.picks.forEach(p=>{
@@ -651,7 +656,7 @@ function addFallback(txt){
   d.className='ai-result';
   const fmt=txt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
-  d.innerHTML=`<div class="ai-label"><div class="dot">T</div> ThisOne 분석</div>
+  d.innerHTML=`<div class="ai-label"><div class="dot">${MINI_SCOPE}</div> ThisOne 분석</div>
     <div class="pick-card" style="border-color:var(--border)">${fmt}</div>`;
   document.getElementById('content').appendChild(d);
   d.scrollIntoView({behavior:'smooth'});
@@ -660,7 +665,7 @@ function addFallback(txt){
 function addTyping(){
   const d=document.createElement('div');
   d.className='ai-result';
-  d.innerHTML=`<div class="ai-label"><div class="dot">T</div> 검색 중...</div>
+  d.innerHTML=`<div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 검색 중...</div>
     <div class="typing-wrap">
       <div class="typing-steps">
         <div class="typing-spinner"></div>

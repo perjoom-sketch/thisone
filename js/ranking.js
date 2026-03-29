@@ -1,7 +1,25 @@
 function parsePriceNumber(text) {
   return Number(String(text || '').replace(/[^\d]/g, '')) || 0;
 }
+function detectCategoryKey(query) {
+  const q = String(query || '').toLowerCase();
 
+  if (q.includes('유모차')) return 'stroller';
+  if (q.includes('공기청정기')) return 'air_purifier';
+  if (q.includes('선풍기')) return 'fan';
+  if (q.includes('프린터')) return 'printer';
+  if (q.includes('이어폰') || q.includes('에어팟') || q.includes('헤드폰')) return 'earphone';
+  if (q.includes('냉장고')) return 'refrigerator';
+  if (q.includes('세탁기')) return 'washer';
+  if (q.includes('건조기')) return 'dryer';
+  if (q.includes('식기세척기')) return 'dishwasher';
+  if (q.includes('전자레인지')) return 'microwave';
+  if (q.includes('에어프라이어')) return 'air_fryer';
+  if (q.includes('tv')) return 'tv';
+  if (q.includes('에어컨')) return 'air_conditioner';
+
+  return 'generic';
+}
 function rewriteSearchQuery(query) {
   const q = String(query || '').toLowerCase();
 

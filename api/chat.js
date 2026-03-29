@@ -1,4 +1,4 @@
-// api/chat.js
+// api/chat.js - Gemini 2.5 Flash-Lite 최적화 버전
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 async function handler(req, res) {
@@ -16,46 +16,106 @@ async function handler(req, res) {
   }
 
   try {
-    // 1. Gemini 초기화 (Vercel 환경변수 사용)
+    const { messages = [], system = "", model: requestedModel } = req.body;
+
+    // Gemini 초기화
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash-lite" 
+    
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash-lite",   // 또는 "gemini-2.5-flash" 추천
+      systemInstruction: system,        // ← 시스템 프롬프트 제대로 전달
+      generationConfig: {
+        responseMimeType: "application/json",   // ← 핵심!
+        temperature: 0.2,                       // JSON 안정성을 위해 낮춤
+        // thinkingBudget: 0,                   // 비용 더 아끼고 싶을 때 주석 해제
+      }
     });
 
-    // 2. 클라이언트에서 보낸 메시지 추출
-    // Anthropic 형식의 body를 Gemini 형식으로 변환합니다.
-    const messages = req.body.messages || [];
-    const lastMessage = messages[messages.length - 1]?.content || "";
-    const systemPrompt = req.body.system || "";
+    // 마지막 메시지 (후보 상품 목록 포함)
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || !lastMessage.content) {
+      throw new Error("Invalid message format");
+    }
 
-    // 3. Gemini 대화 생성
-    // 시스템 프롬프트가 있다면 앞에 붙여서 보냅니다.
-    const prompt = systemPrompt 
-      ? `System: ${systemPrompt}\n\nUser: ${lastMessage}` 
-      : lastMessage;
+    // Gemini에 전달할 contents 배열 (멀티모달 대비 구조 유지)
+    const contents = [{
+      role: "user",
+      parts: Array.isArray(lastMessage.content) 
+        ? lastMessage.content 
+        : [{ text: lastMessage.content }]
+    }];
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const responseText = response.text();
-
-    // 4. Anthropic과 유사한 응답 구조로 맞춰서 반환 (프론트엔드 수정 최소화)
-    const data = {
-      content: [
-        {
-          type: "text",
-          text: responseText
+    // Structured Output Schema 정의 (JSON 강제력 대폭 상승)
+    const responseSchema = {
+      type: "object",
+      properties: {
+        aiPickSourceType: {
+          type: "string",
+          enum: ["price", "review", "popular", "trust"],
+          description: "AI가 최종적으로 가장 추천하는 카테고리"
+        },
+        cards: {
+          type: "array",
+          minItems: 4,
+          maxItems: 4,
+          items: {
+            type: "object",
+            properties: {
+              type: { type: "string", enum: ["price", "review", "popular", "trust"] },
+              label: { type: "string" },
+              sourceId: { type: "string" },
+              reason: { type: "string", minLength: 10 }
+            },
+            required: ["type", "label", "sourceId", "reason"]
+          }
+        },
+        rejects: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              reason: { type: "string" }
+            }
+          }
         }
-      ],
-      role: "assistant"
+      },
+      required: ["aiPickSourceType", "cards"]
     };
 
-    return res.status(200).json(data);
+    const result = await model.generateContent({
+      contents,
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: responseSchema,   // ← 가장 강력한 JSON 강제
+        temperature: 0.2
+      }
+    });
+
+    const responseText = result.response.text();
+    
+    let parsed;
+    try {
+      parsed = JSON.parse(responseText);
+    } catch (parseErr) {
+      console.error("JSON Parse Failed:", responseText);
+      throw new Error("Failed to parse Gemini JSON response");
+    }
+
+    // 프론트엔드와 호환되도록 Anthropic-like 구조로 반환
+    return res.status(200).json({
+      content: [{ type: "text", text: JSON.stringify(parsed) }], // 안전하게 stringify
+      role: "assistant"
+    });
 
   } catch (err) {
     console.error("Gemini Chat API Error:", err);
+    
     return res.status(500).json({
       error: 'Gemini API error',
-      detail: err.message || 'Server error',
+      detail: err.message || 'Internal server error',
+      // 디버깅용으로 원문 추가 (개발 중에만)
+      // raw: err.response?.text ? await err.response.text() : null
     });
   }
 }

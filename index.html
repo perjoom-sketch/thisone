@@ -881,525 +881,523 @@
 
   <div class="content" id="content"></div>
   <input type="file" id="fileInput" accept="image/*" onchange="handleImg(event)">
+<script>
+const MODEL = 'claude-sonnet-4-20250514';
+const MINI_SCOPE = '<svg width="10" height="10" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="14" stroke="#fff" stroke-width="4" fill="none" opacity=".7"/><circle cx="32" cy="32" r="5" fill="#fff"/><line x1="32" y1="6" x2="32" y2="18" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="32" y1="46" x2="32" y2="58" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="6" y1="32" x2="18" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="46" y1="32" x2="58" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/></svg>';
 
-  <script>
-    const MODEL = 'claude-sonnet-4-20250514';
-    const MINI_SCOPE = '<svg width="10" height="10" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="14" stroke="#fff" stroke-width="4" fill="none" opacity=".7"/><circle cx="32" cy="32" r="5" fill="#fff"/><line x1="32" y1="6" x2="32" y2="18" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="32" y1="46" x2="32" y2="58" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="6" y1="32" x2="18" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="46" y1="32" x2="58" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/></svg>';
+let pendingImg = null;
+let loading = false;
+let isSearchMode = false;
+let searchHistory = [];
 
-    let pendingImg = null;
-    let loading = false;
-    let history = [];
-    let isSearchMode = false;
-    let searchHistory = [];
-
-    const PROMPT = `당신은 ThisOne 구매결정 AI입니다.
+const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI입니다.
 절대 <cite>, </cite>, <b>, </b> 같은 태그를 출력하지 마세요.
-모든 값은 순수한 텍스트만 사용하세요.
+반드시 제공된 후보 상품 목록 안에서만 고르세요.
+후보 목록에 없는 상품을 새로 만들지 마세요.
+반드시 JSON만 출력하세요.
 
-사용자가 상품을 물어보면 웹 검색으로 실제 정보를 찾아 분석하고, 반드시 아래 JSON 형식으로만 답하세요. JSON 외 다른 텍스트 없이.
-
-3가지 관점에서 각각 최선의 상품을 추천하세요:
-- 가성비 최고 (가격 우선)
-- 신뢰 브랜드 (브랜드/신뢰 우선)
-- ThisOne 추천 (종합 최선)
-
-중요:
-- image 필드에는 가능하면 실제 상품 이미지 URL을 넣으세요.
-- link 필드에는 실제 상품 구매 링크를 넣으세요.
-- 값이 없으면 빈 문자열("")로 넣으세요.
-
+출력 형식:
 {
   "picks": [
-    {
-      "type":"A",
-      "label":"가성비 최고",
-      "name":"상품명",
-      "price":"가격",
-      "store":"판매처",
-      "delivery":"배송정보",
-      "review":"⭐4.5",
-      "reason":"추천 이유 한줄",
-      "image":"실제 상품 이미지 URL",
-      "link":"실제 상품 구매 링크"
-    },
-    {
-      "type":"B",
-      "label":"신뢰 브랜드",
-      "name":"상품명",
-      "price":"가격",
-      "store":"판매처",
-      "delivery":"배송정보",
-      "review":"⭐4.8",
-      "reason":"추천 이유 한줄",
-      "image":"실제 상품 이미지 URL",
-      "link":"실제 상품 구매 링크"
-    },
-    {
-      "type":"C",
-      "label":"ThisOne 추천",
-      "name":"상품명",
-      "price":"가격",
-      "store":"판매처",
-      "delivery":"배송정보",
-      "review":"⭐4.7",
-      "reason":"추천 이유 한줄",
-      "image":"실제 상품 이미지 URL",
-      "link":"실제 상품 구매 링크"
-    }
+    {"type":"A","label":"가성비 최고","sourceId":"1","reason":"추천 이유 한줄"},
+    {"type":"B","label":"신뢰 브랜드","sourceId":"2","reason":"추천 이유 한줄"},
+    {"type":"C","label":"ThisOne 추천","sourceId":"3","reason":"추천 이유 한줄"}
   ],
-  "verdict":"그래도 하나만 고르자면 — 추천하는 이유 한두 문장",
-  "rejects": [
-    {"name":"탈락상품명","reason":"탈락이유"}
+  "verdict":"그래도 하나만 고르자면 한두 문장",
+  "rejects":[
+    {"name":"탈락상품명","reason":"탈락 이유"}
   ]
 }`;
 
-    function getInput() {
-      return document.getElementById(isSearchMode ? 'msgInput2' : 'msgInput');
-    }
+function getInput() {
+  return document.getElementById(isSearchMode ? 'msgInput2' : 'msgInput');
+}
 
-    function getSendBtn() {
-      return document.getElementById(isSearchMode ? 'sendBtn2' : 'sendBtn');
-    }
+function getSendBtn() {
+  return document.getElementById(isSearchMode ? 'sendBtn2' : 'sendBtn');
+}
 
-    function goHome() {
-      isSearchMode = false;
-      document.getElementById('landing').style.display = '';
-      document.getElementById('stickySearch').style.display = 'none';
-      document.getElementById('content').style.display = 'none';
-      document.getElementById('content').innerHTML = '';
-    }
+function goHome() {
+  isSearchMode = false;
+  document.getElementById('landing').style.display = '';
+  document.getElementById('stickySearch').style.display = 'none';
+  document.getElementById('content').style.display = 'none';
+  document.getElementById('content').innerHTML = '';
+}
 
-    function switchToSearchMode() {
-      if (isSearchMode) return;
-      isSearchMode = true;
-      document.getElementById('landing').style.display = 'none';
-      document.getElementById('stickySearch').style.display = 'block';
-      document.getElementById('content').style.display = 'block';
-    }
+function switchToSearchMode() {
+  if (isSearchMode) return;
+  isSearchMode = true;
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('stickySearch').style.display = 'block';
+  document.getElementById('content').style.display = 'block';
+}
 
-    function autoResize(el) {
-      el.style.height = 'auto';
-      el.style.height = Math.min(el.scrollHeight, 100) + 'px';
-    }
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
 
-    function handleKey(e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMsg();
-      }
-    }
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMsg();
+  }
+}
 
-    function quick(t) {
-      document.getElementById('msgInput').value = t;
-      autoResize(document.getElementById('msgInput'));
+function quick(t) {
+  document.getElementById('msgInput').value = t;
+  autoResize(document.getElementById('msgInput'));
+  sendMsg();
+}
+
+function handleImg(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const r = new FileReader();
+  r.onload = (ev) => {
+    pendingImg = {
+      data: ev.target.result.split(',')[1],
+      src: ev.target.result
+    };
+
+    ['', '2'].forEach((s) => {
+      const el = document.getElementById('previewImg' + s);
+      const nm = document.getElementById('previewName' + s);
+      const pv = document.getElementById('imgPreview' + s);
+      if (el) el.src = ev.target.result;
+      if (nm) nm.textContent = file.name;
+      if (pv) pv.classList.add('show');
+    });
+  };
+
+  r.readAsDataURL(file);
+  e.target.value = '';
+}
+
+function removeImg() {
+  pendingImg = null;
+  ['', '2'].forEach((s) => {
+    const pv = document.getElementById('imgPreview' + s);
+    if (pv) pv.classList.remove('show');
+  });
+}
+
+async function safeFetchJson(url, options) {
+  const res = await fetch(url, options);
+  const text = await res.text();
+
+  if (!res.ok) {
+    throw new Error(text || `HTTP ${res.status}`);
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    throw new Error(`JSON 파싱 실패: ${text}`);
+  }
+}
+
+function stripCitations(text) {
+  return String(text || '')
+    .replace(/<cite\b[^>]*>/gi, '')
+    .replace(/<\/cite>/gi, '')
+    .replace(/<b>/gi, '')
+    .replace(/<\/b>/gi, '')
+    .trim();
+}
+
+function deepClean(value) {
+  if (typeof value === 'string') return stripCitations(value);
+  if (Array.isArray(value)) return value.map(deepClean);
+  if (value && typeof value === 'object') {
+    const out = {};
+    for (const key in value) out[key] = deepClean(value[key]);
+    return out;
+  }
+  return value;
+}
+
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function escAttr(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function renderHistoryBar() {
+  if (searchHistory.length < 2) return;
+
+  let existing = document.getElementById('historyBar');
+  if (existing) existing.remove();
+
+  const bar = document.createElement('div');
+  bar.className = 'history-bar';
+  bar.id = 'historyBar';
+
+  searchHistory.slice(-10).forEach((q) => {
+    const c = document.createElement('div');
+    c.className = 'history-chip';
+    c.textContent = '🔍 ' + q;
+    c.onclick = () => {
+      document.getElementById('msgInput2').value = q;
+      autoResize(document.getElementById('msgInput2'));
       sendMsg();
-    }
+    };
+    bar.appendChild(c);
+  });
 
-    function handleImg(e) {
-      const file = e.target.files[0];
-      if (!file) return;
+  document.getElementById('content').appendChild(bar);
+}
 
-      const r = new FileReader();
-      r.onload = (ev) => {
-        pendingImg = {
-          data: ev.target.result.split(',')[1],
-          src: ev.target.result
-        };
+function addUserMsg(txt, imgSrc) {
+  const d = document.createElement('div');
+  d.className = 'user-msg-wrap';
+  d.innerHTML = `
+    <div class="user-msg-label">🔍 검색</div>
+    <div class="user-msg">
+      ${imgSrc ? `<img src="${escAttr(imgSrc)}" style="max-width:160px;border-radius:8px;margin-bottom:8px;display:block;" alt="preview">` : ''}
+      ${esc(txt)}
+    </div>
+  `;
+  document.getElementById('content').appendChild(d);
+  d.scrollIntoView({ behavior: 'smooth' });
+}
 
-        ['', '2'].forEach((s) => {
-          const el = document.getElementById('previewImg' + s);
-          const nm = document.getElementById('previewName' + s);
-          const pv = document.getElementById('imgPreview' + s);
+function addFallback(txt) {
+  txt = stripCitations(txt);
 
-          if (el) el.src = ev.target.result;
-          if (nm) nm.textContent = file.name;
-          if (pv) pv.classList.add('show');
-        });
-      };
+  const d = document.createElement('div');
+  d.className = 'ai-result';
 
-      r.readAsDataURL(file);
-      e.target.value = '';
-    }
+  const fmt = txt
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
 
-    function removeImg() {
-      pendingImg = null;
-      ['', '2'].forEach((s) => {
-        const pv = document.getElementById('imgPreview' + s);
-        if (pv) pv.classList.remove('show');
-      });
-    }
+  d.innerHTML = `
+    <div class="ai-label"><div class="dot">${MINI_SCOPE}</div> ThisOne 분석</div>
+    <div class="pick-card" style="border-color:var(--border)">${fmt}</div>
+  `;
 
-    async function safeFetchJson(url, options) {
-      const res = await fetch(url, options);
-      const text = await res.text();
+  document.getElementById('content').appendChild(d);
+  d.scrollIntoView({ behavior: 'smooth' });
+}
 
-      if (!res.ok) {
-        throw new Error(text || `HTTP ${res.status}`);
-      }
+function addTyping() {
+  const d = document.createElement('div');
+  d.className = 'ai-result';
+  d.innerHTML = `
+    <div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 검색 중...</div>
+    <div class="typing-wrap">
+      <div class="typing-steps">
+        <div class="typing-spinner"></div>
+        <div class="typing-msg">상품을 검색하고 있어요...</div>
+        <div class="typing-sub">가격, 리뷰, 배송 정보를 비교하는 중</div>
+      </div>
+    </div>
+  `;
+  document.getElementById('content').appendChild(d);
+  d.scrollIntoView({ behavior: 'smooth' });
 
-      try {
-        return JSON.parse(text);
-      } catch (e) {
-        throw new Error(`JSON 파싱 실패: ${text}`);
-      }
-    }
+  const msgs = [
+    '상품을 검색하고 있어요...',
+    '네이버 쇼핑 결과를 정리하는 중...',
+    'A/B/C 추천안을 고르는 중...',
+    'ThisOne 추천을 만드는 중...'
+  ];
+  const subs = [
+    '가격, 링크, 이미지를 수집하는 중',
+    '후보 상품 목록을 정리하는 중',
+    '가성비·신뢰·종합 추천을 고르는 중',
+    '결과 카드를 준비하는 중'
+  ];
 
-    function stripCitations(text) {
-      return String(text || '')
-        .replace(/<cite\b[^>]*>/gi, '')
-        .replace(/<\/cite>/gi, '')
-        .replace(/<b>/gi, '')
-        .replace(/<\/b>/gi, '')
-        .trim();
-    }
+  let idx = 0;
+  d._timer = setInterval(() => {
+    idx = (idx + 1) % msgs.length;
+    const m = d.querySelector('.typing-msg');
+    const s = d.querySelector('.typing-sub');
+    if (m) m.textContent = msgs[idx];
+    if (s) s.textContent = subs[idx];
+  }, 2500);
 
-    function deepClean(value) {
-      if (typeof value === 'string') {
-        return stripCitations(value);
-      }
-      if (Array.isArray(value)) {
-        return value.map(deepClean);
-      }
-      if (value && typeof value === 'object') {
-        const out = {};
-        for (const key in value) {
-          out[key] = deepClean(value[key]);
-        }
-        return out;
-      }
-      return value;
-    }
+  const origRemove = d.remove.bind(d);
+  d.remove = () => {
+    clearInterval(d._timer);
+    origRemove();
+  };
 
-    async function sendMsg() {
-      if (loading) return;
+  return d;
+}
 
-      const inp = getInput();
-      const txt = inp.value.trim();
-      if (!txt && !pendingImg) return;
+function buildCandidates(items) {
+  return (items || []).slice(0, 10).map((item, idx) => ({
+    id: item.id || String(idx + 1),
+    name: item.name || '',
+    price: item.priceText || '',
+    store: item.store || '',
+    delivery: '상세페이지 확인',
+    review: '',
+    image: item.image || '',
+    link: item.link || ''
+  }));
+}
 
-      switchToSearchMode();
-      document.getElementById('content').innerHTML = '';
+function findCandidateByName(candidates, name) {
+  const target = String(name || '').trim();
+  if (!target) return null;
 
-      if (txt) searchHistory.push(txt);
+  return candidates.find((c) => c.name === target)
+    || candidates.find((c) => c.name.includes(target) || target.includes(c.name))
+    || null;
+}
 
-      const uc = [];
-      if (pendingImg) {
-        uc.push({
-          type: 'image',
-          source: {
-            type: 'base64',
-            media_type: 'image/jpeg',
-            data: pendingImg.data
-          }
-        });
-      }
+function mergeAiWithCandidates(aiJson, candidates) {
+  const byId = {};
+  candidates.forEach((c) => { byId[c.id] = c; });
 
-      uc.push({
-        type: 'text',
-        text: txt || '이 이미지 상품을 가격비교해줘'
-      });
+  const picks = (aiJson.picks || []).map((p) => {
+    let source = byId[p.sourceId];
+    if (!source) source = findCandidateByName(candidates, p.name);
 
-      renderHistoryBar();
-      addUserMsg(txt || '📷 이미지로 검색', pendingImg?.src);
-      history.push({ role: 'user', content: uc });
+    return {
+      type: p.type || 'C',
+      label: p.label || (p.type === 'A' ? '가성비 최고' : p.type === 'B' ? '신뢰 브랜드' : 'ThisOne 추천'),
+      name: source ? source.name : (p.name || ''),
+      price: source ? source.price : '',
+      store: source ? source.store : '',
+      delivery: source ? source.delivery : '',
+      review: source ? source.review : '',
+      reason: p.reason || '',
+      image: source ? source.image : '',
+      link: source ? source.link : ''
+    };
+  });
 
-      inp.value = '';
-      autoResize(inp);
-      removeImg();
+  return {
+    picks,
+    verdict: aiJson.verdict || '',
+    rejects: aiJson.rejects || []
+  };
+}
 
-      loading = true;
-      getSendBtn().disabled = true;
-      const typingEl = addTyping();
+function addResultCard(j) {
+  const d = document.createElement('div');
+  d.className = 'ai-result';
 
-      try {
-        let data;
+  const icons = { A: '💰', B: '🏆', C: '🎯' };
+  const colors = { A: '#16a34a', B: '#2563eb', C: 'var(--accent)' };
 
-        try {
-          data = await safeFetchJson('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: MODEL,
-              max_tokens: 4096,
-              system: PROMPT,
-              messages: history,
-              tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 2 }]
-            })
-          });
+  let html = `<div class="ai-label"><div class="dot">${MINI_SCOPE}</div> ThisOne 분석</div>`;
 
-          if (data.error) {
-            throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error));
-          }
-        } catch (err) {
-          console.warn('웹 검색 포함 요청 실패, 일반 요청으로 재시도:', err);
+  if (j.picks && j.picks.length) {
+    j.picks.forEach((p) => {
+      console.log('image url:', p.image, 'link:', p.link, 'name:', p.name);
 
-          data = await safeFetchJson('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: MODEL,
-              max_tokens: 1200,
-              system: PROMPT,
-              messages: history
-            })
-          });
-        }
+      const t = p.type || 'C';
+      const isC = t === 'C';
+      const initial = p.name ? p.name.charAt(0) : '?';
 
-        typingEl.remove();
+      const bgColors = { A: '#dcfce7', B: '#dbeafe', C: '#ede9fe' };
+      const fgColors = { A: '#16a34a', B: '#2563eb', C: '#4f46e5' };
 
-        if (data.error) {
-          addFallback('API 오류: ' + (typeof data.error === 'string' ? data.error : JSON.stringify(data.error)));
-        } else {
-          const raw = Array.isArray(data.content)
-            ? data.content.filter((b) => b.type === 'text').map((b) => b.text).join('')
-            : '';
+      const placeholderHtml = `
+        <div class="pick-img-placeholder" style="background:${bgColors[t]};color:${fgColors[t]};font-weight:700;font-size:22px;">
+          ${esc(initial)}
+        </div>
+      `;
 
-          history.push({ role: 'assistant', content: raw });
+      const imgHtml = p.image
+        ? `
+          <div class="pick-media">
+            <img
+              class="pick-img"
+              src="${escAttr(p.image)}"
+              alt="${escAttr(p.name)}"
+              referrerpolicy="no-referrer"
+              loading="lazy"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+            >
+            <div class="pick-img-placeholder" style="display:none;background:${bgColors[t]};color:${fgColors[t]};font-weight:700;font-size:22px;">
+              ${esc(initial)}
+            </div>
+          </div>
+        `
+        : `<div class="pick-media">${placeholderHtml}</div>`;
 
-          try {
-            let clean = raw.replace(/```json|```/g, '').trim();
-            const jsonMatch = clean.match(/\{[\s\S]*\}/);
-            if (jsonMatch) clean = jsonMatch[0];
+      const cardStart = p.link
+        ? `<a class="pick-card-link" href="${escAttr(p.link)}" target="_blank" rel="noopener noreferrer">`
+        : '';
+      const cardEnd = p.link ? '</a>' : '';
 
-            const j = JSON.parse(clean);
-            const cleaned = deepClean(j);
-            addResultCard(cleaned);
-                      } catch (e) {
-            addFallback(raw || '응답을 파싱할 수 없습니다.');
-          }
-        }
-      } catch (err) {
-        typingEl.remove();
-        addFallback('검색 중 오류: ' + err.message);
-      }
+      html += `
+        ${cardStart}
+        <div class="pick-card ${isC ? 'pick-first' : ''}">
+          <div class="pick-badge" style="${isC ? '' : 'background:' + colors[t] + ';box-shadow:none'}">${icons[t] || '🎯'} ${esc(p.label)}</div>
+          <div class="pick-body">
+            ${imgHtml}
+            <div class="pick-info">
+              <div class="pick-title">${esc(p.name)}</div>
+              <div class="pick-meta">
+                <span class="pick-price">${esc(p.price)}</span>
+                <span class="pick-store">${esc(p.store)}</span>
+                ${p.delivery ? `<span class="pick-delivery">🚚 ${esc(p.delivery)}</span>` : ''}
+                ${p.review ? `<span class="pick-review">${esc(p.review)}</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <div class="pick-reason-text">${esc(p.reason)}</div>
+        </div>
+        ${cardEnd}
+      `;
+    });
+  }
 
+  if (j.verdict) {
+    html += `
+      <div class="verdict-card">
+        <div class="verdict-label">🎯 그래도 하나만 고르자면</div>
+        <div class="verdict-text">${esc(j.verdict)}</div>
+      </div>
+    `;
+  }
+
+  if (j.rejects && j.rejects.length) {
+    html += `<div class="reject-card"><div class="reject-title">❌ 탈락 이유</div>`;
+    j.rejects.forEach((r) => {
+      html += `
+        <div class="reject-item">
+          <div class="reject-dot">✕</div>
+          <div class="reject-text"><span class="reject-name">${esc(r.name)}</span> — ${esc(r.reason)}</div>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  d.innerHTML = html;
+  document.getElementById('content').appendChild(d);
+  d.scrollIntoView({ behavior: 'smooth' });
+}
+
+async function sendMsg() {
+  if (loading) return;
+
+  const inp = getInput();
+  const txt = inp.value.trim();
+  if (!txt && !pendingImg) return;
+
+  switchToSearchMode();
+  document.getElementById('content').innerHTML = '';
+
+  if (txt) searchHistory.push(txt);
+
+  renderHistoryBar();
+  addUserMsg(txt || '📷 이미지로 검색', pendingImg?.src);
+
+  const queryText = txt || '이미지 기반 상품 검색';
+
+  inp.value = '';
+  autoResize(inp);
+  removeImg();
+
+  loading = true;
+  getSendBtn().disabled = true;
+  const typingEl = addTyping();
+
+  try {
+    const searchData = await safeFetchJson(`/api/search?q=${encodeURIComponent(queryText)}`, {
+      method: 'GET'
+    });
+
+    const candidates = buildCandidates(searchData.items || []);
+
+    if (!candidates.length) {
+      typingEl.remove();
+      addFallback('검색 결과가 없습니다.');
       loading = false;
       getSendBtn().disabled = false;
       getInput().focus();
+      return;
     }
 
-    function renderHistoryBar() {
-      if (searchHistory.length < 2) return;
+    const aiData = await safeFetchJson('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 1200,
+        system: RANKING_PROMPT,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text:
+`사용자 질문:
+${queryText}
 
-      let existing = document.getElementById('historyBar');
-      if (existing) existing.remove();
+후보 상품 목록(JSON):
+${JSON.stringify(candidates, null, 2)}
 
-      const bar = document.createElement('div');
-      bar.className = 'history-bar';
-      bar.id = 'historyBar';
+지시:
+- 반드시 후보 상품 목록 안에서만 3개를 고르세요.
+- picks의 sourceId는 반드시 후보 상품의 id를 그대로 쓰세요.
+- image와 link는 직접 쓰지 말고 sourceId로만 선택하세요.
+- JSON만 출력하세요.`
+              }
+            ]
+          }
+        ]
+      })
+    });
 
-      searchHistory.slice(-10).forEach((q) => {
-        const c = document.createElement('div');
-        c.className = 'history-chip';
-        c.textContent = '🔍 ' + q;
-        c.onclick = () => {
-          document.getElementById('msgInput2').value = q;
-          autoResize(document.getElementById('msgInput2'));
-          sendMsg();
-        };
-        bar.appendChild(c);
-      });
+    typingEl.remove();
 
-      document.getElementById('content').appendChild(bar);
-    }
+    if (aiData.error) {
+      addFallback('API 오류: ' + (typeof aiData.error === 'string' ? aiData.error : JSON.stringify(aiData.error)));
+    } else {
+      const raw = Array.isArray(aiData.content)
+        ? aiData.content.filter((b) => b.type === 'text').map((b) => b.text).join('')
+        : '';
 
-    function addUserMsg(txt, imgSrc) {
-      const d = document.createElement('div');
-      d.className = 'user-msg-wrap';
-      d.innerHTML = `
-        <div class="user-msg-label">🔍 검색</div>
-        <div class="user-msg">
-          ${imgSrc ? `<img src="${escAttr(imgSrc)}" style="max-width:160px;border-radius:8px;margin-bottom:8px;display:block;" alt="preview">` : ''}
-          ${esc(txt)}
-        </div>
-      `;
-      document.getElementById('content').appendChild(d);
-      d.scrollIntoView({ behavior: 'smooth' });
-    }
+      try {
+        let clean = raw.replace(/```json|```/g, '').trim();
+        const jsonMatch = clean.match(/\{[\s\S]*\}/);
+        if (jsonMatch) clean = jsonMatch[0];
 
-    function addResultCard(j) {
-      const d = document.createElement('div');
-      d.className = 'ai-result';
-
-      const icons = { A: '💰', B: '🏆', C: '🎯' };
-      const colors = { A: '#16a34a', B: '#2563eb', C: 'var(--accent)' };
-
-      let html = `<div class="ai-label"><div class="dot">${MINI_SCOPE}</div> ThisOne 분석</div>`;
-
-      if (j.picks && j.picks.length) {
-        j.picks.forEach((p) => {
-          console.log('image url:', p.image, 'link:', p.link, 'name:', p.name);
-          const t = p.type || 'C';
-          const isC = t === 'C';
-          const initial = p.name ? p.name.charAt(0) : '?';
-
-          const bgColors = { A: '#dcfce7', B: '#dbeafe', C: '#ede9fe' };
-          const fgColors = { A: '#16a34a', B: '#2563eb', C: '#4f46e5' };
-
-          const placeholderHtml = `
-            <div class="pick-img-placeholder" style="background:${bgColors[t]};color:${fgColors[t]};font-weight:700;font-size:22px;">
-              ${esc(initial)}
-            </div>
-          `;
-
-          const imgHtml = p.image
-            ? `
-              <div class="pick-media">
-                <img
-                  class="pick-img"
-                  src="${escAttr(p.image)}"
-                  alt="${escAttr(p.name)}"
-                  referrerpolicy="no-referrer"
-                  loading="lazy"
-                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                >
-                <div class="pick-img-placeholder" style="display:none;background:${bgColors[t]};color:${fgColors[t]};font-weight:700;font-size:22px;">
-                  ${esc(initial)}
-                </div>
-              </div>
-            `
-            : `<div class="pick-media">${placeholderHtml}</div>`;
-
-          const cardStart = p.link
-            ? `<a class="pick-card-link" href="${escAttr(p.link)}" target="_blank" rel="noopener noreferrer">`
-            : '';
-          const cardEnd = p.link ? '</a>' : '';
-
-          html += `
-            ${cardStart}
-            <div class="pick-card ${isC ? 'pick-first' : ''}">
-              <div class="pick-badge" style="${isC ? '' : 'background:' + colors[t] + ';box-shadow:none'}">${icons[t] || '🎯'} ${esc(p.label)}</div>
-              <div class="pick-body">
-                ${imgHtml}
-                <div class="pick-info">
-                  <div class="pick-title">${esc(p.name)}</div>
-                  <div class="pick-meta">
-                    <span class="pick-price">${esc(p.price)}</span>
-                    <span class="pick-store">${esc(p.store)}</span>
-                    <span class="pick-delivery">🚚 ${esc(p.delivery)}</span>
-                    <span class="pick-review">${esc(p.review)}</span>
-                  </div>
-                </div>
-              </div>
-              <div class="pick-reason-text">${esc(p.reason)}</div>
-            </div>
-            ${cardEnd}
-          `;
-        });
+        const parsed = JSON.parse(clean);
+        const cleaned = deepClean(parsed);
+        const merged = mergeAiWithCandidates(cleaned, candidates);
+        addResultCard(merged);
+      } catch (e) {
+        addFallback(raw || '응답을 파싱할 수 없습니다.');
       }
-
-      if (j.verdict) {
-        html += `
-          <div class="verdict-card">
-            <div class="verdict-label">🎯 그래도 하나만 고르자면</div>
-            <div class="verdict-text">${esc(j.verdict)}</div>
-          </div>
-        `;
-      }
-
-      if (j.rejects && j.rejects.length) {
-        html += `<div class="reject-card"><div class="reject-title">❌ 탈락 이유</div>`;
-        j.rejects.forEach((r) => {
-          html += `
-            <div class="reject-item">
-              <div class="reject-dot">✕</div>
-              <div class="reject-text"><span class="reject-name">${esc(r.name)}</span> — ${esc(r.reason)}</div>
-            </div>
-          `;
-        });
-        html += `</div>`;
-      }
-
-      d.innerHTML = html;
-      document.getElementById('content').appendChild(d);
-      d.scrollIntoView({ behavior: 'smooth' });
     }
+  } catch (err) {
+    typingEl.remove();
+    addFallback('검색 중 오류: ' + err.message);
+  }
 
-    function addFallback(txt) {
-      txt = stripCitations(txt);
-
-      const d = document.createElement('div');
-      d.className = 'ai-result';
-
-      const fmt = txt
-        .replace(/&/g,'&amp;')
-        .replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;')
-        .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
-        .replace(/\n/g,'<br>');
-
-      d.innerHTML = `
-        <div class="ai-label"><div class="dot">${MINI_SCOPE}</div> ThisOne 분석</div>
-        <div class="pick-card" style="border-color:var(--border)">${fmt}</div>
-      `;
-
-      document.getElementById('content').appendChild(d);
-      d.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    function addTyping() {
-      const d = document.createElement('div');
-      d.className = 'ai-result';
-      d.innerHTML = `
-        <div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 검색 중...</div>
-        <div class="typing-wrap">
-          <div class="typing-steps">
-            <div class="typing-spinner"></div>
-            <div class="typing-msg">상품을 검색하고 있어요...</div>
-            <div class="typing-sub">가격, 리뷰, 배송 정보를 비교하는 중</div>
-          </div>
-        </div>
-      `;
-      document.getElementById('content').appendChild(d);
-      d.scrollIntoView({ behavior: 'smooth' });
-
-      const msgs = [
-        '상품을 검색하고 있어요...',
-        '가격을 비교하고 있어요...',
-        '리뷰를 분석하고 있어요...',
-        '최선의 선택을 고르는 중...'
-      ];
-
-      const subs = [
-        '가격, 리뷰, 배송 정보를 비교하는 중',
-        '여러 쇼핑몰에서 최저가 확인 중',
-        '실구매자 후기를 살펴보는 중',
-        'A·B·C 안을 정리하고 있어요'
-      ];
-
-      let idx = 0;
-      d._timer = setInterval(() => {
-        idx = (idx + 1) % msgs.length;
-        const m = d.querySelector('.typing-msg');
-        const s = d.querySelector('.typing-sub');
-        if (m) m.textContent = msgs[idx];
-        if (s) s.textContent = subs[idx];
-      }, 3000);
-
-      const origRemove = d.remove.bind(d);
-      d.remove = () => {
-        clearInterval(d._timer);
-        origRemove();
-      };
-
-      return d;
-    }
-
-    function esc(s) {
-      return String(s || '')
-        .replace(/&/g,'&amp;')
-        .replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;');
-    }
-
-    function escAttr(s) {
-      return String(s || '')
-        .replace(/&/g,'&amp;')
-        .replace(/"/g,'&quot;')
-        .replace(/'/g,'&#39;')
-        .replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;');
-    }
+  loading = false;
+  getSendBtn().disabled = false;
+  getInput().focus();
+}
   </script>
+  
 </body>
 </html>

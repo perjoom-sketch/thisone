@@ -329,7 +329,11 @@ function buildCandidates(items, queryText = '') {
       delivery: String(item.delivery || '상세페이지 확인').trim(),
       review: String(item.review || '').trim(),
       image: String(item.image || '').trim(),
-      link: String(item.link || '').trim()
+      link: String(item.link || '').trim(),
+      categoryKey: profile.categoryKey,
+      familyKey: profile.familyKey,
+      familyName: profile.familyName,
+      coreValues: profile.coreValues
     };
 
     const bonus = getCandidateBonus(candidate, profile);

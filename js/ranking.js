@@ -45,35 +45,47 @@ function rewriteSearchQuery(query) {
 
 function inferIntentProfile(query) {
   const q = String(query || '').toLowerCase();
+  const categoryKey = detectCategoryKey(query);
+  const family = window.ThisOneFamilies.getFamilyByCategory(categoryKey);
 
   return {
+    categoryKey,
+    familyKey: family.key,
+    familyName: family.name,
+    coreValues: family.coreValues || [],
+
     strollerNewbornStable:
-      q.includes('신생아') ||
-      q.includes('안정감 좋은 유모차') ||
-      q.includes('맘카페') ||
-      q.includes('반응 좋은 유모차'),
+      categoryKey === 'stroller' &&
+      (q.includes('신생아') ||
+        q.includes('안정감 좋은 유모차') ||
+        q.includes('맘카페') ||
+        q.includes('반응 좋은 유모차')),
 
     purifierEnergy:
-      q.includes('전기요금') ||
-      q.includes('전기료') ||
-      q.includes('저전력') ||
-      q.includes('공기청정기'),
+      categoryKey === 'air_purifier' &&
+      (q.includes('전기요금') ||
+        q.includes('전기료') ||
+        q.includes('저전력') ||
+        q.includes('공기청정기')),
 
     printerMaintenance:
-      q.includes('유지비 적은 프린터') ||
-      q.includes('유지비') ||
-      q.includes('프린터'),
+      categoryKey === 'printer' &&
+      (q.includes('유지비 적은 프린터') ||
+        q.includes('유지비') ||
+        q.includes('프린터')),
 
     earphoneCall:
-      q.includes('통화품질') ||
-      q.includes('통화') ||
-      q.includes('이어폰') ||
-      q.includes('에어팟'),
+      categoryKey === 'earphone' &&
+      (q.includes('통화품질') ||
+        q.includes('통화') ||
+        q.includes('이어폰') ||
+        q.includes('에어팟')),
 
     fanLowNoise:
-      q.includes('소음 적은') ||
-      q.includes('저소음') ||
-      q.includes('산업용 선풍기')
+      categoryKey === 'fan' &&
+      (q.includes('소음 적은') ||
+        q.includes('저소음') ||
+        q.includes('산업용 선풍기'))
   };
 }
 

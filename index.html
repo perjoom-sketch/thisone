@@ -1175,7 +1175,11 @@ function mergeAiWithCandidates(aiJson, candidates) {
 
     return {
       type: p.type || 'C',
-      label: p.label || (p.type === 'A' ? '가성비 최고' : p.type === 'B' ? '신뢰 브랜드' : 'ThisOne 추천'),
+      label: p.type === 'A'
+  ? '가성비 최고'
+  : p.type === 'B'
+  ? '신뢰 브랜드'
+  : 'AI추천',
       name: source ? source.name : (p.name || ''),
       price: source ? source.price : '',
       store: source ? source.store : '',

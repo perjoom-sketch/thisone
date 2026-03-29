@@ -1,5 +1,4 @@
 // api/search.js
-
 const { applyUniversalAIFilter } = require('../lib/universalFilter');
 
 function stripTags(text) {
@@ -9,6 +8,7 @@ function stripTags(text) {
 }
 
 async function handler(req, res) {
+  // CORS 설정
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -28,8 +28,8 @@ async function handler(req, res) {
       return res.status(400).json({ error: '검색어가 없습니다.' });
     }
 
-    const url =
-      `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(q)}&display=20&start=1&sort=sim`;
+    // 네이버 쇼핑 API 호출
+    const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(q)}&display=20&start=1&sort=sim`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -58,6 +58,7 @@ async function handler(req, res) {
       });
     }
 
+    // 기본 아이템 리스트 생성
     let items = (data.items || []).map((item, idx) => ({
       id: String(idx + 1),
       name: stripTags(item.title),
@@ -69,23 +70,32 @@ async function handler(req, res) {
       productId: item.productId || ''
     }));
 
+    // AI 필터 적용
     const filterResult = await applyUniversalAIFilter({
       query: q,
       items
     });
 
-    items = filterResult.filteredItems.length
-      ? filterResult.filteredItems
-      : items.slice(0, 10);
+    // [핵심 수정] 결과값 안전장치 강화
+    let finalItems = [];
+    if (filterResult && filterResult.filteredItems && filterResult.filteredItems.length > 0) {
+      // AI가 성공적으로 필터링한 경우
+      finalItems = filterResult.filteredItems;
+    } else {
+      // AI 필터 결과가 없거나 오류 시, 원본 데이터 상위 10개를 안전하게 보여줌
+      finalItems = items.slice(0, 10);
+    }
 
     return res.status(200).json({
       query: q,
       total: data.total || 0,
-      items,
-      filterDebug: filterResult.debug,
-      rejectedItems: filterResult.rejectedItems
+      items: finalItems, // 확정된 리스트 반환
+      filterDebug: filterResult ? filterResult.debug : 'no_debug',
+      rejectedItems: filterResult ? filterResult.rejectedItems : []
     });
+
   } catch (err) {
+    console.error("Search Handler Error:", err);
     return res.status(500).json({
       error: err.message || 'Server error'
     });

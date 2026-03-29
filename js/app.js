@@ -143,89 +143,8 @@ function escAttr(s) {
     .replace(/>/g, '&gt;');
 }
 
-function renderHistoryBar() {
-  if (searchHistory.length < 2) return;
-
-  const existing = document.getElementById('historyBar');
-  if (existing) existing.remove();
-
-  const bar = document.createElement('div');
-  bar.className = 'history-bar';
-  bar.id = 'historyBar';
-
-  searchHistory.slice(-10).forEach((q) => {
-    const c = document.createElement('div');
-    c.className = 'history-chip';
-    c.textContent = '🔍 ' + q;
-    c.onclick = () => {
-      document.getElementById('msgInput2').value = q;
-      autoResize(document.getElementById('msgInput2'));
-      sendMsg();
-    };
-    bar.appendChild(c);
-  });
-
   document.getElementById('content').appendChild(bar);
 }
-
-function addUserMsg(txt, imgSrc) {
-  const d = document.createElement('div');
-  d.className = 'user-msg-wrap';
-  d.innerHTML = `
-    <div class="user-msg-label">🔍 검색</div>
-    <div class="user-msg">
-      ${imgSrc ? `<img src="${escAttr(imgSrc)}" style="max-width:160px;border-radius:8px;margin-bottom:8px;display:block;" alt="preview">` : ''}
-      ${esc(txt)}
-    </div>
-  `;
-  document.getElementById('content').appendChild(d);
-  d.scrollIntoView({ behavior: 'smooth' });
-}
-
-function addFallback(txt) {
-  txt = stripCitations(txt);
-
-  const d = document.createElement('div');
-  d.className = 'ai-result';
-
-  const fmt = txt
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n/g, '<br>');
-
-  d.innerHTML = `
-    <div class="ai-label"><div class="dot">${MINI_SCOPE}</div> ThisOne 분석</div>
-    <div class="pick-card" style="border-color:var(--border)">${fmt}</div>
-  `;
-
-  document.getElementById('content').appendChild(d);
-  d.scrollIntoView({ behavior: 'smooth' });
-}
-
-function addTyping() {
-  const d = document.createElement('div');
-  d.className = 'ai-result';
-  d.innerHTML = `
-    <div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 검색 중...</div>
-    <div class="typing-wrap">
-      <div class="typing-steps">
-        <div class="typing-spinner"></div>
-        <div class="typing-msg">상품을 검색하고 있어요...</div>
-        <div class="typing-sub">가격, 링크, 이미지를 수집하는 중</div>
-      </div>
-    </div>
-  `;
-  document.getElementById('content').appendChild(d);
-  d.scrollIntoView({ behavior: 'smooth' });
-
-  const msgs = [
-    '상품을 검색하고 있어요...',
-    '네이버 쇼핑 결과를 정리하는 중...',
-    'AI가 5개 카드를 고르는 중...',
-    '결과를 표시하는 중...'
-  ];
 
   const subs = [
     '가격, 링크, 이미지를 수집하는 중',
@@ -555,26 +474,6 @@ function mergeAiWithCandidates(aiJson, candidates) {
     rejects: Array.isArray(aiJson.rejects) ? aiJson.rejects : []
   };
 }
-
-function addResultCard(j) {
-  const d = document.createElement('div');
-  d.className = 'ai-result';
-
-  const icons = {
-    ai: '🎯',
-    price: '💰',
-    review: '📝',
-    popular: '🔥',
-    trust: '🛡️'
-  };
-
-  const colors = {
-    ai: 'var(--accent)',
-    price: '#16a34a',
-    review: '#2563eb',
-    popular: '#ea580c',
-    trust: '#0f766e'
-  };
 
   let html = `<div class="ai-label"><div class="dot">${MINI_SCOPE}</div> ThisOne 분석</div>`;
 

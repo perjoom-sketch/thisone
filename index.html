@@ -896,16 +896,23 @@ const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI입니다.
 후보 목록에 없는 상품을 새로 만들지 마세요.
 반드시 JSON만 출력하세요.
 
+규칙:
+- AI추천은 반드시 아래 4개 후보(가격순, 리뷰순, 인기순, 신뢰순) 중 하나를 선택해야 합니다.
+- 즉 aiPickSourceType은 price / review / popular / trust 중 하나여야 합니다.
+- sourceId는 반드시 후보 상품 목록의 id를 그대로 써야 합니다.
+- 같은 상품이 여러 항목에 중복되어도 됩니다.
+
 출력 형식:
 {
-  "picks": [
-    {"type":"A","label":"가성비 최고","sourceId":"1","reason":"추천 이유 한줄"},
-    {"type":"B","label":"신뢰 브랜드","sourceId":"2","reason":"추천 이유 한줄"},
-    {"type":"C","label":"AI추천","sourceId":"3","reason":"추천 이유 한줄"}
+  "aiPickSourceType": "price",
+  "cards": [
+    {"type":"price","label":"가격순","sourceId":"1","reason":"실구매가 기준 가장 유리"},
+    {"type":"review","label":"리뷰순","sourceId":"2","reason":"평점과 리뷰 반응이 가장 좋음"},
+    {"type":"popular","label":"인기순","sourceId":"3","reason":"판매량과 관심도가 높음"},
+    {"type":"trust","label":"신뢰순","sourceId":"4","reason":"브랜드·판매처 안정성이 좋음"}
   ],
-  "verdict":"그래도 하나만 고르자면 한두 문장",
-  "rejects":[
-    {"name":"탈락상품명","reason":"탈락 이유"}
+  "rejects": [
+    {"name":"제외상품명","reason":"제외 이유"}
   ]
 }`;
 

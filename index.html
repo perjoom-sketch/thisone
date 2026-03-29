@@ -1176,41 +1176,52 @@ function getCandidateBonus(candidate, profile) {
   const bonusReasons = [];
 
   // 유모차: 신생아/맘카페/안정감용
-  if (profile.strollerNewbornStable) {
-    const isLight =
-      name.includes('휴대용') ||
-      name.includes('초경량') ||
-      name.includes('경량') ||
-      name.includes('기내반입') ||
-      name.includes('접이식');
+ if (profile.strollerNewbornStable) {
+  const isLight =
+    name.includes('휴대용') ||
+    name.includes('초경량') ||
+    name.includes('경량') ||
+    name.includes('기내반입') ||
+    name.includes('접이식') ||
+    name.includes('여행용');
 
-    const isStable =
-      name.includes('절충형') ||
-      name.includes('디럭스') ||
-      name.includes('신생아') ||
-      name.includes('양대면');
+  const isStable =
+    name.includes('절충형') ||
+    name.includes('디럭스') ||
+    name.includes('신생아') ||
+    name.includes('양대면') ||
+    name.includes('리클라이닝') ||
+    name.includes('서스펜션');
 
-    if (isStable) {
-      bonusScore += 3;
-      bonusReasons.push('안정형 키워드');
-    }
+  const isTrikeLike =
+    name.includes('트라이크') ||
+    name.includes('유모카');
 
-    if (isLight) {
-      bonusScore -= 2;
-      bonusReasons.push('경량형 감점');
-    }
-
-    if (price > 0 && price < 150000) {
-      bonusScore -= 3;
-      bonusReasons.push('저가형 감점');
-    }
-
-    if (price >= 300000) {
-      bonusScore += 1;
-      bonusReasons.push('품질 기대 가격대');
-    }
+  if (isStable) {
+    bonusScore += 3;
+    bonusReasons.push('안정형 키워드');
   }
 
+  if (isLight) {
+    bonusScore -= 2;
+    bonusReasons.push('경량형 감점');
+  }
+
+  if (isTrikeLike) {
+    bonusScore -= 4;
+    bonusReasons.push('트라이크형 감점');
+  }
+
+  if (price > 0 && price < 150000) {
+    bonusScore -= 3;
+    bonusReasons.push('저가형 감점');
+  }
+
+  if (price >= 300000) {
+    bonusScore += 1;
+    bonusReasons.push('품질 기대 가격대');
+  }
+}
   // 공기청정기: 전기료/절전
   if (profile.purifierEnergy) {
     if (

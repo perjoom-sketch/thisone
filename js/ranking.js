@@ -22,19 +22,21 @@ function detectCategoryKey(query) {
 }
 function rewriteSearchQuery(query) {
   const q = String(query || '').toLowerCase();
+  const categoryKey = detectCategoryKey(query);
+  const family = window.ThisOneFamilies.getFamilyByCategory(categoryKey);
 
-  if (q.includes('프린터') && q.includes('유지비')) {
+  if (categoryKey === 'printer' && q.includes('유지비')) {
     if (q.includes('회사') || q.includes('사무용')) {
       return '사무용 무한잉크 프린터 레이저 프린터 유지비 적은';
     }
     return '무한잉크 프린터 유지비 적은 가정용 프린터';
   }
 
-  if (q.includes('공기청정기') && (q.includes('전기료') || q.includes('전기요금'))) {
+  if (categoryKey === 'air_purifier' && (q.includes('전기료') || q.includes('전기요금'))) {
     return '저전력 공기청정기 에너지효율 좋은 공기청정기';
   }
 
-  if (q.includes('유모차') && q.includes('맘카페')) {
+  if (categoryKey === 'stroller' && q.includes('맘카페')) {
     return '맘카페 후기 좋은 유모차 절충형 디럭스 유모차';
   }
 

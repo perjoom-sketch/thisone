@@ -581,64 +581,7 @@ async function sendMsg() {
 
   if (txt) searchHistory.push(txt);
 
-  renderHistoryBar();
-  addUserMsg(txt || '📷 이미지로 검색', pendingImg?.src);
-
-  const queryText = txt || '이미지 기반 상품 검색';
-  const searchQuery = queryText;
-
-  inp.value = '';
-  autoResize(inp);
-  removeImg();
-
-  loading = true;
-  getSendBtn().disabled = true;
-  const typingEl = addTyping();
-
-  try {
-    const searchData = await window.ThisOneAPI.requestSearch(searchQuery);
-    const candidates = buildCandidates(searchData.items || [], queryText);
-
-    if (!candidates.length) {
-      typingEl.remove();
-      addFallback('검색 결과가 없습니다.');
-      loading = false;
-      getSendBtn().disabled = false;
-      getInput().focus();
-      return;
-    }
-
-    const aiData = await window.ThisOneAPI.requestChat({
-      model: MODEL,
-      max_tokens: 1200,
-      system: RANKING_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `사용자 질문:
-${queryText}
-
-후보 상품 목록(JSON):
-${JSON.stringify(candidates, null, 2)}
-
-지시:
-- 반드시 후보 상품 목록 안에서만 선택하세요.
-- cards 배열로만 답하세요.
-- 허용 카드 type: "price", "review", "popular", "trust"
-- 각 카드의 sourceId는 반드시 후보 상품의 id를 그대로 사용하세요.
-- aiPickSourceType은 반드시 "price", "review", "popular", "trust" 중 하나만 사용하세요.
-- bonusScore와 bonusReasons를 꼭 참고하세요.
-- AI추천은 bonusScore가 높은 후보를 우선 고려하세요.
-- name, price, store, image, link는 직접 생성하지 말고 sourceId로 연결만 하세요.
-- JSON만 출력하세요.`
-            }
-          ]
-        }
-      ]
-    });
+  window.ThisOneUI.renderHistoryBar();
 
     typingEl.remove();
 

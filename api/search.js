@@ -29,7 +29,7 @@ async function handler(req, res) {
     }
 
     // 네이버 쇼핑 API 호출
-    const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(q)}&display=20&start=1&sort=sim`;
+    const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(q)}&display=50&start=1&sort=sim`;
 
     const response = await fetch(url, {
       method: 'GET',

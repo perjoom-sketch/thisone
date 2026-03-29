@@ -484,7 +484,7 @@ async function sendMsg() {
   window.ThisOneUI.addUserMsg(txt || '📷 이미지로 검색', pendingImg?.src);
 
   const queryText = txt || '이미지 기반 상품 검색';
-  const searchQuery = rewriteSearchQuery(queryText);
+  const searchQuery = window.ThisOneRanking.rewriteSearchQuery(queryText);
 
   inp.value = '';
   autoResize(inp);
@@ -496,7 +496,7 @@ async function sendMsg() {
 
   try {
     const searchData = await window.ThisOneAPI.requestSearch(searchQuery);
-    const candidates = buildCandidates(searchData.items || [], queryText);
+    onst candidates = window.ThisOneRanking.buildCandidates(searchData.items || [], queryText);
 
     if (!candidates.length) {
       typingEl.remove();
@@ -555,7 +555,7 @@ ${JSON.stringify(candidates, null, 2)}
 
         const parsed = JSON.parse(clean);
         const cleaned = deepClean(parsed);
-        const merged = mergeAiWithCandidates(cleaned, candidates);
+        const merged = window.ThisOneRanking.mergeAiWithCandidates(cleaned, candidates);
         window.ThisOneUI.addResultCard(merged);
       } catch (e) {
         window.ThisOneUI.addFallback(raw || '응답을 파싱할 수 없습니다.');

@@ -88,7 +88,82 @@ function inferIntentProfile(query) {
         q.includes('산업용 선풍기'))
   };
 }
+function getFamilyBonus(candidate, profile) {
+  const name = String(candidate.name || '').toLowerCase();
+  const price = parsePriceNumber(candidate.price);
 
+  let bonusScore = 0;
+  const bonusReasons = [];
+
+  if (profile.familyKey === 'mobility') {
+    const stableWords = ['절충형', '디럭스', '양대면', '서스펜션', '리클라이닝'];
+    const lightWords = ['휴대용', '초경량', '경량', '기내반입', '접이식', '여행용'];
+
+    if (stableWords.some(word => name.includes(word.toLowerCase()))) {
+      bonusScore += 2;
+      bonusReasons.push('이동형-안정감');
+    }
+
+    if (lightWords.some(word => name.includes(word.toLowerCase()))) {
+      bonusScore += 1;
+      bonusReasons.push('이동형-휴대성');
+    }
+
+    if (price >= 300000) {
+      bonusScore += 1;
+      bonusReasons.push('이동형-품질가격대');
+    }
+  }
+
+  if (profile.familyKey === 'environment') {
+    const energyWords = ['저전력', '절전', '에너지', '1등급', '인버터', 'dc'];
+    const noiseWords = ['저소음', 'bldc', 'dc모터'];
+
+    if (energyWords.some(word => name.includes(word.toLowerCase()))) {
+      bonusScore += 2;
+      bonusReasons.push('환경형-에너지');
+    }
+
+    if (noiseWords.some(word => name.includes(word.toLowerCase()))) {
+      bonusScore += 2;
+      bonusReasons.push('환경형-저소음');
+    }
+
+    if (/\d+\s*(㎡|m²|평)/i.test(name)) {
+      bonusScore += 1;
+      bonusReasons.push('환경형-면적정보');
+    }
+  }
+
+  if (profile.familyKey === 'office_output') {
+    const runningCostWords = ['무한잉크', '정품무한', 'ink tank', 'tank', '레이저'];
+    const minusWords = ['토너', '카트리지'];
+
+    if (runningCostWords.some(word => name.includes(word.toLowerCase()))) {
+      bonusScore += 3;
+      bonusReasons.push('사무형-유지비');
+    }
+
+    if (minusWords.some(word => name.includes(word.toLowerCase()))) {
+      bonusScore -= 2;
+      bonusReasons.push('사무형-소모품');
+    }
+  }
+
+  if (profile.familyKey === 'wearable_usage') {
+    const callWords = ['enc', '통화', '마이크', 'cvc', '노이즈캔슬링'];
+
+    if (callWords.some(word => name.includes(word.toLowerCase()))) {
+      bonusScore += 2;
+      bonusReasons.push('착용형-기능성');
+    }
+  }
+
+  return {
+    bonusScore,
+    bonusReasons
+  };
+}
 function getCandidateBonus(candidate, profile) {
   const name = String(candidate.name || '').toLowerCase();
   const price = parsePriceNumber(candidate.price);

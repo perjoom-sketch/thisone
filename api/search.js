@@ -1,4 +1,4 @@
-// api/search.js
+// api/search.js - 유모차 같은 자연어 검색 개선 버전
 const { applyUniversalAIFilter } = require('../lib/universalFilter');
 
 function stripTags(text) {
@@ -7,29 +7,48 @@ function stripTags(text) {
     .trim();
 }
 
+// 자연어 쿼리를 네이버 쇼핑에 잘 맞는 키워드로 변환
+function improveQuery(originalQuery) {
+  let q = String(originalQuery || '').trim();
+
+  // 유모차 관련 키워드 보강
+  if (q.includes('유모차') || q.includes('맘카페') || q.includes('유아차')) {
+    q = q.replace(/맘카페 반응 좋은|맘카페 추천|인기|좋은/g, '');
+    q = '유모차 ' + q.trim();
+    
+    // 맘카페 추천 의도가 강할 때 추가 키워드
+    if (originalQuery.includes('맘카페')) {
+      q = '유모차 추천 ' + q.replace('유모차 ', '');
+    }
+  }
+
+  // 기타 흔한 자연어 정리 (예: 산업용 선풍기 등)
+  q = q.replace(/유지비 포함|배송비 포함|가장 나은|가장 좋은/g, '');
+
+  return q.trim();
+}
+
 async function handler(req, res) {
-  // CORS 설정
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
 
   try {
-    const q = String(req.query.q || req.query.query || '').trim();
+    let q = String(req.query.q || req.query.query || '').trim();
 
     if (!q) {
       return res.status(400).json({ error: '검색어가 없습니다.' });
     }
 
-    // 네이버 쇼핑 API 호출
-const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(q)}&display=50&start=1&sort=sim`;
+    // 쿼리 개선 (가장 중요한 부분)
+    const improvedQ = improveQuery(q);
+    console.log(`[Search] 원본: "${q}" → 개선: "${improvedQ}"`);
+
+    // 네이버 쇼핑 API 호출 (display=30으로 줄여서 속도 향상)
+    const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(improvedQ)}&display=30&start=1&sort=sim`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -42,6 +61,7 @@ const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComp
     const text = await response.text();
 
     if (!response.ok) {
+      console.error('Naver API Error:', text);
       return res.status(response.status).json({
         error: 'Naver Shopping API error',
         detail: text
@@ -52,13 +72,10 @@ const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComp
     try {
       data = JSON.parse(text);
     } catch (e) {
-      return res.status(500).json({
-        error: '네이버 응답 JSON 파싱 실패',
-        detail: text
-      });
+      return res.status(500).json({ error: '네이버 응답 JSON 파싱 실패' });
     }
 
-    // 기본 아이템 리스트 생성
+    // 기본 아이템 리스트
     let items = (data.items || []).map((item, idx) => ({
       id: String(idx + 1),
       name: stripTags(item.title),
@@ -72,24 +89,23 @@ const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComp
 
     // AI 필터 적용
     const filterResult = await applyUniversalAIFilter({
-      query: q,
-      items
+      query: q,           // 원본 쿼리 (의도 파악용)
+      items: items
     });
 
-    // [핵심 수정] 결과값 안전장치 강화
     let finalItems = [];
     if (filterResult && filterResult.filteredItems && filterResult.filteredItems.length > 0) {
-      // AI가 성공적으로 필터링한 경우
-      finalItems = filterResult.filteredItems;
+      finalItems = filterResult.filteredItems.slice(0, 10); // 최대 10개
     } else {
-      // AI 필터 결과가 없거나 오류 시, 원본 데이터 상위 10개를 안전하게 보여줌
+      // 필터 실패 시 안전하게 상위 상품 사용
       finalItems = items.slice(0, 10);
     }
 
     return res.status(200).json({
       query: q,
+      improvedQuery: improvedQ,
       total: data.total || 0,
-      items: finalItems, // 확정된 리스트 반환
+      items: finalItems,
       filterDebug: filterResult ? filterResult.debug : 'no_debug',
       rejectedItems: filterResult ? filterResult.rejectedItems : []
     });

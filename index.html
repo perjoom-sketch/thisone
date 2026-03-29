@@ -1173,53 +1173,6 @@ function findCandidateByName(candidates, name) {
 }
 
 function mergeAiWithCandidates(aiJson, candidates) {
-  const byId = {};
-  candidates.forEach((c) => { byId[c.id] = c; });
-
-  const cards = (aiJson.cards || []).map((p) => {
-    const source = byId[p.sourceId] || null;
-
-    return {
-      type: p.type || '',
-      label:
-        p.type === 'price' ? '가격순' :
-        p.type === 'review' ? '리뷰순' :
-        p.type === 'popular' ? '인기순' :
-        p.type === 'trust' ? '신뢰순' :
-        (p.label || ''),
-      name: source ? source.name : '',
-      price: source ? source.price : '',
-      store: source ? source.store : '',
-      delivery: source ? source.delivery : '',
-      review: source ? source.review : '',
-      reason: p.reason || '',
-      image: source ? source.image : '',
-      link: source ? source.link : '',
-      sourceId: p.sourceId || ''
-    };
-  });
-
-  const aiPickSourceType = aiJson.aiPickSourceType || '';
-  const aiBase = cards.find(card => card.type === aiPickSourceType) || cards[0] || null;
-
-  const aiPick = aiBase ? {
-    ...aiBase,
-    type: 'ai',
-    label: 'AI추천'
-  } : null;
-
-  const orderedCards = [
-    ...(aiPick ? [aiPick] : []),
-    ...cards.filter(card => card.type !== aiPickSourceType)
-  ];
-
-  return {
-    cards: orderedCards,
-    rejects: aiJson.rejects || []
-  };
-}
-
-function mergeAiWithCandidates(aiJson, candidates) {
 function addResultCard(j) {
   const d = document.createElement('div');
   d.className = 'ai-result';

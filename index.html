@@ -1534,7 +1534,7 @@ function getCandidateBonus(candidate, profile) {
           method: 'GET'
         });
 
-        const candidates = buildCandidates(searchData.items || []);
+        const candidates = buildCandidates(searchData.items || [], queryText);
 
         if (!candidates.length) {
           typingEl.remove();

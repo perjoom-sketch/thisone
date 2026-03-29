@@ -168,8 +168,10 @@ function getCandidateBonus(candidate, profile) {
   const name = String(candidate.name || '').toLowerCase();
   const price = parsePriceNumber(candidate.price);
 
-  let bonusScore = 0;
-  const bonusReasons = [];
+  const familyBonus = getFamilyBonus(candidate, profile);
+
+  let bonusScore = familyBonus.bonusScore;
+  const bonusReasons = [...familyBonus.bonusReasons];
 
   if (profile.strollerNewbornStable) {
     const isLight =

@@ -66,7 +66,7 @@ align-items:center;justify-content:center;
 
 #welcome{text-align:center;margin-bottom:36px;animation:fadeUp .6s ease}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-.welcome-icon{font-size:56px;margin-bottom:18px}
+.welcome-icon{margin-bottom:18px;display:flex;justify-content:center}
 #welcome h2{
 font-family:var(–display);font-size:38px;font-weight:800;color:var(–text1);
 margin-bottom:14px;letter-spacing:-.04em;line-height:1.2;
@@ -222,6 +222,19 @@ box-shadow:0 2px 8px var(–accent-glow);letter-spacing:.01em;
 .pick-badge-sub{background:var(–bg-hover);color:var(–text2);box-shadow:none}
 .pick-first{border-color:rgba(79,70,229,.3)}
 
+/* Pick card layout with image */
+.pick-body{display:flex;gap:16px;align-items:flex-start}
+.pick-img{
+width:90px;height:90px;border-radius:10px;object-fit:cover;flex-shrink:0;
+border:1px solid var(–border);background:var(–bg-hover);
+}
+.pick-img-placeholder{
+width:90px;height:90px;border-radius:10px;flex-shrink:0;
+border:1px solid var(–border);background:var(–bg-hover);
+display:flex;align-items:center;justify-content:center;font-size:28px;
+}
+.pick-info{flex:1;min-width:0}
+
 /* Verdict */
 .verdict-card{
 background:linear-gradient(135deg,rgba(79,70,229,.04),rgba(13,148,136,.04));
@@ -275,19 +288,32 @@ display:flex;align-items:center;justify-content:center;
 
 .typing-wrap{
 background:var(–bg-card);border:1px solid var(–border);
-border-radius:16px;padding:22px;box-shadow:0 1px 4px rgba(0,0,0,.03);
+border-radius:16px;padding:24px;box-shadow:0 1px 4px rgba(0,0,0,.03);
+text-align:center;
 }
-.typing{display:flex;gap:6px;align-items:center}
-.typing span{
-width:6px;height:6px;border-radius:50%;
-background:var(–accent);animation:pulse 1.2s ease-in-out infinite;opacity:.4;
+.typing-steps{display:flex;flex-direction:column;gap:12px;align-items:center}
+.typing-spinner{
+width:40px;height:40px;border:3px solid var(–border);border-top-color:var(–accent);
+border-radius:50%;animation:spin .8s linear infinite;margin-bottom:4px;
 }
-.typing span:nth-child(2){animation-delay:.2s}
-.typing span:nth-child(3){animation-delay:.4s}
-@keyframes pulse{
-0%,60%,100%{transform:translateY(0);opacity:.3}
-30%{transform:translateY(-6px);opacity:1}
+@keyframes spin{to{transform:rotate(360deg)}}
+.typing-msg{font-size:13px;color:var(–text2);font-weight:400;animation:typingFade 2s ease-in-out infinite}
+.typing-sub{font-size:11px;color:var(–text3);font-weight:300}
+@keyframes typingFade{0%,100%{opacity:.6}50%{opacity:1}}
+
+/* Search history chip */
+.history-bar{
+max-width:640px;margin:0 auto;padding:4px 0;
+display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;
 }
+.history-bar::-webkit-scrollbar{display:none}
+.history-chip{
+flex-shrink:0;padding:5px 12px;border-radius:100px;
+font-size:11px;color:var(–text3);background:var(–bg-card);
+border:1px solid var(–border);cursor:pointer;white-space:nowrap;
+transition:all .2s;
+}
+.history-chip:hover{border-color:var(–accent);color:var(–accent)}
 
 #fileInput{display:none}
 
@@ -301,7 +327,8 @@ padding-bottom:40px;
 #welcome{margin-top:28px;margin-bottom:18px}
 #welcome h2{font-size:22px}
 #welcome p{font-size:13px}
-.welcome-icon{font-size:36px;margin-bottom:10px}
+.welcome-icon{margin-bottom:10px}
+.welcome-icon svg{width:48px;height:48px}
 #chips{padding:0 16px;gap:8px}
 .chip{padding:8px 14px;font-size:12.5px}
 .search-wrap{padding:0 16px}
@@ -309,6 +336,7 @@ padding-bottom:40px;
 #stickySearch{padding:10px 16px 8px;top:50px}
 .content{padding:16px}
 .pick-title{font-size:17px}
+.pick-img,.pick-img-placeholder{width:70px;height:70px}
 .compare-table th,.compare-table td{padding:9px 10px;font-size:11.5px}
 }
 </style>
@@ -319,7 +347,7 @@ padding-bottom:40px;
 <!-- HEADER -->
 
 <div class="hdr">
-  <div class="logo">
+  <div class="logo" onclick="goHome()" style="cursor:pointer">
     <div class="logo-mark">T</div>
     <div>
       <div class="logo-name">This<span>One</span></div>
@@ -333,7 +361,26 @@ padding-bottom:40px;
 
 <div id="landing">
   <div id="welcome">
-    <div class="welcome-icon">🎯</div>
+    <div class="welcome-icon"><svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="glow" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#6366f1"/>
+          <stop offset="1" stop-color="#06b6d4"/>
+        </linearGradient>
+        <radialGradient id="center-glow" cx="32" cy="32" r="16" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#a5b4fc" stop-opacity=".6"/>
+          <stop offset="1" stop-color="#6366f1" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <circle cx="32" cy="32" r="22" stroke="url(#glow)" stroke-width="3" fill="none" opacity=".35"/>
+      <circle cx="32" cy="32" r="14" stroke="url(#glow)" stroke-width="2.5" fill="none" opacity=".6"/>
+      <circle cx="32" cy="32" r="12" fill="url(#center-glow)"/>
+      <circle cx="32" cy="32" r="4" fill="url(#glow)"/>
+      <line x1="32" y1="4" x2="32" y2="16" stroke="url(#glow)" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+      <line x1="32" y1="48" x2="32" y2="60" stroke="url(#glow)" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+      <line x1="4" y1="32" x2="16" y2="32" stroke="url(#glow)" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+      <line x1="48" y1="32" x2="60" y2="32" stroke="url(#glow)" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+    </svg></div>
     <h2>고민 끝. <em>This One.</em></h2>
     <p>구매결정 AI "디스원"<br>수량, 배송비, 리뷰까지 꼼꼼히 살펴보고<br>가장 좋은 것으로 추천해 드려요.</p>
   </div>
@@ -399,11 +446,13 @@ const PROMPT=`당신은 ThisOne 구매결정 AI입니다.
 - B안: 믿을 수 있는 브랜드 (신뢰 우선)  
 - C안: ThisOne 추천 (종합 최선)
 
+image 필드에는 해당 상품의 실제 대표 이미지 URL을 넣어주세요.
+
 {
   "picks": [
-    {"type":"A","label":"가성비 최고","name":"상품명","price":"가격","store":"판매처","delivery":"배송정보","review":"⭐4.5","reason":"추천 이유 한줄"},
-    {"type":"B","label":"신뢰 브랜드","name":"상품명","price":"가격","store":"판매처","delivery":"배송정보","review":"⭐4.8","reason":"추천 이유 한줄"},
-    {"type":"C","label":"ThisOne 추천","name":"상품명","price":"가격","store":"판매처","delivery":"배송정보","review":"⭐4.7","reason":"추천 이유 한줄"}
+    {"type":"A","label":"가성비 최고","name":"상품명","price":"가격","store":"판매처","delivery":"배송정보","review":"⭐4.5","reason":"추천 이유 한줄","image":"상품 이미지 URL"},
+    {"type":"B","label":"신뢰 브랜드","name":"상품명","price":"가격","store":"판매처","delivery":"배송정보","review":"⭐4.8","reason":"추천 이유 한줄","image":"상품 이미지 URL"},
+    {"type":"C","label":"ThisOne 추천","name":"상품명","price":"가격","store":"판매처","delivery":"배송정보","review":"⭐4.7","reason":"추천 이유 한줄","image":"상품 이미지 URL"}
   ],
   "verdict":"그래도 하나만 고르자면 — C안을 추천하는 이유 한두 문장",
   "rejects": [
@@ -413,6 +462,16 @@ const PROMPT=`당신은 ThisOne 구매결정 AI입니다.
 
 function getInput(){return document.getElementById(isSearchMode?'msgInput2':'msgInput');}
 function getSendBtn(){return document.getElementById(isSearchMode?'sendBtn2':'sendBtn');}
+
+let searchHistory=[];
+
+function goHome(){
+  isSearchMode=false;
+  document.getElementById('landing').style.display='';
+  document.getElementById('stickySearch').style.display='none';
+  document.getElementById('content').style.display='none';
+  document.getElementById('content').innerHTML='';
+}
 
 function switchToSearchMode(){
   if(isSearchMode)return;
@@ -458,10 +517,18 @@ async function sendMsg(){
 
   switchToSearchMode();
 
+  // (2) 이전 결과 지우기
+  document.getElementById('content').innerHTML='';
+
+  // 검색이력 추가
+  if(txt) searchHistory.push(txt);
+
   const uc=[];
   if(pendingImg)uc.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:pendingImg.data}});
   uc.push({type:'text',text:txt||'이 이미지 상품을 가격비교해줘'});
 
+  // 검색이력 바 렌더
+  renderHistoryBar();
   addUserMsg(txt||'📷 이미지로 검색',pendingImg?.src);
   history.push({role:'user',content:uc});
   inp.value='';autoResize(inp);removeImg();
@@ -496,6 +563,23 @@ async function sendMsg(){
   getInput().focus();
 }
 
+function renderHistoryBar(){
+  if(searchHistory.length<2)return;
+  let existing=document.getElementById('historyBar');
+  if(existing)existing.remove();
+  const bar=document.createElement('div');
+  bar.className='history-bar';
+  bar.id='historyBar';
+  searchHistory.slice(-10).forEach(q=>{
+    const c=document.createElement('div');
+    c.className='history-chip';
+    c.textContent='🔍 '+q;
+    c.onclick=()=>{document.getElementById('msgInput2').value=q;autoResize(document.getElementById('msgInput2'));sendMsg();};
+    bar.appendChild(c);
+  });
+  document.getElementById('content').appendChild(bar);
+}
+
 function addUserMsg(txt,imgSrc){
   const d=document.createElement('div');
   d.className='user-msg-wrap';
@@ -511,6 +595,7 @@ function addResultCard(j){
 
   const icons={A:'💰',B:'🏆',C:'🎯'};
   const colors={A:'#16a34a',B:'#2563eb',C:'var(--accent)'};
+  const fallbackEmoji={A:'📦',B:'🏅',C:'🎯'};
 
   let html=`<div class="ai-label"><div class="dot">T</div> ThisOne 분석</div>`;
 
@@ -518,14 +603,22 @@ function addResultCard(j){
     j.picks.forEach(p=>{
       const t=p.type||'C';
       const isC=t==='C';
+      const imgHtml=p.image
+        ?`<img class="pick-img" src="${esc(p.image)}" onerror="this.outerHTML='<div class=\\'pick-img-placeholder\\'>${fallbackEmoji[t]}</div>'" alt="">`
+        :`<div class="pick-img-placeholder">${fallbackEmoji[t]}</div>`;
       html+=`<div class="pick-card ${isC?'pick-first':''}">
-        <div class="pick-badge" style="${isC?'':'background:'+colors[t]+';box-shadow:none'}">${icons[t]||'🎯'} ${esc(t)}안 · ${esc(p.label)}</div>
-        <div class="pick-title">${esc(p.name)}</div>
-        <div class="pick-meta">
-          <span class="pick-price">${esc(p.price)}</span>
-          <span class="pick-store">${esc(p.store)}</span>
-          <span class="pick-delivery">🚚 ${esc(p.delivery)}</span>
-          <span class="pick-review">${esc(p.review)}</span>
+        <div class="pick-badge" style="${isC?'':'background:'+colors[t]+';box-shadow:none'}">${icons[t]||'🎯'} ${esc(p.label)}</div>
+        <div class="pick-body">
+          ${imgHtml}
+          <div class="pick-info">
+            <div class="pick-title">${esc(p.name)}</div>
+            <div class="pick-meta">
+              <span class="pick-price">${esc(p.price)}</span>
+              <span class="pick-store">${esc(p.store)}</span>
+              <span class="pick-delivery">🚚 ${esc(p.delivery)}</span>
+              <span class="pick-review">${esc(p.review)}</span>
+            </div>
+          </div>
         </div>
         <div class="pick-reason-text">${esc(p.reason)}</div>
       </div>`;
@@ -568,9 +661,29 @@ function addTyping(){
   const d=document.createElement('div');
   d.className='ai-result';
   d.innerHTML=`<div class="ai-label"><div class="dot">T</div> 검색 중...</div>
-    <div class="typing-wrap"><div class="typing"><span></span><span></span><span></span></div></div>`;
+    <div class="typing-wrap">
+      <div class="typing-steps">
+        <div class="typing-spinner"></div>
+        <div class="typing-msg">상품을 검색하고 있어요...</div>
+        <div class="typing-sub">가격, 리뷰, 배송 정보를 비교하는 중</div>
+      </div>
+    </div>`;
   document.getElementById('content').appendChild(d);
   d.scrollIntoView({behavior:'smooth'});
+
+  // 진행 메시지 변경
+  const msgs=['상품을 검색하고 있어요...','가격을 비교하고 있어요...','리뷰를 분석하고 있어요...','최선의 선택을 고르는 중...'];
+  const subs=['가격, 리뷰, 배송 정보를 비교하는 중','여러 쇼핑몰에서 최저가 확인 중','실구매자 후기를 살펴보는 중','A·B·C 안을 정리하고 있어요'];
+  let idx=0;
+  d._timer=setInterval(()=>{
+    idx=(idx+1)%msgs.length;
+    const m=d.querySelector('.typing-msg');
+    const s=d.querySelector('.typing-sub');
+    if(m)m.textContent=msgs[idx];
+    if(s)s.textContent=subs[idx];
+  },3000);
+  const origRemove=d.remove.bind(d);
+  d.remove=()=>{clearInterval(d._timer);origRemove();};
   return d;
 }
 

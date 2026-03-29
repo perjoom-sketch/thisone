@@ -1220,50 +1220,118 @@ function mergeAiWithCandidates(aiJson, candidates) {
 }
 
 function mergeAiWithCandidates(aiJson, candidates) {
-  const byId = {};
-  candidates.forEach((c) => { byId[c.id] = c; });
+function addResultCard(j) {
+  const d = document.createElement('div');
+  d.className = 'ai-result';
 
-  const cards = (aiJson.cards || []).map((p) => {
-    const source = byId[p.sourceId] || null;
-
-    return {
-      type: p.type || '',
-      label:
-        p.type === 'price' ? '가격순' :
-        p.type === 'review' ? '리뷰순' :
-        p.type === 'popular' ? '인기순' :
-        p.type === 'trust' ? '신뢰순' :
-        (p.label || ''),
-      name: source ? source.name : '',
-      price: source ? source.price : '',
-      store: source ? source.store : '',
-      delivery: source ? source.delivery : '',
-      review: source ? source.review : '',
-      reason: p.reason || '',
-      image: source ? source.image : '',
-      link: source ? source.link : '',
-      sourceId: p.sourceId || ''
-    };
-  });
-
-  const aiPickSourceType = aiJson.aiPickSourceType || '';
-  const aiBase = cards.find(card => card.type === aiPickSourceType) || cards[0] || null;
-
-  const aiPick = aiBase ? {
-    ...aiBase,
-    type: 'ai',
-    label: 'AI추천'
-  } : null;
-
-  const orderedCards = [
-    ...(aiPick ? [aiPick] : []),
-    ...cards.filter(card => card.type !== aiPickSourceType)
-  ];
-
-  return {
-    cards: orderedCards,
-    rejects: aiJson.rejects || []
+  const icons = {
+    ai: '🎯',
+    price: '💰',
+    review: '📝',
+    popular: '🔥',
+    trust: '🛡️'
   };
+
+  const colors = {
+    ai: 'var(--accent)',
+    price: '#16a34a',
+    review: '#2563eb',
+    popular: '#ea580c',
+    trust: '#0f766e'
+  };
+
+  let html = `<div class="ai-label"><div class="dot">${MINI_SCOPE}</div> ThisOne 분석</div>`;
+
+  if (j.cards && j.cards.length) {
+    j.cards.forEach((p) => {
+      const t = p.type || '';
+      const isAI = t === 'ai';
+      const initial = p.name ? p.name.charAt(0) : '?';
+
+      const bgColors = {
+        ai: '#ede9fe',
+        price: '#dcfce7',
+        review: '#dbeafe',
+        popular: '#ffedd5',
+        trust: '#ccfbf1'
+      };
+
+      const fgColors = {
+        ai: '#4f46e5',
+        price: '#16a34a',
+        review: '#2563eb',
+        popular: '#ea580c',
+        trust: '#0f766e'
+      };
+
+      const placeholderHtml = `
+        <div class="pick-img-placeholder" style="background:${bgColors[t]};color:${fgColors[t]};font-weight:700;font-size:22px;">
+          ${esc(initial)}
+        </div>
+      `;
+
+      const imgHtml = p.image
+        ? `
+          <div class="pick-media">
+            <img
+              class="pick-img"
+              src="${escAttr(p.image)}"
+              alt="${escAttr(p.name)}"
+              referrerpolicy="no-referrer"
+              loading="lazy"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+            >
+            <div class="pick-img-placeholder" style="display:none;background:${bgColors[t]};color:${fgColors[t]};font-weight:700;font-size:22px;">
+              ${esc(initial)}
+            </div>
+          </div>
+        `
+        : `<div class="pick-media">${placeholderHtml}</div>`;
+
+      const cardStart = p.link
+        ? `<a class="pick-card-link" href="${escAttr(p.link)}" target="_blank" rel="noopener noreferrer">`
+        : '';
+      const cardEnd = p.link ? '</a>' : '';
+
+      html += `
+        ${cardStart}
+        <div class="pick-card ${isAI ? 'pick-first' : ''}">
+          <div class="pick-badge" style="${isAI ? '' : 'background:' + colors[t] + ';box-shadow:none'}">${icons[t] || '📦'} ${esc(p.label)}</div>
+          <div class="pick-body">
+            ${imgHtml}
+            <div class="pick-info">
+              <div class="pick-title">${esc(p.name)}</div>
+              <div class="pick-meta">
+                <span class="pick-price">${esc(p.price)}</span>
+                <span class="pick-store">${esc(p.store)}</span>
+                ${p.delivery ? `<span class="pick-delivery">🚚 ${esc(p.delivery)}</span>` : ''}
+                ${p.review ? `<span class="pick-review">${esc(p.review)}</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <div class="pick-reason-text">${esc(p.reason)}</div>
+        </div>
+        ${cardEnd}
+      `;
+    });
+  }
+
+  if (j.rejects && j.rejects.length) {
+    html += `<div class="reject-card"><div class="reject-title">ℹ️ 제외 이유</div>`;
+    j.rejects.forEach((r) => {
+      html += `
+        <div class="reject-item">
+          <div class="reject-dot">•</div>
+          <div class="reject-text"><span class="reject-name">${esc(r.name)}</span> — ${esc(r.reason)}</div>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  d.innerHTML = html;
+  document.getElementById('content').appendChild(d);
+  d.scrollIntoView({ behavior: 'smooth' });
 }
 
 async function sendMsg() {

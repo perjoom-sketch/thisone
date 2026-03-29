@@ -1203,8 +1203,13 @@ function addResultCard(j) {
 
   let html = `<div class="ai-label"><div class="dot">${MINI_SCOPE}</div> ThisOne 분석</div>`;
 
-  if (j.picks && j.picks.length) {
-    j.picks.forEach((p) => {
+ if (j.picks && j.picks.length) {
+  const sortedPicks = [...j.picks].sort((a, b) => {
+    const order = { C: 0, A: 1, B: 2 };
+    return (order[a.type] ?? 99) - (order[b.type] ?? 99);
+  });
+
+  sortedPicks.forEach((p) => {
       console.log('image url:', p.image, 'link:', p.link, 'name:', p.name);
 
       const t = p.type || 'C';

@@ -107,30 +107,6 @@ const MODEL = 'claude-sonnet-4-20250514';
       });
     }
 
-    async function safeFetchJson(url, options) {
-      const res = await fetch(url, options);
-      const text = await res.text();
-
-      if (!res.ok) {
-        throw new Error(text || `HTTP ${res.status}`);
-      }
-
-      try {
-        return JSON.parse(text);
-      } catch (e) {
-        throw new Error(`JSON 파싱 실패: ${text}`);
-      }
-    }
-
-    function stripCitations(text) {
-      return String(text || '')
-        .replace(/<cite\b[^>]*>/gi, '')
-        .replace(/<\/cite>/gi, '')
-        .replace(/<b>/gi, '')
-        .replace(/<\/b>/gi, '')
-        .trim();
-    }
-
     function deepClean(value) {
       if (typeof value === 'string') return stripCitations(value);
       if (Array.isArray(value)) return value.map(deepClean);
@@ -677,9 +653,7 @@ function getCandidateBonus(candidate, profile) {
       const typingEl = addTyping();
 
       try {
-        const searchData = await safeFetchJson(`/api/search?q=${encodeURIComponent(queryText)}`, {
-          method: 'GET'
-        });
+        const searchData = await window.ThisOneAPI.requestSearch(searchQuery);
 
         const candidates = buildCandidates(searchData.items || [], queryText);
 
@@ -692,21 +666,17 @@ function getCandidateBonus(candidate, profile) {
           return;
         }
 
-        const aiData = await safeFetchJson('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: MODEL,
-            max_tokens: 1200,
-            system: RANKING_PROMPT,
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  {
-                    type: 'text',
-                   text:
-`사용자 질문:
+        const aiData = await window.ThisOneAPI.requestChat({
+  model: MODEL,
+  max_tokens: 1200,
+  system: RANKING_PROMPT,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: `사용자 질문:
 ${queryText}
 
 후보 상품 목록(JSON):
@@ -722,12 +692,11 @@ ${JSON.stringify(candidates, null, 2)}
 - AI추천은 bonusScore가 높은 후보를 우선 고려하세요.
 - name, price, store, image, link는 직접 생성하지 말고 sourceId로 연결만 하세요.
 - JSON만 출력하세요.`
-                  }
-                ]
-              }
-            ]
-          })
-        });
+        }
+      ]
+    }
+  ]
+});
 
         typingEl.remove();
 

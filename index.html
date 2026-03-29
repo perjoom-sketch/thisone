@@ -617,9 +617,13 @@ function addResultCard(j){
     j.picks.forEach(p=>{
       const t=p.type||'C';
       const isC=t==='C';
+      const initial=p.name?p.name.charAt(0):'?';
+      const bgColors={A:'#dcfce7',B:'#dbeafe',C:'#ede9fe'};
+      const fgColors={A:'#16a34a',B:'#2563eb',C:'#4f46e5'};
+      const placeholderHtml=`<div class="pick-img-placeholder" style="background:${bgColors[t]};color:${fgColors[t]};font-weight:700;font-size:22px">${initial}</div>`;
       const imgHtml=p.image
-        ?`<img class="pick-img" src="${esc(p.image)}" onerror="this.outerHTML='<div class=\\'pick-img-placeholder\\'>${fallbackEmoji[t]}</div>'" alt="">`
-        :`<div class="pick-img-placeholder">${fallbackEmoji[t]}</div>`;
+        ?`<img class="pick-img" referrerpolicy="no-referrer" crossorigin="anonymous" src="${esc(p.image)}" onerror="this.outerHTML=this.getAttribute('data-fallback')" data-fallback='${placeholderHtml.replace(/'/g,"&#39;")}' alt="${esc(p.name)}">`
+        :placeholderHtml;
       html+=`<div class="pick-card ${isC?'pick-first':''}">
         <div class="pick-badge" style="${isC?'':'background:'+colors[t]+';box-shadow:none'}">${icons[t]||'🎯'} ${esc(p.label)}</div>
         <div class="pick-body">

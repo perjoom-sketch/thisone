@@ -1,8 +1,7 @@
-// api/chat.js
+// api/chat.js - 수정된 버전 (에러 해결)
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 async function handler(req, res) {
-  // CORS 설정
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -18,38 +17,38 @@ async function handler(req, res) {
   try {
     const { messages = [], system = "" } = req.body;
 
-    // Gemini 초기화
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash-lite",
-      systemInstruction: system,                    // 시스템 프롬프트 제대로 전달
+      systemInstruction: system,
       generationConfig: {
-        responseMimeType: "application/json",       // JSON 강제
-        temperature: 0.1,                           // JSON 안정성을 위해 낮춤
+        responseMimeType: "application/json",
+        temperature: 0.1,
       }
     });
 
-    // 마지막 메시지 가져오기 (후보 상품 목록이 여기 들어있음)
+    // 마지막 메시지 (후보 상품 목록이 들어있는 부분)
     const lastMessage = messages[messages.length - 1];
     if (!lastMessage || !lastMessage.content) {
-      throw new Error("메시지 형식이 잘못되었습니다.");
+      throw new Error("메시지가 올바르지 않습니다.");
     }
 
-    // Gemini에 보낼 내용
-    const contents = [{
-      role: "user",
-      parts: [{ text: lastMessage.content }]
-    }];
+    // Gemini가 기대하는 정확한 형식으로 수정
+    let parts = [];
+    if (typeof lastMessage.content === "string") {
+      parts = [{ text: lastMessage.content }];
+    } else if (Array.isArray(lastMessage.content)) {
+      parts = lastMessage.content;
+    }
 
-    // JSON Schema (강력하게 JSON 형식 강제)
+    const contents = [{ parts: parts }];
+
+    // JSON Schema (AI가 정확한 답변 형식으로 주도록 강제)
     const responseSchema = {
       type: "object",
       properties: {
-        aiPickSourceType: { 
-          type: "string", 
-          enum: ["price", "review", "popular", "trust"] 
-        },
+        aiPickSourceType: { type: "string", enum: ["price", "review", "popular", "trust"] },
         cards: {
           type: "array",
           items: {
@@ -77,7 +76,6 @@ async function handler(req, res) {
       required: ["aiPickSourceType", "cards"]
     };
 
-    // 실제 API 호출
     const result = await model.generateContent({
       contents: contents,
       generationConfig: {
@@ -89,37 +87,27 @@ async function handler(req, res) {
 
     const responseText = result.response.text();
 
-    // JSON 파싱
     let parsedData;
     try {
       parsedData = JSON.parse(responseText);
-    } catch (parseError) {
+    } catch (e) {
       console.error("JSON 파싱 실패:", responseText);
-      throw new Error("AI가 올바른 JSON을 반환하지 않았습니다.");
+      throw new Error("AI 응답을 읽을 수 없습니다.");
     }
 
-    // 프론트엔드가 기존처럼 사용할 수 있도록 반환
     return res.status(200).json({
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(parsedData)   // 안전하게 문자열로 변환
-        }
-      ],
+      content: [{ type: "text", text: JSON.stringify(parsedData) }],
       role: "assistant"
     });
 
   } catch (err) {
     console.error("Gemini Chat Error:", err.message);
-    
     return res.status(500).json({
       error: 'Gemini API 오류',
-      detail: err.message || '서버 오류가 발생했습니다.'
+      detail: err.message || '서버 오류'
     });
   }
 }
 
 module.exports = handler;
-module.exports.config = {
-  maxDuration: 60,
-};
+module.exports.config = { maxDuration: 60 };

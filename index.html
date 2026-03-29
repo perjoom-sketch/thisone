@@ -1164,6 +1164,7 @@
             const j = JSON.parse(clean);
             const cleaned = deepClean(j);
             addResultCard(cleaned);
+            console.log('image url:', p.image, 'link:', p.link, 'name:', p.name);
           } catch (e) {
             addFallback(raw || '응답을 파싱할 수 없습니다.');
           }

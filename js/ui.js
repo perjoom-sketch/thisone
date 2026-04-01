@@ -1,5 +1,19 @@
+function getContentEl() {
+  return document.getElementById('content');
+}
+
+function appendAndScroll(node) {
+  const content = getContentEl();
+  if (!content) return;
+  content.appendChild(node);
+  node.scrollIntoView({ behavior: 'smooth' });
+}
+
 function renderHistoryBar() {
-  if (searchHistory.length < 2) return;
+  if (!Array.isArray(searchHistory) || searchHistory.length < 2) return;
+
+  const content = getContentEl();
+  if (!content) return;
 
   const existing = document.getElementById('historyBar');
   if (existing) existing.remove();
@@ -13,24 +27,26 @@ function renderHistoryBar() {
     c.className = 'history-chip';
     c.textContent = '🔍 ' + q;
     c.onclick = () => {
-      if (typeof currentQuery !== 'undefined') currentQuery = q;
+      const inp = document.getElementById('msgInput2');
+      if (!inp) return;
 
-      if (typeof syncQueryInputs === 'function') {
-        syncQueryInputs(q);
-      } else {
-        const input = document.getElementById('msgInput2');
-        if (input) {
-          input.value = q;
-          autoResize(input);
-        }
+      inp.value = q;
+      if (typeof autoResize === 'function') autoResize(inp);
+
+      if (typeof currentQuery !== 'undefined') {
+        currentQuery = q;
       }
 
-      sendMsg();
+      if (typeof sendMsg === 'function') {
+        sendMsg();
+      } else {
+        console.error('sendMsg is not defined');
+      }
     };
     bar.appendChild(c);
   });
 
-  document.getElementById('content').appendChild(bar);
+  content.appendChild(bar);
 }
 
 function addUserMsg(txt, imgSrc) {
@@ -43,17 +59,18 @@ function addUserMsg(txt, imgSrc) {
       ${esc(txt)}
     </div>
   `;
-  document.getElementById('content').appendChild(d);
-  d.scrollIntoView({ behavior: 'smooth' });
+  appendAndScroll(d);
 }
 
 function addFallback(txt) {
-  txt = stripCitations(txt);
+  if (typeof stripCitations === 'function') {
+    txt = stripCitations(txt);
+  }
 
   const d = document.createElement('div');
   d.className = 'ai-result';
 
-  const fmt = txt
+  const fmt = String(txt || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -65,8 +82,7 @@ function addFallback(txt) {
     <div class="pick-card" style="border-color:var(--border)">${fmt}</div>
   `;
 
-  document.getElementById('content').appendChild(d);
-  d.scrollIntoView({ behavior: 'smooth' });
+  appendAndScroll(d);
 }
 
 function addTyping() {
@@ -82,20 +98,17 @@ function addTyping() {
       </div>
     </div>
   `;
-  document.getElementById('content').appendChild(d);
-  d.scrollIntoView({ behavior: 'smooth' });
+  appendAndScroll(d);
 
   const msgs = [
     '상품을 검색하고 있어요...',
-    '옵션형 상품 여부를 확인하는 중...',
-    '후보 상품 목록을 정리하는 중...',
+    '네이버 쇼핑 결과를 정리하는 중...',
     'AI가 5개 카드를 고르는 중...',
     '결과를 표시하는 중...'
   ];
 
   const subs = [
     '가격, 링크, 이미지를 수집하는 중',
-    '혼합 규격/옵션가 위험을 체크하는 중',
     '후보 상품 목록을 정리하는 중',
     'AI추천·가격순·리뷰순·인기순·신뢰순을 고르는 중',
     '결과 카드를 준비하는 중'
@@ -108,7 +121,7 @@ function addTyping() {
     const s = d.querySelector('.typing-sub');
     if (m) m.textContent = msgs[idx];
     if (s) s.textContent = subs[idx];
-  }, 2200);
+  }, 2500);
 
   const origRemove = d.remove.bind(d);
   d.remove = () => {
@@ -129,73 +142,98 @@ function renderBadgeList(badges) {
   `;
 }
 
-function renderRawResults(items) {
+function normalizeRawItem(p = {}) {
+  return {
+    name: p.name || p.title || p.productName || '상품명 없음',
+    price: p.price || p.lprice || '',
+    store: p.store || p.mallName || p.mall || '',
+    delivery: p.delivery || p.shipping || '',
+    review: p.review || p.reviewText || '',
+    image: p.image || p.imageUrl || '',
+    link: p.link || p.productUrl || p.url || '',
+    badges: Array.isArray(p.badges) ? p.badges : [],
+    reason: p.reason || '',
+    rankReason: p.rankReason || '',
+    excludeFromPriceRank: !!p.excludeFromPriceRank
+  };
+}
+
+function renderRawResults(items = []) {
   const d = document.createElement('div');
   d.className = 'ai-result';
 
   let html = `<div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 원본 검색 결과</div>`;
 
-  if (items && items.length) {
-    items.slice(0, 12).forEach((p) => {
-      const initial = p.name ? p.name.charAt(0) : '?';
-
-      const placeholderHtml = `
-        <div class="pick-img-placeholder" style="background:#f3f4f6;color:#6b7280;font-weight:700;font-size:22px;">
-          ${esc(initial)}
-        </div>
-      `;
-
-      const imgHtml = p.image
-        ? `
-          <div class="pick-media">
-            <img
-              class="pick-img"
-              src="${escAttr(p.image)}"
-              alt="${escAttr(p.name)}"
-              referrerpolicy="no-referrer"
-              loading="lazy"
-              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-            >
-            <div class="pick-img-placeholder" style="display:none;background:#f3f4f6;color:#6b7280;font-weight:700;font-size:22px;">
-              ${esc(initial)}
-            </div>
-          </div>
-        `
-        : `<div class="pick-media">${placeholderHtml}</div>`;
-
-      const cardStart = p.link
-        ? `<a class="pick-card-link" href="${escAttr(p.link)}" target="_blank" rel="noopener noreferrer">`
-        : '';
-      const cardEnd = p.link ? '</a>' : '';
-
-      html += `
-        ${cardStart}
-        <div class="pick-card">
-          <div class="pick-badge" style="background:#6b7280;box-shadow:none">🔎 원본</div>
-          <div class="pick-body">
-            ${imgHtml}
-            <div class="pick-info">
-              <div class="pick-title">${esc(p.name)}</div>
-              <div class="pick-meta">
-                <span class="pick-price">${esc(p.price)}</span>
-                <span class="pick-store">${esc(p.store)}</span>
-                ${p.delivery ? `<span class="pick-delivery">🚚 ${esc(p.delivery)}</span>` : ''}
-                ${p.review ? `<span class="pick-review">${esc(p.review)}</span>` : ''}
-              </div>
-              ${renderBadgeList(p.badges)}
-            </div>
-          </div>
-        </div>
-        ${cardEnd}
-      `;
-    });
-  } else {
-    html += `<div class="pick-card" style="border-color:var(--border)">원본 검색 결과가 없습니다.</div>`;
+  if (!Array.isArray(items) || !items.length) {
+    html += `<div class="pick-card">원본 검색 결과가 없습니다.</div>`;
+    d.innerHTML = html;
+    appendAndScroll(d);
+    return;
   }
 
+  items.forEach((raw, idx) => {
+    const p = normalizeRawItem(raw);
+    const initial = p.name ? p.name.charAt(0) : '?';
+
+    const placeholderHtml = `
+      <div class="pick-img-placeholder" style="background:#f3f4f6;color:#374151;font-weight:700;font-size:22px;">
+        ${esc(initial)}
+      </div>
+    `;
+
+    const imgHtml = p.image
+      ? `
+        <div class="pick-media">
+          <img
+            class="pick-img"
+            src="${escAttr(p.image)}"
+            alt="${escAttr(p.name)}"
+            referrerpolicy="no-referrer"
+            loading="lazy"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+          >
+          <div class="pick-img-placeholder" style="display:none;background:#f3f4f6;color:#374151;font-weight:700;font-size:22px;">
+            ${esc(initial)}
+          </div>
+        </div>
+      `
+      : `<div class="pick-media">${placeholderHtml}</div>`;
+
+    const cardStart = p.link
+      ? `<a class="pick-card-link" href="${escAttr(p.link)}" target="_blank" rel="noopener noreferrer">`
+      : '';
+    const cardEnd = p.link ? '</a>' : '';
+
+    const rawBadges = [...p.badges];
+    if (p.excludeFromPriceRank && !rawBadges.includes('가격순 제외')) {
+      rawBadges.push('가격순 제외');
+    }
+
+    html += `
+      ${cardStart}
+      <div class="pick-card">
+        <div class="pick-badge" style="background:#6b7280;box-shadow:none">📦 원본 ${idx + 1}</div>
+        <div class="pick-body">
+          ${imgHtml}
+          <div class="pick-info">
+            <div class="pick-title">${esc(p.name)}</div>
+            <div class="pick-meta">
+              ${p.price ? `<span class="pick-price">${esc(p.price)}</span>` : ''}
+              ${p.store ? `<span class="pick-store">${esc(p.store)}</span>` : ''}
+              ${p.delivery ? `<span class="pick-delivery">🚚 ${esc(p.delivery)}</span>` : ''}
+              ${p.review ? `<span class="pick-review">${esc(p.review)}</span>` : ''}
+            </div>
+            ${renderBadgeList(rawBadges)}
+          </div>
+        </div>
+        ${p.reason ? `<div class="pick-reason-text">${esc(p.reason)}</div>` : ''}
+      </div>
+      ${cardEnd}
+    `;
+  });
+
   d.innerHTML = html;
-  document.getElementById('content').appendChild(d);
-  d.scrollIntoView({ behavior: 'smooth' });
+  appendAndScroll(d);
 }
 
 function addResultCard(j) {
@@ -221,8 +259,9 @@ function addResultCard(j) {
   let html = `<div class="ai-label"><div class="dot">${MINI_SCOPE}</div> ThisOne 분석</div>`;
 
   if (j.cards && j.cards.length) {
-    j.cards.forEach((p) => {
-      const t = p.type || '';
+    j.cards.forEach((item) => {
+      const p = normalizeRawItem(item);
+      const t = item.type || '';
       const isAI = t === 'ai';
       const initial = p.name ? p.name.charAt(0) : '?';
 
@@ -243,7 +282,7 @@ function addResultCard(j) {
       };
 
       const placeholderHtml = `
-        <div class="pick-img-placeholder" style="background:${bgColors[t]};color:${fgColors[t]};font-weight:700;font-size:22px;">
+        <div class="pick-img-placeholder" style="background:${bgColors[t] || '#f3f4f6'};color:${fgColors[t] || '#374151'};font-weight:700;font-size:22px;">
           ${esc(initial)}
         </div>
       `;
@@ -259,7 +298,7 @@ function addResultCard(j) {
               loading="lazy"
               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
             >
-            <div class="pick-img-placeholder" style="display:none;background:${bgColors[t]};color:${fgColors[t]};font-weight:700;font-size:22px;">
+            <div class="pick-img-placeholder" style="display:none;background:${bgColors[t] || '#f3f4f6'};color:${fgColors[t] || '#374151'};font-weight:700;font-size:22px;">
               ${esc(initial)}
             </div>
           </div>
@@ -274,21 +313,21 @@ function addResultCard(j) {
       html += `
         ${cardStart}
         <div class="pick-card ${isAI ? 'pick-first' : ''}">
-          <div class="pick-badge" style="${isAI ? '' : 'background:' + colors[t] + ';box-shadow:none'}">${icons[t] || '📦'} ${esc(p.label)}</div>
+          <div class="pick-badge" style="${isAI ? '' : 'background:' + (colors[t] || 'var(--accent)') + ';box-shadow:none'}">${icons[t] || '📦'} ${esc(item.label || '')}</div>
           <div class="pick-body">
             ${imgHtml}
             <div class="pick-info">
               <div class="pick-title">${esc(p.name)}</div>
               <div class="pick-meta">
-                <span class="pick-price">${esc(p.price)}</span>
-                <span class="pick-store">${esc(p.store)}</span>
+                ${p.price ? `<span class="pick-price">${esc(p.price)}</span>` : ''}
+                ${p.store ? `<span class="pick-store">${esc(p.store)}</span>` : ''}
                 ${p.delivery ? `<span class="pick-delivery">🚚 ${esc(p.delivery)}</span>` : ''}
                 ${p.review ? `<span class="pick-review">${esc(p.review)}</span>` : ''}
               </div>
               ${renderBadgeList(p.badges)}
             </div>
           </div>
-          <div class="pick-reason-text">${esc(p.reason)}</div>
+          ${p.reason || item.reason ? `<div class="pick-reason-text">${esc(item.reason || p.reason)}</div>` : ''}
         </div>
         ${cardEnd}
       `;
@@ -309,8 +348,7 @@ function addResultCard(j) {
   }
 
   d.innerHTML = html;
-  document.getElementById('content').appendChild(d);
-  d.scrollIntoView({ behavior: 'smooth' });
+  appendAndScroll(d);
 }
 
 window.ThisOneUI = {

@@ -278,14 +278,16 @@ ${JSON.stringify(candidates, null, 2)}
 - 허용 카드 type: "price", "review", "popular", "trust"
 - 각 카드의 sourceId는 반드시 후보 상품의 id를 그대로 사용하세요.
 - aiPickSourceType은 반드시 "price", "review", "popular", "trust" 중 하나만 사용하세요.
-- bonusScore, specPenalty, Score를 꼭 참고하세요.
+- cards 4개는 가능하면 서로 다른 sourceId를 사용하세요.
+- 같은 modelKey 또는 같은 핵심 모델명으로 보이는 상품은 중복 선택하지 마세요.
+- bonusScore, specPenalty, finalScore를 꼭 참고하세요.
 - excludeFromPriceRank가 true인 후보는 "price" 카드와 AI추천에서 절대 선택하지 마세요.
 - badges에 "옵션가 주의"가 있으면 price 카드로 선택하지 마세요.
 - priceRiskReason이 있으면 반드시 참고하세요.
 - totalPriceNum을 참고하여 가격 판단은 대표가보다 실구매 총액 기준으로 보수적으로 판단하세요.
 - AI추천은 finalScore가 높은 후보를 우선 고려하세요.
 - name, price, store, image, link는 직접 생성하지 말고 sourceId로 연결만 하세요.
-- JSON만 출력하세요.`
+- JSON만 출력하세요.
             }
           ]
         }

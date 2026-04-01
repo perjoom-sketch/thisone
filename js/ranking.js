@@ -1,3 +1,7 @@
+function rewriteSearchQuery(query) {
+  return String(query || '').trim();
+}
+
 function parsePriceNumber(text) {
   return Number(String(text || '').replace(/[^\d]/g, '')) || 0;
 }
@@ -500,3 +504,60 @@ function buildCandidates(items, queryText = '') {
     return 0;
   });
 }
+
+function mergeAiWithCandidates(aiResult, candidates = []) {
+  const safe = aiResult && typeof aiResult === 'object' ? aiResult : {};
+  const aiCards = Array.isArray(safe.cards) ? safe.cards : [];
+  const rejects = Array.isArray(safe.rejects) ? safe.rejects : [];
+
+  const mergedCards = aiCards.map((card) => {
+    const found = candidates.find((c) => String(c.id) === String(card.sourceId));
+
+    if (!found) {
+      return {
+        ...card,
+        name: '상품명 없음',
+        price: '',
+        store: '',
+        image: '',
+        link: '',
+        delivery: '',
+        review: '',
+        badges: []
+      };
+    }
+
+    return {
+      ...found,
+      ...card,
+      name: found.name || found.title || '상품명 없음',
+      price: found.price || found.priceText || found.lprice || '',
+      store: found.store || found.mallName || '',
+      image: found.image || found.imageUrl || '',
+      link: found.link || found.productUrl || found.url || '',
+      delivery: found.delivery || found.shipping || '',
+      review: found.review || found.reviewText || '',
+      badges: Array.isArray(found.badges) ? found.badges : []
+    };
+  });
+
+  return {
+    ...safe,
+    cards: mergedCards,
+    rejects
+  };
+}
+
+window.ThisOneRanking = {
+  rewriteSearchQuery,
+  parsePriceNumber,
+  parseShippingCost,
+  extractSpecs,
+  detectMixedSpecs,
+  isOptionItem,
+  checkSpecMatch,
+  shouldExcludeFromPriceRank,
+  getSafePriceCandidate,
+  buildCandidates,
+  mergeAiWithCandidates
+};

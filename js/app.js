@@ -180,15 +180,20 @@ async function sendMsg(forceMode) {
   }
 
   const inp = getInput();
+  if (!inp) {
+    console.error('input element not found');
+    return;
+  }
+
   const txt = inp.value.trim();
 
-  // 새로 입력한 값이 있으면 currentQuery 갱신
   if (txt) currentQuery = txt;
-
   if (!currentQuery && !pendingImg) return;
 
   switchToSearchMode();
-  document.getElementById('content').innerHTML = '';
+
+  const contentEl = document.getElementById('content');
+  if (contentEl) contentEl.innerHTML = '';
 
   if (txt) searchHistory.push(txt);
 
@@ -203,42 +208,48 @@ async function sendMsg(forceMode) {
   }
 
   const queryText = currentQuery || '이미지 기반 상품 검색';
-  const searchQuery = window.ThisOneRanking.rewriteSearchQuery(queryText);
 
-  // 핵심: 검색 후 입력창을 비우지 않음
   removeImg();
 
   loading = true;
-  getSendBtn().disabled = true;
+  const btn = getSendBtn();
+  if (btn) btn.disabled = true;
+
   const typingEl = window.ThisOneUI?.addTyping ? window.ThisOneUI.addTyping() : null;
 
   try {
-    const searchData = await window.ThisOneAPI.requestSearch(searchQuery);
-    const candidates = window.ThisOneRanking.buildCandidates(searchData.items || [], queryText);
+    let searchQuery = queryText;
 
-    if (!candidates.length) {
+    if (window.ThisOneRanking && typeof window.ThisOneRanking.rewriteSearchQuery === 'function') {
+      searchQuery = window.ThisOneRanking.rewriteSearchQuery(queryText);
+    }
+
+    console.log('[searchQuery]', searchQuery);
+    console.log('[ThisOneAPI]', window.ThisOneAPI);
+    console.log('[ThisOneRanking]', window.ThisOneRanking);
+    console.log('[ThisOneUI]', window.ThisOneUI);
+
+    const searchData = await window.ThisOneAPI.requestSearch(searchQuery);
+
+    const items = searchData?.items || [];
+    const candidates = window.ThisOneRanking?.buildCandidates
+      ? window.ThisOneRanking.buildCandidates(items, queryText)
+      : items;
+
+    if (!candidates || !candidates.length) {
       typingEl?.remove();
-      window.ThisOneUI.addFallback('검색 결과가 없습니다.');
-      loading = false;
-      getSendBtn().disabled = false;
-      getInput().focus();
+      window.ThisOneUI?.addFallback?.('검색 결과가 없습니다.');
       return;
     }
 
-    // 원본 검색 모드: AI 분석 없이 원본 렌더
     if (searchMode === 'raw') {
       typingEl?.remove();
 
       if (window.ThisOneUI?.renderRawResults) {
         window.ThisOneUI.renderRawResults(candidates);
       } else {
-        // ui.js에 renderRawResults 아직 없을 때 임시 fallback
-        window.ThisOneUI.addFallback('원본 검색 결과 렌더 함수(renderRawResults)를 ui.js에 추가해야 합니다.');
+        window.ThisOneUI?.addFallback?.('원본 검색 결과 렌더 함수(renderRawResults)가 없습니다.');
       }
-
-      loading = false;
-      getSendBtn().disabled = false;
-      getInput().focus();
       return;
     }
 
@@ -280,36 +291,44 @@ ${JSON.stringify(candidates, null, 2)}
 
     typingEl?.remove();
 
-    if (aiData.error) {
-      window.ThisOneUI.addFallback(
+    if (aiData?.error) {
+      window.ThisOneUI?.addFallback?.(
         'API 오류: ' + (typeof aiData.error === 'string' ? aiData.error : JSON.stringify(aiData.error))
       );
-    } else {
-      const raw = Array.isArray(aiData.content)
-        ? aiData.content.filter((b) => b.type === 'text').map((b) => b.text).join('')
-        : '';
+      return;
+    }
 
-      try {
-        let clean = raw.replace(/```json|```/g, '').trim();
-        const jsonMatch = clean.match(/\{[\s\S]*\}/);
-        if (jsonMatch) clean = jsonMatch[0];
+    const raw = Array.isArray(aiData?.content)
+      ? aiData.content.filter((b) => b.type === 'text').map((b) => b.text).join('')
+      : '';
 
-        const parsed = JSON.parse(clean);
-        const cleaned = deepClean(parsed);
-        const merged = window.ThisOneRanking.mergeAiWithCandidates(cleaned, candidates);
-        window.ThisOneUI.addResultCard(merged);
-      } catch (e) {
-        window.ThisOneUI.addFallback(raw || '응답을 파싱할 수 없습니다.');
-      }
+    try {
+      let clean = raw.replace(/```json|```/g, '').trim();
+      const jsonMatch = clean.match(/\{[\s\S]*\}/);
+      if (jsonMatch) clean = jsonMatch[0];
+
+      const parsed = JSON.parse(clean);
+      const cleaned = deepClean(parsed);
+
+      const merged = window.ThisOneRanking?.mergeAiWithCandidates
+        ? window.ThisOneRanking.mergeAiWithCandidates(cleaned, candidates)
+        : cleaned;
+
+      window.ThisOneUI?.addResultCard?.(merged);
+    } catch (e) {
+      console.error('AI parse error:', e);
+      window.ThisOneUI?.addFallback?.(raw || '응답을 파싱할 수 없습니다.');
     }
   } catch (err) {
+    console.error('search error:', err);
     typingEl?.remove();
-    window.ThisOneUI.addFallback('검색 중 오류: ' + err.message);
+    window.ThisOneUI?.addFallback?.('검색 중 오류: ' + err.message);
+  } finally {
+    loading = false;
+    const btn2 = getSendBtn();
+    if (btn2) btn2.disabled = false;
+    getInput()?.focus();
   }
-
-  loading = false;
-  getSendBtn().disabled = false;
-  getInput().focus();
 }
 
 // 선택: 버튼 id가 있으면 자동 연결

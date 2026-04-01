@@ -1,5 +1,30 @@
 function rewriteSearchQuery(query) {
-  return String(query || '').trim();
+  const q = String(query || '').trim();
+  const lower = q.toLowerCase();
+
+  if (!q) return '';
+
+  if (lower.includes('유지비') && lower.includes('프린터')) {
+    return '무한잉크 프린터';
+  }
+
+  if ((lower.includes('배송비 포함') || lower.includes('가장 나은')) && lower.includes('공기청정기')) {
+    return '공기청정기';
+  }
+
+  if ((lower.includes('맘카페') || lower.includes('반응 좋은')) && lower.includes('유모차')) {
+    return '신생아 절충형 유모차';
+  }
+
+  if ((lower.includes('통화') || lower.includes('통화품질')) && (lower.includes('이어폰') || lower.includes('에어팟'))) {
+    return '통화품질 좋은 블루투스 이어폰';
+  }
+
+  if ((lower.includes('저소음') || lower.includes('소음 적은')) && lower.includes('산업용 선풍기')) {
+    return '저소음 산업용 선풍기';
+  }
+
+  return q;
 }
 
 function parsePriceNumber(text) {

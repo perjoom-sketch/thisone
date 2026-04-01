@@ -484,22 +484,23 @@
       letter-spacing: .01em;
     }
 
-.pick-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
+.pick-badges{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:8px;
 }
 
-.pick-mini-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  background: #f3f4f6;
-  color: #4b5563;
+.pick-mini-badge{
+  display:inline-flex;
+  align-items:center;
+  padding:4px 8px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:600;
+  background:#f3f4f6;
+  color:#374151;
+  border:1px solid #e5e7eb;
 }
 
     .pick-title {

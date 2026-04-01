@@ -469,7 +469,48 @@ function getSafePriceCandidate(candidates) {
       return ap - bp;
     })[0] || null;
 }
+function getModelKey(name) {
+  const t = String(name || '').toUpperCase();
 
+  const patterns = [
+    /\b[A-Z]{1,6}-\d{2,}[A-Z0-9-]*\b/,   // 예: AC-28AHNL20F
+    /\b[A-Z]{0,3}\d{3,5}[A-Z]{0,3}\b/    // 예: G3910, M7335, AT8E430
+  ];
+
+  for (const p of patterns) {
+    const m = t.match(p);
+    if (m) return m[0];
+  }
+
+  return t
+    .replace(/\b(화이트|블랙|실버|그레이|레드|블루|핑크|정품|공식|국내정품|사은품|무료배송|당일배송)\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 40);
+}
+
+function dedupeCandidatesByModel(items = []) {
+  const map = new Map();
+
+  for (const item of items) {
+    const key = getModelKey(item.name);
+    const prev = map.get(key);
+
+    if (!prev) {
+      map.set(key, { ...item, modelKey: key });
+      continue;
+    }
+
+    const prevPrice = Number(prev.totalPriceNum || prev.priceNum || Infinity);
+    const currPrice = Number(item.totalPriceNum || item.priceNum || Infinity);
+
+    if (currPrice < prevPrice) {
+      map.set(key, { ...item, modelKey: key });
+    }
+  }
+
+  return Array.from(map.values());
+}
 function buildCandidates(items, queryText = '') {
   const profile = inferIntentProfile(queryText);
 

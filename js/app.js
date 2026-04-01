@@ -18,7 +18,8 @@ const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI입니다.
 - AI추천은 반드시 아래 4개 후보(가격순, 리뷰순, 인기순, 신뢰순) 중 하나를 선택해야 합니다.
 - 즉 aiPickSourceType은 price / review / popular / trust 중 하나여야 합니다.
 - sourceId는 반드시 후보 상품 목록의 id를 그대로 써야 합니다.
-- 같은 상품이 여러 항목에 중복되어도 됩니다.
+- cards 4개는 가능하면 서로 다른 sourceId를 사용하세요.
+- 동일 상품 중복은 후보가 부족한 경우에만 허용하세요.
 - excludeFromPriceRank가 true인 후보는 "price" 카드와 AI추천 후보에서 절대 선택하지 마세요.
 - badges에 "옵션가 주의"가 있으면 price 카드로 선택하지 마세요.
 - priceRiskReason이 있으면 반드시 참고하세요.

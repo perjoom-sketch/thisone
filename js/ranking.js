@@ -509,6 +509,7 @@ function mergeAiWithCandidates(aiResult, candidates = []) {
   const safe = aiResult && typeof aiResult === 'object' ? aiResult : {};
   const aiCards = Array.isArray(safe.cards) ? safe.cards : [];
   const rejects = Array.isArray(safe.rejects) ? safe.rejects : [];
+  const aiPickSourceType = String(safe.aiPickSourceType || '').trim();
 
   const mergedCards = aiCards.map((card) => {
     const found = candidates.find((c) => String(c.id) === String(card.sourceId));
@@ -541,9 +542,26 @@ function mergeAiWithCandidates(aiResult, candidates = []) {
     };
   });
 
+  let finalCards = mergedCards;
+
+  if (aiPickSourceType) {
+    const picked = mergedCards.find((card) => String(card.type) === aiPickSourceType);
+
+    if (picked) {
+      const aiCard = {
+        ...picked,
+        type: 'ai',
+        label: 'AI추천',
+        reason: picked.reason || '조건을 종합했을 때 가장 균형이 좋은 선택'
+      };
+
+      finalCards = [aiCard, ...mergedCards];
+    }
+  }
+
   return {
     ...safe,
-    cards: mergedCards,
+    cards: finalCards,
     rejects
   };
 }

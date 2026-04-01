@@ -495,7 +495,8 @@ function buildCandidates(items, queryText = '') {
     };
   });
 
-  const medianPrice = getMedianPrice(mapped);
+  const deduped = dedupeCandidatesByModel(mapped);
+const medianPrice = getMedianPrice(deduped);
 
   return mapped.map((candidate) => {
     const bonus = getCandidateBonus(candidate, profile);

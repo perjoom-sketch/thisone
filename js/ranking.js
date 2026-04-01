@@ -659,6 +659,19 @@ function mergeAiWithCandidates(aiResult, candidates = []) {
     }
   }
 
+  const usedModelKeys = new Set();
+  finalCards = finalCards.filter((card) => {
+    const key = card.modelKey || getModelKey(card.name || '');
+    if (!key) return true;
+
+    if (usedModelKeys.has(key)) {
+      return false;
+    }
+
+    usedModelKeys.add(key);
+    return true;
+  });
+  
   return {
     ...safe,
     cards: finalCards,

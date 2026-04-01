@@ -354,10 +354,24 @@ ${JSON.stringify(candidates, null, 2)}
       window.ThisOneUI?.addFallback?.(raw || '응답을 파싱할 수 없습니다.');
     }
   } catch (err) {
-    console.error('search error:', err);
-    typingEl?.remove();
-    window.ThisOneUI?.addFallback?.('검색 중 오류: ' + err.message);
-  } finally {
+  console.error('search error:', err);
+  typingEl?.remove();
+
+  const msg = String(err?.message || '');
+  const isAiBusy = /503|Service Unavailable|high demand|Gemini API 오류|generativelanguage/i.test(msg);
+
+  if (isAiBusy) {
+    window.ThisOneUI?.addFallback?.('AI 분석 서버가 혼잡해서 원본 후보 결과로 대신 보여줍니다.');
+
+    if (window.ThisOneUI?.renderRawResults) {
+      window.ThisOneUI.renderRawResults(candidates);
+    } else {
+      window.ThisOneUI?.addFallback?.('원본 결과 렌더 함수가 없습니다.');
+    }
+  } else {
+    window.ThisOneUI?.addFallback?.('검색 중 오류: ' + msg);
+  }
+} finally {
     loading = false;
     const btn2 = getSendBtn();
     if (btn2) btn2.disabled = false;

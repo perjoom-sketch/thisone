@@ -469,12 +469,13 @@ function getSafePriceCandidate(candidates) {
       return ap - bp;
     })[0] || null;
 }
+
 function getModelKey(name) {
   const t = String(name || '').toUpperCase();
 
   const patterns = [
-    /\b[A-Z]{1,6}-\d{2,}[A-Z0-9-]*\b/,   // 예: AC-28AHNL20F
-    /\b[A-Z]{0,3}\d{3,5}[A-Z]{0,3}\b/    // 예: G3910, M7335, AT8E430
+    /\b[A-Z]{1,6}-\d{2,}[A-Z0-9-]*\b/,
+    /\b[A-Z]{0,3}\d{3,5}[A-Z]{0,3}\b/
   ];
 
   for (const p of patterns) {
@@ -511,6 +512,7 @@ function dedupeCandidatesByModel(items = []) {
 
   return Array.from(map.values());
 }
+
 function buildCandidates(items, queryText = '') {
   const profile = inferIntentProfile(queryText);
 
@@ -525,22 +527,21 @@ function buildCandidates(items, queryText = '') {
       price: String(item.priceText || item.price || '').trim(),
       priceNum,
       hpriceNum,
-      store: String(item.store || '').trim(),
+      store: String(item.store || item.mallName || '').trim(),
       delivery: String(item.delivery || '상세페이지 확인').trim(),
       review: String(item.review || '').trim(),
-      image: String(item.image || '').trim(),
-      link: String(item.link || '').trim(),
+      image: String(item.image || item.imageUrl || '').trim(),
+      link: String(item.link || item.productUrl || item.url || '').trim(),
       shippingKnown: shipping.known,
       shippingCost: shipping.cost,
       totalPriceNum: shipping.known ? (priceNum + shipping.cost) : priceNum
     };
   });
 
- const deduped = dedupeCandidatesByModel(mapped);
- const medianPrice = getMedianPrice(deduped);
+  const deduped = dedupeCandidatesByModel(mapped);
+  const medianPrice = getMedianPrice(deduped);
 
-return deduped.map((candidate) => {
-  return mapped.map((candidate) => {
+  return deduped.map((candidate) => {
     const bonus = getCandidateBonus(candidate, profile);
     const priceRisk = shouldExcludeFromPriceRank(candidate, queryText, medianPrice);
 
@@ -554,6 +555,7 @@ return deduped.map((candidate) => {
 
     return {
       ...candidate,
+      modelKey: candidate.modelKey || getModelKey(candidate.name),
       bonusScore: bonus.bonusScore,
       bonusReasons: bonus.bonusReasons,
       specPenalty,
@@ -592,7 +594,8 @@ function mergeAiWithCandidates(aiResult, candidates = []) {
         link: '',
         delivery: '',
         review: '',
-        badges: []
+        badges: [],
+        modelKey: ''
       };
     }
 
@@ -606,7 +609,8 @@ function mergeAiWithCandidates(aiResult, candidates = []) {
       link: found.link || found.productUrl || found.url || '',
       delivery: found.delivery || found.shipping || '',
       review: found.review || found.reviewText || '',
-      badges: Array.isArray(found.badges) ? found.badges : []
+      badges: Array.isArray(found.badges) ? found.badges : [],
+      modelKey: found.modelKey || getModelKey(found.name || '')
     };
   });
 
@@ -614,7 +618,6 @@ function mergeAiWithCandidates(aiResult, candidates = []) {
 
   if (aiPickSourceType) {
     const picked = mergedCards.find((card) => String(card.type) === aiPickSourceType);
-
     if (picked) {
       const aiCard = {
         ...picked,
@@ -622,7 +625,6 @@ function mergeAiWithCandidates(aiResult, candidates = []) {
         label: 'AI추천',
         reason: picked.reason || '조건을 종합했을 때 가장 균형이 좋은 선택'
       };
-
       finalCards = [aiCard, ...mergedCards];
     }
   }
@@ -644,6 +646,8 @@ window.ThisOneRanking = {
   checkSpecMatch,
   shouldExcludeFromPriceRank,
   getSafePriceCandidate,
-  Candidates,
+  getModelKey,
+  dedupeCandidatesByModel,
+  buildCandidates,
   mergeAiWithCandidates
 };

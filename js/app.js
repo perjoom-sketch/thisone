@@ -118,10 +118,10 @@ function removeImg() {
 
 function stripCitations(text) {
   return String(text || '')
-    .replace(/<cite\\b[^>]*>/gi, '')
-    .replace(/<\\/cite>/gi, '')
+    .replace(/<cite\b[^>]*>/gi, '')
+    .replace(/<\/cite>/gi, '')
     .replace(/<b>/gi, '')
-    .replace(/<\\/b>/gi, '')
+    .replace(/<\/b>/gi, '')
     .trim();
 }
 
@@ -291,7 +291,7 @@ ${JSON.stringify(candidates, null, 2)}
 
       try {
         let clean = raw.replace(/```json|```/g, '').trim();
-        const jsonMatch = clean.match(/\\{[\\s\\S]*\\}/);
+        const jsonMatch = clean.match(/\{[\s\S]*\}/);
         if (jsonMatch) clean = jsonMatch[0];
 
         const parsed = JSON.parse(clean);

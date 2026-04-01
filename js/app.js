@@ -3,10 +3,10 @@ const MINI_SCOPE = '<svg width="10" height="10" viewBox="0 0 64 64" fill="none">
 
 let pendingImg = null;
 let loading = false;
-let isSearchMode = false;      // landing -> sticky search 전환 여부
+let isSearchMode = false;
 let searchHistory = [];
-let currentQuery = '';         // 마지막 검색어 유지
-let searchMode = 'thisone';    // 'thisone' | 'raw'
+let currentQuery = '';
+let searchMode = 'thisone';
 
 const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI입니다.
 절대 <cite>, </cite>, <b>, </b> 같은 태그를 출력하지 마세요.
@@ -18,9 +18,7 @@ const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI입니다.
 - AI추천은 반드시 아래 4개 후보(가격순, 리뷰순, 인기순, 신뢰순) 중 하나를 선택해야 합니다.
 - 즉 aiPickSourceType은 price / review / popular / trust 중 하나여야 합니다.
 - sourceId는 반드시 후보 상품 목록의 id를 그대로 써야 합니다.
-- 같은 modelKey 또는 같은 핵심 모델명으로 보이는 상품은 중복 선택하지 마세요.
 - cards 4개는 가능하면 서로 다른 sourceId를 사용하세요.
-- cards 4개는 가능하면 서로 다른 모델을 선택하세요.
 - 동일 상품 중복은 후보가 부족한 경우에만 허용하세요.
 - excludeFromPriceRank가 true인 후보는 "price" 카드와 AI추천 후보에서 절대 선택하지 마세요.
 - badges에 "옵션가 주의"가 있으면 price 카드로 선택하지 마세요.
@@ -53,21 +51,34 @@ function getSendBtn() {
 
 function goHome() {
   isSearchMode = false;
-  document.getElementById('landing').style.display = '';
-  document.getElementById('stickySearch').style.display = 'none';
-  document.getElementById('content').style.display = 'none';
-  document.getElementById('content').innerHTML = '';
+
+  const landing = document.getElementById('landing');
+  const stickySearch = document.getElementById('stickySearch');
+  const content = document.getElementById('content');
+
+  if (landing) landing.style.display = '';
+  if (stickySearch) stickySearch.style.display = 'none';
+  if (content) {
+    content.style.display = 'none';
+    content.innerHTML = '';
+  }
 }
 
 function switchToSearchMode() {
   if (isSearchMode) return;
   isSearchMode = true;
-  document.getElementById('landing').style.display = 'none';
-  document.getElementById('stickySearch').style.display = 'block';
-  document.getElementById('content').style.display = 'block';
+
+  const landing = document.getElementById('landing');
+  const stickySearch = document.getElementById('stickySearch');
+  const content = document.getElementById('content');
+
+  if (landing) landing.style.display = 'none';
+  if (stickySearch) stickySearch.style.display = 'block';
+  if (content) content.style.display = 'block';
 }
 
 function autoResize(el) {
+  if (!el) return;
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 100) + 'px';
 }
@@ -101,6 +112,7 @@ function handleImg(e) {
       const el = document.getElementById('previewImg' + s);
       const nm = document.getElementById('previewName' + s);
       const pv = document.getElementById('imgPreview' + s);
+
       if (el) el.src = ev.target.result;
       if (nm) nm.textContent = file.name;
       if (pv) pv.classList.add('show');
@@ -131,11 +143,15 @@ function stripCitations(text) {
 function deepClean(value) {
   if (typeof value === 'string') return stripCitations(value);
   if (Array.isArray(value)) return value.map(deepClean);
+
   if (value && typeof value === 'object') {
     const out = {};
-    for (const key in value) out[key] = deepClean(value[key]);
+    for (const key in value) {
+      out[key] = deepClean(value[key]);
+    }
     return out;
   }
+
   return value;
 }
 
@@ -227,14 +243,9 @@ async function sendMsg(forceMode) {
       searchQuery = window.ThisOneRanking.rewriteSearchQuery(queryText);
     }
 
-    console.log('[searchQuery]', searchQuery);
-    console.log('[ThisOneAPI]', window.ThisOneAPI);
-    console.log('[ThisOneRanking]', window.ThisOneRanking);
-    console.log('[ThisOneUI]', window.ThisOneUI);
-
     const searchData = await window.ThisOneAPI.requestSearch(searchQuery);
-
     const items = searchData?.items || [];
+
     const candidates = window.ThisOneRanking?.buildCandidates
       ? window.ThisOneRanking.buildCandidates(items, queryText)
       : items;
@@ -279,7 +290,6 @@ ${JSON.stringify(candidates, null, 2)}
 - 각 카드의 sourceId는 반드시 후보 상품의 id를 그대로 사용하세요.
 - aiPickSourceType은 반드시 "price", "review", "popular", "trust" 중 하나만 사용하세요.
 - cards 4개는 가능하면 서로 다른 sourceId를 사용하세요.
-- 같은 modelKey 또는 같은 핵심 모델명으로 보이는 상품은 중복 선택하지 마세요.
 - bonusScore, specPenalty, finalScore를 꼭 참고하세요.
 - excludeFromPriceRank가 true인 후보는 "price" 카드와 AI추천에서 절대 선택하지 마세요.
 - badges에 "옵션가 주의"가 있으면 price 카드로 선택하지 마세요.
@@ -287,7 +297,7 @@ ${JSON.stringify(candidates, null, 2)}
 - totalPriceNum을 참고하여 가격 판단은 대표가보다 실구매 총액 기준으로 보수적으로 판단하세요.
 - AI추천은 finalScore가 높은 후보를 우선 고려하세요.
 - name, price, store, image, link는 직접 생성하지 말고 sourceId로 연결만 하세요.
-- JSON만 출력하세요.
+- JSON만 출력하세요.`
             }
           ]
         }
@@ -304,7 +314,10 @@ ${JSON.stringify(candidates, null, 2)}
     }
 
     const raw = Array.isArray(aiData?.content)
-      ? aiData.content.filter((b) => b.type === 'text').map((b) => b.text).join('')
+      ? aiData.content
+          .filter((b) => b.type === 'text')
+          .map((b) => b.text)
+          .join('')
       : '';
 
     try {
@@ -336,7 +349,6 @@ ${JSON.stringify(candidates, null, 2)}
   }
 }
 
-// 선택: 버튼 id가 있으면 자동 연결
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('thisoneSearchBtn')?.addEventListener('click', () => {
     setSearchMode('thisone');

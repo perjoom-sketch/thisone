@@ -13,8 +13,18 @@ function renderHistoryBar() {
     c.className = 'history-chip';
     c.textContent = '🔍 ' + q;
     c.onclick = () => {
-      document.getElementById('msgInput2').value = q;
-      autoResize(document.getElementById('msgInput2'));
+      if (typeof currentQuery !== 'undefined') currentQuery = q;
+
+      if (typeof syncQueryInputs === 'function') {
+        syncQueryInputs(q);
+      } else {
+        const input = document.getElementById('msgInput2');
+        if (input) {
+          input.value = q;
+          autoResize(input);
+        }
+      }
+
       sendMsg();
     };
     bar.appendChild(c);
@@ -77,13 +87,15 @@ function addTyping() {
 
   const msgs = [
     '상품을 검색하고 있어요...',
-    '네이버 쇼핑 결과를 정리하는 중...',
+    '옵션형 상품 여부를 확인하는 중...',
+    '후보 상품 목록을 정리하는 중...',
     'AI가 5개 카드를 고르는 중...',
     '결과를 표시하는 중...'
   ];
 
   const subs = [
     '가격, 링크, 이미지를 수집하는 중',
+    '혼합 규격/옵션가 위험을 체크하는 중',
     '후보 상품 목록을 정리하는 중',
     'AI추천·가격순·리뷰순·인기순·신뢰순을 고르는 중',
     '결과 카드를 준비하는 중'
@@ -96,7 +108,7 @@ function addTyping() {
     const s = d.querySelector('.typing-sub');
     if (m) m.textContent = msgs[idx];
     if (s) s.textContent = subs[idx];
-  }, 2500);
+  }, 2200);
 
   const origRemove = d.remove.bind(d);
   d.remove = () => {
@@ -105,6 +117,85 @@ function addTyping() {
   };
 
   return d;
+}
+
+function renderBadgeList(badges) {
+  if (!Array.isArray(badges) || !badges.length) return '';
+
+  return `
+    <div class="pick-badges">
+      ${badges.map((b) => `<span class="pick-mini-badge">${esc(b)}</span>`).join('')}
+    </div>
+  `;
+}
+
+function renderRawResults(items) {
+  const d = document.createElement('div');
+  d.className = 'ai-result';
+
+  let html = `<div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 원본 검색 결과</div>`;
+
+  if (items && items.length) {
+    items.slice(0, 12).forEach((p) => {
+      const initial = p.name ? p.name.charAt(0) : '?';
+
+      const placeholderHtml = `
+        <div class="pick-img-placeholder" style="background:#f3f4f6;color:#6b7280;font-weight:700;font-size:22px;">
+          ${esc(initial)}
+        </div>
+      `;
+
+      const imgHtml = p.image
+        ? `
+          <div class="pick-media">
+            <img
+              class="pick-img"
+              src="${escAttr(p.image)}"
+              alt="${escAttr(p.name)}"
+              referrerpolicy="no-referrer"
+              loading="lazy"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+            >
+            <div class="pick-img-placeholder" style="display:none;background:#f3f4f6;color:#6b7280;font-weight:700;font-size:22px;">
+              ${esc(initial)}
+            </div>
+          </div>
+        `
+        : `<div class="pick-media">${placeholderHtml}</div>`;
+
+      const cardStart = p.link
+        ? `<a class="pick-card-link" href="${escAttr(p.link)}" target="_blank" rel="noopener noreferrer">`
+        : '';
+      const cardEnd = p.link ? '</a>' : '';
+
+      html += `
+        ${cardStart}
+        <div class="pick-card">
+          <div class="pick-badge" style="background:#6b7280;box-shadow:none">🔎 원본</div>
+          <div class="pick-body">
+            ${imgHtml}
+            <div class="pick-info">
+              <div class="pick-title">${esc(p.name)}</div>
+              <div class="pick-meta">
+                <span class="pick-price">${esc(p.price)}</span>
+                <span class="pick-store">${esc(p.store)}</span>
+                ${p.delivery ? `<span class="pick-delivery">🚚 ${esc(p.delivery)}</span>` : ''}
+                ${p.review ? `<span class="pick-review">${esc(p.review)}</span>` : ''}
+              </div>
+              ${renderBadgeList(p.badges)}
+            </div>
+          </div>
+        </div>
+        ${cardEnd}
+      `;
+    });
+  } else {
+    html += `<div class="pick-card" style="border-color:var(--border)">원본 검색 결과가 없습니다.</div>`;
+  }
+
+  d.innerHTML = html;
+  document.getElementById('content').appendChild(d);
+  d.scrollIntoView({ behavior: 'smooth' });
 }
 
 function addResultCard(j) {
@@ -194,6 +285,7 @@ function addResultCard(j) {
                 ${p.delivery ? `<span class="pick-delivery">🚚 ${esc(p.delivery)}</span>` : ''}
                 ${p.review ? `<span class="pick-review">${esc(p.review)}</span>` : ''}
               </div>
+              ${renderBadgeList(p.badges)}
             </div>
           </div>
           <div class="pick-reason-text">${esc(p.reason)}</div>
@@ -226,5 +318,7 @@ window.ThisOneUI = {
   addUserMsg,
   addFallback,
   addTyping,
+  renderBadgeList,
+  renderRawResults,
   addResultCard
 };

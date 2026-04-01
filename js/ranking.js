@@ -506,24 +506,43 @@ function dedupeCandidatesByModel(items = []) {
 
   for (const item of items) {
     const key = getModelKey(item.name);
+    const current = { ...item, modelKey: key };
     const prev = map.get(key);
 
     if (!prev) {
-      map.set(key, { ...item, modelKey: key });
+      map.set(key, current);
       continue;
     }
 
-    const prevPrice = Number(prev.totalPriceNum || prev.priceNum || Infinity);
-    const currPrice = Number(item.totalPriceNum || item.priceNum || Infinity);
+    const prevScore =
+      (prev.shippingKnown ? 2 : 0) +
+      (prev.image ? 1 : 0) +
+      (prev.link ? 1 : 0) +
+      (prev.review ? 1 : 0) -
+      (prev.excludeFromPriceRank ? 3 : 0);
 
-    if (currPrice < prevPrice) {
-      map.set(key, { ...item, modelKey: key });
+    const currScore =
+      (current.shippingKnown ? 2 : 0) +
+      (current.image ? 1 : 0) +
+      (current.link ? 1 : 0) +
+      (current.review ? 1 : 0) -
+      (current.excludeFromPriceRank ? 3 : 0);
+
+    const prevPrice = Number(prev.totalPriceNum || prev.priceNum || Infinity);
+    const currPrice = Number(current.totalPriceNum || current.priceNum || Infinity);
+
+    if (currScore > prevScore) {
+      map.set(key, current);
+      continue;
+    }
+
+    if (currScore === prevScore && currPrice < prevPrice) {
+      map.set(key, current);
     }
   }
 
   return Array.from(map.values());
 }
-
 function buildCandidates(items, queryText = '') {
   const profile = inferIntentProfile(queryText);
 

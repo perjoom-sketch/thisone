@@ -471,25 +471,36 @@ function getSafePriceCandidate(candidates) {
 }
 
 function getModelKey(name) {
-  const t = String(name || '').toUpperCase();
+  const original = String(name || '').toUpperCase().trim();
 
-  const patterns = [
-    /\b[A-Z]{1,6}-\d{2,}[A-Z0-9-]*\b/,
-    /\b[A-Z]{0,3}\d{3,5}[A-Z]{0,3}\b/
+  if (!original) return '';
+
+  const cleaned = original
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/\([^)]+\)/g, ' ')
+    .replace(/\b(정품|공식|공식판매|국내정품|사은품|무료배송|당일배송|복합기|프린터|무한잉크|잉크젯|화이트|블랙|실버|그레이|레드|블루|핑크)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const codePatterns = [
+    /\b([A-Z]{1,10}-\d{2,}[A-Z0-9-]*)\b/,
+    /\b([A-Z]{1,10}\d{3,}[A-Z0-9]*)\b/,
+    /\b(\d{3,}[A-Z]{1,10})\b/
   ];
 
-  for (const p of patterns) {
-    const m = t.match(p);
-    if (m) return m[0];
+  for (const pattern of codePatterns) {
+    const match = cleaned.match(pattern);
+    if (match) return match[1];
   }
 
-  return t
-    .replace(/\b(화이트|블랙|실버|그레이|레드|블루|핑크|정품|공식|국내정품|사은품|무료배송|당일배송)\b/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 40);
-}
+  const words = cleaned
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((w) => w.length >= 2)
+    .slice(0, 3);
 
+  return words.join(' ');
+}
 function dedupeCandidatesByModel(items = []) {
   const map = new Map();
 

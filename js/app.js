@@ -25,7 +25,7 @@ const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI입니다.
 - priceRiskReason이 있으면 반드시 참고하세요.
 - totalPriceNum과 shippingKnown을 참고해서 가격 판단 시 대표가가 아니라 총지불액 기준으로 보수적으로 판단하세요.
 - review/popular/trust 카드는 필요하면 선택 가능하지만, 동일 조건이면 excludeFromPriceRank가 false인 후보를 우선하세요.
-- bonusScore, specPenalty, finalScore를 모두 참고하세요.
+- bonusScore, specPenalty, Score를 모두 참고하세요.
 
 출력 형식:
 {
@@ -276,7 +276,7 @@ ${JSON.stringify(candidates, null, 2)}
 - 허용 카드 type: "price", "review", "popular", "trust"
 - 각 카드의 sourceId는 반드시 후보 상품의 id를 그대로 사용하세요.
 - aiPickSourceType은 반드시 "price", "review", "popular", "trust" 중 하나만 사용하세요.
-- bonusScore, specPenalty, finalScore를 꼭 참고하세요.
+- bonusScore, specPenalty, Score를 꼭 참고하세요.
 - excludeFromPriceRank가 true인 후보는 "price" 카드와 AI추천에서 절대 선택하지 마세요.
 - badges에 "옵션가 주의"가 있으면 price 카드로 선택하지 마세요.
 - priceRiskReason이 있으면 반드시 참고하세요.

@@ -307,11 +307,27 @@ ${JSON.stringify(candidates, null, 2)}
     typingEl?.remove();
 
     if (aiData?.error) {
-      window.ThisOneUI?.addFallback?.(
-        'API 오류: ' + (typeof aiData.error === 'string' ? aiData.error : JSON.stringify(aiData.error))
-      );
-      return;
+  const errText =
+    typeof aiData.error === 'string'
+      ? aiData.error
+      : JSON.stringify(aiData.error);
+
+  const isBusy =
+    /503|Service Unavailable|high demand|Gemini API 오류/i.test(errText);
+
+  if (isBusy) {
+    window.ThisOneUI?.addFallback?.('AI 분석 서버가 혼잡해서 원본 후보 결과로 대신 보여줍니다.');
+
+    if (window.ThisOneUI?.renderRawResults) {
+      window.ThisOneUI.renderRawResults(candidates);
     }
+
+    return;
+  }
+
+  window.ThisOneUI?.addFallback?.('API 오류: ' + errText);
+  return;
+}
 
     const raw = Array.isArray(aiData?.content)
       ? aiData.content

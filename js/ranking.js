@@ -536,9 +536,10 @@ function buildCandidates(items, queryText = '') {
     };
   });
 
-  const deduped = dedupeCandidatesByModel(mapped);
-const medianPrice = getMedianPrice(deduped);
+ const deduped = dedupeCandidatesByModel(mapped);
+ const medianPrice = getMedianPrice(deduped);
 
+return deduped.map((candidate) => {
   return mapped.map((candidate) => {
     const bonus = getCandidateBonus(candidate, profile);
     const priceRisk = shouldExcludeFromPriceRank(candidate, queryText, medianPrice);

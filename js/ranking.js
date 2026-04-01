@@ -643,6 +643,6 @@ window.ThisOneRanking = {
   checkSpecMatch,
   shouldExcludeFromPriceRank,
   getSafePriceCandidate,
-  buildCandidates,
+  Candidates,
   mergeAiWithCandidates
 };

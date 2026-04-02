@@ -570,9 +570,9 @@ button{
 }
 
 .pick-title{
-  font-size:18px;
+  font-size:20px;
   font-weight:800;
-  line-height:1.45;
+  line-height:1.42;
   color:#111827;
   letter-spacing:-.02em;
   word-break:keep-all;
@@ -587,7 +587,7 @@ button{
 }
 
 .pick-price{
-  font-size:17px;
+  font-size:18px;
   font-weight:900;
   color:#335eea;
 }
@@ -729,9 +729,11 @@ a{
 
   .search-wrap,
   #chips,
-  .content{
-    width:min(100%, 100%);
-  }
+ .content{
+  display:none;
+  width:min(980px, 94vw);
+  margin:16px auto 60px;
+}
 
   .search-box{
     padding:8px 8px 8px 14px;
@@ -755,9 +757,16 @@ a{
     font-size:13px;
   }
 
-  #stickySearch{
-    padding:10px 10px;
-  }
+ #stickySearch{
+  display:none;
+  position:sticky;
+  top:0;
+  z-index:20;
+  padding:10px 16px;
+  background:rgba(255,255,255,.92);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(229,231,235,.9);
+}
 
   .content{
     margin:14px auto 48px;

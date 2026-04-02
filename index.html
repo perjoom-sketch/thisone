@@ -13,33 +13,23 @@
 <body>
   <div class="hdr">
 <div class="logo" onclick="goHome()">
-  <svg class="logo-wordmark" viewBox="0 0 500 96" xmlns="http://www.w3.org/2000/svg" aria-label="ThisOne">
-    <!-- This -->
-    <text x="0" y="68"
-          font-family="Arial, Helvetica, sans-serif"
-          font-size="64"
-          font-weight="800"
-          fill="#2E2E2E">This</text>
+  <div class="logo-textmark">
+    <span class="logo-this">This</span>
 
-    <!-- O -->
-    <g transform="translate(150 9)">
-      <circle cx="34" cy="34" r="25" stroke="#274A9B" stroke-width="6" fill="white"/>
-      <path d="M18 34 L28 45 L48 23"
-            fill="none"
-            stroke="#E36B3A"
-            stroke-width="7"
-            stroke-linecap="round"
-            stroke-linejoin="round"/>
-    </g>
+    <span class="logo-o-wrap" aria-hidden="true">
+      <svg class="logo-o-symbol" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="48" cy="48" r="30" stroke="#274A9B" stroke-width="6.5" fill="white"></circle>
+        <path d="M30 48 L41 59 L63 35"
+              fill="none"
+              stroke="#E36B3A"
+              stroke-width="8"
+              stroke-linecap="round"
+              stroke-linejoin="round"></path>
+      </svg>
+    </span>
 
-    <!-- ne. -->
-    <text x="215" y="68"
-          font-family="Arial, Helvetica, sans-serif"
-          font-size="64"
-          font-weight="800"
-          font-style="italic"
-          fill="#274A9B">ne.</text>
-  </svg>
+    <span class="logo-one">ne.</span>
+  </div>
 </div>
     <div class="badge">BETA</div>
   </div>

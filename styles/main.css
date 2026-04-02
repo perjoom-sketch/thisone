@@ -350,6 +350,10 @@ button{
   background:#f8fafc;
 }
 
+.chip:active{
+  transform:translateY(0);
+}
+
 #stickySearch{
   display:none;
   position:sticky;

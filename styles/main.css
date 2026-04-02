@@ -73,8 +73,8 @@ button{
 }
 
 .logo-mark{
-  width:30px;
-  height:30px;
+  width:34px;
+  height:34px;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -88,7 +88,7 @@ button{
 }
 
 .logo-name{
-  font-size:28px;
+  font-size:30px;
   font-weight:800;
   line-height:1;
   color:#2e2e2e;
@@ -360,10 +360,14 @@ button{
   border-bottom:1px solid rgba(229,231,235,.9);
 }
 
+#stickySearch .search-box{
+  width:min(920px, 94vw);
+  margin:0 auto;
+}
 .content{
   display:none;
-  width:min(920px, 94vw);
-  margin:18px auto 60px;
+  width:min(980px, 94vw);
+  margin:24px auto 60px;
 }
 
 .history-bar{
@@ -531,8 +535,8 @@ button{
 }
 
 .pick-media{
-  width:108px;
-  height:108px;
+  width:118px;
+  height:118px;
   border-radius:18px;
   border:1px solid #e7ecf4;
   background:#fff;

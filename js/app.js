@@ -222,10 +222,6 @@ async function sendMsg(forceMode) {
     window.ThisOneUI.renderHistoryBar();
   }
 
-  if (window.ThisOneUI?.addUserMsg) {
-    window.ThisOneUI.addUserMsg(currentQuery || '📷 이미지로 검색', pendingImg?.src);
-  }
-
   const queryText = currentQuery || '이미지 기반 상품 검색';
 
   removeImg();

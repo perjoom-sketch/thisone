@@ -83,7 +83,7 @@ a{
 }
 
 .logo-img{
-  width:210px;
+  width:260px;
   height:auto;
   display:block;
   object-fit:contain;
@@ -685,7 +685,7 @@ a{
 /* mobile */
 @media (max-width: 640px){
   .logo-img{
-    width:160px;
+    width:170px;
   }
 }
 
@@ -796,7 +796,7 @@ a{
 
 @media (max-width: 420px){
   .logo-img{
-    width:148px;
+    width:155px;
   }
 }
 

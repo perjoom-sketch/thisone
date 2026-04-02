@@ -82,6 +82,44 @@ a{
   cursor:pointer;
 }
 
+.logo-textmark{
+  display:flex;
+  align-items:center;
+  gap:2px;
+  line-height:1;
+  white-space:nowrap;
+}
+
+.logo-this{
+  font-size:24px;
+  font-weight:800;
+  letter-spacing:-0.03em;
+  color:#2E2E2E;
+}
+
+.logo-o-wrap{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:24px;
+  height:24px;
+  margin:0 1px;
+}
+
+.logo-o-symbol{
+  width:100%;
+  height:100%;
+  display:block;
+}
+
+.logo-one{
+  font-size:22px;
+  font-weight:800;
+  font-style:italic;
+  letter-spacing:-0.03em;
+  color:#274A9B;
+}
+
 .logo-wordmark{
   width:215px;
   height:auto;

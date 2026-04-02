@@ -4,18 +4,10 @@
   --muted:#6b7280;
   --muted-2:#9ca3af;
   --line:#e5e7eb;
-  --line-2:#eef2f7;
   --card:#ffffff;
-  --soft:#f8fafc;
   --accent:#0F3D8A;
   --accent-2:#F15A29;
-  --green:#16a34a;
-  --blue:#2563eb;
-  --orange:#ea580c;
-  --teal:#0f766e;
   --shadow:0 8px 30px rgba(15,23,42,.06);
-  --radius:22px;
-  --radius-sm:14px;
 }
 
 *{
@@ -58,14 +50,16 @@ button{
   pointer-events:none !important;
   position:absolute !important;
   left:-9999px !important;
+  top:-9999px !important;
 }
 
+/* header */
 .hdr{
-  lay:flex;
+  display:flex;
   align-items:center;
   justify-content:space-between;
   gap:16px;
-  padding:16px 22px;
+  padding:14px 20px;
   border-bottom:1px solid var(--line);
   background:#fff;
 }
@@ -84,6 +78,42 @@ button{
   flex-shrink:0;
 }
 
+/* 호환용 */
+.logo-mark{
+  width:30px;
+  height:30px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+}
+
+.logo-mark svg{
+  width:100%;
+  height:100%;
+  display:block;
+}
+
+.logo-name{
+  font-size:28px;
+  font-weight:800;
+  line-height:1;
+  color:#2e2e2e;
+  letter-spacing:-.02em;
+}
+
+.logo-name span{
+  color:var(--accent);
+}
+
+.logo-sub{
+  margin-top:4px;
+  font-size:12px;
+  line-height:1.2;
+  color:#7c8798;
+  letter-spacing:-.01em;
+}
+
 .badge{
   display:inline-flex;
   align-items:center;
@@ -99,13 +129,14 @@ button{
   flex-shrink:0;
 }
 
+/* landing */
 #landing{
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  min-height:calc(100vh - 76px);
-  padding:20px 20px 64px;
+  min-height:calc(100vh - 72px);
+  padding:36px 20px 56px;
 }
 
 #welcome{
@@ -115,25 +146,25 @@ button{
   justify-content:center;
   text-align:center;
   max-width:760px;
-  margin:0 auto 22px;
+  margin:0 auto 24px;
 }
 
 .welcome-icon{
   display:flex;
   justify-content:center;
   align-items:center;
-  margin-bottom:20px;
+  margin-bottom:18px;
 }
 
 .welcome-icon svg{
-  width:88px;
-  height:88px;
+  width:84px;
+  height:84px;
   display:block;
 }
 
 #welcome h2{
-  margin:0 0 14px;
-  font-size:42px;
+  margin:0 0 12px;
+  font-size:40px;
   line-height:1.18;
   font-weight:800;
   color:var(--text);
@@ -148,19 +179,15 @@ button{
 #welcome p{
   margin:0;
   font-size:20px;
-  line-height:1.7;
+  line-height:1.68;
   color:var(--muted);
   letter-spacing:-.015em;
 }
 
-#welcome{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  max-width:760px;
-  margin:0 auto 22px;
+/* search */
+.search-wrap{
+  width:min(760px, 92vw);
+  margin:0 auto;
 }
 
 .search-box{
@@ -245,7 +272,7 @@ button{
 .search-hint{
   margin-top:12px;
   text-align:center;
-  color:#b0b8c7;
+  color:#9ca3af;
   font-size:14px;
   line-height:1.5;
 }
@@ -296,13 +323,14 @@ button{
   justify-content:center;
 }
 
+/* chips */
 #chips{
-  width:min(820px, 92vw);
-  margin:18px auto 0;
+  width:min(760px, 92vw);
+  margin:20px auto 0;
   display:flex;
   flex-wrap:wrap;
   justify-content:center;
-  gap:12px;
+  gap:10px;
 }
 
 .chip{
@@ -331,12 +359,13 @@ button{
   transform:translateY(0);
 }
 
+/* sticky search / content */
 #stickySearch{
   display:none;
   position:sticky;
   top:0;
   z-index:20;
-  padding:14px 16px;
+  padding:10px 16px;
   background:rgba(255,255,255,.92);
   backdrop-filter:blur(12px);
   border-bottom:1px solid rgba(229,231,235,.9);
@@ -346,12 +375,14 @@ button{
   width:min(920px, 94vw);
   margin:0 auto;
 }
+
 .content{
   display:none;
   width:min(980px, 94vw);
-  margin:24px auto 60px;
+  margin:16px auto 60px;
 }
 
+/* history */
 .history-bar{
   display:flex;
   flex-wrap:wrap;
@@ -373,6 +404,7 @@ button{
   cursor:pointer;
 }
 
+/* user message */
 .user-msg-wrap{
   margin:0 0 16px;
 }
@@ -394,6 +426,7 @@ button{
   word-break:break-word;
 }
 
+/* ai result */
 .ai-result{
   margin:0 0 18px;
 }
@@ -426,6 +459,7 @@ button{
   display:block;
 }
 
+/* typing */
 .typing-wrap{
   padding:18px 20px;
   border:1px solid var(--line);
@@ -464,6 +498,7 @@ button{
   to{ transform:rotate(360deg); }
 }
 
+/* cards */
 .pick-card-link{
   display:block;
   text-decoration:none;
@@ -612,6 +647,7 @@ button{
   font-weight:700;
 }
 
+/* reject */
 .reject-card{
   margin-top:8px;
   padding:16px 18px;
@@ -655,6 +691,7 @@ a{
   color:inherit;
 }
 
+/* tablet */
 @media (max-width: 900px){
   #welcome h2{
     font-size:36px;
@@ -663,41 +700,35 @@ a{
   #welcome p{
     font-size:18px;
   }
+
+  .logo-wordmark{
+    width:176px;
+  }
 }
 
+/* mobile */
 @media (max-width: 640px){
-  #landing{
-    min-height:calc(100vh - 68px);
-    padding:20px 14px 32px;
-    justify-content:flex-start;
+  .hdr{
+    padding:12px 14px;
   }
 
-  .logo-name{
-    font-size:24px;
+  .logo-wordmark{
+    width:150px;
   }
-
-  .logo-sub{
-  margin-top:4px;
-  font-size:12px;
-  line-height:1.2;
-  color:#7c8798;
-  letter-spacing:-.01em;
-}
 
   .badge{
     display:none;
   }
 
   #landing{
-    min-height:calc(100vh - 68px);
-    padding:28px 14px 44px;
+    min-height:auto;
+    padding:24px 14px 40px;
+    justify-content:flex-start;
   }
 
-   #welcome{
-    margin-top:48px;
-    margin-bottom:18px;
+  #welcome{
+    margin:16px auto 18px;
   }
-}
 
   .welcome-icon svg{
     width:74px;
@@ -715,11 +746,9 @@ a{
 
   .search-wrap,
   #chips,
- .content{
-  display:none;
-  width:min(980px, 94vw);
-  margin:16px auto 60px;
-}
+  .content{
+    width:100%;
+  }
 
   .search-box{
     padding:8px 8px 8px 14px;
@@ -743,16 +772,13 @@ a{
     font-size:13px;
   }
 
- #stickySearch{
-  display:none;
-  position:sticky;
-  top:0;
-  z-index:20;
-  padding:10px 16px;
-  background:rgba(255,255,255,.92);
-  backdrop-filter:blur(12px);
-  border-bottom:1px solid rgba(229,231,235,.9);
-}
+  #stickySearch{
+    padding:10px;
+  }
+
+  #stickySearch .search-box{
+    width:100%;
+  }
 
   .content{
     margin:14px auto 48px;
@@ -787,12 +813,8 @@ a{
 }
 
 @media (max-width: 420px){
-  .logo-name{
-    font-size:22px;
-  }
-
-  .logo-sub{
-    display:none;
+  .logo-wordmark{
+    width:138px;
   }
 
   #welcome h2{

@@ -273,8 +273,9 @@ button{
   margin-top:12px;
   text-align:center;
   color:#9ca3af;
-  font-size:14px;
-  line-height:1.5;
+  font-size:13px;
+  line-height:1.6;
+  word-break:keep-all;
 }
 
 .img-preview{
@@ -692,10 +693,12 @@ a{
 }
 
 /* tablet */
-@media (max-width: 900px){
-  #welcome h2{
-    font-size:36px;
+@media (max-width: 640px){
+  .search-hint{
+    max-width:320px;
+    margin:12px auto 0;
   }
+}
 
   #welcome p{
     font-size:18px;
@@ -708,12 +711,14 @@ a{
 
 /* mobile */
 @media (max-width: 640px){
-  .hdr{
-    padding:12px 14px;
+  .search-hint{
+    max-width:320px;
+    margin:12px auto 0;
   }
+}
 
   .logo-wordmark{
-    width:150px;
+    width:142px;
   }
 
   .badge{
@@ -751,7 +756,7 @@ a{
   }
 
   .search-box{
-    padding:8px 8px 8px 14px;
+    padding:7px 7px 7px 14px;
     border-radius:22px;
   }
 
@@ -761,8 +766,8 @@ a{
 
   .img-btn,
   .send-btn{
-    width:44px;
-    height:44px;
+    width:42px;
+    height:42px;
     border-radius:14px;
   }
 

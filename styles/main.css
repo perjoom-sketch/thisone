@@ -67,44 +67,15 @@ button{
 .logo{
   display:flex;
   align-items:center;
-  gap:10px;
   cursor:pointer;
   min-width:0;
 }
 
-.logo-mark{
-  width:34px;
-  height:34px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  flex-shrink:0;
-}
-
-.logo-mark svg{
-  width:100%;
-  height:100%;
+.logo-wordmark{
+  width:180px;
+  height:auto;
   display:block;
-}
-
-.logo-name{
-  font-size:30px;
-  font-weight:800;
-  line-height:1;
-  color:#2e2e2e;
-  letter-spacing:-.02em;
-}
-
-.logo-name span{
-  color:var(--accent);
-}
-
-.logo-sub{
-  margin-top:4px;
-  font-size:12px;
-  line-height:1.2;
-  color:var(--muted-2);
-  letter-spacing:-.01em;
+  flex-shrink:0;
 }
 
 .badge{

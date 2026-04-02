@@ -1,62 +1,107 @@
-<div class="welcome-icon">
-  <svg
-    width="72"
-    height="72"
-    viewBox="0 0 96 96"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-  >
-    <circle
-      cx="48"
-      cy="48"
-      r="34"
-      stroke="#0F3D8A"
-      stroke-width="7"
-      fill="white"
-    />
-    <line
-      x1="48"
-      y1="6"
-      x2="48"
-      y2="18"
-      stroke="#0F3D8A"
-      stroke-width="7"
-      stroke-linecap="round"
-    />
-    <line
-      x1="48"
-      y1="78"
-      x2="48"
-      y2="90"
-      stroke="#0F3D8A"
-      stroke-width="7"
-      stroke-linecap="round"
-    />
-    <line
-      x1="6"
-      y1="48"
-      x2="18"
-      y2="48"
-      stroke="#0F3D8A"
-      stroke-width="7"
-      stroke-linecap="round"
-    />
-    <line
-      x1="78"
-      y1="48"
-      x2="90"
-      y2="48"
-      stroke="#0F3D8A"
-      stroke-width="7"
-      stroke-linecap="round"
-    />
-    <path
-      d="M31 49 L43 61 L65 37"
-      stroke="#F15A29"
-      stroke-width="8"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    />
-  </svg>
-</div>
+.hdr{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:18px 24px;
+  border-bottom:1px solid #e5e7eb;
+  background:#fff;
+}
+
+.logo{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  cursor:pointer;
+}
+
+.logo-mark svg{
+  width:30px;
+  height:30px;
+  display:block;
+}
+
+.logo-name{
+  font-size:28px;
+  font-weight:800;
+  line-height:1;
+  color:#2e2e2e;
+}
+
+.logo-name span{
+  color:#0F3D8A;
+}
+
+.logo-sub{
+  margin-top:4px;
+  font-size:12px;
+  color:#9ca3af;
+}
+
+#landing{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  min-height:calc(100vh - 84px);
+  padding:40px 20px 60px;
+}
+
+#welcome{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  max-width:720px;
+  margin:0 auto 28px;
+}
+
+.welcome-icon{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  margin-bottom:20px;
+}
+
+.welcome-icon svg{
+  width:88px;
+  height:88px;
+  display:block;
+}
+
+#welcome h2{
+  margin:0 0 14px;
+  font-size:42px;
+  line-height:1.2;
+  font-weight:800;
+  color:#111827;
+}
+
+#welcome h2 em{
+  color:#0F3D8A;
+  font-style:italic;
+}
+
+#welcome p{
+  margin:0;
+  font-size:20px;
+  line-height:1.7;
+  color:#6b7280;
+}
+
+.search-wrap{
+  width:min(760px, 92vw);
+  margin:0 auto;
+}
+
+.search-box{
+  width:100%;
+}
+
+#chips{
+  width:min(760px, 92vw);
+  margin:20px auto 0;
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:10px;
+}

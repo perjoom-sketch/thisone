@@ -32,60 +32,69 @@
   </div>
 
   <div id="landing">
-    <div class="logo" onclick="goHome()">
-  <div class="logo-mark">
-    <svg width="28" height="28" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <circle cx="48" cy="48" r="34" stroke="#0F3D8A" stroke-width="7" fill="white"></circle>
-      <line x1="48" y1="6" x2="48" y2="18" stroke="#0F3D8A" stroke-width="7" stroke-linecap="round"></line>
-      <line x1="48" y1="78" x2="48" y2="90" stroke="#0F3D8A" stroke-width="7" stroke-linecap="round"></line>
-      <line x1="6" y1="48" x2="18" y2="48" stroke="#0F3D8A" stroke-width="7" stroke-linecap="round"></line>
-      <line x1="78" y1="48" x2="90" y2="48" stroke="#0F3D8A" stroke-width="7" stroke-linecap="round"></line>
-      <path d="M31 49 L43 61 L65 37" stroke="#F15A29" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"></path>
-    </svg>
+  <div id="welcome">
+    <div class="welcome-icon">
+      <svg width="72" height="72" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="48" cy="48" r="34" stroke="#0F3D8A" stroke-width="7" fill="white"></circle>
+        <line x1="48" y1="6" x2="48" y2="18" stroke="#0F3D8A" stroke-width="7" stroke-linecap="round"></line>
+        <line x1="48" y1="78" x2="48" y2="90" stroke="#0F3D8A" stroke-width="7" stroke-linecap="round"></line>
+        <line x1="6" y1="48" x2="18" y2="48" stroke="#0F3D8A" stroke-width="7" stroke-linecap="round"></line>
+        <line x1="78" y1="48" x2="90" y2="48" stroke="#0F3D8A" stroke-width="7" stroke-linecap="round"></line>
+        <path d="M31 49 L43 61 L65 37" stroke="#F15A29" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+    </div>
+
+    <h2>고민 끝. <em>This One.</em></h2>
+    <p>
+      구매결정을 도와주는 디스원<br>
+      판매방식, 추가비용, 실사용 후기를 분석해<br>
+      더 나은 선택을 추천합니다.
+    </p>
   </div>
-  <div>
-    <div class="logo-name">This<span>One</span></div>
-    <div class="logo-sub">추론형 가격비교 에이전트</div>
+
+  <div class="search-wrap" id="landingSearch">
+    <div class="search-box">
+      <textarea
+        class="msg-input"
+        id="msgInput"
+        placeholder="뭐 사면 될지 물어보세요"
+        rows="1"
+        oninput="autoResize(this)"
+        onkeydown="handleKey(event)"
+      ></textarea>
+
+      <button class="img-btn" type="button" onclick="document.getElementById('fileInput').click()">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+          <circle cx="12" cy="13" r="4"></circle>
+        </svg>
+      </button>
+
+      <button class="send-btn" id="sendBtn" type="button" onclick="sendMsg()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"></circle>
+          <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="img-preview" id="imgPreview">
+      <img class="pv-img" id="previewImg" src="" alt="">
+      <span class="pv-name" id="previewName"></span>
+      <button class="pv-del" type="button" onclick="removeImg()">✕</button>
+    </div>
+
+    <div class="search-hint">예: 맘카페 반응 좋은 유모차 · 배송비 포함 가장 합리적인 공기청정기</div>
+  </div>
+
+  <div id="chips">
+    <div class="chip" onclick="quick('에어팟 프로 2세대')">🎧 에어팟 프로 2세대</div>
+    <div class="chip" onclick="quick('배송비 포함 가장 나은 공기청정기')">💨 공기청정기</div>
+    <div class="chip" onclick="quick('맘카페 반응 좋은 유모차')">🍼 맘카페 추천 유모차</div>
+    <div class="chip" onclick="quick('회사에서 쓸 프린터 유지비까지 고려해서')">🖨️ 유지비 포함 프린터</div>
+    <div class="chip" onclick="quick('30인치 산업용 선풍기 플라스틱 날개')">🌀 산업용 선풍기</div>
   </div>
 </div>
-      <h2>고민 끝. <em>This One.</em></h2>
-      <p>구매결정을 도와주는 디스원<br>판매방식, 추가비용, 실사용 후기를 분석해<br>더 나은 선택을 추천합니다.</p>
-    </div>
-
-    <div class="search-wrap" id="landingSearch">
-      <div class="search-box">
-        <textarea class="msg-input" id="msgInput" placeholder="뭐 사면 될지 물어보세요" rows="1" oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
-        <button class="img-btn" type="button" onclick="document.getElementById('fileInput').click()">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-            <circle cx="12" cy="13" r="4"></circle>
-          </svg>
-        </button>
-        <button class="send-btn" id="sendBtn" type="button" onclick="sendMsg()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="7"></circle>
-            <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
-          </svg>
-        </button>
-      </div>
-
-      <div class="img-preview" id="imgPreview">
-        <img class="pv-img" id="previewImg" src="" alt="">
-        <span class="pv-name" id="previewName"></span>
-        <button class="pv-del" type="button" onclick="removeImg()">✕</button>
-      </div>
-
-      <div class="search-hint">예: 맘카페 반응 좋은 유모차 · 배송비 포함 가장 합리적인 공기청정기</div>
-    </div>
-
-    <div id="chips">
-      <div class="chip" onclick="quick('에어팟 프로 2세대')">🎧 에어팟 프로 2세대</div>
-      <div class="chip" onclick="quick('배송비 포함 가장 나은 공기청정기')">💨 공기청정기</div>
-      <div class="chip" onclick="quick('맘카페 반응 좋은 유모차')">🍼 맘카페 추천 유모차</div>
-      <div class="chip" onclick="quick('회사에서 쓸 프린터 유지비까지 고려해서')">🖨️ 유지비 포함 프린터</div>
-      <div class="chip" onclick="quick('30인치 산업용 선풍기 플라스틱 날개')">🌀 산업용 선풍기</div>
-    </div>
-  </div>
 
   <div id="stickySearch">
     <div class="search-box">

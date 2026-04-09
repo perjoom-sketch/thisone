@@ -337,23 +337,6 @@ function addResultCard(result) {
   content.insertAdjacentHTML('beforeend', html);
 }
 
-  if (j.rejects && j.rejects.length) {
-    html += `<div class="reject-card"><div class="reject-title">ℹ️ 제외 이유</div>`;
-    j.rejects.forEach((r) => {
-      html += `
-        <div class="reject-item">
-          <div class="reject-dot">•</div>
-          <div class="reject-text"><span class="reject-name">${esc(r.name)}</span> — ${esc(r.reason)}</div>
-        </div>
-      `;
-    });
-    html += `</div>`;
-  }
-
-  d.innerHTML = html;
-  appendAndScroll(d);
-}
-
 window.ThisOneUI = {
   renderHistoryBar,
   addUserMsg,

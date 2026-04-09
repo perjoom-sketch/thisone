@@ -681,7 +681,7 @@ a{
 /* mobile */
 @media (max-width: 640px){
   .logo-img{
-    width:145px;
+    width:130px;
   }
 
   .badge{

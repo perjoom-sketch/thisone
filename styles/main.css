@@ -140,11 +140,11 @@ a{
 
 #welcome h2{
   margin:0 0 16px;
-  font-size:56px;
-  line-height:1.1;
-  font-weight:800;
-  letter-spacing:-.03em;
-  color:#111827;
+  font-size:48px;
+  line-height:1.12;
+  font-weight:700;
+  letter-spacing:-.02em;
+  color:#24324a;
 }
 
 #welcome p{

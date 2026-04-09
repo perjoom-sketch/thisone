@@ -236,6 +236,65 @@ function renderRawResults(items = []) {
   appendAndScroll(d);
 }
 
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function escAttr(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function renderPickCard(card, isFirst = false) {
+  const imageHtml = card.image
+    ? `<img class="pick-img" src="${escAttr(card.image)}" alt="${escAttr(card.name || '상품')}">`
+    : `<div class="pick-img-placeholder">상품</div>`;
+
+  const badgesHtml = Array.isArray(card.badges) && card.badges.length
+    ? `
+      <div class="pick-badges">
+        ${card.badges.map((b) => `<span class="pick-mini-badge">${esc(b)}</span>`).join('')}
+      </div>
+    `
+    : '';
+
+  return `
+    <a class="pick-card-link" href="${escAttr(card.link || '#')}" target="_blank" rel="noopener noreferrer">
+      <article class="pick-card ${isFirst ? 'pick-first' : ''}">
+        <div class="pick-badge">${esc(card.label || '')}</div>
+
+        <div class="pick-body">
+          <div class="pick-media">
+            ${imageHtml}
+          </div>
+
+          <div class="pick-info">
+            <h3 class="pick-title">${esc(card.name || '상품명 없음')}</h3>
+
+            <div class="pick-meta">
+              ${card.price ? `<span class="pick-price">${esc(card.price)}</span>` : ''}
+              ${card.store ? `<span class="pick-store">${esc(card.store)}</span>` : ''}
+              ${card.delivery ? `<span class="pick-delivery">${esc(card.delivery)}</span>` : ''}
+              ${card.review ? `<span class="pick-review">${esc(card.review)}</span>` : ''}
+            </div>
+
+            ${badgesHtml}
+
+            ${card.reason ? `<div class="pick-reason-text">${esc(card.reason)}</div>` : ''}
+          </div>
+        </div>
+      </article>
+    </a>
+  `;
+}
+
 function addResultCard(j) {
   const d = document.createElement('div');
   d.className = 'ai-result';

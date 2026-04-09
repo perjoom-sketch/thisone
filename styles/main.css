@@ -529,10 +529,10 @@ a{
 }
 
 .pick-media{
-  width:120px !important;
-  height:120px !important;
-  min-width:120px !important;
-  max-width:120px !important;
+  width:132px !important;
+  height:132px !important;
+  min-width:132px !important;
+  max-width:132px !important;
   border-radius:18px;
   border:1px solid #e7ecf4;
   background:#fff;

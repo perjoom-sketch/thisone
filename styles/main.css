@@ -681,14 +681,14 @@ a{
 /* mobile */
 @media (max-width: 640px){
   .logo{
-    height:34px;
+    height:32px;
     overflow:hidden;
   }
 
   .logo-img{
-    width:138px !important;
+    width:132px !important;
     height:auto !important;
-    transform:translateY(-6px);
+    transform:translateY(-5px);
   }
 
   .badge{

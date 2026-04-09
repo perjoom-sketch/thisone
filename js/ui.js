@@ -295,103 +295,47 @@ function renderPickCard(card, isFirst = false) {
   `;
 }
 
-function addResultCard(j) {
-  const d = document.createElement('div');
-  d.className = 'ai-result';
+function addResultCard(result) {
+  const content = document.getElementById('content');
+  if (!content) return;
 
-  const icons = {
-    ai: '🎯',
-    price: '💰',
-    review: '📝',
-    popular: '🔥',
-    trust: '🛡️'
-  };
+  const cards = Array.isArray(result?.cards) ? result.cards : [];
+  const rejects = Array.isArray(result?.rejects) ? result.rejects : [];
 
-  const colors = {
-    ai: 'var(--accent)',
-    price: '#16a34a',
-    review: '#2563eb',
-    popular: '#ea580c',
-    trust: '#0f766e'
-  };
+  const cardsHtml = cards
+    .map((card, idx) => renderPickCard(card, idx === 0))
+    .join('');
 
-  let html = `<div class="ai-label"><div class="dot">${MINI_SCOPE}</div> ThisOne 분석</div>`;
-
-  if (j.cards && j.cards.length) {
-    j.cards.forEach((item) => {
-      const p = normalizeRawItem(item);
-      const t = item.type || '';
-      const isAI = t === 'ai';
-      const initial = p.name ? p.name.charAt(0) : '?';
-
-      const bgColors = {
-        ai: '#ede9fe',
-        price: '#dcfce7',
-        review: '#dbeafe',
-        popular: '#ffedd5',
-        trust: '#ccfbf1'
-      };
-
-      const fgColors = {
-        ai: '#4f46e5',
-        price: '#16a34a',
-        review: '#2563eb',
-        popular: '#ea580c',
-        trust: '#0f766e'
-      };
-
-      const placeholderHtml = `
-        <div class="pick-img-placeholder" style="background:${bgColors[t] || '#f3f4f6'};color:${fgColors[t] || '#374151'};font-weight:700;font-size:22px;">
-          ${esc(initial)}
-        </div>
-      `;
-
-      const imgHtml = p.image
-        ? `
-          <div class="pick-media">
-            <img
-              class="pick-img"
-              src="${escAttr(p.image)}"
-              alt="${escAttr(p.name)}"
-              referrerpolicy="no-referrer"
-              loading="lazy"
-              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-            >
-            <div class="pick-img-placeholder" style="display:none;background:${bgColors[t] || '#f3f4f6'};color:${fgColors[t] || '#374151'};font-weight:700;font-size:22px;">
-              ${esc(initial)}
+  const rejectsHtml = rejects.length
+    ? `
+      <div class="reject-card">
+        <div class="reject-title">제외된 후보</div>
+        ${rejects.map((r) => `
+          <div class="reject-item">
+            <div class="reject-dot">•</div>
+            <div class="reject-text">
+              <span class="reject-name">${esc(r.name || '후보')}</span>
+              ${r.reason ? ` — ${esc(r.reason)}` : ''}
             </div>
           </div>
-        `
-        : `<div class="pick-media">${placeholderHtml}</div>`;
+        `).join('')}
+      </div>
+    `
+    : '';
 
-      const cardStart = p.link
-        ? `<a class="pick-card-link" href="${escAttr(p.link)}" target="_blank" rel="noopener noreferrer">`
-        : '';
-      const cardEnd = p.link ? '</a>' : '';
+  const html = `
+    <div class="ai-result">
+      <div class="ai-label">
+        <span class="dot">✦</span>
+        <span>ThisOne 분석</span>
+      </div>
+      ${cardsHtml}
+      ${rejectsHtml}
+    </div>
+  `;
 
-      html += `
-        ${cardStart}
-        <div class="pick-card ${isAI ? 'pick-first' : ''}">
-          <div class="pick-badge" style="${isAI ? '' : 'background:' + (colors[t] || 'var(--accent)') + ';box-shadow:none'}">${icons[t] || '📦'} ${esc(item.label || '')}</div>
-          <div class="pick-body">
-            ${imgHtml}
-            <div class="pick-info">
-              <div class="pick-title">${esc(p.name)}</div>
-              <div class="pick-meta">
-                ${p.price ? `<span class="pick-price">${esc(p.price)}</span>` : ''}
-                ${p.store ? `<span class="pick-store">${esc(p.store)}</span>` : ''}
-                ${p.delivery ? `<span class="pick-delivery">🚚 ${esc(p.delivery)}</span>` : ''}
-                ${p.review ? `<span class="pick-review">${esc(p.review)}</span>` : ''}
-              </div>
-              ${renderBadgeList(p.badges)}
-            </div>
-          </div>
-          ${p.reason || item.reason ? `<div class="pick-reason-text">${esc(item.reason || p.reason)}</div>` : ''}
-        </div>
-        ${cardEnd}
-      `;
-    });
-  }
+  content.insertAdjacentHTML('beforeend', html);
+}
 
   if (j.rejects && j.rejects.length) {
     html += `<div class="reject-card"><div class="reject-title">ℹ️ 제외 이유</div>`;

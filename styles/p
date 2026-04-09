@@ -483,7 +483,7 @@ a{
 
 .pick-card{
   position:relative;
-  padding:18px 20px 16px;
+  padding:16px 18px 14px;
   border:1px solid #e6ebf3;
   border-radius:24px;
   background:#fff;

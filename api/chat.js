@@ -50,23 +50,24 @@ async function handler(req, res) {
       setTimeout(() => reject(Object.assign(new Error("AI 분석 시간 초과"), { code: 'TIMEOUT' })), 55000)
     );
 
-    // AI 실행
-    const resultPromise = model.generateContent(userContent);
-    const result = await Promise.race([resultPromise, timeoutPromise]);
-    const responseText = result.response.text();
+    // AI 실행 (스트리밍 방식 도입)
+    const result = await model.generateContentStream(userContent);
+    
+    // 스트리밍 응답 헤더 설정
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
 
-    let parsedData;
-    try {
-      parsedData = JSON.parse(responseText);
-    } catch (e) {
-      console.error("JSON 파싱 실패:", responseText.substring(0, 300));
-      throw Object.assign(new Error("AI 응답 형식이 올바르지 않습니다."), { code: 'PARSE_ERROR' });
+    let fullText = "";
+    for await (const chunk of result.stream) {
+      const chunkText = chunk.text();
+      fullText += chunkText;
+      // 브라우저로 즉시 전송 (SSE 포맷 유사)
+      res.write(chunkText); 
     }
 
-    return res.status(200).json({
-      content: [{ type: "text", text: JSON.stringify(parsedData) }],
-      role: "assistant"
-    });
+    res.end();
+    return;
 
   } catch (err) {
     const msg = err.message || '';

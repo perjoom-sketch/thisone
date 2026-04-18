@@ -20,11 +20,39 @@ async function requestSearch(query) {
 }
 
 async function requestChat(payload) {
-  return await safeFetchJson('/api/chat', {
+  const res = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(errText || `HTTP ${res.status}`);
+  }
+
+  // 스트리밍 응답 읽기
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let done = false;
+  let fullText = "";
+
+  while (!done) {
+    const { value, done: readerDone } = await reader.read();
+    done = readerDone;
+    if (value) {
+      fullText += decoder.decode(value, { stream: true });
+    }
+  }
+
+  try {
+    // 백엔드에서 스트리밍으로 보낸 최종 JSON 파싱
+    const parsed = JSON.parse(fullText);
+    return parsed;
+  } catch (e) {
+    console.error("스트리밍 JSON 파싱 실패:", fullText);
+    throw new Error("AI 응답 파싱 실패");
+  }
 }
 
 /**

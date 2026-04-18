@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ThisOne" />
+  <meta property="og:title" content="ThisOne - 추론형 가격비교 에이전트" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>ThisOne - 추론형 가격비교 에이전트</title>
+  <link rel="stylesheet" href="/styles/main.css" />
+</head>
+<body>
+  <div class="hdr">
+<div class="logo" onclick="goHome()">
+  <img
+    src="/assets/thisone-logo-rough.png"
+    alt="ThisOne"
+    class="logo-img"
+  />
+</div>
+</div>
+
+  <div id="landing">
+    <div id="welcome">
+  <h2>고민 끝.</h2>
+  <p>
+    구매결정을 도와주는 디스원<br>
+    판매방식, 추가비용, 실사용 후기를 분석해<br>
+    더 나은 선택을 추천합니다.
+  </p>
+</div>
+
+    <div class="search-wrap" id="landingSearch">
+      <div class="search-box">
+        <textarea
+          class="msg-input"
+          id="msgInput"
+          placeholder="어떤 게 제일 좋은지 찾아보세요"
+          rows="1"
+          oninput="autoResize(this)"
+          onkeydown="handleKey(event)"
+        ></textarea>
+
+        <button class="img-btn" type="button" onclick="document.getElementById('fileInput').click()">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="4"></circle>
+          </svg>
+        </button>
+
+        <button class="send-btn" id="sendBtn" type="button" onclick="sendMsg()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="img-preview" id="imgPreview">
+        <img class="pv-img" id="previewImg" src="" alt="">
+        <span class="pv-name" id="previewName"></span>
+        <button class="pv-del" type="button" onclick="removeImg()">✕</button>
+      </div>
+
+      <div class="search-hint">예: 맘카페 반응 좋은 유모차 · 배송비 포함 가장 합리적인 공기청정기</div>
+    </div>
+
+    <div id="chips">
+      <div class="chip" onclick="quick('에어팟 프로 2세대')">🎧 에어팟 프로 2세대</div>
+      <div class="chip" onclick="quick('배송비 포함 가장 나은 공기청정기')">💨 공기청정기</div>
+      <div class="chip" onclick="quick('맘카페 반응 좋은 유모차')">🍼 맘카페 추천 유모차</div>
+      <div class="chip" onclick="quick('회사에서 쓸 프린터 유지비까지 고려해서')">🖨️ 유지비 포함 프린터</div>
+      <div class="chip" onclick="quick('30인치 산업용 선풍기 플라스틱 날개')">🌀 산업용 선풍기</div>
+    </div>
+  </div>
+
+  <div id="stickySearch">
+    <div class="search-box">
+      <textarea
+        class="msg-input"
+        id="msgInput2"
+        placeholder="다른 상품도 물어보세요"
+        rows="1"
+        oninput="autoResize(this)"
+        onkeydown="handleKey(event)"
+      ></textarea>
+
+      <button class="img-btn" type="button" onclick="document.getElementById('fileInput').click()">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+          <circle cx="12" cy="13" r="4"></circle>
+        </svg>
+      </button>
+
+      <button class="send-btn" id="sendBtn2" type="button" onclick="sendMsg()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"></circle>
+          <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="img-preview" id="imgPreview2">
+      <img class="pv-img" id="previewImg2" src="" alt="">
+      <span class="pv-name" id="previewName2"></span>
+      <button class="pv-del" type="button" onclick="removeImg()">✕</button>
+    </div>
+  </div>
+
+  <div class="content" id="content"></div>
+  <input type="file" id="fileInput" accept="image/*" onchange="handleImg(event)">
+
+  <script src="/js/api.js" defer></script>
+  <script src="/js/ui.js" defer></script>
+  <script src="/js/productFamilies.js" defer></script>
+  <script src="/js/ranking.js" defer></script>
+  <script src="/js/app.js" defer></script>
+</body>
+</html>

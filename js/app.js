@@ -442,6 +442,8 @@ ${intentProfile ? `의도: ${intentProfile.intentTag}
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  window.ThisOneUI?.loadTrendingChips?.(); // 실시간 트렌드 칩 로드
+
   document.getElementById('thisoneSearchBtn')?.addEventListener('click', () => {
     setSearchMode('thisone');
     sendMsg('thisone');

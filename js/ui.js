@@ -344,6 +344,38 @@ function addResultCard(result) {
   content.insertAdjacentHTML('beforeend', html);
 }
 
+async function loadTrendingChips() {
+  const container = document.getElementById('chips');
+  if (!container) return;
+
+  try {
+    const response = await fetch('/api/trends');
+    const data = await response.json();
+
+    if (data.status === 'success' && data.chips) {
+      container.innerHTML = ''; // 기존 칩 제거
+      data.chips.forEach(chip => {
+        const chipEl = document.createElement('div');
+        chipEl.className = 'chip';
+        chipEl.textContent = chip.label;
+        chipEl.onclick = () => {
+          if (typeof window.quick === 'function') {
+            window.quick(chip.query);
+          }
+        };
+        container.appendChild(chipEl);
+      });
+    }
+  } catch (err) {
+    console.error('트렌드 칩 로딩 실패:', err);
+    // 폴백 기본 칩
+    container.innerHTML = `
+      <div class="chip" onclick="quick('로봇청소기 추천')">🤖 로봇청소기</div>
+      <div class="chip" onclick="quick('스탠바이미')">📺 스탠바이미</div>
+    `;
+  }
+}
+
 window.ThisOneUI = {
   renderHistoryBar,
   addUserMsg,
@@ -351,5 +383,6 @@ window.ThisOneUI = {
   addTyping,
   renderBadgeList,
   renderRawResults,
-  addResultCard
+  addResultCard,
+  loadTrendingChips
 };

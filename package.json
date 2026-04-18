@@ -2,7 +2,7 @@
   "name": "thisone-shopping-filter",
   "version": "1.0.0",
   "dependencies": {
-    "@google/generative-ai": "^0.21.0",
+    "@google/generative-ai": "^0.24.0",
     "@vercel/kv": "^3.0.0"
   }
 }

@@ -248,9 +248,12 @@ async function sendMsg(forceMode) {
     // ── 검색과 의도 추론을 병렬로 시작 (시간 단축 핵심) ────────────────
     typingEl?.updateStatus?.('의도 분석 및 시장 데이터 수집 중...', '사용자가 진짜 원하는 가치를 추론하고 있습니다.');
 
+    const savedSettings = localStorage.getItem('thisone_expert_settings');
+    const expertSettings = savedSettings ? JSON.parse(savedSettings) : {};
+
     const trajectory = window.ThisOneTrajectory?.getSession() || {};
     const [searchData, intentProfileResult] = await Promise.all([
-      window.ThisOneAPI.requestSearch(searchQuery),
+      window.ThisOneAPI.requestSearch(searchQuery, expertSettings),
       window.ThisOneAPI.requestIntentInfer(queryText, trajectory).catch(() => null)
     ]);
 
@@ -337,7 +340,11 @@ ${intentProfile ? `의도: ${intentProfile.intentTag}
 분석 근거: ${intentProfile.expertFactors?.rationale || '정보 부족'}
 핵심 스펙: ${intentProfile.expertFactors?.focus_specs?.join(', ') || '전체'}` : '기본 분석'}
 
+사용자 설정 필터 (강제 사항):
+${JSON.stringify(expertSettings, null, 2)}
+
  지시:
+ - 사용자 설정 필터(강제 사항)에 어긋나는 상품은 절대 추천하지 마세요. (예: 해외직구 제외 시 해외 배송 상품 탈락)
  - 전문가 분석 결과를 바탕으로, 해당 핵심 스펙 및 용도 적합성(useCaseMatch)에서 가장 유리한 상품을 추천하세요.
 - 반드시 후보 상품 목록 안에서만 선택하세요.
 - cards 배열로만 답하세요.

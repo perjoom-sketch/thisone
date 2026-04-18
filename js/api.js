@@ -13,8 +13,9 @@ async function safeFetchJson(url, options) {
   }
 }
 
-async function requestSearch(query) {
-  return await safeFetchJson(`/api/search?q=${encodeURIComponent(query)}`, {
+async function requestSearch(query, settings = {}) {
+  const params = new URLSearchParams({ q: query, ...settings });
+  return await safeFetchJson(`/api/search?${params.toString()}`, {
     method: 'GET'
   });
 }

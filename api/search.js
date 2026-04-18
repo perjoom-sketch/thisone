@@ -22,6 +22,13 @@ function improveQuery(originalQuery) {
     }
   }
 
+  // 제외 키워드(-) 추출 (예: -삼성)
+  const excludeMatch = originalQuery.match(/-[^\s]+/g);
+  const excludes = excludeMatch ? excludeMatch.map(s => s.substring(1)) : [];
+  
+  // 검색어에서 제외 기호 제거 (API 검색용)
+  q = q.replace(/-[^\s]+/g, '');
+
   // 공기청정기/정수기/로봇청소기 등 가전 구독 트렌드 반영
   if (q.includes('공기청정기') || q.includes('정수기') || q.includes('건조기') || q.includes('로봇청소기')) {
     if (originalQuery.includes('렌탈') || originalQuery.includes('구독')) {

@@ -1,42 +1,32 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-export const config = {
-  runtime: 'edge',
-};
-
-export default async function handler(req) {
+async function handler(req, res) {
   // CORS 헤더 설정
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   // OPTIONS 요청 처리 (CORS)
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 200, headers });
+    return res.status(200).end();
   }
 
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
-      status: 405,
-      headers: { ...headers, 'Content-Type': 'application/json' },
-    });
+    return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   try {
-    const body = await req.json();
-    const { messages = [], system = "" } = body;
+    const { messages = [], system = "" } = req.body;
 
-    // API 키 확인
+    // API 키 확인 및 로깅 (디버깅용)
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
-      throw new Error("GOOGLE_API_KEY가 설정되지 않았습니다.");
+      console.error("GOOGLE_API_KEY가 설정되지 않았습니다.");
+      throw new Error("API 키가 설정되지 않았습니다. Vercel 환경 변수를 확인해주세요.");
     }
 
+    console.log("Gemini API 호출 시작 (Model: gemini-1.5-flash)");
     const genAI = new GoogleGenerativeAI(apiKey);
-
-    // 성능 최적화: 모델을 gemini-1.5-flash로 변경
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
       systemInstruction: system,
@@ -55,36 +45,38 @@ export default async function handler(req) {
       ? lastMessage.content 
       : JSON.stringify(lastMessage.content);
 
+    // 7초 타임아웃 설정 (Vercel 10초 제한 대비)
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("AI 분석 시간 초과 (10초 제한)")), 7000)
+    );
+
     // AI 실행
-    const result = await model.generateContent(userContent);
+    const resultPromise = model.generateContent(userContent);
+    const result = await Promise.race([resultPromise, timeoutPromise]);
     const responseText = result.response.text();
+
 
     let parsedData;
     try {
       parsedData = JSON.parse(responseText);
     } catch (e) {
       console.error("JSON 파싱 실패:", responseText.substring(0, 300));
-      // 구조가 깨진 경우를 위한 최소한의 대응
-      parsedData = { error: "AI 응답 형식이 올바르지 않습니다.", raw: responseText };
+      throw new Error("AI 응답 형식이 올바르지 않습니다.");
     }
 
-    // 프론트엔드 호환성을 위해 기존 포맷 유지
-    return new Response(JSON.stringify({
+    return res.status(200).json({
       content: [{ type: "text", text: JSON.stringify(parsedData) }],
       role: "assistant"
-    }), {
-      status: 200,
-      headers: { ...headers, 'Content-Type': 'application/json' },
     });
 
   } catch (err) {
-    console.error("Gemini Edge Error:", err.message);
-    return new Response(JSON.stringify({
+    console.error("Gemini Error:", err.message);
+    return res.status(500).json({
       error: 'Gemini API 오류',
       detail: err.message || '서버에서 문제가 발생했습니다.'
-    }), {
-      status: 500,
-      headers: { ...headers, 'Content-Type': 'application/json' },
     });
   }
 }
+
+module.exports = handler;
+module.exports.config = { maxDuration: 60 };

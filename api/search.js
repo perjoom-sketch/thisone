@@ -48,7 +48,7 @@ async function handler(req, res) {
     console.log(`[Search] 원본: "${q}" → 개선: "${improvedQ}"`);
 
     // 네이버 쇼핑 API 호출 (display=30으로 줄여서 속도 향상)
-    const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(improvedQ)}&display=30&start=1&sort=sim`;
+    const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(improvedQ)}&display=15&start=1&sort=sim`;
 
     const response = await fetch(url, {
       method: 'GET',

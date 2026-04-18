@@ -38,20 +38,16 @@ function renderHistoryBar() {
     c.className = 'history-chip';
     c.textContent = '🔍 ' + q;
     c.onclick = () => {
-      const inp = document.getElementById('msgInput2');
-      if (!inp) return;
-
-      inp.value = q;
-      if (typeof autoResize === 'function') autoResize(inp);
-
-      if (typeof currentQuery !== 'undefined') {
-        currentQuery = q;
-      }
-
-      if (typeof sendMsg === 'function') {
-        sendMsg();
+      if (typeof quick === 'function') {
+        quick(q);
       } else {
-        console.error('sendMsg is not defined');
+        const inp = document.getElementById('msgInput2') || document.getElementById('msgInput');
+        if (inp) {
+          inp.value = q;
+          if (typeof autoResize === 'function') autoResize(inp);
+        }
+        if (typeof currentQuery !== 'undefined') currentQuery = q;
+        if (typeof sendMsg === 'function') sendMsg();
       }
     };
     bar.appendChild(c);

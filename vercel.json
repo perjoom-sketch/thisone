@@ -2,19 +2,19 @@
   "functions": {
     "api/chat.js": {
       "memory": 1024,
-      "maxDuration": 10
+      "maxDuration": 60
     },
     "api/search.js": {
       "memory": 1024,
-      "maxDuration": 10
+      "maxDuration": 60
     },
     "api/intentInfer.js": {
       "memory": 512,
-      "maxDuration": 10
+      "maxDuration": 60
     },
     "api/logStore.js": {
       "memory": 256,
-      "maxDuration": 10
+      "maxDuration": 60
     }
   }
 }

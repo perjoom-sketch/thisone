@@ -409,7 +409,16 @@ ${intentProfile ? `의도 태그: ${intentProfile.intentTag} (신뢰도 ${((inte
       window.ThisOneUI?.addFallback?.('원본 결과 렌더 함수가 없습니다.');
     }
   } else {
-    window.ThisOneUI?.addFallback?.('검색 중 오류: ' + msg);
+    let displayMsg = msg;
+    try {
+      // JSON 형태의 에러인 경우 파싱 시도
+      const parsedErr = JSON.parse(msg);
+      if (parsedErr.detail) displayMsg = parsedErr.detail;
+      else if (parsedErr.error) displayMsg = parsedErr.error;
+    } catch (e) {
+      // JSON이 아니면 그대로 사용
+    }
+    window.ThisOneUI?.addFallback?.('검색 중 오류: ' + displayMsg);
   }
 } finally {
     loading = false;

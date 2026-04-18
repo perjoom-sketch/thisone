@@ -22,7 +22,18 @@ function renderHistoryBar() {
   bar.className = 'history-bar';
   bar.id = 'historyBar';
 
-  searchHistory.slice(-10).forEach((q) => {
+  const uniqueHistory = [];
+  const seen = new Set();
+  // 뒤에서부터 중복 제거하여 최신 검색어 순서 유지
+  for (let i = searchHistory.length - 1; i >= 0; i--) {
+    const q = searchHistory[i];
+    if (q && !seen.has(q)) {
+      uniqueHistory.unshift(q);
+      seen.add(q);
+    }
+  }
+
+  uniqueHistory.slice(-10).forEach((q) => {
     const c = document.createElement('div');
     c.className = 'history-chip';
     c.textContent = '🔍 ' + q;

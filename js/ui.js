@@ -34,6 +34,9 @@ function renderHistoryBar() {
   }
 
   uniqueHistory.slice(-5).forEach((q) => {
+    // [보안/운영] '플라스틱 날개' 등 부적절하거나 교체된 구형 키워드 필터링
+    if (q.includes('플라스틱 날개')) return;
+
     const c = document.createElement('div');
     c.className = 'history-chip';
     c.textContent = '🔍 ' + q;

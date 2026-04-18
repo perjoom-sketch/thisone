@@ -22,8 +22,8 @@ function improveQuery(originalQuery) {
     }
   }
 
-  // 공기청정기/정수기 등 가전 구독 트렌드 반영
-  if (q.includes('공기청정기') || q.includes('정수기') || q.includes('건조기')) {
+  // 공기청정기/정수기/로봇청소기 등 가전 구독 트렌드 반영
+  if (q.includes('공기청정기') || q.includes('정수기') || q.includes('건조기') || q.includes('로봇청소기')) {
     if (originalQuery.includes('렌탈') || originalQuery.includes('구독')) {
       q = q + ' 렌탈 구독 서비스';
     }

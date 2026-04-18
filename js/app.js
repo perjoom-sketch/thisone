@@ -245,8 +245,16 @@ async function sendMsg(forceMode) {
       searchQuery = window.ThisOneRanking.rewriteSearchQuery(queryText);
     }
 
-    const searchData = await window.ThisOneAPI.requestSearch(searchQuery);
+    // ── 검색과 의도 추론을 병렬로 시작 (시간 단축 핵심) ────────────────
+    const trajectory = window.ThisOneTrajectory?.getSession() || {};
+    const [searchData, intentProfileResult] = await Promise.all([
+      window.ThisOneAPI.requestSearch(searchQuery),
+      window.ThisOneAPI.requestIntentInfer(queryText, trajectory).catch(() => null)
+    ]);
+
     const items = searchData?.items || [];
+    let intentProfile = intentProfileResult;
+    _lastIntentProfile = intentProfile;
 
     const candidates = window.ThisOneRanking?.buildCandidates
       ? window.ThisOneRanking.buildCandidates(items, queryText)
@@ -282,18 +290,7 @@ async function sendMsg(forceMode) {
       totalPriceNum: c.totalPriceNum
     }));
 
-    // ── 의도 추론: 궤적 기반 intentProfile 요청 ──────────────────
-    let intentProfile = null;
-    if (window.ThisOneTrajectory && window.ThisOneAPI) {
-      try {
-        const trajectory = window.ThisOneTrajectory.getSession();
-        // 검색어가 1개 이상이면 서버 추론 시도 (전문가 분석을 위해)
-        intentProfile = await window.ThisOneAPI.requestIntentInfer(queryText, trajectory);
-        _lastIntentProfile = intentProfile;
-      } catch (_) {
-        intentProfile = window.ThisOneTrajectory?.getLocalIntentHint() || null;
-      }
-    }
+    // ── 의도 추론 결과는 상단 병렬 처리에서 완료됨 ──────────────────
 
     // 전문가 분석 결과 UI 노출
     if (intentProfile?.expertFactors) {

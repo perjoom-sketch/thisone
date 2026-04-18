@@ -99,29 +99,31 @@ function addTyping() {
   const d = document.createElement('div');
   d.className = 'ai-result';
   d.innerHTML = `
-    <div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 검색 중...</div>
+    <div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 전문가 분석 중...</div>
     <div class="typing-wrap">
       <div class="typing-steps">
         <div class="typing-spinner"></div>
-        <div class="typing-msg">상품을 검색하고 있어요...</div>
-        <div class="typing-sub">가격, 링크, 이미지를 수집하는 중</div>
+        <div class="typing-msg">사용자의 검색 의도를 파악하고 있습니다...</div>
+        <div class="typing-sub">쇼핑 전문가 '그래'가 분석을 시작합니다.</div>
       </div>
     </div>
   `;
   appendAndScroll(d);
 
   const msgs = [
-    '상품을 검색하고 있어요...',
-    '네이버 쇼핑 결과를 정리하는 중...',
-    'AI가 5개 카드를 고르는 중...',
-    '결과를 표시하는 중...'
+    '의도에 맞는 최적의 카테고리를 설정 중...',
+    '네이버 쇼핑 데이터에서 후보군을 수집 중...',
+    '전문가 안목으로 낚시성 부품들을 걸러내는 중...',
+    '추천 사유와 실구매가 혜택을 비교 중...',
+    '가장 신뢰할 수 있는 골든 카드 5개를 선정 중...'
   ];
 
   const subs = [
-    '가격, 링크, 이미지를 수집하는 중',
-    '후보 상품 목록을 정리하는 중',
-    'AI추천·가격순·리뷰순·인기순·신뢰순을 고르는 중',
-    '결과 카드를 준비하는 중'
+    '사용자가 진짜 원하는 가치가 무엇인지 추론합니다.',
+    '실시간 시장 데이터를 긁어와 분석 리스트를 만듭니다.',
+    '본품이 아닌 액세서리나 저가 유도 상품을 차단합니다.',
+    '렌탈 vs 구매, 리뷰 평점, 배송비 포함가를 대조합니다.',
+    '고민을 끝낼 수 있는 최종 리포트를 작성 중입니다.'
   ];
 
   let idx = 0;
@@ -131,7 +133,16 @@ function addTyping() {
     const s = d.querySelector('.typing-sub');
     if (m) m.textContent = msgs[idx];
     if (s) s.textContent = subs[idx];
-  }, 2500);
+  }, 3500);
+
+  // 외부에서 상태를 직접 업데이트할 수 있는 함수 추가
+  d.updateStatus = (msg, sub) => {
+    clearInterval(d._timer); // 수동 업데이트 시 자동 롤링 중지
+    const m = d.querySelector('.typing-msg');
+    const s = d.querySelector('.typing-sub');
+    if (m) m.textContent = msg;
+    if (s) s.textContent = sub;
+  };
 
   const origRemove = d.remove.bind(d);
   d.remove = () => {

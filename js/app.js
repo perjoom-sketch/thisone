@@ -246,6 +246,8 @@ async function sendMsg(forceMode) {
     }
 
     // ── 검색과 의도 추론을 병렬로 시작 (시간 단축 핵심) ────────────────
+    typingEl?.updateStatus?.('의도 분석 및 시장 데이터 수집 중...', '사용자가 진짜 원하는 가치를 추론하고 있습니다.');
+
     const trajectory = window.ThisOneTrajectory?.getSession() || {};
     const [searchData, intentProfileResult] = await Promise.all([
       window.ThisOneAPI.requestSearch(searchQuery),
@@ -255,6 +257,8 @@ async function sendMsg(forceMode) {
     const items = searchData?.items || [];
     let intentProfile = intentProfileResult;
     _lastIntentProfile = intentProfile;
+
+    typingEl?.updateStatus?.('전문가 안목으로 상품 선별 중...', '최저가 낚시 및 부적합 상품을 정밀 필터링합니다.');
 
     const candidates = window.ThisOneRanking?.buildCandidates
       ? window.ThisOneRanking.buildCandidates(items, queryText)
@@ -308,6 +312,8 @@ async function sendMsg(forceMode) {
     if (intentProfile && window.ThisOneRanking?.setIntentProfile) {
       window.ThisOneRanking.setIntentProfile(intentProfile);
     }
+
+    typingEl?.updateStatus?.('최종 추천 리포트 작성 중...', '고민을 해결해 줄 최적의 상품 5개를 선정합니다.');
 
     const aiData = await window.ThisOneAPI.requestChat({
       model: MODEL,

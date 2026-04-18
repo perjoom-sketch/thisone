@@ -7,6 +7,7 @@ let isSearchMode = false;
 let searchHistory = [];
 let currentQuery = '';
 let searchMode = 'thisone';
+let _lastIntentProfile = null; // 최근 의도 추론 결과 캐시
 
 const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI입니다.
 절대 <cite>, </cite>, <b>, </b> 같은 태그를 출력하지 마세요.
@@ -224,6 +225,11 @@ async function sendMsg(forceMode) {
 
   const queryText = currentQuery || '이미지 기반 상품 검색';
 
+  // ── 궤적 로거: 검색어 기록 ─────────────────────────────────────
+  if (window.ThisOneTrajectory) {
+    window.ThisOneTrajectory.recordQuery(queryText);
+  }
+
   removeImg();
 
   loading = true;
@@ -276,6 +282,28 @@ async function sendMsg(forceMode) {
       totalPriceNum: c.totalPriceNum
     }));
 
+    // ── 의도 추론: 궤적 기반 intentProfile 요청 ──────────────────
+    let intentProfile = null;
+    if (window.ThisOneTrajectory && window.ThisOneAPI) {
+      try {
+        const trajectory = window.ThisOneTrajectory.getSession();
+        // 검색어가 2개 이상일 때만 서버 추론 (첫 검색은 로컬 힌트로)
+        if (trajectory.queries.length >= 2) {
+          intentProfile = await window.ThisOneAPI.requestIntentInfer(queryText, trajectory);
+        } else {
+          intentProfile = window.ThisOneTrajectory.getLocalIntentHint();
+        }
+        _lastIntentProfile = intentProfile;
+      } catch (_) {
+        intentProfile = window.ThisOneTrajectory?.getLocalIntentHint() || null;
+      }
+    }
+
+    // intentProfile을 ranking에 전달 (랭킹 가중치 조정)
+    if (intentProfile && window.ThisOneRanking?.setIntentProfile) {
+      window.ThisOneRanking.setIntentProfile(intentProfile);
+    }
+
     const aiData = await window.ThisOneAPI.requestChat({
       model: MODEL,
       max_tokens: 1400,
@@ -292,6 +320,9 @@ ${queryText}
 후보 상품 목록(JSON):
 ${JSON.stringify(prunedCandidates, null, 2)}
 
+사용자 의도 분석:
+${intentProfile ? `의도 태그: ${intentProfile.intentTag} (신뢰도 ${((intentProfile.confidence || 0) * 100).toFixed(0)}%)` : '분석 없음'}
+
 지시:
 - 반드시 후보 상품 목록 안에서만 선택하세요.
 - cards 배열로만 답하세요.
@@ -305,6 +336,7 @@ ${JSON.stringify(prunedCandidates, null, 2)}
 - priceRiskReason이 있으면 반드시 참고하세요.
 - totalPriceNum을 참고하여 가격 판단은 대표가보다 실구매 총액 기준으로 보수적으로 판단하세요.
 - AI추천은 finalScore가 높은 후보를 우선 고려하세요.
+- 사용자 의도가 price_focus이면 price 카드를 aiPickSourceType으로 우선 고려하세요.
 - name, price, store, image, link는 직접 생성하지 말고 sourceId로 연결만 하세요.
 - JSON만 출력하세요.`
             }
@@ -316,16 +348,15 @@ ${JSON.stringify(prunedCandidates, null, 2)}
     typingEl?.remove();
 
     if (aiData?.error) {
-  const errText =
+  const errCode =
     typeof aiData.error === 'string'
       ? aiData.error
       : JSON.stringify(aiData.error);
 
-  const isBusy =
-    /503|Service Unavailable|high demand|Gemini API 오류/i.test(errText);
+  const isBusy = errCode === 'AI_SERVER_BUSY' || errCode === 'AI_TIMEOUT';
 
   if (isBusy) {
-    window.ThisOneUI?.addFallback?.('AI 분석 서버가 혼잡해서 원본 후보 결과로 대신 보여줍니다.');
+    window.ThisOneUI?.addFallback?.('AI 분석 서버가 혼잡하여 빠른 추천 결과로 대신 보여줍니다.');
 
     if (window.ThisOneUI?.renderRawResults) {
       window.ThisOneUI.renderRawResults(candidates);
@@ -334,7 +365,7 @@ ${JSON.stringify(prunedCandidates, null, 2)}
     return;
   }
 
-  window.ThisOneUI?.addFallback?.('API 오류: ' + errText);
+  window.ThisOneUI?.addFallback?.('API 오류: ' + (aiData.detail || errCode));
   return;
 }
 
@@ -367,7 +398,7 @@ ${JSON.stringify(prunedCandidates, null, 2)}
   typingEl?.remove();
 
   const msg = String(err?.message || '');
-  const isAiBusy = /503|Service Unavailable|high demand|Gemini API 오류|generativelanguage/i.test(msg);
+  const isAiBusy = /503|Service Unavailable|high demand|overloaded/i.test(msg);
 
   if (isAiBusy) {
     window.ThisOneUI?.addFallback?.('AI 분석 서버가 혼잡해서 원본 후보 결과로 대신 보여줍니다.');

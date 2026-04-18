@@ -45,9 +45,9 @@ async function handler(req, res) {
       ? lastMessage.content 
       : JSON.stringify(lastMessage.content);
 
-    // 7초 타임아웃 설정 (Vercel 10초 제한 대비)
+    // 8초 타임아웃 설정 (Vercel 10초 제한 대비)
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("AI 분석 시간 초과 (10초 제한)")), 7000)
+      setTimeout(() => reject(Object.assign(new Error("AI 분석 시간 초과"), { code: 'TIMEOUT' })), 8000)
     );
 
     // AI 실행
@@ -55,13 +55,12 @@ async function handler(req, res) {
     const result = await Promise.race([resultPromise, timeoutPromise]);
     const responseText = result.response.text();
 
-
     let parsedData;
     try {
       parsedData = JSON.parse(responseText);
     } catch (e) {
       console.error("JSON 파싱 실패:", responseText.substring(0, 300));
-      throw new Error("AI 응답 형식이 올바르지 않습니다.");
+      throw Object.assign(new Error("AI 응답 형식이 올바르지 않습니다."), { code: 'PARSE_ERROR' });
     }
 
     return res.status(200).json({
@@ -70,10 +69,29 @@ async function handler(req, res) {
     });
 
   } catch (err) {
-    console.error("Gemini Error:", err.message);
+    const msg = err.message || '';
+    console.error("Gemini Error:", msg);
+
+    // 실제 서버 과부하 / 503
+    if (err.code === 503 || /503|overloaded|Service Unavailable|high demand/i.test(msg)) {
+      return res.status(503).json({
+        error: 'AI_SERVER_BUSY',
+        detail: 'AI 서버가 일시적으로 혼잡합니다.'
+      });
+    }
+
+    // 타임아웃
+    if (err.code === 'TIMEOUT' || /시간 초과|timeout/i.test(msg)) {
+      return res.status(408).json({
+        error: 'AI_TIMEOUT',
+        detail: '응답 시간이 초과되었습니다.'
+      });
+    }
+
+    // 그 외 일반 오류
     return res.status(500).json({
-      error: 'Gemini API 오류',
-      detail: err.message || '서버에서 문제가 발생했습니다.'
+      error: 'AI_ERROR',
+      detail: msg || '서버에서 문제가 발생했습니다.'
     });
   }
 }

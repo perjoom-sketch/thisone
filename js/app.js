@@ -210,9 +210,6 @@ async function sendMsg(forceMode) {
   if (txt) currentQuery = txt;
   if (!currentQuery && !pendingImg) return;
 
-  if (!isSearchMode) {
-    searchHistory = [];
-  }
   switchToSearchMode();
 
   const contentEl = document.getElementById('content');

@@ -22,7 +22,14 @@ function improveQuery(originalQuery) {
     }
   }
 
-  // 기타 흔한 자연어 정리 (예: 산업용 선풍기 등)
+  // 공기청정기/정수기 등 가전 구독 트렌드 반영
+  if (q.includes('공기청정기') || q.includes('정수기') || q.includes('건조기')) {
+    if (originalQuery.includes('렌탈') || originalQuery.includes('구독')) {
+      q = q + ' 렌탈 구독 서비스';
+    }
+  }
+
+  // 기타 흔한 자연어 정리
   q = q.replace(/유지비 포함|배송비 포함|가장 나은|가장 좋은/g, '');
 
   return q.trim();

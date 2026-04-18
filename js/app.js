@@ -335,7 +335,7 @@ ${intentProfile ? `의도: ${intentProfile.intentTag}
 핵심 스펙: ${intentProfile.expertFactors?.focus_specs?.join(', ') || '전체'}` : '기본 분석'}
 
  지시:
-- 전문가 분석 결과를 바탕으로, 해당 핵심 스펙에서 가장 유리한 상품을 추천하세요.
+ - 전문가 분석 결과를 바탕으로, 해당 핵심 스펙 및 용도 적합성(useCaseMatch)에서 가장 유리한 상품을 추천하세요.
 - 반드시 후보 상품 목록 안에서만 선택하세요.
 - cards 배열로만 답하세요.
 - 허용 카드 type: "price", "review", "popular", "trust"
@@ -347,6 +347,7 @@ ${intentProfile ? `의도: ${intentProfile.intentTag}
 - badges에 "옵션가 주의"가 있거나 priceRisk가 "high"이면 price 카드로 선택하지 마세요.
 - priceRiskReason이 있으면 반드시 참고하여 추천 이유(reason)에 녹여내세요. 
 - 특히 부품일 확률이 있는 저가 상품은 "이 상품은 가격은 매력적이지만 전문가 분석 결과 본품이 아닌 부품일 확률이 있습니다."라는 전문가 소견을 포함하세요.
+- useCaseMatch가 높은 상품은 사용자 질문의 의도(용도)에 완벽히 부합한다는 점을 강조하여 추천하세요.
 - totalPriceNum을 참고하여 가격 판단은 대표가보다 실구매 총액 기준으로 보수적으로 판단하세요.
 - AI추천은 finalScore가 높은 후보를 우선 고려하세요.
 - JSON만 출력하세요.`

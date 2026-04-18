@@ -33,7 +33,7 @@ function renderHistoryBar() {
     }
   }
 
-  uniqueHistory.slice(-10).forEach((q) => {
+  uniqueHistory.slice(-5).forEach((q) => {
     const c = document.createElement('div');
     c.className = 'history-chip';
     c.textContent = '🔍 ' + q;

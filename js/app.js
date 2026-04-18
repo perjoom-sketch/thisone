@@ -287,16 +287,24 @@ async function sendMsg(forceMode) {
     if (window.ThisOneTrajectory && window.ThisOneAPI) {
       try {
         const trajectory = window.ThisOneTrajectory.getSession();
-        // 검색어가 2개 이상일 때만 서버 추론 (첫 검색은 로컬 힌트로)
-        if (trajectory.queries.length >= 2) {
-          intentProfile = await window.ThisOneAPI.requestIntentInfer(queryText, trajectory);
-        } else {
-          intentProfile = window.ThisOneTrajectory.getLocalIntentHint();
-        }
+        // 검색어가 1개 이상이면 서버 추론 시도 (전문가 분석을 위해)
+        intentProfile = await window.ThisOneAPI.requestIntentInfer(queryText, trajectory);
         _lastIntentProfile = intentProfile;
       } catch (_) {
         intentProfile = window.ThisOneTrajectory?.getLocalIntentHint() || null;
       }
+    }
+
+    // 전문가 분석 결과 UI 노출
+    if (intentProfile?.expertFactors) {
+      const ef = intentProfile.expertFactors;
+      window.ThisOneUI?.addFallback?.(`
+        <div class="expert-analysis">
+          <div class="expert-title">💡 전문가 분석: ${ef.key_priority}</div>
+          <div class="expert-reason">${ef.rationale}</div>
+          <div class="expert-specs">집중 분석 항목: ${ef.focus_specs.join(', ')}</div>
+        </div>
+      `);
     }
 
     // intentProfile을 ranking에 전달 (랭킹 가중치 조정)
@@ -320,10 +328,14 @@ ${queryText}
 후보 상품 목록(JSON):
 ${JSON.stringify(prunedCandidates, null, 2)}
 
-사용자 의도 분석:
-${intentProfile ? `의도 태그: ${intentProfile.intentTag} (신뢰도 ${((intentProfile.confidence || 0) * 100).toFixed(0)}%)` : '분석 없음'}
+사용자 의도 분석 (전문가 가이드):
+${intentProfile ? `의도: ${intentProfile.intentTag}
+우선 분석 요소: ${intentProfile.expertFactors?.key_priority || '일반 탐색'}
+분석 근거: ${intentProfile.expertFactors?.rationale || '정보 부족'}
+핵심 스펙: ${intentProfile.expertFactors?.focus_specs?.join(', ') || '전체'}` : '기본 분석'}
 
 지시:
+- 전문가 분석 결과를 바탕으로, 해당 핵심 스펙에서 가장 유리한 상품을 추천하세요.
 - 반드시 후보 상품 목록 안에서만 선택하세요.
 - cards 배열로만 답하세요.
 - 허용 카드 type: "price", "review", "popular", "trust"
@@ -336,8 +348,6 @@ ${intentProfile ? `의도 태그: ${intentProfile.intentTag} (신뢰도 ${((inte
 - priceRiskReason이 있으면 반드시 참고하세요.
 - totalPriceNum을 참고하여 가격 판단은 대표가보다 실구매 총액 기준으로 보수적으로 판단하세요.
 - AI추천은 finalScore가 높은 후보를 우선 고려하세요.
-- 사용자 의도가 price_focus이면 price 카드를 aiPickSourceType으로 우선 고려하세요.
-- name, price, store, image, link는 직접 생성하지 말고 sourceId로 연결만 하세요.
 - JSON만 출력하세요.`
             }
           ]

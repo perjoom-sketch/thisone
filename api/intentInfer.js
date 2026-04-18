@@ -75,7 +75,7 @@ function localInfer(query, trajectory) {
   };
 }
 
-// ─── Gemini AI 추론 ────────────────────────────────────────────────
+// ─── Gemini AI 추론 (전문가급 분석) ────────────────────────────────
 async function aiInfer(query, trajectory) {
   const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error('GOOGLE_API_KEY 미설정');
@@ -87,32 +87,41 @@ async function aiInfer(query, trajectory) {
   });
 
   const prompt = `
-당신은 쇼핑 검색 의도 분류 AI입니다. 반드시 JSON만 출력하세요.
+당신은 10년 차 쇼핑 큐레이션 전문가이자 구매 데이터 분석가입니다.
+사용자의 검색 궤적과 현재 검색어를 분석하여, 전문가가 제안할 법한 심층 의도를 추출하세요.
+반드시 JSON만 출력하세요.
 
-사용자 검색 궤적:
-- 검색어 순서: ${JSON.stringify(trajectory?.queries || [])}
-- 수정 횟수: ${trajectory?.refinements ?? 0}
-- 클릭한 상품: ${JSON.stringify(trajectory?.clickEvents || [])}
-- 세션 시간(ms): ${trajectory?.durationMs ?? 0}
+사용자 정보:
+- 검색 히스토리: ${JSON.stringify(trajectory?.queries || [])}
+- 클릭 이력: ${JSON.stringify(trajectory?.clickEvents || [])}
+- 검색 수정 횟수: ${trajectory?.refinements ?? 0}
 - 현재 검색어: "${query}"
 
-의도 분류 규칙:
-- spec_refine: 검색어를 점점 구체화하는 패턴 (단어 추가, 수정 2회 이상)
-- price_focus: 가격/할인 키워드 등장, 또는 저가 상품 클릭 패턴
-- brand_seek: 특정 브랜드명이 중간에 등장
-- explore: 초기 탐색 단계, 방향이 불명확
+분석 지침:
+1. 사용자가 숨기고 있는 '진짜 니즈'를 파악하세요. (예: "프린터" -> 단순 구매 vs "회사 프린터 유지비" -> 운영 효율성 중시)
+2. 전문가가 해당 카테고리에서 가장 중요하게 보는 3가지 요소(expertFactors)를 정의하세요.
+3. 랭킹 시스템을 위한 정밀 가중치(suggestedWeights)를 0~1 사이로 산출하세요.
 
-출력 형식:
+출력 형식 (JSON):
 {
-  "intentTag": "spec_refine",
-  "confidence": 0.87,
-  "suggestedWeights": { "price": 0.25, "review": 0.5, "trust": 0.25 },
-  "categoryHint": "stroller"
+  "intentTag": "spec_refine" | "price_focus" | "brand_seek" | "explore",
+  "confidence": 0.85,
+  "expertFactors": {
+    "key_priority": "유지비 및 내구성",
+    "rationale": "반복되는 검색어에서 운영 효율성에 대한 높은 민감도가 관찰됨",
+    "focus_specs": ["출력 속도", "토너 가격", "네트워크 지원"]
+  },
+  "suggestedWeights": {
+    "price": 0.3,
+    "review": 0.4,
+    "trust": 0.3
+  },
+  "categoryHint": "가전/프린터"
 }`;
 
-  // 4초 타임아웃 (intentInfer는 빠르게 응답해야 함)
+  // 5초 타임아웃
   const timeout = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('intentInfer 타임아웃')), 4000)
+    setTimeout(() => reject(new Error('intentInfer 타임아웃')), 5000)
   );
 
   const result = await Promise.race([model.generateContent(prompt), timeout]);

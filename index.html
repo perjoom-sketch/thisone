@@ -12,13 +12,28 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>지능형 쇼핑 디스원</title>
-  <script>console.log("%c [ThisOne] v3.0.1 Loaded - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");</script>
+  <script>
+    console.log("%c [ThisOne] v3.0.2 Loaded - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
+    window.addEventListener('click', function(e) {
+      console.log('Global Click Target:', e.target);
+    });
+  </script>
   <link rel="stylesheet" href="/styles/main.css" />
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap" rel="stylesheet">
   <style>
     .ftr {
       position: relative;
-      z-index: 10000;
+      z-index: 10 !important;
+    }
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999999 !important;
     }
   </style>
 </head>

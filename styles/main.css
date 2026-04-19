@@ -1442,8 +1442,8 @@ a{
   margin-top: 80px;
   padding: 60px 20px 40px;
   background: #f8fafc;
-  border-top: 1px solid var(--line);
   color: #64748b;
+  position: relative;
 }
 
 .ftr-content {

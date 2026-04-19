@@ -219,83 +219,8 @@ function normalizeRawItem(p = {}) {
 }
 
 function renderRawResults(items = []) {
-  const d = document.createElement('div');
-  d.className = 'ai-result';
-
-  let html = `<div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 추천 검색 결과</div>`;
-  html += `<div class="ai-box">`;
-
-  if (!Array.isArray(items) || !items.length) {
-    html += `<div class="pick-card">수집된 상품 데이터가 없습니다.</div></div>`;
-    d.innerHTML = html;
-    appendAndScroll(d);
-    return;
-  }
-
-  items.forEach((raw, idx) => {
-    const p = normalizeRawItem(raw);
-    const initial = p.name ? p.name.charAt(0) : '?';
-
-    const placeholderHtml = `
-      <div class="pick-img-placeholder" style="background:#f3f4f6;color:#374151;font-weight:700;font-size:22px;">
-        ${esc(initial)}
-      </div>
-    `;
-
-    const imgHtml = p.image
-      ? `
-        <div class="pick-media">
-          <img
-            class="pick-img"
-            src="${escAttr(p.image)}"
-            alt="${escAttr(p.name)}"
-            referrerpolicy="no-referrer"
-            loading="lazy"
-            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-          >
-          <div class="pick-img-placeholder" style="display:none;background:#f3f4f6;color:#374151;font-weight:700;font-size:22px;">
-            ${esc(initial)}
-          </div>
-        </div>
-      `
-      : `<div class="pick-media">${placeholderHtml}</div>`;
-
-    const cardStart = p.link
-      ? `<a class="pick-card-link" href="${escAttr(p.link)}" target="_blank" rel="noopener noreferrer">`
-      : '';
-    const cardEnd = p.link ? '</a>' : '';
-
-    const rawBadges = [...(p.badges || [])];
-    if (p.excludeFromPriceRank && !rawBadges.includes('가격순 제외')) {
-      rawBadges.push('가격순 제외');
-    }
-
-    html += `
-      ${cardStart}
-      <div class="pick-card">
-        <div class="pick-badge" style="background:#6b7280;box-shadow:none">📦 원본 ${idx + 1}</div>
-        <div class="pick-body">
-          ${imgHtml}
-          <div class="pick-info">
-            <div class="pick-title">${esc(p.name)}</div>
-            <div class="pick-meta">
-              ${p.price ? `<span class="pick-price">${esc(p.price)}</span>` : ''}
-              ${p.store ? `<span class="pick-store">${esc(p.store)}</span>` : ''}
-              ${p.delivery ? `<span class="pick-delivery">🚚 ${esc(p.delivery)}</span>` : ''}
-              ${p.review ? `<span class="pick-review">${esc(p.review)}</span>` : ''}
-            </div>
-            ${renderBadgeList(rawBadges)}
-          </div>
-        </div>
-        ${p.reason ? `<div class="pick-reason-text">${esc(p.reason)}</div>` : ''}
-      </div>
-      ${cardEnd}
-    `;
-  });
-
-  html += `</div>`;
-  d.innerHTML = html;
-  appendAndScroll(d);
+  // [삭제] 구버전 레이아웃 오해 방지를 위해 원시 결과 렌더링 기능 비활성화
+  console.log('[ThisOne] Raw results suppressed to maintain high-fidelity AI view.');
 }
 
 function esc(s) {

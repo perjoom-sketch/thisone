@@ -226,12 +226,24 @@ async function sendMsg(forceMode) {
     setTimeout(fixScroll, 600);
     if (!currentQuery && !pendingImg) return;
 
-    switchToSearchMode();
-    const contentEl = document.getElementById('content');
+  switchToSearchMode();
+  
+  // 3단계 강제 제압: 구버전 요소 완전 소멸
+  ['landing', 'welcome', 'landingSearch', 'mainHeader'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.setProperty('display', 'none', 'important');
+      el.style.setProperty('visibility', 'hidden', 'important');
+      el.style.setProperty('pointer-events', 'none', 'important');
+    }
+  });
+
+  const contentEl = document.getElementById('content');
     if (contentEl) contentEl.innerHTML = '';
     if (txt) searchHistory.push(txt);
     syncQueryInputs(currentQuery);
-    if (window.ThisOneUI?.renderHistoryBar) window.ThisOneUI.renderHistoryBar();
+    // 구버전 역사의 잔재(HistoryBar) 제거
+    // if (window.ThisOneUI?.renderHistoryBar) window.ThisOneUI.renderHistoryBar();
 
     const queryText = currentQuery || '이미지 기반 상품 검색';
     const queryImage = pendingImg;
@@ -281,14 +293,14 @@ async function sendMsg(forceMode) {
         return;
       }
 
-      // [Early Rendering] 수집된 결과를 즉시 화면에 노출 (사용자 대기 시간 제거)
-      window.ThisOneUI?.renderRawResults?.(candidates);
-
-      if (searchMode === 'raw') {
-        typingEl?.remove();
-        window.ThisOneUI?.renderRawResults?.(candidates);
-        return;
-      }
+      // [삭제] 구버전으로 오해받을 수 있는 Raw Results 렌더링 제거
+      // window.ThisOneUI?.renderRawResults?.(candidates);
+      
+      // if (searchMode === 'raw') {
+      //   typingEl?.remove();
+      //   window.ThisOneUI?.renderRawResults?.(candidates);
+      //   return;
+      // }
 
       const prunedCandidates = candidates.map(c => ({
         id: c.id, name: c.name, price: c.price, store: c.store, review: c.review,

@@ -1,6 +1,5 @@
 // --- UI Constants (Defensive) ---
-const MINI_SCOPE = window.MINI_SCOPE || '✦';
-const MINI_SCOPE_AI = window.MINI_SCOPE_AI || '✧';
+// index.html에서 이미 선언된 전역 상수를 사용합니다.
 
 function getContentEl() {
   return document.getElementById('content');

@@ -280,16 +280,20 @@ body.search-mode #stickySearch {
 }
 
 .sticky-inner {
-  max-width: 1200px;
+  max-width: 1100px;
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 24px;
   width: 100%;
 }
 
-.sticky-logo .logo-text { font-size: 18px; font-weight: 900; color: #0f172a; }
-.sticky-logo .accent { color: var(--accent); }
+.sticky-logo-img {
+  height: 42px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
 
 #stickySearch .search-box {
   flex: 1;
@@ -305,7 +309,14 @@ body.search-mode #stickySearch {
   border-radius: 12px;
   border: 1px solid var(--line);
   color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
 }
+
+.filter-trigger-btn:hover { background: #fff; border-color: var(--accent); color: var(--accent); }
 
 /* --- Search Results UI --- */
 .content {

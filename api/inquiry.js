@@ -38,7 +38,12 @@ export default async function handler(req, res) {
         return res.status(200).json({ status: 'success', data: newInquiry });
       } catch (kvErr) {
         console.error('[Inquiry API KV Error]:', kvErr);
-        return res.status(500).json({ status: 'error', message: '데이터베이스 저장 실패: ' + kvErr.message });
+        // 사용자에게 노출되는 에러 메시지를 더 친절하게 변경
+        let friendlyMsg = '현재 서버 점검 중이거나 데이터베이스 설정이 완료되지 않았습니다.';
+        if (kvErr.message.includes('Missing required environment variables')) {
+          friendlyMsg = 'Vercel 대시보드에서 KV Storage를 프로젝트에 연결해주세요.';
+        }
+        return res.status(500).json({ status: 'error', message: friendlyMsg });
       }
     }
 

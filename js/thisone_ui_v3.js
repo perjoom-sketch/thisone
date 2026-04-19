@@ -118,7 +118,7 @@ function addThinking() {
       <div class="thought-steps" id="thoughtStepsV2">
         <div class="thought-step active">
           <div class="step-dot"></div>
-          <div class="step-text">검색패턴을 관찰해서 원하는 상품 추론 중...</div>
+          <div class="step-text">검색패턴을 관찰하여 원하는 상품 추론 중...</div>
         </div>
       </div>
       <div id="liveResponse" class="live-response"></div>

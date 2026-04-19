@@ -1087,9 +1087,10 @@ a{
 @media (max-width: 600px) {
   .setting-group.inline {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr 1fr;
     gap: 12px 10px;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+    width: 100%;
   }
 }
 .setting-group.inline label {
@@ -1099,9 +1100,11 @@ a{
   font-weight: 600;
   cursor: pointer;
   color: #334155;
-  font-size: 13px; /* 모바일 대응 살짝 축소 */
+  font-size: 13px;
   margin-bottom: 0;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 개수 선택 영역 별도 정렬 */
@@ -1142,14 +1145,19 @@ a{
   .filter-bottom-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px 16px;
+    gap: 24px 16px;
     align-items: end;
+  }
+  .mobile-btn-wrap, .save-btn-wrap {
+    grid-row: 2; /* 버튼들을 두 번째 줄로 강제 */
   }
   .mobile-btn-wrap .sub-btn,
   .save-btn-wrap .save-btn {
     width: 100%;
     justify-content: center;
-    padding: 0;
+    padding: 10px 0;
+    font-size: 14px;
+    height: 44px;
   }
 }
 

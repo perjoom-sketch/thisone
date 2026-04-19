@@ -19,10 +19,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="/styles/main.css?v=3.1.0" />
+  <link rel="stylesheet" href="/styles/main.css?v=3.1.1" />
   
   <script>
-    console.log("%c [ThisOne] v3.1.0 Loaded - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
+    console.log("%c [ThisOne] v3.1.1 Loaded - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
     
     window.NOEL = 'gemini-2.0-flash';
     window.MINI_SCOPE = '✦';
@@ -171,7 +171,7 @@
   <input type="file" id="fileInput" accept="image/*" onchange="handleImg(event)" style="display:none;">
 
   <!-- Modals -->
-  <div id="inquiryModal" class="modal-overlay"> <!-- Removed inline display:none to fix 'not opening' bug -->
+  <div id="inquiryModal" class="modal-overlay">
     <div class="modal-content inquiry-board">
       <div class="modal-header">
         <h3>📋 고객지원 센터</h3>
@@ -210,9 +210,19 @@
   <template id="filterTemplateV2">
     <div class="filter-modal-content">
       <div class="filter-header">
-        <div class="filter-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          <span>검색설정</span>
+        <div class="filter-title-group">
+          <div class="filter-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            <span>검색설정</span>
+          </div>
+          <div class="filter-count-wrap">
+            <span class="count-label">추천수</span>
+            <select id="resultCount" class="filter-select mini">
+              <option value="2">2개 이하</option>
+              <option value="5" selected>5개 이하</option>
+              <option value="10">10개 이하</option>
+            </select>
+          </div>
         </div>
         <button type="button" class="filter-close" onclick="window.toggleFilterModal()">✕</button>
       </div>
@@ -228,43 +238,34 @@
 
       <div class="filter-grid-mobile-layout">
         <div class="filter-row-2">
-          <label class="chk-label"><input type="checkbox" id="excludeOverseas" checked> 직구제외</label>
-          <label class="chk-label"><input type="checkbox" id="excludeAgent" checked> 대형제외</label>
-          <label class="chk-label"><input type="checkbox" id="excludeUsed" checked> 중고제외</label>
+          <label class="chk-label"><input type="checkbox" id="excludeOverseas"> 직구제외</label>
+          <label class="chk-label"><input type="checkbox" id="excludeAgent"> 대행제외</label> <!-- 대형 -> 대행 -->
+          <label class="chk-label"><input type="checkbox" id="excludeUsed"> 중고제외</label>
         </div>
         <div class="filter-row-3">
-          <select id="resultCount" class="filter-select">
-            <option value="3">3개 이하</option>
-            <option value="5" selected>5개 이하</option>
-            <option value="10">10개 이하</option>
-          </select>
-          <label class="chk-label"><input type="checkbox" id="freeShipping"> 무료배송</label>
-          <label class="chk-label"><input type="checkbox" id="excludeRental"> 렌탈포함</label>
+          <label class="chk-label"><input type="checkbox" id="freeShipping" checked> 무료배송</label> <!-- 기본 체크 -->
+          <label class="chk-label"><input type="checkbox" id="excludeRental" checked> 렌탈제외</label> <!-- 기본 체크 -->
         </div>
       </div>
 
-      <div class="filter-footer">
-        <div class="patience-wrap">
+      <div class="filter-footer compact-footer">
+        <div class="patience-wrap slider-07">
           <div class="patience-info">
             <label class="filter-label">검색시간</label>
             <span id="patienceVal" class="patience-val">20초</span>
           </div>
           <input type="range" id="patienceTime" min="5" max="60" value="20" class="patience-slider" oninput="document.getElementById('patienceVal').textContent=this.value+'초'">
-          <div class="patience-hint">
-            <span>빠른</span>
-            <span>심층</span>
-          </div>
         </div>
-        <button type="button" class="save-btn" onclick="saveExpertSettings()">저장</button>
+        <button type="button" class="save-btn btn-03" onclick="saveExpertSettings()">저장</button>
       </div>
     </div>
   </template>
 
-  <script src="/js/trajectoryLogger.js?v=3.1.0" defer></script>
-  <script src="/js/api.js?v=3.1.0"></script>
-  <script src="/js/productFamilies.js?v=3.1.0"></script>
-  <script src="/js/ranking.js?v=3.1.0"></script>
-  <script src="/js/thisone_ui_v3.js?v=3.1.0"></script>
-  <script src="/js/thisone_app_v3_final.js?v=3.1.0"></script>
+  <script src="/js/trajectoryLogger.js?v=3.1.1" defer></script>
+  <script src="/js/api.js?v=3.1.1"></script>
+  <script src="/js/productFamilies.js?v=3.1.1"></script>
+  <script src="/js/ranking.js?v=3.1.1"></script>
+  <script src="/js/thisone_ui_v3.js?v=3.1.1"></script>
+  <script src="/js/thisone_app_v3_final.js?v=3.1.1"></script>
 </body>
 </html>

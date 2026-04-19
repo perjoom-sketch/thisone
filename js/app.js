@@ -1,4 +1,4 @@
-const MODEL = 'gemini-2.0-flash';
+const MODEL = 'gemini-2.5-flash';
 const MINI_SCOPE = '<svg width="10" height="10" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="14" stroke="#fff" stroke-width="4" fill="none" opacity=".7"/><circle cx="32" cy="32" r="5" fill="#fff"/><line x1="32" y1="6" x2="32" y2="18" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="32" y1="46" x2="32" y2="58" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="6" y1="32" x2="18" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="46" y1="32" x2="58" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/></svg>';
 
 let pendingImg = null;
@@ -179,13 +179,23 @@ async function sendMsg(forceMode) {
     const raw = Array.isArray(aiData?.content) ? aiData.content.filter(b => b.type === 'text').map(b => b.text).join('') : '';
     try {
       let clean = raw.replace(/```json|```/g, '').trim();
-      const jsonMatch = clean.match(/\{[\s\S]*\}/);
-      if (jsonMatch) clean = jsonMatch[0];
+      
+      // JSON 객체 { ... } 추출 정규표현식 (가장 긴 덩어리 찾기)
+      const jsonMatches = clean.match(/\{[\s\S]*\}/g);
+      if (jsonMatches) {
+        // 여러 덩어리 중 'cards' 키를 포함한 가장 긴 덩어리 선택
+        clean = jsonMatches.reduce((a, b) => {
+          if (b.includes('"cards"') && b.length > a.length) return b;
+          return a.length > b.length ? a : b;
+        }, "");
+      }
+
       const parsed = JSON.parse(clean);
       const merged = window.ThisOneRanking?.mergeAiWithCandidates ? window.ThisOneRanking.mergeAiWithCandidates(deepClean(parsed), candidates) : parsed;
       window.ThisOneUI?.addResultCard?.(merged);
     } catch (e) {
-      window.ThisOneUI?.addFallback?.(raw || '응답 파싱 실패');
+      console.error('Parsing error details:', e, 'Raw content:', raw);
+      window.ThisOneUI?.addFallback?.(raw || '지능형 응답 구성 중 예상치 못한 형식이 발견되었습니다.');
     }
   } catch (err) {
     console.error(err);

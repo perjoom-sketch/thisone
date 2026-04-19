@@ -968,10 +968,26 @@ a{
 .modal-content::after { display: none !important; }
 
 @media (max-width: 600px) {
+  .modal-overlay {
+    align-items: flex-end; /* 바닥에 정렬 */
+    background: rgba(0, 0, 0, 0.4); 
+  }
   .modal-content {
     width: 100vw;
-    border-radius: 0;
+    height: auto;
+    max-height: 80vh;
+    border-radius: 28px 28px 0 0; /* 상단 라운드 */
+    padding: 32px 24px 40px;
+    animation: bottomSlide 0.35s cubic-bezier(0.32, 1, 0.2, 1);
+    border-right: none;
+    border-top: 1px solid var(--line);
+    margin: 0;
   }
+}
+
+@keyframes bottomSlide {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }
 
 @keyframes modalPop {

@@ -252,9 +252,10 @@ a{
   max-width:860px;
   margin:0 auto;
   display:flex;
-  align-items:flex-end; /* 하단 정렬로 변경하여 텍스트/이미지 밸런스 유지 */
-  gap:10px;
-  padding:10px 12px 10px 22px;
+  flex-direction: row !important; /* 무조건 가로 배치 */
+  align-items:flex-end;
+  gap:12px;
+  padding:8px 12px 8px 22px;
   border:2px solid #d8dfeb;
   border-radius:28px;
   background:#fff;
@@ -267,10 +268,11 @@ a{
 }
 
 .msg-input{
-  flex:1;
+  flex: 1 !important;
+  min-width: 0 !important;
   min-height:28px;
-  max-height:120px; /* 최대 높이 제한 */
-  margin:8px 0; /* 수직 중앙 정렬 느낌을 위해 여백 조정 */
+  max-height:120px;
+  margin:8px 0;
   padding:0;
   border:none;
   outline:none;
@@ -282,14 +284,12 @@ a{
   overflow-y:auto;
 }
 
-/* 검색창 내장형 이미지 미리보기 스타일 */
 .img-preview {
   display: none;
   position: relative;
-  flex-shrink: 0;
-  width: 52px;
+  flex: 0 0 52px !important; /* 크기 고정 */
   height: 52px;
-  margin-bottom: 4px; /* 버튼들과의 하단 정렬 맞춤 */
+  margin-bottom: 4px;
   background: #fff;
   border-radius: 12px;
   border: 1px solid #e5e7eb;

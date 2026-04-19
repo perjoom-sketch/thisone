@@ -154,23 +154,26 @@ function setSearchMode(mode) {
 function extractJSON(str) {
   if (!str) return null;
   try {
-    // 1단계: 가장 흔한 마크다운 블록 제거
+    // 1단계: 마크다운 코드 블록 제거
     let cleanStr = str.replace(/```json|```/g, '').trim();
     
-    // 2단계: 첫 번째 '{'와 마지막 '}' 사이를 추출 (가장 확실한 JSON 구간)
+    // 2단계: 최외각 중괄호 { } 구간 정밀 추출
     const firstOpen = cleanStr.indexOf('{');
     const lastClose = cleanStr.lastIndexOf('}');
     if (firstOpen === -1 || lastClose === -1) return null;
     
-    const candidate = cleanStr.substring(firstOpen, lastClose + 1);
+    let candidate = cleanStr.substring(firstOpen, lastClose + 1);
     
     // 3단계: 일반 파싱 시도
     try {
       return JSON.parse(candidate);
     } catch (e) {
-      // 4단계: 만약 잘린 JSON이라면 (끝에 '}'가 부족한 경우 등) 수동 복구 시도 (실험적)
+      // 4단계: 잘린 JSON 복구 시도 (실험적)
       console.warn("Standard JSON parse failed, attempting recovery...");
-      return JSON.parse(candidate + '}'); // 단순 누락 복구 시도
+      try { return JSON.parse(candidate + '}'); } catch(e2) {}
+      try { return JSON.parse(candidate + ']}'); } catch(e3) {}
+      try { return JSON.parse(candidate + '"]}'); } catch(e4) {}
+      return null;
     }
   } catch (e) {
     console.error("JSON extraction failed", e);

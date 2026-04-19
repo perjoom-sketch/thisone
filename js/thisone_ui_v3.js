@@ -1,3 +1,6 @@
+const MINI_SCOPE = '✦';
+const MINI_SCOPE_AI = '✧';
+
 function getContentEl() {
   return document.getElementById('content');
 }

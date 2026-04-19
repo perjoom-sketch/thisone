@@ -4,6 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <script>
+    // [Core] 전역 UI 상수 정의 (렌더링 충돌 방지)
+    if (typeof window !== 'undefined') {
+      window.MINI_SCOPE = window.MINI_SCOPE || '✦';
+      window.MINI_SCOPE_AI = window.MINI_SCOPE_AI || '✧';
+    }
+
+    let currentQuery = '';
+    console.log("%c [ThisOne] v3.0.2 Loaded - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
+    window.addEventListener('click', function(e) {
+      console.log('Global Click Target:', e.target);
+    });
+  </script>
   <meta name="apple-mobile-web-app-title" content="ThisOne" />
   <meta property="og:title" content="지능형 쇼핑 디스원" />
   <meta name="description" content="이것저것 찾지 말고, 하나만 잘 고르자! 쇼핑 자율주행의 시작. 세상에 단 하나뿐인 지능형 가격비교 엔진, 디스원." />
@@ -81,19 +94,19 @@
   </style>
 </head>
 <body>
-  <div class="hdr" style="padding: 10px 40px; display: flex; align-items: center; justify-content: flex-start; background: #fff; border-bottom: 1px solid #f1f5f9; position: sticky; top: 0; z-index: 10000; height: auto;">
-<a href="/" class="logo" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:20px; white-space:nowrap;">
+  <div class="hdr" style="padding: 15px 40px; display: flex; align-items: center; justify-content: flex-start; background: #fff; border-bottom: 1px solid #f1f5f9; position: sticky; top: 0; z-index: 10000; height: auto;">
+<a href="/" class="logo" style="text-decoration:none !important; color:inherit !important; display:flex !important; align-items:center !important; gap:24px !important; white-space:nowrap !important;">
   <img
     src="/assets/thisone-logo-rough.png"
     alt="ThisOne"
     class="logo-img"
-    style="height:110px; width:auto; display:block; object-fit:contain;"
+    style="height:110px !important; width:auto !important; display:block !important; object-fit:contain !important;"
   />
-  <span class="slogan" style="font-size: 22px; color: #475569; font-weight: 900; letter-spacing: 0.01em; margin-top: 10px;">고민은 디스원, 만족은 당신꺼</span>
+  <span class="slogan" style="font-size: 24px !important; color: #475569 !important; font-weight: 900 !important; letter-spacing: 0.01em !important; margin-top: 5px !important;">고민은 디스원, 만족은 당신꺼</span>
 </a>
 </div>
 
-  <div id="landing" style="margin-top: 80px;">
+  <div id="landing" style="margin-top: 100px !important;">
     <div id="welcome">
       <h2 class="rounded-headline">이것저것 찾지 말고,<br><span class="point-text">하나만</span> 잘 고르자!</h2>
     </div>

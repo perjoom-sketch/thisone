@@ -79,23 +79,25 @@ function goHome() {
 function switchToSearchMode() {
   if (isSearchMode) return;
   isSearchMode = true;
+  document.body.classList.add('search-mode'); // CSS 제어를 위한 클래스 추가
+
   const landing = document.getElementById('landing'),
         stickySearch = document.getElementById('stickySearch'),
         content = document.getElementById('content'),
-        mainHdr = document.querySelector('.hdr');
+        mainHdr = document.getElementById('mainHeader');
   
   if (landing) landing.style.display = 'none';
-  if (mainHdr) mainHdr.classList.add('hidden'); // 메인 헤더 숨김 (중첩 방지)
+  if (mainHdr) mainHdr.classList.add('hidden');
   
   if (stickySearch) {
-    stickySearch.style.setProperty('display', 'block', 'important');
+    stickySearch.style.setProperty('display', 'flex', 'important');
     stickySearch.style.setProperty('position', 'fixed', 'important');
     stickySearch.style.setProperty('top', '0', 'important');
     stickySearch.style.setProperty('z-index', '20000', 'important');
   }
   if (content) {
     content.style.display = 'block';
-    content.style.setProperty('padding-top', '80px', 'important'); // 간격 조정
+    content.style.setProperty('padding-top', '80px', 'important');
     content.style.minHeight = '100vh';
   }
 }

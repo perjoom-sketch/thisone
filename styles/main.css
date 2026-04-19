@@ -38,6 +38,12 @@ a { color: inherit; text-decoration: none; }
 /* Global Utilities */
 .hidden { display: none !important; }
 
+body.search-mode #mainHeader,
+body.search-mode #landingSearch,
+body.search-mode #landing {
+  display: none !important;
+}
+
 /* --- Header & Logo --- */
 .hdr {
   display: flex;

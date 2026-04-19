@@ -373,6 +373,10 @@ function loadTrendingChips() {
 }
 
 function toggleFilterModal() {
+  if (loading) {
+    alert('AI 분석이 진행 중일 때는 설정을 변경할 수 없습니다.');
+    return;
+  }
   const el = document.getElementById('inlineFilter');
   if (!el) return;
   const isShow = el.style.display === 'flex';

@@ -132,7 +132,7 @@ function processFile(file) {
       const pv = document.getElementById(id);
       const el = document.getElementById(id === 'imgPreview' ? 'previewImg' : 'previewImg2');
       if (el) el.src = ev.target.result;
-      if (pv) pv.classList.add('show');
+      if (pv) pv.style.display = 'flex';
     });
   };
   r.readAsDataURL(file);
@@ -142,7 +142,7 @@ function removeImg() {
   pendingImg = null;
   ['imgPreview', 'imgPreview2'].forEach(id => {
     const pv = document.getElementById(id);
-    if (pv) pv.classList.remove('show');
+    if (pv) pv.style.display = 'none';
   });
 }
 

@@ -19,10 +19,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="/styles/main.css?v=3.1.6" />
+  <link rel="stylesheet" href="/styles/main.css?v=3.1.7" />
   
   <script>
-    console.log("%c [ThisOne] v3.1.6 Loaded - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
+    console.log("%c [ThisOne] v3.1.7 Loaded - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
     
     window.NOEL = 'gemini-2.0-flash';
     window.MINI_SCOPE = '✦';
@@ -85,7 +85,7 @@
             <button class="send-btn" id="sendBtn">검색</button>
           </div>
         </div>
-        <div id="imgPreview" class="img-preview">
+        <div id="imgPreview" class="img-preview" style="display:none;">
           <div class="pv-item">
             <img id="previewImg" class="pv-img" src="" alt="preview">
             <button class="pv-del" onclick="removeImg()">✕</button>
@@ -114,7 +114,7 @@
   <div id="stickySearch" style="display:none;">
     <div class="sticky-inner">
       <a href="/" class="sticky-logo" onclick="event.preventDefault(); goHome();">
-        <span class="logo-text">This<span class="accent">One</span></span>
+        <img src="/assets/thisone-logo-rough.png" alt="ThisOne" style="height:28px; width:auto;" />
       </a>
       <div class="search-box">
         <div class="input-row">
@@ -126,7 +126,7 @@
             <button class="send-btn" id="sendBtn2" onclick="sendMsg()">검색</button>
           </div>
         </div>
-        <div id="imgPreview2" class="img-preview">
+        <div id="imgPreview2" class="img-preview" style="display:none;">
           <div class="pv-item">
             <img id="previewImg2" class="pv-img" src="" alt="preview">
             <button class="pv-del" onclick="removeImg()">✕</button>
@@ -261,11 +261,11 @@
     </div>
   </template>
 
-  <script src="/js/trajectoryLogger.js?v=3.1.6" defer></script>
-  <script src="/js/api.js?v=3.1.6"></script>
-  <script src="/js/productFamilies.js?v=3.1.6"></script>
-  <script src="/js/ranking.js?v=3.1.6"></script>
-  <script src="/js/thisone_ui_v3.js?v=3.1.6"></script>
-  <script src="/js/thisone_app_v3_final.js?v=3.1.6"></script>
+  <script src="/js/trajectoryLogger.js?v=3.1.7" defer></script>
+  <script src="/js/api.js?v=3.1.7"></script>
+  <script src="/js/productFamilies.js?v=3.1.7"></script>
+  <script src="/js/ranking.js?v=3.1.7"></script>
+  <script src="/js/thisone_ui_v3.js?v=3.1.7"></script>
+  <script src="/js/thisone_app_v3_final.js?v=3.1.7"></script>
 </body>
 </html>

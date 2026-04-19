@@ -54,20 +54,24 @@ function processFile(file) {
   const r = new FileReader();
   r.onload = (ev) => {
     pendingImg = { data: ev.target.result.split(',')[1], src: ev.target.result };
-    const pv = document.getElementById('imgPreview');
-    const el = document.getElementById('previewImg');
-    const nm = document.getElementById('previewName');
-    if (el) el.src = ev.target.result;
-    if (nm) nm.textContent = file.name || "clipboard_image.png";
-    if (pv) pv.classList.add('show');
+    
+    // 두 개의 미리보기 영역 동기화
+    ['imgPreview', 'imgPreview2'].forEach(id => {
+      const pv = document.getElementById(id);
+      const el = document.getElementById(id === 'imgPreview' ? 'previewImg' : 'previewImg2');
+      if (el) el.src = ev.target.result;
+      if (pv) pv.classList.add('show');
+    });
   };
   r.readAsDataURL(file);
 }
 
 function removeImg() {
   pendingImg = null;
-  const pv = document.getElementById('imgPreview');
-  if (pv) pv.classList.remove('show');
+  ['imgPreview', 'imgPreview2'].forEach(id => {
+    const pv = document.getElementById(id);
+    if (pv) pv.classList.remove('show');
+  });
 }
 
 function stripCitations(text) { return String(text || '').replace(/<cite\b[^>]*>|<\/cite>|<b>|<\/b>/gi, '').trim(); }

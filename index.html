@@ -40,6 +40,11 @@
           onkeydown="handleKey(event)"
         ></textarea>
 
+        <div class="img-preview" id="imgPreview">
+          <img class="pv-img" id="previewImg" src="" alt="">
+          <button class="pv-del" type="button" onclick="removeImg()">✕</button>
+        </div>
+
         <button class="img-btn" type="button" onclick="document.getElementById('fileInput').click()" title="이미지 업로드 또는 붙여넣기">
           <span class="new-badge">NEW</span>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -98,11 +103,6 @@
         </div>
       </div>
 
-      <div class="img-preview" id="imgPreview">
-        <img class="pv-img" id="previewImg" src="" alt="">
-        <span class="pv-name" id="previewName"></span>
-        <button class="pv-del" type="button" onclick="removeImg()">✕</button>
-      </div>
 
       <div class="search-hint">예: 맘카페 반응 좋은 유모차 · 배송비 포함 가장 합리적인 공기청정기</div>
       <div id="trendingChips" class="trending-chips"></div>
@@ -119,11 +119,16 @@
       <textarea
         class="msg-input"
         id="msgInput2"
-        placeholder="목적지 입력 또는 이미지 붙여넣기(Ctrl+V)..."
+        placeholder="검색어 입력 또는 이미지 붙여넣기(Ctrl+V)..."
         rows="1"
         oninput="autoResize(this)"
         onkeydown="handleKey(event)"
       ></textarea>
+
+      <div class="img-preview" id="imgPreview2">
+        <img class="pv-img" id="previewImg2" src="" alt="">
+        <button class="pv-del" type="button" onclick="removeImg()">✕</button>
+      </div>
 
       <button class="img-btn" type="button" onclick="document.getElementById('fileInput').click()">
         <span class="new-badge">NEW</span>

@@ -99,31 +99,31 @@ function addTyping() {
   const d = document.createElement('div');
   d.className = 'ai-result';
   d.innerHTML = `
-    <div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 전문가 분석 중...</div>
+    <div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 지능형 분석 중...</div>
     <div class="typing-wrap">
       <div class="typing-steps">
         <div class="typing-spinner"></div>
-        <div class="typing-msg">사용자의 검색 의도를 파악하고 있습니다...</div>
-        <div class="typing-sub">쇼핑 전문가 '그래'가 분석을 시작합니다.</div>
+        <div class="typing-msg">사용자의 검색 의도를 정밀 분석하고 있습니다...</div>
+        <div class="typing-sub">지능형 쇼핑 엔진 '디스원'이 최적의 해답을 찾고 있습니다.</div>
       </div>
     </div>
   `;
   appendAndScroll(d);
 
   const msgs = [
-    '의도에 맞는 최적의 카테고리를 설정 중...',
-    '네이버 쇼핑 데이터에서 후보군을 수집 중...',
-    '전문가 안목으로 낚시성 부품들을 걸러내는 중...',
-    '추천 사유와 실구매가 혜택을 비교 중...',
-    '가장 신뢰할 수 있는 골든 카드 5개를 선정 중...'
+    '의도에 부합하는 최적의 카테고리 필터링 중...',
+    '빅데이터 기반 후보군 수집 및 정제 중...',
+    '지능형 알고리즘으로 부적합 상품을 선별 중...',
+    '실구매가 혜택 및 사용자 만족도 데이터 비교 중...',
+    '결정의 고통을 끝낼 지능형 리포트를 구성 중...'
   ];
 
   const subs = [
-    '사용자가 진짜 원하는 가치가 무엇인지 추론합니다.',
-    '실시간 시장 데이터를 긁어와 분석 리스트를 만듭니다.',
-    '본품이 아닌 액세서리나 저가 유도 상품을 차단합니다.',
-    '렌탈 vs 구매, 리뷰 평점, 배송비 포함가를 대조합니다.',
-    '고민을 끝낼 수 있는 최종 리포트를 작성 중입니다.'
+    '단순 검색어를 넘어 사용자의 진짜 요구사항을 파악합니다.',
+    '실시간 시장 데이터와 사용자 트렌드를 결합합니다.',
+    '최저가 낚시 및 품질 미달 상품을 철저히 차단합니다.',
+    '렌탈, 구매, AS 신뢰도를 종합적으로 랭킹화합니다.',
+    '이제 고민을 멈추셔도 좋습니다. 최적의 5가지를 선정했습니다.'
   ];
 
   let idx = 0;
@@ -348,7 +348,7 @@ function addResultCard(result) {
     <div class="ai-result">
       <div class="ai-label">
         <span class="dot">✦</span>
-        <span>ThisOne 분석</span>
+        <span>지능형 추천 리포트</span>
       </div>
       ${cardsHtml}
       ${rejectsHtml}

@@ -7,10 +7,6 @@
   <script>
     console.log("%c [ThisOne] v3.0.5 Loaded - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
     
-    // [Global] 최상단 전역 변수 정의
-    window.NOEL = 'gemini-2.0-flash';
-    window.NOEL = window.NOEL;
-
     // [Core] 전역 UI 상수 정의 (렌더링 충돌 방지)
     if (typeof window !== 'undefined') {
       window.MINI_SCOPE = window.MINI_SCOPE || '✦';
@@ -22,22 +18,6 @@
     window.addEventListener('click', function(e) {
       console.log('Global Click Target:', e.target);
     });
-
-    // 설정창 열기 함수를 index.html에 내재화하여 100% 작동 보장
-    window.toggleFilterModal = function() {
-      const el = document.getElementById('inlineFilter');
-      if (!el) return;
-      const isShow = el.classList.contains('show');
-      if (!isShow) {
-        el.style.setProperty('display', 'flex', 'important');
-        el.classList.add('show');
-        el.style.zIndex = '99999999';
-      } else {
-        el.style.display = 'none';
-        el.classList.remove('show');
-      }
-    };
-    function toggleFilterModal() { window.toggleFilterModal(); }
   </script>
   <meta name="apple-mobile-web-app-title" content="ThisOne" />
   <meta property="og:title" content="지능형 쇼핑 디스원" />
@@ -171,8 +151,8 @@
     <div id="chips" style="display:none;"></div>
   </div>
 
-  <div id="stickySearch" style="display:none; position:fixed; top:0; left:0; right:0; z-index:1000; background:#ffffff !important; border-bottom:1px solid #e2e8f0; padding:12px 0; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
-    <div class="search-box" style="position:relative; margin:0 auto !important; width:min(860px, 92vw) !important;">
+  <div id="stickySearch" style="display:none; position:sticky; top:0; z-index:1000; background:#fff;">
+    <div class="search-box">
       <div class="img-preview" id="imgPreview2">
         <div class="pv-item">
           <img class="pv-img" id="previewImg2" src="" alt="">
@@ -207,8 +187,10 @@
           </button>
         </div>
       </div>
-      <!-- 설정 버튼을 검색박스 우측 하단에 고정 (레이아웃 이탈 방지) -->
-      <div class="filter-trigger" onclick="window.toggleFilterModal()" style="position:absolute; right:10px; bottom:-28px; cursor:pointer; font-size:12px; color:#64748b; display:flex; align-items:center; gap:4px; font-weight:700; background:rgba(255,255,255,0.9); padding:4px 8px; border-radius:8px;">
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; width:100%; max-width:860px; margin:0 auto; padding-right:12px;">
+      <div class="filter-trigger" onclick="toggleFilterModal()" style="margin:0; font-size:12px; color:#64748b; cursor:pointer; display:flex; align-items:center; gap:4px;">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
         검색설정
       </div>
@@ -332,11 +314,11 @@
     </div>
   </div>
 
-  <script src="/js/trajectoryLogger.js?v=1.2.0" defer></script>
-  <script src="/js/api.js?v=1.2.0"></script>
-  <script src="/js/productFamilies.js?v=1.2.0"></script>
-  <script src="/js/ranking.js?v=1.2.0"></script>
-  <script src="/js/thisone_ui_v3.js?v=1.2.0"></script>
-  <script src="/js/thisone_app_v3_final.js?v=1.2.0"></script>
+  <script src="/js/trajectoryLogger.js?v=1.1.0" defer></script>
+  <script src="/js/api.js?v=1.1.0"></script>
+  <script src="/js/productFamilies.js?v=1.1.0"></script>
+  <script src="/js/ranking.js?v=1.1.0"></script>
+  <script src="/js/thisone_ui_v3.js?v=1.1.0"></script>
+  <script src="/js/thisone_app_v3_final.js?v=1.1.0"></script>
 </body>
 </html>

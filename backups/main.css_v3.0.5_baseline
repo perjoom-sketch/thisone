@@ -2085,28 +2085,3 @@ body.search-mode #stickySearch {
   }
 }
 
-
-/* --- Final Fix: Sticky Search Button Alignment --- */
-#stickySearch {
-  display: flex !important;
-  flex-direction: column;
-  align-items: center;
-  width: 100% !important;
-  background: #fff;
-  border-bottom: 1px solid #eee;
-  padding: 12px 0 8px 0 !important;
-}
-
-#stickySearch .search-box {
-  width: min(860px, 92vw) !important;
-  margin: 0 auto !important;
-}
-
-#stickySearch .filter-trigger {
-  width: min(860px, 92vw) !important;
-  margin: 4px auto 0 auto !important;
-  display: flex !important;
-  justify-content: flex-end !important;
-  padding-right: 8px !important;
-}
-

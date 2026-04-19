@@ -1,8 +1,4 @@
 // --- UI Constants (Defensive) ---
-if (typeof window.MODEL === 'undefined') window.MODEL = 'gemini-2.0-flash';
-if (typeof window.NOEL === 'undefined') window.NOEL = window.MODEL;
-var MODEL = window.MODEL;
-var NOEL = window.NOEL;
 // index.html에서 이미 선언된 전역 상수를 사용합니다.
 
 function getContentEl() {

@@ -51,18 +51,7 @@ function getSendBtn() {
 }
 
 function goHome() {
-  isSearchMode = false;
-
-  const landing = document.getElementById('landing');
-  const stickySearch = document.getElementById('stickySearch');
-  const content = document.getElementById('content');
-
-  if (landing) landing.style.display = '';
-  if (stickySearch) stickySearch.style.display = 'none';
-  if (content) {
-    content.style.display = 'none';
-    content.innerHTML = '';
-  }
+  location.href = '/';
 }
 
 function switchToSearchMode() {

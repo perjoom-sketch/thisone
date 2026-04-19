@@ -396,15 +396,15 @@ function loadExpertSettings() {
 
 function saveExpertSettings() {
   const settings = {
-    minPrice: document.getElementById('minPrice').value,
-    maxPrice: document.getElementById('maxPrice').value,
-    freeShipping: document.getElementById('freeShipping').checked,
-    excludeOverseas: document.getElementById('excludeOverseas').checked,
-    excludeAgent: document.getElementById('excludeAgent').checked,
-    excludeUsed: document.getElementById('excludeUsed').checked,
-    includeRental: document.getElementById('includeRental').checked,
-    resultCount: document.getElementById('resultCount').value,
-    patienceTime: document.getElementById('patienceTime').value
+    minPrice: document.getElementById('minPrice')?.value || '',
+    maxPrice: document.getElementById('maxPrice')?.value || '',
+    freeShipping: document.getElementById('freeShipping')?.checked || false,
+    excludeOverseas: document.getElementById('excludeOverseas')?.checked || false,
+    excludeAgent: document.getElementById('excludeAgent')?.checked || false,
+    excludeUsed: document.getElementById('excludeUsed')?.checked || false,
+    includeRental: document.getElementById('includeRental')?.checked || false,
+    resultCount: document.getElementById('resultCount')?.value || 5,
+    patienceTime: document.getElementById('patienceTime')?.value || 20
   };
 
   // UI는 새로고침 시 초기화되더라도, 사용자의 설정 의도는 별도의 메모리(Trajectory)에 기록하여 AI가 참고하게 함

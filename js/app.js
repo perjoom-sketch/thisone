@@ -223,7 +223,7 @@ async function sendMsg(forceMode) {
       aiMessages[0].content.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${queryImage.data}` } });
     }
 
-    const patience = parseInt(expertSettings.patienceTime || 10);
+    const patience = parseInt(expertSettings.patienceTime || 20);
     const tokens = Math.min(400 + (patience * 20), 2000); // 인내심에 비례하여 응답 길이 조절
 
     let depthPrompt = " 핵심 위주로 빠르게 요약하세요.";

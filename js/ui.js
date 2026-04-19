@@ -404,6 +404,86 @@ async function loadTrendingChips() {
   }
 }
 
+// --- 문의게시판 관련 로직 ---
+async function openInquiryBoard() {
+  const modal = document.getElementById('inquiryModal');
+  if (modal) {
+    modal.style.display = 'flex';
+    fetchInquiries();
+  }
+}
+
+function closeInquiryBoard() {
+  const modal = document.getElementById('inquiryModal');
+  if (modal) modal.style.display = 'none';
+  hideInquiryForm();
+}
+
+function showInquiryForm() {
+  document.getElementById('inquiryListArea').style.display = 'none';
+  document.getElementById('inquiryFormArea').style.display = 'block';
+}
+
+function hideInquiryForm() {
+  document.getElementById('inquiryListArea').style.display = 'block';
+  document.getElementById('inquiryFormArea').style.display = 'none';
+}
+
+async function fetchInquiries() {
+  const list = document.getElementById('inquiryList');
+  if (!list) return;
+
+  try {
+    const res = await fetch('/api/inquiry');
+    const result = await res.json();
+
+    if (result.status === 'success' && Array.isArray(result.data)) {
+      if (result.data.length === 0) {
+        list.innerHTML = '<div class="loading-text">등록된 문의가 없습니다. 첫 문의를 남겨보세요!</div>';
+        return;
+      }
+
+      list.innerHTML = result.data.map(inq => `
+        <div class="inquiry-item">
+          <div class="inq-title">${esc(inq.title)}</div>
+          <div class="inq-meta">${inq.author} · ${new Date(inq.createdAt).toLocaleDateString()}</div>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    list.innerHTML = '<div class="loading-text">목록 로딩 실패</div>';
+  }
+}
+
+async function submitInquiry() {
+  const title = document.getElementById('inqTitle')?.value.trim();
+  const content = document.getElementById('inqContent')?.value.trim();
+
+  if (!title || !content) {
+    alert('제목과 내용을 모두 입력해주세요.');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/inquiry', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, content })
+    });
+    const result = await res.json();
+
+    if (result.status === 'success') {
+      alert('문의가 성공적으로 등록되었습니다.');
+      document.getElementById('inqTitle').value = '';
+      document.getElementById('inqContent').value = '';
+      hideInquiryForm();
+      fetchInquiries();
+    }
+  } catch (err) {
+    alert('등록 중 오류가 발생했습니다.');
+  }
+}
+
 window.ThisOneUI = {
   renderHistoryBar,
   addUserMsg,
@@ -412,5 +492,10 @@ window.ThisOneUI = {
   renderBadgeList,
   renderRawResults,
   addResultCard,
-  loadTrendingChips
+  loadTrendingChips,
+  openInquiryBoard,
+  closeInquiryBoard,
+  showInquiryForm,
+  hideInquiryForm,
+  submitInquiry
 };

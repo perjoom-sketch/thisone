@@ -2235,19 +2235,20 @@ body.search-mode #stickySearch {
   padding-top: 20px;
   border-top: 1px solid #f1f5f9;
   display: flex;
-  align-items: flex-end;
-  gap: 20px;
+  align-items: center; /* Changed from flex-end to center */
+  gap: 24px;
 }
 
 .patience-wrap {
   flex: 1;
+  min-width: 200px; /* Added min-width to prevent squashing */
 }
 
 .patience-info {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  justify-content: space-between;
+  margin-bottom: 12px;
 }
 
 .patience-val {

@@ -412,6 +412,5 @@ window.ThisOneUI = {
   renderBadgeList,
   renderRawResults,
   addResultCard,
-  handleFeedback,
   loadTrendingChips
 };

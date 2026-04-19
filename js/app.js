@@ -219,10 +219,13 @@ async function sendMsg(forceMode) {
       aiMessages[0].content.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${queryImage.data}` } });
     }
 
+    const patience = parseInt(expertSettings.patienceTime || 10);
+    const tokens = Math.min(400 + (patience * 40), 1600); // 인내심에 비례하여 응답 길이 조절
+
     const aiData = await window.ThisOneAPI.requestChat({ 
       model: MODEL, 
-      max_tokens: 800, // 응답 길이를 줄여서 타임아웃 및 잘림 방지
-      system: RANKING_PROMPT, 
+      max_tokens: tokens, 
+      system: RANKING_PROMPT + (patience > 15 ? " 모든 후보의 스펙을 정밀하게 대조하여 상세히 분석하세요." : " 핵심 위주로 빠르게 요약하세요."), 
       messages: aiMessages 
     });
 
@@ -317,6 +320,10 @@ function loadExpertSettings() {
   document.getElementById('excludeUsed').checked = !!settings.excludeUsed;
   document.getElementById('includeRental').checked = !!settings.includeRental;
   if (settings.resultCount) document.getElementById('resultCount').value = settings.resultCount;
+  if (settings.patienceTime) {
+    document.getElementById('patienceTime').value = settings.patienceTime;
+    document.getElementById('patienceVal').textContent = settings.patienceTime;
+  }
 }
 
 function saveExpertSettings() {
@@ -328,7 +335,8 @@ function saveExpertSettings() {
     excludeAgent: document.getElementById('excludeAgent').checked,
     excludeUsed: document.getElementById('excludeUsed').checked,
     includeRental: document.getElementById('includeRental').checked,
-    resultCount: document.getElementById('resultCount').value
+    resultCount: document.getElementById('resultCount').value,
+    patienceTime: document.getElementById('patienceTime').value
   };
   localStorage.setItem('thisone_expert_settings', JSON.stringify(settings));
   

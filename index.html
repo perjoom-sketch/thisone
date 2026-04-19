@@ -100,6 +100,13 @@
             <option value="7">7개</option>
             <option value="10">10개</option>
           </select>
+        <div class="result-count-wrap" style="margin-top:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <span style="font-size:13px; font-weight:600;">분석 인내심 (초)</span>
+            <span id="patienceVal" style="color:var(--accent); font-weight:bold; font-size:15px;">10</span>
+          </div>
+          <input type="range" id="patienceTime" min="3" max="25" step="1" value="10" style="width:100%; cursor:pointer;" oninput="document.getElementById('patienceVal').textContent=this.value">
+          <div style="font-size:11px; color:#6b7280; margin-top:4px;">⏱️ 길게 설정할수록 AI가 더 꼼꼼하게 분석하여 정확도가 높아집니다.</div>
         </div>
         <div class="setting-group inline" id="pcViewToggleWrap" style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
           <button class="sub-btn" id="pcViewBtn" onclick="togglePcView()" style="width:100%; background:#f8fafc; border:1px solid #ddd; padding:8px; border-radius:8px; font-size:12px; color:#64748b;">💻 PC 버전으로 보기</button>

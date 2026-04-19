@@ -79,15 +79,15 @@
         </div>
         <div class="setting-group inline">
           <label><input type="checkbox" id="includeRental" checked> 렌탈 상품 포함</label>
-          <label style="flex:1; justify-content: flex-end; gap: 8px;">
-            <span>추천 결과 개수</span>
-            <select id="resultCount" style="padding: 4px 8px; border-radius: 8px; border: 1px solid #ddd; outline: none; cursor: pointer;">
-              <option value="3">3개</option>
-              <option value="5" selected>5개</option>
-              <option value="7">7개</option>
-              <option value="10">10개</option>
-            </select>
-          </label>
+        </div>
+        <div class="result-count-wrap">
+          <span>추천 결과 개수</span>
+          <select id="resultCount">
+            <option value="3">3개</option>
+            <option value="5" selected>5개</option>
+            <option value="7">7개</option>
+            <option value="10">10개</option>
+          </select>
         </div>
         <div class="filter-footer">
           <button class="save-btn" onclick="saveExpertSettings()">설정 저장</button>

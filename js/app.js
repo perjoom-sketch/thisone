@@ -146,13 +146,14 @@ async function sendMsg(forceMode) {
       finalScore: c.finalScore, totalPriceNum: c.totalPriceNum
     }));
 
-    typingEl?.updateStatus?.('최종 추천 리포트 작성 중...', '고민을 해결해 줄 최적의 상품 5개를 선정합니다.');
+    const count = expertSettings.resultCount || 5;
+    typingEl?.updateStatus?.('최종 추천 리포트 작성 중...', `고민을 해결해 줄 최적의 상품 ${count}개를 선정합니다.`);
 
     const aiMessages = [{
       role: 'user',
       content: [{ 
         type: 'text', 
-        text: `사용자 질문: ${queryText}\n\n후보 상품 목록(JSON): ${JSON.stringify(prunedCandidates, null, 2)}\n\n의도분석: ${JSON.stringify(intentProfile)}\n\n설정: ${JSON.stringify(expertSettings)}\n\n전문가 분석을 바탕으로 cards 5개를 추천하세요.` 
+        text: `사용자 질문: ${queryText}\n\n후보 상품 목록(JSON): ${JSON.stringify(prunedCandidates, null, 2)}\n\n의도분석: ${JSON.stringify(intentProfile)}\n\n설정: ${JSON.stringify(expertSettings)}\n\n전문가 분석을 바탕으로 cards ${count}개를 추천하세요.` 
       }]
     }];
     
@@ -235,6 +236,7 @@ function loadExpertSettings() {
   document.getElementById('excludeAgent').checked = !!settings.excludeAgent;
   document.getElementById('excludeUsed').checked = !!settings.excludeUsed;
   document.getElementById('includeRental').checked = !!settings.includeRental;
+  if (settings.resultCount) document.getElementById('resultCount').value = settings.resultCount;
 }
 
 function saveExpertSettings() {
@@ -245,7 +247,8 @@ function saveExpertSettings() {
     excludeOverseas: document.getElementById('excludeOverseas').checked,
     excludeAgent: document.getElementById('excludeAgent').checked,
     excludeUsed: document.getElementById('excludeUsed').checked,
-    includeRental: document.getElementById('includeRental').checked
+    includeRental: document.getElementById('includeRental').checked,
+    resultCount: document.getElementById('resultCount').value
   };
   localStorage.setItem('thisone_expert_settings', JSON.stringify(settings));
   

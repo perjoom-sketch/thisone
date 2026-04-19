@@ -209,7 +209,7 @@ async function sendMsg(forceMode) {
     }));
 
     const count = expertSettings.resultCount || 5;
-    typingEl?.updateThought?.(`최종 추천 리포트 생성 중 (인내심 설정: ${expertSettings.patienceTime || 10}초)...`);
+    typingEl?.updateThought?.(`최종 추천 리포트 생성 중 (정밀도 설정: ${expertSettings.patienceTime || 20}초)...`);
 
     const aiMessages = [{
       role: 'user',

@@ -901,35 +901,54 @@ a{
   }
 }
 
-/* modal / popover */
+/* modal / popover / side drawer */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(2px);
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: flex-start; /* 왼쪽 정렬 */
   z-index: 10000;
-  padding-top: 240px; /* 랜딩 모드 기본 높이 */
-  transition: padding 0.3s ease;
-}
-
-.modal-overlay.search-mode {
-  padding-top: 80px; /* 스티키 바 모드 높이 */
+  padding: 0;
 }
 
 .modal-content {
   background: #fff;
-  width: min(420px, 92vw);
-  border-radius: 24px;
-  padding: 24px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  width: min(380px, 85vw);
+  height: 100vh;
+  border-radius: 0 32px 32px 0;
+  padding: 40px 32px;
+  box-shadow: 10px 0 50px rgba(0, 0, 0, 0.1);
   position: relative;
-  margin-right: 280px;
-  animation: modalPop 0.25s ease-out;
-  border: 1px solid var(--line);
+  margin: 0;
+  animation: drawerSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes drawerSlide {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* 사이드 패널 모드에서는 화살표 제거 */
+.modal-content::after { display: none !important; }
+
+@media (max-width: 600px) {
+  .modal-content {
+    width: 100vw;
+    border-radius: 0;
+  }
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .filter-trigger {

@@ -111,7 +111,7 @@ function addTyping() {
   d.className = 'ai-result thinking-mode';
   d.innerHTML = `
     <div class="ai-label">
-      <span class="thinking-icon">🧠</span>
+      <span class="thinking-icon">✦</span>
       <span>디스원이 사고하는 중...</span>
     </div>
     <div class="thought-container">

@@ -1022,14 +1022,16 @@ a{
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 12px;
-  margin-left: 10px;
+  margin-top: 14px;
+  margin-left: 4px; /* 검색창 시작점과 맞춤 */
   font-size: 13px;
+  font-weight: 600;
   color: var(--muted);
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 8px;
-  transition: background 0.2s;
+  padding: 6px 10px;
+  border-radius: 10px;
+  transition: all 0.2s;
+  user-select: none;
 }
 
 .filter-trigger:hover {

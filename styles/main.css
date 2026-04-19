@@ -1086,10 +1086,10 @@ a{
 }
 @media (max-width: 600px) {
   .setting-group.inline {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px 16px;
-    margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 10px;
+    margin-bottom: 20px;
   }
 }
 .setting-group.inline label {
@@ -1099,9 +1099,9 @@ a{
   font-weight: 600;
   cursor: pointer;
   color: #334155;
-  font-size: 14px;
+  font-size: 13px; /* 모바일 대응 살짝 축소 */
   margin-bottom: 0;
-  white-space: nowrap; /* 글자 겹침 방지 */
+  white-space: nowrap;
 }
 
 /* 개수 선택 영역 별도 정렬 */
@@ -1140,14 +1140,16 @@ a{
 
 @media (max-width: 600px) {
   .filter-bottom-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px 16px;
+    align-items: end;
   }
   .mobile-btn-wrap .sub-btn,
   .save-btn-wrap .save-btn {
     width: 100%;
     justify-content: center;
+    padding: 0;
   }
 }
 

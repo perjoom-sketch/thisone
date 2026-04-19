@@ -278,7 +278,31 @@ function saveExpertSettings() {
   alert('설정이 저장되었습니다.');
 }
 
+function applyPcView() {
+  const isPc = localStorage.getItem('thisone_pc_view') === 'true';
+  const meta = document.querySelector('meta[name="viewport"]');
+  const btn = document.getElementById('pcViewBtn');
+  if (!meta) return;
+
+  if (isPc) {
+    meta.setAttribute('content', 'width=1200, initial-scale=0.3, maximum-scale=2.0');
+    if (btn) btn.innerHTML = '📱 모바일 버전으로 보기';
+  } else {
+    meta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0');
+    if (btn) btn.innerHTML = '💻 PC 버전으로 보기';
+  }
+}
+
+function togglePcView() {
+  const isPc = localStorage.getItem('thisone_pc_view') === 'true';
+  localStorage.setItem('thisone_pc_view', !isPc);
+  applyPcView();
+  // 설정창 닫기
+  toggleFilterModal();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  applyPcView();
   loadTrendingChips();
   document.getElementById('thisoneSearchBtn')?.addEventListener('click', () => sendMsg('thisone'));
   document.getElementById('rawSearchBtn')?.addEventListener('click', () => sendMsg('raw'));

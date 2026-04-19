@@ -174,8 +174,17 @@ async function sendMsg(forceMode) {
     if (window.ThisOneRanking?.rewriteSearchQuery) searchQuery = window.ThisOneRanking.rewriteSearchQuery(queryText);
 
     typingEl?.updateThought?.('의도 분석 및 시장 데이터 수집 중...');
-    const savedSettings = localStorage.getItem('thisone_expert_settings');
-    const expertSettings = savedSettings ? JSON.parse(savedSettings) : {};
+    const expertSettings = {
+      minPrice: document.getElementById('minPrice')?.value || '',
+      maxPrice: document.getElementById('maxPrice')?.value || '',
+      freeShipping: document.getElementById('freeShipping')?.checked || false,
+      excludeOverseas: document.getElementById('excludeOverseas')?.checked || false,
+      excludeAgent: document.getElementById('excludeAgent')?.checked || false,
+      excludeUsed: document.getElementById('excludeUsed')?.checked || false,
+      includeRental: document.getElementById('includeRental')?.checked || false,
+      resultCount: document.getElementById('resultCount')?.value || 5,
+      patienceTime: document.getElementById('patienceTime')?.value || 20
+    };
     const trajectory = window.ThisOneTrajectory?.getSession() || {};
 
     const [searchData, intentProfileResult] = await Promise.all([
@@ -310,7 +319,6 @@ function toggleFilterModal() {
   const isShow = el.style.display !== 'none';
   
   if (!isShow) {
-    loadExpertSettings();
     el.style.display = 'block';
     el.style.animation = 'inlineSlideDown 0.3s ease-out forwards';
   } else {
@@ -318,52 +326,16 @@ function toggleFilterModal() {
   }
 }
 
+// 설정 로딩 기능 제거 (새로고침 시 초기화 원칙)
 function loadExpertSettings() {
-  const saved = localStorage.getItem('thisone_expert_settings');
-  if (!saved) return;
-  const settings = JSON.parse(saved);
-  document.getElementById('minPrice').value = settings.minPrice || '';
-  document.getElementById('maxPrice').value = settings.maxPrice || '';
-  document.getElementById('freeShipping').checked = !!settings.freeShipping;
-  document.getElementById('excludeOverseas').checked = !!settings.excludeOverseas;
-  document.getElementById('excludeAgent').checked = !!settings.excludeAgent;
-  document.getElementById('excludeUsed').checked = !!settings.excludeUsed;
-  document.getElementById('includeRental').checked = !!settings.includeRental;
-  if (settings.resultCount) document.getElementById('resultCount').value = settings.resultCount;
-  if (settings.patienceTime) {
-    const pEl = document.getElementById('patienceTime');
-    if (pEl) {
-      pEl.value = settings.patienceTime;
-      // 인덱스 파일에 정의된 라벨 업데이트 함수 호출
-      if (typeof window.updatePatienceLabel === 'function') {
-        window.updatePatienceLabel(settings.patienceTime);
-      } else {
-        const vEl = document.getElementById('patienceVal');
-        if (vEl) vEl.textContent = settings.patienceTime;
-      }
-    }
-  }
+  // 사용하지 않음
 }
 
 function saveExpertSettings() {
-  const settings = {
-    minPrice: document.getElementById('minPrice').value,
-    maxPrice: document.getElementById('maxPrice').value,
-    freeShipping: document.getElementById('freeShipping').checked,
-    excludeOverseas: document.getElementById('excludeOverseas').checked,
-    excludeAgent: document.getElementById('excludeAgent').checked,
-    excludeUsed: document.getElementById('excludeUsed').checked,
-    includeRental: document.getElementById('includeRental').checked,
-    resultCount: document.getElementById('resultCount').value,
-    patienceTime: document.getElementById('patienceTime').value
-  };
-  localStorage.setItem('thisone_expert_settings', JSON.stringify(settings));
-  
-  // 저장 후 프레임 접기
+  // 로컬 스토리지 저장 대신 모달만 닫음 (설정은 검색 시 DOM에서 직접 읽음)
   const el = document.getElementById('inlineFilter');
   if (el) el.style.display = 'none';
-  
-  alert('설정이 저장되었습니다.');
+  alert('설정이 적용되었습니다.');
 }
 
 function applyPcView() {

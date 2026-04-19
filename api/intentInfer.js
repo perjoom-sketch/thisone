@@ -81,9 +81,9 @@ async function aiInfer(query, trajectory, image = null) {
   if (!apiKey) throw new Error('GOOGLE_API_KEY 미설정');
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  // 멀티모달 지원을 위해 2.0 모델 사용 (이미지 분석 최적화)
+  // 최신 제미나이 2.5 모델 사용
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-flash',
     generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
   });
 

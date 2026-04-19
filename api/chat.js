@@ -25,10 +25,10 @@ async function handler(req, res) {
       throw new Error("API 키가 설정되지 않았습니다. Vercel 환경 변수를 확인해주세요.");
     }
 
-    console.log("Gemini API 호출 시작 (Model: gemini-2.0-flash)");
+    console.log("Gemini API 호출 시작 (Model: gemini-2.5-flash)");
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.5-flash",
       systemInstruction: system,
       generationConfig: {
         responseMimeType: "application/json",

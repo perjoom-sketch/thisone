@@ -12,7 +12,8 @@ let _lastIntentProfile = null;
 const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI입니다.
 절대 <cite>, </cite>, <b>, </b> 같은 태그를 출력하지 마세요.
 반드시 제공된 후보 상품 목록 안에서만 고르세요.
-반드시 JSON만 출력하세요. 설명이나 인사말은 절대 금지입니다.`;
+반드시 JSON만 출력하세요. 설명이나 인사말은 절대 금지입니다.
+리포트 내용은 반드시 2~3문장 이내로 핵심만 요약하세요. (응답 길이 최소화)`;
 
 function getInput() { return document.getElementById(isSearchMode ? 'msgInput2' : 'msgInput'); }
 function getSendBtn() { return document.getElementById(isSearchMode ? 'sendBtn2' : 'sendBtn'); }
@@ -223,9 +224,19 @@ async function sendMsg(forceMode) {
       
       const merged = window.ThisOneRanking?.mergeAiWithCandidates ? window.ThisOneRanking.mergeAiWithCandidates(deepClean(parsed), candidates) : parsed;
       window.ThisOneUI?.addResultCard?.(merged);
+      
+      // 검색 완료 후 화면이 아래로 밀리는 문제 해결: 최상단 혹은 검색창 위치로 부드럽게 고정
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100);
     } catch (e) {
       console.error("Parse/Ranking Error", e, "Raw was:", raw);
       window.ThisOneUI?.addFallback?.(candidates, `[시스템 리포트: AI 응답 구조적 오류 발생]`);
+      
+      // 폴백 상황에서도 스크롤 고정
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100);
       window.ThisOneUI?.renderRawResults?.(candidates);
     }
   } catch (err) {

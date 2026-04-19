@@ -258,13 +258,16 @@ async function sendMsg(forceMode) {
       system: RANKING_PROMPT + depthPrompt, 
       messages: aiMessages 
     }, (chunk, fullText) => {
-      // [보안/UI] [JSON] 태그가 감지되면 소스 노출 방지를 위해 실시간 업데이트 중단
-      if (fullText.includes('[JSON]')) return;
+      // [보안/UI] JSON 태그, 코드블록, 혹은 기계적인 괄호가 감지되면 즉시 실시간 업데이트 중단
+      if (fullText.includes('[JSON]') || fullText.includes('```') || fullText.includes('{')) {
+        return;
+      }
 
-      // 실시간 생각(Thought) 섹션만 정밀하게 추출하여 표시
+      // [Thought] 섹션만 정밀하게 추출하여 시스템 태그 없이 표시
       const thoughtMatch = fullText.match(/\[Thought\]:(.*?)(?=\[JSON\]|$)/s);
       if (thoughtMatch && thoughtMatch[1]) {
-        typingEl?.updateLiveResponse(thoughtMatch[1].trim());
+        const cleanText = thoughtMatch[1].replace(/\[Thought\]:/g, '').trim();
+        typingEl?.updateLiveResponse(cleanText);
       }
     });
 

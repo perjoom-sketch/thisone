@@ -1132,6 +1132,16 @@ a{
   flex-direction: column;
 }
 
+.patience-label {
+  margin-left: 40px;
+}
+
+@media (max-width: 600px) {
+  .patience-label {
+    margin-left: 0;
+  }
+}
+
 .filter-bottom-row {
   border-top: 1px solid #f1f5f9;
   padding-top: 20px;

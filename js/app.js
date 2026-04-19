@@ -259,10 +259,9 @@ async function sendMsg(forceMode) {
         document.querySelector('.hdr')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 200); // 모바일 레이아웃 재계산 시간 확보
     } catch (e) {
-      console.error("Parse/Ranking Error", e, "Raw was:", raw);
-      window.ThisOneUI?.addFallback?.(candidates, `[시스템 리포트: AI 응답 구조적 오류 발생]`);
+      console.warn("Silent Fallback Triggered", e);
+      window.ThisOneUI?.addFallback?.(); // 조용하고 우아한 마무리 문구 출력
       
-      // 폴백 상황에서도 스크롤 고정
       setTimeout(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }, 100);

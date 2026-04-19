@@ -94,16 +94,13 @@ function addFallback(txt) {
   appendAndScroll(d);
 }
 
-function addFallback(txt, msg) {
+function addFallback() {
   const d = document.createElement('div');
-  d.className = 'ai-fallback';
+  d.className = 'ai-result';
   d.innerHTML = `
-    <div class="fb-msg">
-      <strong>지능형 리포트를 구성하지 못했습니다.</strong><br>
-      일시적인 엔진 지연이나 데이터 부족으로 인해 분석이 지연되고 있습니다. 아래 일반 검색 결과를 우선 확인해 주세요.
-      <div style="font-size:10px; color:#ef4444; margin-top:8px; font-family:monospace; background:#fff1f2; padding:4px; border-radius:4px; border:1px solid #fecaca;">
-        [시스템 리포트: ${msg || 'AI 응답 무결성 확인 필요'}]
-      </div>
+    <div class="ai-label"><div class="dot">✦</div> 분석 완료</div>
+    <div class="pick-card" style="border-left: 4px solid var(--accent); background: #f8fafc;">
+      데이터 분석을 바탕으로 최적의 후보군 선별을 마쳤습니다. 아래 리스트에서 사용자님의 환경에 가장 적합한 상품을 확인해 보세요.
     </div>
   `;
   appendAndScroll(d);

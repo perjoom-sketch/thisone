@@ -99,8 +99,11 @@ function addFallback(txt, msg) {
   d.className = 'ai-fallback';
   d.innerHTML = `
     <div class="fb-msg">
-      지능형 엔진이 현재 분석 중입니다. 잠시 후 다시 시도하거나 일반 검색 결과를 확인해 주세요.
-      <div style="font-size:9px; color:#ccc; margin-top:5px; opacity:0.6;">(Debug: ${msg || 'Unknown error'})</div>
+      <strong>지능형 리포트를 구성하지 못했습니다.</strong><br>
+      일시적인 엔진 지연이나 데이터 부족으로 인해 분석이 지연되고 있습니다. 아래 일반 검색 결과를 우선 확인해 주세요.
+      <div style="font-size:10px; color:#ef4444; margin-top:8px; font-family:monospace; background:#fff1f2; padding:4px; border-radius:4px; border:1px solid #fecaca;">
+        [시스템 리포트: ${msg || 'AI 응답 무결성 확인 필요'}]
+      </div>
     </div>
   `;
   appendAndScroll(d);

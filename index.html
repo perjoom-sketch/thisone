@@ -19,10 +19,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="/styles/main.css?v=3.0.6" />
+  <link rel="stylesheet" href="/styles/main.css?v=3.0.7" />
   
   <script>
-    console.log("%c [ThisOne] v3.0.6 Loaded - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
+    console.log("%c [ThisOne] v3.0.7 Loaded - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
     
     // [Global] 전역 변수 정의
     window.NOEL = 'gemini-2.0-flash';
@@ -120,15 +120,16 @@
   <!-- Sticky Search Bar (Search Mode Only) -->
   <div id="stickySearch" style="display:none;">
     <div class="sticky-inner">
-      <a href="/" class="sticky-logo" onclick="event.preventDefault(); goHome();">
-        <span class="logo-text">This<span class="accent">One</span></span>
-      </a>
+      <!-- 로고 제거 (사용자 요청: 구버전 요소 제거) -->
       <div class="search-box">
-        <textarea class="msg-input" id="msgInput2" placeholder="검색어 입력..." rows="1" oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
-        <div class="footer-right">
-          <button class="send-btn" id="sendBtn2" onclick="sendMsg()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
-          </button>
+        <div class="input-row">
+          <textarea class="msg-input" id="msgInput2" placeholder="어떤 상품을 찾으시나요?" rows="1" oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+          <div class="footer-right">
+            <button class="img-btn" type="button" onclick="document.getElementById('fileInput').click()" title="이미지 검색">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            </button>
+            <button class="send-btn" id="sendBtn2" onclick="sendMsg()">검색</button>
+          </div>
         </div>
         <!-- 이미지 미리보기 영역 2 -->
         <div id="imgPreview2" class="img-preview">
@@ -138,9 +139,6 @@
           </div>
         </div>
       </div>
-      <button class="filter-trigger-btn" onclick="window.toggleFilterModal()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-      </button>
     </div>
     <!-- 상단바용 설정 패널 -->
     <div id="inlineFilterSticky" class="settings-panel-sticky" style="display:none;"></div>
@@ -282,11 +280,11 @@
   </template>
 
   <!-- Scripts -->
-  <script src="/js/trajectoryLogger.js?v=3.0.6" defer></script>
-  <script src="/js/api.js?v=3.0.6"></script>
-  <script src="/js/productFamilies.js?v=3.0.6"></script>
-  <script src="/js/ranking.js?v=3.0.6"></script>
-  <script src="/js/thisone_ui_v3.js?v=3.0.6"></script>
-  <script src="/js/thisone_app_v3_final.js?v=3.0.6"></script>
+  <script src="/js/trajectoryLogger.js?v=3.0.7" defer></script>
+  <script src="/js/api.js?v=3.0.7"></script>
+  <script src="/js/productFamilies.js?v=3.0.7"></script>
+  <script src="/js/ranking.js?v=3.0.7"></script>
+  <script src="/js/thisone_ui_v3.js?v=3.0.7"></script>
+  <script src="/js/thisone_app_v3_final.js?v=3.0.7"></script>
 </body>
 </html>

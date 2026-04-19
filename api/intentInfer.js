@@ -80,10 +80,11 @@ async function aiInfer(query, trajectory, image = null) {
   const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error('GOOGLE_API_KEY 미설정');
 
+  const AI_CONFIG = require('../js/config');
   const genAI = new GoogleGenerativeAI(apiKey);
-  // 최신 제미나이 2.5 모델 사용
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
+    model: AI_CONFIG.MODEL_NAME,
+    systemInstruction: "당신은 쇼핑 의도 분석 전문가입니다. 반드시 JSON만 출력하세요.",
     generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
   });
 

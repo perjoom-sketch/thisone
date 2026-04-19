@@ -1,0 +1,13 @@
+# ThisOne Project AI Guidelines
+
+## Core AI Model
+- Current Model: `gemini-2.5-flash`
+- Definition Location: `js/config.js`
+- **CRITICAL**: All AI-related calls must reference `AI_CONFIG.MODEL_NAME` (Node.js) or `window.ThisOneConfig.MODEL_NAME` (Browser).
+
+## NEVER HARDCODE
+- Do not manually write "gemini-x.x-flash" strings in any other files.
+- If you need to change the model, update only `js/config.js`.
+
+## Reason for strictness
+- This version is validated for high-performance intelligent price comparison and market analysis within the Korean consumer electronics market.

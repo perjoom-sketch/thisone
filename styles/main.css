@@ -148,8 +148,7 @@ body.search-mode #landing {
 .footer-right {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding-bottom: 4px;
+  gap: 8px;
 }
 
 .img-btn {
@@ -181,12 +180,64 @@ body.search-mode #landing {
 
 .send-btn:hover { background: #2563eb; transform: translateY(-1px); }
 
+/* Image Preview */
+.img-preview {
+  display: none;
+  gap: 12px;
+  padding: 12px;
+  background: var(--soft);
+  border-radius: 12px;
+  margin-top: 10px;
+  border: 1px dashed var(--line);
+}
+.img-preview.show { display: flex; }
+.pv-item { position: relative; width: 60px; height: 60px; }
+.pv-img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
+.pv-del { position: absolute; top: -8px; right: -8px; background: #ef4444; color: #fff; width: 20px; height: 20px; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
+
 .search-hint {
   margin-top: 16px;
   text-align: center;
   color: var(--muted-2);
   font-size: 13px;
+  line-height: 1.5;
+  word-break: keep-all;
 }
+
+.trending-section {
+  margin-top: 24px;
+  width: 100%;
+}
+
+.trending-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.chip {
+  background: #fff;
+  border: 1px solid var(--line-soft);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  transition: all 0.2s;
+}
+
+.chip span {
+  font-weight: 900;
+  color: var(--accent);
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.chip:hover { transform: translateY(-1px); border-color: var(--accent); }
 
 .filter-trigger {
   margin: 12px auto 0;

@@ -417,8 +417,7 @@ async function loadDynamicTrends() {
       data.chips.forEach((chip, i) => {
         const chipEl = document.createElement('button');
         chipEl.className = 'chip';
-        chipEl.style = "background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(226, 232, 240, 0.8); padding: 8px 16px; border-radius: 20px; font-size: 14px; color: #475569; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; font-weight: 500;";
-        chipEl.innerHTML = `<span style="font-weight: 800; color: #3b82f6; font-size: 12px; opacity: 0.8;">${i + 1}</span> ${chip.label}`;
+        chipEl.innerHTML = `<span>${i + 1}</span> ${chip.label}`;
         chipEl.onclick = () => {
           if (typeof window.quick === 'function') window.quick(chip.query);
         };

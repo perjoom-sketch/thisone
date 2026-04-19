@@ -108,9 +108,7 @@ async function handler(req, res) {
       query: q,
       improvedQuery: improvedQ,
       total: data.total || 0,
-      items: finalItems,
-      filterDebug: filterResult ? filterResult.debug : 'no_debug',
-      rejectedItems: filterResult ? filterResult.rejectedItems : []
+      items: finalItems
     });
 
   } catch (err) {

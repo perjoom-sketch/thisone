@@ -76,7 +76,17 @@ a{
 }
 @media (max-width: 768px) {
   .hdr {
-    padding: 12px 20px 14px; /* 모바일에서는 적절히 조정 */
+    padding: 12px 20px 14px;
+    flex-direction: column; /* 세로 배치로 변경 */
+    justify-content: center;
+    text-align: center;
+  }
+  .logo {
+    align-items: center; /* 로고와 슬로건을 중앙으로 */
+    width: 100%;
+  }
+  .hdr .badge {
+    margin-top: 10px; /* 배지가 있다면 아래로 배치 */
   }
 }
 

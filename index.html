@@ -19,10 +19,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="/styles/main.css?v=3.2.4" />
+  <link rel="stylesheet" href="/styles/main.css?v=3.3.0" />
   
   <script>
-    console.log("%c [ThisOne] v3.2.4 Loaded - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
+    console.log("%c [ThisOne] v3.3.0 Loaded - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
     
     window.NOEL = 'gemini-2.0-flash';
     window.MINI_SCOPE = '✦';
@@ -113,9 +113,14 @@
   <!-- Sticky Search Bar (Search Mode Only) -->
   <div id="stickySearch" style="display:none;">
     <div class="sticky-inner">
-      <a href="/" class="sticky-logo" onclick="event.preventDefault(); goHome();">
-        <img src="/assets/thisone-logo-rough.png" alt="ThisOne" class="sticky-logo-img" />
-      </a>
+      <div class="sticky-top-row">
+        <a href="/" class="sticky-logo" onclick="event.preventDefault(); goHome();">
+          <img src="/assets/thisone-logo-rough.png" alt="ThisOne" class="sticky-logo-img" />
+        </a>
+        <button class="sticky-filter-btn mobile-only-filter" onclick="window.toggleFilterModal()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+        </button>
+      </div>
       <div class="sticky-search-wrap">
         <textarea class="sticky-input" id="msgInput2" placeholder="상품 검색..." rows="1" oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
         <button class="sticky-img-btn" type="button" onclick="document.getElementById('fileInput').click()">
@@ -123,7 +128,7 @@
         </button>
         <button class="sticky-send-btn" id="sendBtn2" onclick="sendMsg()">검색</button>
       </div>
-      <button class="sticky-filter-btn" onclick="window.toggleFilterModal()">
+      <button class="sticky-filter-btn pc-only-filter" onclick="window.toggleFilterModal()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
       </button>
     </div>
@@ -251,11 +256,11 @@
     </div>
   </template>
 
-  <script src="/js/trajectoryLogger.js?v=3.2.4" defer></script>
-  <script src="/js/api.js?v=3.2.4"></script>
-  <script src="/js/productFamilies.js?v=3.2.4"></script>
-  <script src="/js/ranking.js?v=3.2.4"></script>
-  <script src="/js/thisone_ui_v3.js?v=3.2.4"></script>
-  <script src="/js/thisone_app_v3_final.js?v=3.2.4"></script>
+  <script src="/js/trajectoryLogger.js?v=3.3.0" defer></script>
+  <script src="/js/api.js?v=3.3.0"></script>
+  <script src="/js/productFamilies.js?v=3.3.0"></script>
+  <script src="/js/ranking.js?v=3.3.0"></script>
+  <script src="/js/thisone_ui_v3.js?v=3.3.0"></script>
+  <script src="/js/thisone_app_v3_final.js?v=3.3.0"></script>
 </body>
 </html>

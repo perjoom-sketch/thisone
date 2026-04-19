@@ -1,15 +1,17 @@
-const MINI_SCOPE = '✦';
-const MINI_SCOPE_AI = '✧';
+// --- UI Constants (Defensive) ---
+const MINI_SCOPE = window.MINI_SCOPE || '✦';
+const MINI_SCOPE_AI = window.MINI_SCOPE_AI || '✧';
 
 function getContentEl() {
   return document.getElementById('content');
 }
 
 function appendAndScroll(node) {
-  const content = getContentEl();
-  if (!content) return;
-  content.appendChild(node);
-  // 강제 스크롤 제거: 사용자 시야 방해 방지
+  try {
+    const content = getContentEl();
+    if (!content) return;
+    content.appendChild(node);
+  } catch(e) { console.error("Render append failed", e); }
 }
 
 function renderHistoryBar() {

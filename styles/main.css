@@ -103,7 +103,7 @@ a{
 
 @media (max-width: 768px) {
   .hdr {
-    padding: 12px 15px !important; /* 모바일에서 수직 공간 최소화 */
+    padding: 10px 15px !important;
     flex-direction: column !important;
     justify-content: center !important;
     align-items: center !important;
@@ -115,26 +115,23 @@ a{
     align-items: center !important;
     justify-content: center !important;
     width: 100% !important;
-    gap: 4px !important; /* 로고와 슬로건 밀착 */
+    gap: 2px !important;
   }
   .logo-img {
-    height: 54px !important; /* 모바일 최적 크기 */
-    width: auto !important;
-    max-width: 200px !important;
+    height: 50px !important;
+    width: auto !important; /* 비율 유지 강제 */
+    max-width: 100% !important;
     margin-bottom: 0 !important;
     object-fit: contain !important;
   }
   .slogan {
     margin-left: 0 !important;
     text-align: center !important;
-    font-size: 15px !important;
+    font-size: 14px !important;
     color: #475569 !important;
     font-weight: 800 !important;
     display: block !important;
-    opacity: 0.9;
-  }
-  .hdr .badge {
-    margin-top: 8px;
+    white-space: nowrap !important;
   }
 }
 

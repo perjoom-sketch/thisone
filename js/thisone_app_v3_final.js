@@ -86,8 +86,9 @@ function switchToSearchMode() {
   if (stickySearch) stickySearch.style.display = 'block';
   if (content) {
     content.style.display = 'block';
-    // 상단바가 fixed이므로 컨텐츠가 가려지지 않도록 여백 추가
-    content.style.paddingTop = '100px'; 
+    // 상단바가 fixed이므로 컨텐츠가 가려지지 않도록 충분한 여백 추가
+    content.style.paddingTop = '120px'; 
+    content.style.minHeight = '100vh';
   }
 }
 

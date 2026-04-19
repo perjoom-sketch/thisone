@@ -23,22 +23,39 @@
       console.log('Global Click Target:', e.target);
     });
 
-    // 설정창 열기 함수를 index.html에 내재화하여 100% 작동 보장
+    // 설정창 열기 함수 (스마트 이동 및 펼침 방식)
     window.toggleFilterModal = function() {
-      const el = document.getElementById('inlineFilter');
-      if (!el) return;
-      const isShow = el.classList.contains('show');
+      const isSticky = document.getElementById('stickySearch').style.display !== 'none';
+      const targetId = isSticky ? 'inlineFilterSticky' : 'inlineFilterLanding';
+      const target = document.getElementById(targetId);
+      const content = document.getElementById('commonFilterContent');
+      
+      if (!target || !content) return;
+
+      const isShow = target.style.display !== 'none';
       if (!isShow) {
-        el.style.setProperty('display', 'flex', 'important');
-        el.classList.add('show');
-        el.style.zIndex = '99999999';
+        // 설정창 내용을 타겟 위치로 이동 후 표시
+        target.appendChild(content);
+        content.style.display = 'block';
+        target.style.display = 'block';
+        target.style.animation = 'slideDown 0.3s ease-out';
       } else {
-        el.style.display = 'none';
-        el.classList.remove('show');
+        target.style.display = 'none';
       }
     };
     function toggleFilterModal() { window.toggleFilterModal(); }
   </script>
+  <style>
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .filter-group-title { font-size: 11px; color: #64748b; margin-bottom: 6px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+    .inline-input { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 13px; transition: all 0.2s; }
+    .inline-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); outline: none; }
+    .chk-item { font-size: 13px; color: #475569; display: flex; align-items: center; gap: 8px; cursor: pointer; background: #f8fafc; padding: 8px 12px; border-radius: 8px; transition: all 0.2s; border: 1px solid transparent; }
+    .chk-item:hover { background: #f1f5f9; border-color: #e2e8f0; }
+  </style>
   <meta name="apple-mobile-web-app-title" content="ThisOne" />
   <meta property="og:title" content="지능형 쇼핑 디스원" />
   <meta name="description" content="이것저것 찾지 말고, 하나만 잘 고르자! 쇼핑 자율주행의 시작. 세상에 단 하나뿐인 지능형 가격비교 엔진, 디스원." />
@@ -154,7 +171,11 @@
           </div>
         </div>
       </div>
-      <div class="filter-trigger" onclick="toggleFilterModal()">
+      <!-- 랜딩 페이지용 인라인 설정창 컨테이너 -->
+      <div id="inlineFilterLanding" style="display:none; width:100%; margin-top:15px; background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:0; overflow:hidden; box-shadow:0 10px 15px -3px rgba(0,0,0,0.05); text-align:left;">
+      </div>
+      
+      <div class="filter-trigger" onclick="window.toggleFilterModal()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
         검색설정
       </div>
@@ -171,14 +192,20 @@
     <div id="chips" style="display:none;"></div>
   </div>
 
-  <div id="stickySearch" style="display:none; position:fixed; top:0; left:0; right:0; z-index:1000; background:#ffffff !important; border-bottom:1px solid #e2e8f0; padding:12px 0; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
-    <div class="search-box" style="position:relative; margin:0 auto !important; width:min(860px, 92vw) !important;">
-      <div class="img-preview" id="imgPreview2">
-        <div class="pv-item">
-          <img class="pv-img" id="previewImg2" src="" alt="">
-          <button class="pv-del" type="button" onclick="removeImg()">✕</button>
+  <div id="stickySearch" style="display:none; position:fixed; top:0; left:0; right:0; z-index:2000; background:#ffffff !important; border-bottom:1px solid #e2e8f0; padding:8px 0; box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+    <div style="max-width:1200px; margin:0 auto; display:flex; align-items:center; gap:20px; padding:0 20px;">
+      <!-- 상단바용 미니 로고 -->
+      <a href="/" style="text-decoration:none; display:flex; flex-direction:column; shrink:0;">
+        <span style="font-size:20px; font-weight:900; color:#0f172a; letter-spacing:-1px;">This<span style="color:#3b82f6;">One</span></span>
+      </a>
+
+      <div class="search-box" style="position:relative; flex:1; margin:0 !important; width:auto !important;">
+        <div class="img-preview" id="imgPreview2">
+          <div class="pv-item">
+            <img class="pv-img" id="previewImg2" src="" alt="">
+            <button class="pv-del" type="button" onclick="removeImg()">✕</button>
+          </div>
         </div>
-      </div>
 
       <div class="input-row">
         <textarea
@@ -207,15 +234,21 @@
           </button>
         </div>
       </div>
-      <!-- 설정 버튼을 검색박스 우측 하단에 고정 (레이아웃 이탈 방지) -->
-      <div class="filter-trigger" onclick="window.toggleFilterModal()" style="position:absolute; right:10px; bottom:-28px; cursor:pointer; font-size:12px; color:#64748b; display:flex; align-items:center; gap:4px; font-weight:700; background:rgba(255,255,255,0.9); padding:4px 8px; border-radius:8px;">
+      </div> <!-- search-box 닫기 -->
+      
+      <!-- 설정 버튼을 상단바 우측 끝에 배치 -->
+      <div class="filter-trigger" onclick="window.toggleFilterModal()" style="cursor:pointer; font-size:12px; color:#64748b; display:flex; align-items:center; gap:4px; font-weight:700; background:#f8fafc; padding:8px 12px; border-radius:10px; shrink:0; border:1px solid #e2e8f0;">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
         검색설정
       </div>
-    </div>
-  </div>
+      
+      <!-- 상단바용 인라인 설정창 컨테이너 -->
+      <div id="inlineFilterSticky" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #e2e8f0; border-top:none; border-radius:0 0 20px 20px; padding:0; box-shadow:0 15px 25px -5px rgba(0,0,0,0.1); text-align:left; z-index:1001; overflow:hidden;">
+      </div>
+    </div> <!-- flex container 닫기 -->
+  </div> <!-- stickySearch 닫기 -->
 
-  <div class="content" id="content"></div>
+  <div class="content" id="content" style="display:none; max-width:1100px; margin:0 auto; padding:20px; box-sizing:border-box;"></div>
   
   <footer class="ftr">
     <div class="ftr-content">
@@ -245,52 +278,56 @@
 
   <input type="file" id="fileInput" accept="image/*" onchange="handleImg(event)">
 
-  <!-- 검색 설정 모달 (글로벌 접근 가능) -->
-  <div id="inlineFilter" class="modal-overlay" style="display:none;">
-    <div class="modal-content inquiry-board" style="max-width:480px; padding:32px;">
-      <div class="modal-header">
-        <h3 style="margin:0; font-size:18px; font-weight:800;">⚙️ 검색 설정</h3>
-        <button class="close-btn" onclick="toggleFilterModal()">✕</button>
-      </div>
-      
-      <div class="setting-group" style="margin-bottom:20px;">
-        <label style="display:block; margin-bottom:8px; font-weight:700; font-size:14px; color:#475569;">가격 범위 (원)</label>
-        <div class="price-inputs" style="display:flex; align-items:center; gap:8px;">
-          <input type="number" id="minPrice" placeholder="최소" style="flex:1; padding:10px; border:1px solid #e2e8f0; border-radius:8px;">
-          <span>~</span>
-          <input type="number" id="maxPrice" placeholder="최대" style="flex:1; padding:10px; border:1px solid #e2e8f0; border-radius:8px;">
-        </div>
-      </div>
-
-      <div class="setting-group inline" style="display:flex; flex-direction:column; gap:10px; margin-bottom:24px;">
-        <label style="font-size:14px; color:#475569; display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="freeShipping"> 무료배송만</label>
-        <label style="font-size:14px; color:#475569; display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="excludeOverseas" checked> 해외직구 제외</label>
-        <label style="font-size:14px; color:#475569; display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="excludeAgent" checked> 구매대행 제외</label>
-        <label style="font-size:14px; color:#475569; display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="excludeUsed" checked> 중고/리퍼 제외</label>
-        <label style="font-size:14px; color:#475569; display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="includeRental"> 렌탈 상품 포함</label>
-      </div>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:16px;">
-        <div class="result-count-wrap" style="flex:1;">
-          <span style="font-size:12px; color:#94a3b8; display:block; margin-bottom:4px;">결과 개수</span>
-          <select id="resultCount" style="width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:8px;">
-            <option value="3">3개</option>
-            <option value="5" selected>5개</option>
-            <option value="7">7개</option>
-            <option value="10">10개</option>
-          </select>
-        </div>
-        <div class="patience-wrap" style="flex:2;">
-          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-            <span style="font-size:12px; color:#94a3b8;">분석 정밀도</span>
-            <span style="font-size:12px; color:#3b82f6; font-weight:700;"><span id="patienceVal">20</span>초</span>
-          </div>
-          <input type="range" id="patienceTime" min="5" max="120" step="5" value="20" style="width:100%;" oninput="document.getElementById('patienceVal').textContent=this.value">
-        </div>
-      </div>
-
-      <button class="write-btn" style="width:100%; margin-top:24px; background:#3b82f6;" onclick="saveExpertSettings();">설정 저장 및 닫기</button>
+  <!-- 공통 설정창 엔진 (이동식) -->
+  <div id="commonFilterContent" style="display:none; padding:24px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <h3 style="margin:0; font-size:16px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        지능형 검색 최적화
+      </h3>
+      <button type="button" onclick="window.toggleFilterModal()" style="background:#f1f5f9; border:none; width:28px; height:28px; border-radius:50%; cursor:pointer; color:#64748b; font-size:12px;">✕</button>
     </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+      <div class="f-group">
+        <div class="filter-group-title">가격 범위</div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <input type="number" id="minPrice" class="inline-input" placeholder="최소">
+          <span style="color:#cbd5e1;">~</span>
+          <input type="number" id="maxPrice" class="inline-input" placeholder="최대">
+        </div>
+      </div>
+      <div class="f-group">
+        <div class="filter-group-title">결과 수량</div>
+        <select id="resultCount" class="inline-input" style="background:#fff;">
+          <option value="3">3개 추천</option>
+          <option value="5" selected>5개 추천</option>
+          <option value="10">10개 추천</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;">
+      <label class="chk-item"><input type="checkbox" id="freeShipping" checked> 무료배송</label>
+      <label class="chk-item"><input type="checkbox" id="excludeOverseas" checked> 직구제외</label>
+      <label class="chk-item"><input type="checkbox" id="excludeAgent" checked> 대행제외</label>
+      <label class="chk-item"><input type="checkbox" id="excludeUsed" checked> 중고제외</label>
+      <label class="chk-item"><input type="checkbox" id="includeRental"> 렌탈포함</label>
+    </div>
+
+    <div class="f-group" style="margin-bottom:24px;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+        <div class="filter-group-title" style="margin:0;">분석 깊이 (Patience)</div>
+        <span style="font-size:12px; color:#3b82f6; font-weight:800;"><span id="patienceVal">20</span>초</span>
+      </div>
+      <input type="range" id="patienceTime" min="5" max="60" step="5" value="20" style="width:100%; height:6px; cursor:pointer;" oninput="document.getElementById('patienceVal').textContent=this.value">
+      <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:10px; color:#94a3b8;">
+        <span>빠른 분석</span>
+        <span>심층 분석</span>
+      </div>
+    </div>
+
+    <button type="button" class="save-btn" onclick="saveExpertSettings()" style="width:100%; padding:14px; background:#0f172a; color:#fff; border:none; border-radius:12px; font-weight:800; cursor:pointer; font-size:14px; box-shadow:0 4px 12px rgba(15,23,42,0.15);">설정 저장 및 즉시 적용</button>
   </div>
 
   <!-- 문의게시판 모달 -->

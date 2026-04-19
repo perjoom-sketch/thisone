@@ -83,11 +83,15 @@ function switchToSearchMode() {
   isSearchMode = true;
   const landing = document.getElementById('landing'), stickySearch = document.getElementById('stickySearch'), content = document.getElementById('content');
   if (landing) landing.style.display = 'none';
-  if (stickySearch) stickySearch.style.display = 'block';
+  if (stickySearch) {
+    stickySearch.style.setProperty('display', 'block', 'important');
+    stickySearch.style.setProperty('position', 'fixed', 'important');
+    stickySearch.style.setProperty('top', '0', 'important');
+    stickySearch.style.setProperty('z-index', '20000', 'important');
+  }
   if (content) {
     content.style.display = 'block';
-    // 상단바가 fixed이므로 컨텐츠가 가려지지 않도록 충분한 여백 추가
-    content.style.paddingTop = '120px'; 
+    content.style.setProperty('padding-top', '100px', 'important');
     content.style.minHeight = '100vh';
   }
 }
@@ -408,7 +412,7 @@ function saveExpertSettings() {
     excludeOverseas: document.getElementById('excludeOverseas')?.checked || false,
     excludeAgent: document.getElementById('excludeAgent')?.checked || false,
     excludeUsed: document.getElementById('excludeUsed')?.checked || false,
-    includeRental: document.getElementById('includeRental')?.checked || false,
+    excludeRental: document.getElementById('excludeRental')?.checked || false,
     resultCount: document.getElementById('resultCount')?.value || 5,
     patienceTime: document.getElementById('patienceTime')?.value || 20
   };

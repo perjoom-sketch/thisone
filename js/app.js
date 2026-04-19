@@ -40,14 +40,12 @@ function handleImg(e) {
   const r = new FileReader();
   r.onload = (ev) => {
     pendingImg = { data: ev.target.result.split(',')[1], src: ev.target.result };
-    ['', '2'].forEach((s) => {
-      const el = document.getElementById('previewImg' + s) || document.getElementById('previewImg');
-      const nm = document.getElementById('previewName' + s) || document.getElementById('previewName');
-      const pv = document.getElementById('imgPreview' + s) || document.getElementById('imgPreview');
-      if (el) el.src = ev.target.result;
-      if (nm) nm.textContent = file.name;
-      if (pv) pv.classList.add('show');
-    });
+    const pv = document.getElementById('imgPreview');
+    const el = document.getElementById('previewImg');
+    const nm = document.getElementById('previewName');
+    if (el) el.src = ev.target.result;
+    if (nm) nm.textContent = file.name;
+    if (pv) pv.classList.add('show');
   };
   r.readAsDataURL(file);
   e.target.value = '';
@@ -55,10 +53,8 @@ function handleImg(e) {
 
 function removeImg() {
   pendingImg = null;
-  ['', '2'].forEach((s) => {
-    const pv = document.getElementById('imgPreview' + s) || document.getElementById('imgPreview');
-    if (pv) pv.classList.remove('show');
-  });
+  const pv = document.getElementById('imgPreview');
+  if (pv) pv.classList.remove('show');
 }
 
 function stripCitations(text) { return String(text || '').replace(/<cite\b[^>]*>|<\/cite>|<b>|<\/b>/gi, '').trim(); }
@@ -212,6 +208,42 @@ function loadTrendingChips() {
     { text: '가성비 정수기 렌탈', query: '정수기 렌탈 가격비교' }
   ];
   container.innerHTML = chips.map(c => `<button class="chip" onclick="quick('${c.query}')">${c.text}</button>`).join('');
+}
+
+function toggleFilterModal() {
+  const modal = document.getElementById('filterModal');
+  if (!modal) return;
+  const isShow = modal.style.display !== 'none';
+  modal.style.display = isShow ? 'none' : 'flex';
+  if (!isShow) loadExpertSettings();
+}
+
+function loadExpertSettings() {
+  const saved = localStorage.getItem('thisone_expert_settings');
+  if (!saved) return;
+  const settings = JSON.parse(saved);
+  document.getElementById('minPrice').value = settings.minPrice || '';
+  document.getElementById('maxPrice').value = settings.maxPrice || '';
+  document.getElementById('freeShipping').checked = !!settings.freeShipping;
+  document.getElementById('domesticOnly').checked = !!settings.domesticOnly;
+  document.getElementById('excludeOverseas').checked = !!settings.excludeOverseas;
+  document.getElementById('excludeUsed').checked = !!settings.excludeUsed;
+  document.getElementById('includeRental').checked = !!settings.includeRental;
+}
+
+function saveExpertSettings() {
+  const settings = {
+    minPrice: document.getElementById('minPrice').value,
+    maxPrice: document.getElementById('maxPrice').value,
+    freeShipping: document.getElementById('freeShipping').checked,
+    domesticOnly: document.getElementById('domesticOnly').checked,
+    excludeOverseas: document.getElementById('excludeOverseas').checked,
+    excludeUsed: document.getElementById('excludeUsed').checked,
+    includeRental: document.getElementById('includeRental').checked
+  };
+  localStorage.setItem('thisone_expert_settings', JSON.stringify(settings));
+  toggleFilterModal();
+  alert('설정이 저장되었습니다.');
 }
 
 document.addEventListener('DOMContentLoaded', () => {

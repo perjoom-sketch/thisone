@@ -220,12 +220,16 @@ async function sendMsg(forceMode) {
     }
 
     const patience = parseInt(expertSettings.patienceTime || 10);
-    const tokens = Math.min(400 + (patience * 40), 1600); // 인내심에 비례하여 응답 길이 조절
+    const tokens = Math.min(400 + (patience * 20), 2000); // 인내심에 비례하여 응답 길이 조절
+
+    let depthPrompt = " 핵심 위주로 빠르게 요약하세요.";
+    if (patience > 30) depthPrompt = " 모든 후보의 스펙, 리뷰, 장단점을 초정밀 대조하여 가장 심도 있는 전문가 분석 리포트를 작성하세요. 분량이 길어져도 괜찮습니다.";
+    else if (patience > 10) depthPrompt = " 상품별 주요 차이점을 꼼꼼하게 분석하여 리포트를 작성하세요.";
 
     const aiData = await window.ThisOneAPI.requestChat({ 
       model: MODEL, 
       max_tokens: tokens, 
-      system: RANKING_PROMPT + (patience > 15 ? " 모든 후보의 스펙을 정밀하게 대조하여 상세히 분석하세요." : " 핵심 위주로 빠르게 요약하세요."), 
+      system: RANKING_PROMPT + depthPrompt, 
       messages: aiMessages 
     });
 
@@ -321,8 +325,17 @@ function loadExpertSettings() {
   document.getElementById('includeRental').checked = !!settings.includeRental;
   if (settings.resultCount) document.getElementById('resultCount').value = settings.resultCount;
   if (settings.patienceTime) {
-    document.getElementById('patienceTime').value = settings.patienceTime;
-    document.getElementById('patienceVal').textContent = settings.patienceTime;
+    const pEl = document.getElementById('patienceTime');
+    if (pEl) {
+      pEl.value = settings.patienceTime;
+      // 인덱스 파일에 정의된 라벨 업데이트 함수 호출
+      if (typeof window.updatePatienceLabel === 'function') {
+        window.updatePatienceLabel(settings.patienceTime);
+      } else {
+        const vEl = document.getElementById('patienceVal');
+        if (vEl) vEl.textContent = settings.patienceTime;
+      }
+    }
   }
 }
 

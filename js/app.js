@@ -332,10 +332,26 @@ function loadExpertSettings() {
 }
 
 function saveExpertSettings() {
-  // 로컬 스토리지 저장 대신 모달만 닫음 (설정은 검색 시 DOM에서 직접 읽음)
+  const settings = {
+    minPrice: document.getElementById('minPrice').value,
+    maxPrice: document.getElementById('maxPrice').value,
+    freeShipping: document.getElementById('freeShipping').checked,
+    excludeOverseas: document.getElementById('excludeOverseas').checked,
+    excludeAgent: document.getElementById('excludeAgent').checked,
+    excludeUsed: document.getElementById('excludeUsed').checked,
+    includeRental: document.getElementById('includeRental').checked,
+    resultCount: document.getElementById('resultCount').value,
+    patienceTime: document.getElementById('patienceTime').value
+  };
+
+  // UI는 새로고침 시 초기화되더라도, 사용자의 설정 의도는 별도의 메모리(Trajectory)에 기록하여 AI가 참고하게 함
+  if (window.ThisOneTrajectory?.logEvent) {
+    window.ThisOneTrajectory.logEvent('expert_settings_applied', settings);
+  }
+
   const el = document.getElementById('inlineFilter');
   if (el) el.style.display = 'none';
-  alert('설정이 적용되었습니다.');
+  alert('설정이 현재 검색에 적용되었습니다.');
 }
 
 function applyPcView() {

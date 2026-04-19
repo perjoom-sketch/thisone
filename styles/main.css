@@ -1003,3 +1003,68 @@ a{
 .setting-group.inline label { display: flex !important; align-items: center !important; gap: 6px !important; font-weight: 500 !important; cursor: pointer; margin: 0 !important; }
 .save-btn { width: 100%; padding: 14px; background: var(--accent); color: #fff; border: none; border-radius: 14px; font-weight: 700; font-size: 16px; cursor: pointer; transition: transform 0.1s; }
 .save-btn:active { transform: scale(0.98); }
+
+/* feedback system */
+.feedback-wrap {
+  margin-top: 32px;
+  padding: 24px;
+  background: #f8fafc;
+  border-radius: 20px;
+  text-align: center;
+  border: 1px dashed #e2e8f0;
+}
+
+.feedback-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 16px;
+}
+
+.feedback-btns {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.fb-btn {
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+}
+
+.fb-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.fb-btn.like:hover {
+  background: #f0fdf4;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+.fb-btn.dislike:hover {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.feedback-thanks {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #0f172a;
+  font-weight: 600;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}

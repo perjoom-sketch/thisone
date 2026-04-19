@@ -407,3 +407,50 @@ ${JSON.stringify(expertSettings, null, 2)}
     });
 
     typingEl?.remove();
+
+    if (aiData?.error) {
+      window.ThisOneUI?.addFallback?.('AI 분석 서버 혼잡으로 검색 결과만 보여줍니다.');
+      window.ThisOneUI?.renderRawResults?.(candidates);
+      return;
+    }
+
+    const raw = Array.isArray(aiData?.content) ? aiData.content.filter(b => b.type === 'text').map(b => b.text).join('') : '';
+    try {
+      let clean = raw.replace(/```json|```/g, '').trim();
+      const jsonMatch = clean.match(/\{[\s\S]*\}/);
+      if (jsonMatch) clean = jsonMatch[0];
+      const parsed = JSON.parse(clean);
+      const merged = window.ThisOneRanking?.mergeAiWithCandidates ? window.ThisOneRanking.mergeAiWithCandidates(deepClean(parsed), candidates) : parsed;
+      window.ThisOneUI?.addResultCard?.(merged);
+    } catch (e) {
+      window.ThisOneUI?.addFallback?.(raw || '응답 파싱 실패');
+    }
+  } catch (err) {
+    console.error(err);
+    typingEl?.remove();
+    window.ThisOneUI?.addFallback?.('검색 중 오류 발생');
+  } finally {
+    loading = false;
+    const b = getSendBtn(); if (b) b.disabled = false;
+    getInput()?.focus();
+  }
+}
+
+function loadTrendingChips() {
+  const container = document.getElementById('trendingChips');
+  if (!container) return;
+  const chips = [
+    { text: '로보락 S8 MaxV', query: '로보락 S8 MaxV' },
+    { text: '삼성 비스포크 AI 세탁건조기', query: '삼성 비스포크 AI 세탁건조기' },
+    { text: 'LG 트롬 워시콤보', query: 'LG 트롬 워시콤보' },
+    { text: '다이슨 에어랩', query: '다이슨 에어랩' },
+    { text: '가성비 정수기 렌탈', query: '정수기 렌탈 가격비교' }
+  ];
+  container.innerHTML = chips.map(c => `<button class="chip" onclick="quick('${c.query}')">${c.text}</button>`).join('');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadTrendingChips();
+  document.getElementById('thisoneSearchBtn')?.addEventListener('click', () => sendMsg('thisone'));
+  document.getElementById('rawSearchBtn')?.addEventListener('click', () => sendMsg('raw'));
+});

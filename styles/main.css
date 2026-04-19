@@ -148,13 +148,14 @@ a{
   display:block;
 }
 
-#welcome h2{
+#welcome h2.rounded-headline{
   margin:0 0 16px;
+  font-family: 'Gowun Dodum', sans-serif;
   font-size:42px;
   line-height:1.4;
-  font-weight:700;
-  letter-spacing:-.02em;
-  color:#1f2937;
+  font-weight:400; /* Gowun Dodum은 기본적으로 두께감이 있음 */
+  letter-spacing:-.01em;
+  color:#334155;
 }
 
 #welcome p{
@@ -163,6 +164,14 @@ a{
   line-height:1.72;
   color:#5f6775;
   letter-spacing:-.015em;
+}
+
+.trending-chips{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:8px;
+  margin-top:20px;
 }
 
 /* search */

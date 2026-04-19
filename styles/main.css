@@ -901,30 +901,62 @@ a{
   }
 }
 
-/* modal */
+/* modal / popover */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(5px);
+  background: rgba(0, 0, 0, 0.05); /* 투명하게 */
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   z-index: 10000;
+  padding-top: 240px; /* 검색창 위치 근처로 조정 */
 }
+
 .modal-content {
   background: #fff;
-  width: min(460px, 92vw);
-  border-radius: 28px;
-  padding: 28px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  width: min(420px, 92vw);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  position: relative;
+  margin-right: 280px; /* 버튼 좌측 공간을 위해 우측으로 밀어냄 (데스크톱 기준) */
+  animation: modalPop 0.25s ease-out;
+  border: 1px solid var(--line);
 }
+
+/* 말풍선 화살표 효과 (데스크톱) */
+@media (min-width: 601px) {
+  .modal-content::after {
+    content: "";
+    position: absolute;
+    top: -8px;
+    right: 40px;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+    transform: rotate(45deg);
+  }
+}
+
+@media (max-width: 600px) {
+  .modal-overlay {
+    align-items: center;
+    padding-top: 0;
+  }
+  .modal-content {
+    margin-right: 0;
+    margin-bottom: 20px;
+  }
+}
+
 @keyframes modalPop {
-  from { opacity: 0; transform: scale(0.9) translateY(20px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .modal-header {
   display: flex;

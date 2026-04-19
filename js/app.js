@@ -225,10 +225,14 @@ async function sendMsg(forceMode) {
       const merged = window.ThisOneRanking?.mergeAiWithCandidates ? window.ThisOneRanking.mergeAiWithCandidates(deepClean(parsed), candidates) : parsed;
       window.ThisOneUI?.addResultCard?.(merged);
       
-      // 검색 완료 후 화면이 아래로 밀리는 문제 해결: 최상단 혹은 검색창 위치로 부드럽게 고정
+      // 모바일 포함 전방위 스크롤 진압: 3중 보안 및 타겟팅
       setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 100);
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        // 헤더 로고 쪽으로 시선 고정
+        document.querySelector('.hdr')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 200); // 모바일 레이아웃 재계산 시간 확보
     } catch (e) {
       console.error("Parse/Ranking Error", e, "Raw was:", raw);
       window.ThisOneUI?.addFallback?.(candidates, `[시스템 리포트: AI 응답 구조적 오류 발생]`);

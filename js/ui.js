@@ -6,7 +6,7 @@ function appendAndScroll(node) {
   const content = getContentEl();
   if (!content) return;
   content.appendChild(node);
-  node.scrollIntoView({ behavior: 'smooth' });
+  // 강제 스크롤 제거: 사용자 시야 방해 방지
 }
 
 function renderHistoryBar() {
@@ -378,7 +378,7 @@ function addResultCard(result) {
   `;
 
   content.insertAdjacentHTML('beforeend', html);
-  content.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  // 강제 스크롤 제거: 사용자 시야 방해 방지
 }
 
 function handleFeedback(btn, type) {

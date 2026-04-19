@@ -119,10 +119,25 @@ function extractJSON(str) {
 async function sendMsg(forceMode) {
   if (loading) return;
   if (forceMode) setSearchMode(forceMode);
+
   const inp = getInput();
-  if (!inp) return;
-  const txt = inp.value.trim();
-  if (txt) currentQuery = txt;
+  const txt = inp ? inp.value.trim() : "";
+  if (!txt && !pendingImg) return;
+  currentQuery = txt; // 쿼리 저장 복구
+
+  // 모바일 스크롤 진압 1단계: 즉시 포커스 해제 및 키보드 닫기
+  if (inp) inp.blur();
+
+  // 모바일 스크롤 진압 2단계: 여러 번에 걸쳐 상단 고정 (키보드 닫힘 애니메이션 대응)
+  const fixScroll = () => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  };
+  fixScroll();
+  setTimeout(fixScroll, 100);
+  setTimeout(fixScroll, 300);
+  setTimeout(fixScroll, 600);
   if (!currentQuery && !pendingImg) return;
 
   switchToSearchMode();

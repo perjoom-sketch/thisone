@@ -1,4 +1,4 @@
-const MODEL = 'claude-sonnet-4-20250514';
+const MODEL = 'gemini-2.5-flash';
 const MINI_SCOPE = '<svg width="10" height="10" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="14" stroke="#fff" stroke-width="4" fill="none" opacity=".7"/><circle cx="32" cy="32" r="5" fill="#fff"/><line x1="32" y1="6" x2="32" y2="18" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="32" y1="46" x2="32" y2="58" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="6" y1="32" x2="18" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="46" y1="32" x2="58" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/></svg>';
 
 let pendingImg = null;
@@ -7,48 +7,15 @@ let isSearchMode = false;
 let searchHistory = [];
 let currentQuery = '';
 let searchMode = 'thisone';
-let _lastIntentProfile = null; // 최근 의도 추론 결과 캐시
+let _lastIntentProfile = null;
 
 const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI입니다.
 절대 <cite>, </cite>, <b>, </b> 같은 태그를 출력하지 마세요.
 반드시 제공된 후보 상품 목록 안에서만 고르세요.
-후보 목록에 없는 상품을 새로 만들지 마세요.
-반드시 JSON만 출력하세요.
+반드시 JSON만 출력하세요.`;
 
-규칙:
-- AI추천은 반드시 아래 4개 후보(가격순, 리뷰순, 인기순, 신뢰순) 중 하나를 선택해야 합니다.
-- 즉 aiPickSourceType은 price / review / popular / trust 중 하나여야 합니다.
-- sourceId는 반드시 후보 상품 목록의 id를 그대로 써야 합니다.
-- cards 4개는 가능하면 서로 다른 sourceId를 사용하세요.
-- 동일 상품 중복은 후보가 부족한 경우에만 허용하세요.
-- excludeFromPriceRank가 true인 후보는 "price" 카드와 AI추천 후보에서 절대 선택하지 마세요.
-- badges에 "옵션가 주의"가 있으면 price 카드로 선택하지 마세요.
-- priceRiskReason이 있으면 반드시 참고하세요.
-- totalPriceNum과 shippingKnown을 참고해서 가격 판단 시 대표가가 아니라 총지불액 기준으로 보수적으로 판단하세요.
-- review/popular/trust 카드는 필요하면 선택 가능하지만, 동일 조건이면 excludeFromPriceRank가 false인 후보를 우선하세요.
-- bonusScore, specPenalty, finalScore를 모두 참고하세요.
-
-출력 형식:
-{
-  "aiPickSourceType": "price",
-  "cards": [
-    {"type":"price","label":"가격순","sourceId":"1","reason":"실구매가 기준 가장 유리"},
-    {"type":"review","label":"리뷰순","sourceId":"2","reason":"평점과 리뷰 반응이 가장 좋음"},
-    {"type":"popular","label":"인기순","sourceId":"3","reason":"판매량과 관심도가 높음"},
-    {"type":"trust","label":"신뢰순","sourceId":"4","reason":"브랜드·판매처 안정성이 좋음"}
-  ],
-  "rejects": [
-    {"name":"제외상품명","reason":"제외 이유"}
-  ]
-}`;
-
-function getInput() {
-  return document.getElementById(isSearchMode ? 'msgInput2' : 'msgInput');
-}
-
-function getSendBtn() {
-  return document.getElementById(isSearchMode ? 'sendBtn2' : 'sendBtn');
-}
+function getInput() { return document.getElementById(isSearchMode ? 'msgInput2' : 'msgInput'); }
+function getSendBtn() { return document.getElementById(isSearchMode ? 'sendBtn2' : 'sendBtn'); }
 
 function goHome() {
   location.href = '/';
@@ -57,58 +24,31 @@ function goHome() {
 function switchToSearchMode() {
   if (isSearchMode) return;
   isSearchMode = true;
-
-  const landing = document.getElementById('landing');
-  const stickySearch = document.getElementById('stickySearch');
-  const content = document.getElementById('content');
-
+  const landing = document.getElementById('landing'), stickySearch = document.getElementById('stickySearch'), content = document.getElementById('content');
   if (landing) landing.style.display = 'none';
   if (stickySearch) stickySearch.style.display = 'block';
   if (content) content.style.display = 'block';
 }
 
-function autoResize(el) {
-  if (!el) return;
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
-}
-
-function handleKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMsg();
-  }
-}
-
-function quick(t) {
-  currentQuery = t;
-  syncQueryInputs(t);
-  setSearchMode('thisone');
-  sendMsg();
-}
+function autoResize(el) { if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px'; }
+function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } }
+function quick(t) { currentQuery = t; syncQueryInputs(t); setSearchMode('thisone'); sendMsg(); }
 
 function handleImg(e) {
   const file = e.target.files[0];
   if (!file) return;
-
   const r = new FileReader();
   r.onload = (ev) => {
-    pendingImg = {
-      data: ev.target.result.split(',')[1],
-      src: ev.target.result
-    };
-
+    pendingImg = { data: ev.target.result.split(',')[1], src: ev.target.result };
     ['', '2'].forEach((s) => {
-      const el = document.getElementById('previewImg' + s);
-      const nm = document.getElementById('previewName' + s);
-      const pv = document.getElementById('imgPreview' + s);
-
+      const el = document.getElementById('previewImg' + s) || document.getElementById('previewImg');
+      const nm = document.getElementById('previewName' + s) || document.getElementById('previewName');
+      const pv = document.getElementById('imgPreview' + s) || document.getElementById('imgPreview');
       if (el) el.src = ev.target.result;
       if (nm) nm.textContent = file.name;
       if (pv) pv.classList.add('show');
     });
   };
-
   r.readAsDataURL(file);
   e.target.value = '';
 }
@@ -116,132 +56,70 @@ function handleImg(e) {
 function removeImg() {
   pendingImg = null;
   ['', '2'].forEach((s) => {
-    const pv = document.getElementById('imgPreview' + s);
+    const pv = document.getElementById('imgPreview' + s) || document.getElementById('imgPreview');
     if (pv) pv.classList.remove('show');
   });
 }
 
-function stripCitations(text) {
-  return String(text || '')
-    .replace(/<cite\b[^>]*>/gi, '')
-    .replace(/<\/cite>/gi, '')
-    .replace(/<b>/gi, '')
-    .replace(/<\/b>/gi, '')
-    .trim();
-}
-
+function stripCitations(text) { return String(text || '').replace(/<cite\b[^>]*>|<\/cite>|<b>|<\/b>/gi, '').trim(); }
 function deepClean(value) {
   if (typeof value === 'string') return stripCitations(value);
   if (Array.isArray(value)) return value.map(deepClean);
-
   if (value && typeof value === 'object') {
     const out = {};
-    for (const key in value) {
-      out[key] = deepClean(value[key]);
-    }
+    for (const key in value) out[key] = deepClean(value[key]);
     return out;
   }
-
   return value;
 }
 
-function esc(s) {
-  return String(s || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
-
-function escAttr(s) {
-  return String(s || '')
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
-
-function syncQueryInputs(value) {
+function syncQueryInputs(t) {
   ['msgInput', 'msgInput2'].forEach((id) => {
     const el = document.getElementById(id);
-    if (el) {
-      el.value = value;
-      autoResize(el);
-    }
+    if (el) { el.value = t; autoResize(el); }
   });
 }
 
 function setSearchMode(mode) {
   searchMode = mode;
-
-  const rawBtn = document.getElementById('rawSearchBtn');
-  const thisoneBtn = document.getElementById('thisoneSearchBtn');
-
-  if (rawBtn) rawBtn.classList.toggle('active', mode === 'raw');
-  if (thisoneBtn) thisoneBtn.classList.toggle('active', mode === 'thisone');
+  const r = document.getElementById('rawSearchBtn'), t = document.getElementById('thisoneSearchBtn');
+  if (r) r.classList.toggle('active', mode === 'raw');
+  if (t) t.classList.toggle('active', mode === 'thisone');
 }
 
 async function sendMsg(forceMode) {
   if (loading) return;
-
-  if (forceMode === 'raw' || forceMode === 'thisone') {
-    setSearchMode(forceMode);
-  }
-
+  if (forceMode) setSearchMode(forceMode);
   const inp = getInput();
-  if (!inp) {
-    console.error('input element not found');
-    return;
-  }
-
+  if (!inp) return;
   const txt = inp.value.trim();
-
   if (txt) currentQuery = txt;
   if (!currentQuery && !pendingImg) return;
 
   switchToSearchMode();
-
   const contentEl = document.getElementById('content');
   if (contentEl) contentEl.innerHTML = '';
-
   if (txt) searchHistory.push(txt);
-
   syncQueryInputs(currentQuery);
-
-  if (window.ThisOneUI?.renderHistoryBar) {
-    window.ThisOneUI.renderHistoryBar();
-  }
+  if (window.ThisOneUI?.renderHistoryBar) window.ThisOneUI.renderHistoryBar();
 
   const queryText = currentQuery || '이미지 기반 상품 검색';
-
-  // ── 궤적 로거: 검색어 기록 ─────────────────────────────────────
-  if (window.ThisOneTrajectory) {
-    window.ThisOneTrajectory.recordQuery(queryText);
-  }
-
-  const queryImage = pendingImg; // 이미지 백업
-  removeImg(); // UI 초기화
+  const queryImage = pendingImg;
+  removeImg();
 
   loading = true;
-  const btn = getSendBtn();
-  if (btn) btn.disabled = true;
-
-  const typingEl = window.ThisOneUI?.addTyping ? window.ThisOneUI.addTyping() : null;
+  const btn = getSendBtn(); if (btn) btn.disabled = true;
+  const typingEl = window.ThisOneUI?.addTyping?.();
 
   try {
     let searchQuery = queryText;
+    if (window.ThisOneRanking?.rewriteSearchQuery) searchQuery = window.ThisOneRanking.rewriteSearchQuery(queryText);
 
-    if (window.ThisOneRanking && typeof window.ThisOneRanking.rewriteSearchQuery === 'function') {
-      searchQuery = window.ThisOneRanking.rewriteSearchQuery(queryText);
-    }
-
-    // ── 검색과 의도 추론을 병렬로 시작 (시간 단축 핵심) ────────────────
     typingEl?.updateStatus?.('의도 분석 및 시장 데이터 수집 중...', '사용자가 진짜 원하는 가치를 추론하고 있습니다.');
-
     const savedSettings = localStorage.getItem('thisone_expert_settings');
     const expertSettings = savedSettings ? JSON.parse(savedSettings) : {};
-
     const trajectory = window.ThisOneTrajectory?.getSession() || {};
+
     const [searchData, intentProfileResult] = await Promise.all([
       window.ThisOneAPI.requestSearch(searchQuery, expertSettings),
       window.ThisOneAPI.requestIntentInfer(queryText, trajectory, queryImage).catch(() => null)
@@ -252,10 +130,7 @@ async function sendMsg(forceMode) {
     _lastIntentProfile = intentProfile;
 
     typingEl?.updateStatus?.('전문가 안목으로 상품 선별 중...', '최저가 낚시 및 부적합 상품을 정밀 필터링합니다.');
-
-    const candidates = window.ThisOneRanking?.buildCandidates
-      ? window.ThisOneRanking.buildCandidates(items, queryText, intentProfile)
-      : items;
+    const candidates = window.ThisOneRanking?.buildCandidates ? window.ThisOneRanking.buildCandidates(items, queryText, intentProfile) : items;
 
     if (!candidates || !candidates.length) {
       typingEl?.remove();
@@ -265,145 +140,35 @@ async function sendMsg(forceMode) {
 
     if (searchMode === 'raw') {
       typingEl?.remove();
-
-      if (window.ThisOneUI?.renderRawResults) {
-        window.ThisOneUI.renderRawResults(candidates);
-      } else {
-        window.ThisOneUI?.addFallback?.('원본 검색 결과 렌더 함수(renderRawResults)가 없습니다.');
-      }
+      window.ThisOneUI?.renderRawResults?.(candidates);
       return;
     }
 
     const prunedCandidates = candidates.map(c => ({
-      id: c.id,
-      name: c.name,
-      price: c.price,
-      store: c.store,
-      review: c.review,
-      badges: c.badges,
-      bonusScore: c.bonusScore,
-      specPenalty: c.specPenalty,
-      finalScore: c.finalScore,
-      totalPriceNum: c.totalPriceNum
+      id: c.id, name: c.name, price: c.price, store: c.store, review: c.review,
+      badges: c.badges, bonusScore: c.bonusScore, specPenalty: c.specPenalty,
+      finalScore: c.finalScore, totalPriceNum: c.totalPriceNum
     }));
-
-    // ── 의도 추론 결과는 상단 병렬 처리에서 완료됨 ──────────────────
-
-    // 전문가 분석 결과 UI 노출
-    if (intentProfile?.expertFactors) {
-      const ef = intentProfile.expertFactors;
-      window.ThisOneUI?.addFallback?.(`
-        <div class="expert-analysis">
-          <div class="expert-title">💡 전문가 분석: ${ef.key_priority}</div>
-          <div class="expert-reason">${ef.rationale}</div>
-          <div class="expert-specs">집중 분석 항목: ${ef.focus_specs.join(', ')}</div>
-        </div>
-      `);
-    }
-
-    // intentProfile을 ranking에 전달 (랭킹 가중치 조정)
-    if (intentProfile && window.ThisOneRanking?.setIntentProfile) {
-      window.ThisOneRanking.setIntentProfile(intentProfile);
-    }
 
     typingEl?.updateStatus?.('최종 추천 리포트 작성 중...', '고민을 해결해 줄 최적의 상품 5개를 선정합니다.');
 
-    const aiMessages = [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: `사용자 질문:
-${queryText}
-
-후보 상품 목록(JSON):
-${JSON.stringify(prunedCandidates, null, 2)}
-
-사용자 의도 분석 (전문가 가이드):
-${intentProfile ? `의도: ${intentProfile.intentTag}
-우선 분석 요소: ${intentProfile.expertFactors?.key_priority || '일반 탐색'}
-분석 근거: ${intentProfile.expertFactors?.rationale || '정보 부족'}
-핵심 스펙: ${intentProfile.expertFactors?.focus_specs?.join(', ') || '전체'}` : '기본 분석'}
-
-사용자 설정 필터 (강제 사항):
-${JSON.stringify(expertSettings, null, 2)}
-
- 지시:
- - 사용자 설정 필터(강제 사항)에 어긋나는 상품은 절대 추천하지 마세요. (예: 해외직구 제외 시 해외 배송 상품 탈락)
- - 전문가 분석 결과를 바탕으로, 해당 핵심 스펙 및 용도 적합성(useCaseMatch)에서 가장 유리한 상품을 추천하세요.
- - 반드시 후보 상품 목록 안에서만 선택하세요.
- - cards 배열로만 답하세요.
- - 허용 카드 type: "price", "review", "popular", "trust"
- - 각 카드의 sourceId는 반드시 후보 상품의 id를 그대로 사용하세요.
- - aiPickSourceType은 반드시 "price", "review", "popular", "trust" 중 하나만 사용하세요.
- - cards 4개는 가능하면 서로 다른 sourceId를 사용하세요.
- - bonusScore, specPenalty, finalScore를 꼭 참고하세요.
- - excludeFromPriceRank가 true인 후보는 "price" 카드와 AI추천에서 절대 선택하지 마세요.
- - badges에 "옵션가 주의"가 있거나 priceRisk가 "high"이면 price 카드로 선택하지 마세요.
- - priceRiskReason이 있으면 반드시 참고하여 추천 이유(reason)에 녹여내세요. 
- - 특히 부품일 확률이 있는 저가 상품은 "이 상품은 가격은 매력적이지만 전문가 분석 결과 본품이 아닌 부품일 확률이 있습니다."라는 전문가 소견을 포함하세요.
- - useCaseMatch가 높은 상품은 사용자 질문의 의도(용도)에 완벽히 부합한다는 점을 강조하여 추천하세요.
- - 렌탈 상품(excludeFromPriceRank: true)은 구매 의도 검색 시 순위에서 최하위로 밀어내지만, 사용자가 직접 '렌탈'을 검색한 경우에는 이를 핵심 후보로 우선 추천하세요.
- - 가전제품(공기청정기 등)의 경우, 요즘 한국 시장의 구독/렌탈 트렌드를 언급하며 구매보다 서비스 이용이 유리할 수 있는 포인트를 짚어주세요.
- - totalPriceNum을 참고하여 가격 판단은 대표가보다 실구매 총액 기준으로 보수적으로 판단하세요.
- - AI추천은 finalScore가 높은 후보를 우선 고려하세요.
- - JSON만 출력하세요.`
-          }
-        ]
-      }
-    ];
-
+    const aiMessages = [{
+      role: 'user',
+      content: [{ 
+        type: 'text', 
+        text: `사용자 질문: ${queryText}\n\n후보 상품 목록(JSON): ${JSON.stringify(prunedCandidates, null, 2)}\n\n의도분석: ${JSON.stringify(intentProfile)}\n\n설정: ${JSON.stringify(expertSettings)}\n\n전문가 분석을 바탕으로 cards 5개를 추천하세요.` 
+      }]
+    }];
+    
     if (queryImage && queryImage.data) {
-      aiMessages[0].content.push({
-        type: 'image_url',
-        image_url: { url: \`data:image/jpeg;base64,\${queryImage.data}\` }
-      });
+      aiMessages[0].content.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${queryImage.data}` } });
     }
 
-    const aiData = await window.ThisOneAPI.requestChat({
-      model: MODEL,
-      max_tokens: 1400,
-      system: RANKING_PROMPT,
-      messages: aiMessages
-    });
-
-후보 상품 목록(JSON):
-${JSON.stringify(prunedCandidates, null, 2)}
-
-사용자 의도 분석 (전문가 가이드):
-${intentProfile ? `의도: ${intentProfile.intentTag}
-우선 분석 요소: ${intentProfile.expertFactors?.key_priority || '일반 탐색'}
-분석 근거: ${intentProfile.expertFactors?.rationale || '정보 부족'}
-핵심 스펙: ${intentProfile.expertFactors?.focus_specs?.join(', ') || '전체'}` : '기본 분석'}
-
-사용자 설정 필터 (강제 사항):
-${JSON.stringify(expertSettings, null, 2)}
-
- 지시:
- - 사용자 설정 필터(강제 사항)에 어긋나는 상품은 절대 추천하지 마세요. (예: 해외직구 제외 시 해외 배송 상품 탈락)
- - 전문가 분석 결과를 바탕으로, 해당 핵심 스펙 및 용도 적합성(useCaseMatch)에서 가장 유리한 상품을 추천하세요.
-- 반드시 후보 상품 목록 안에서만 선택하세요.
-- cards 배열로만 답하세요.
-- 허용 카드 type: "price", "review", "popular", "trust"
-- 각 카드의 sourceId는 반드시 후보 상품의 id를 그대로 사용하세요.
-- aiPickSourceType은 반드시 "price", "review", "popular", "trust" 중 하나만 사용하세요.
-- cards 4개는 가능하면 서로 다른 sourceId를 사용하세요.
-- bonusScore, specPenalty, finalScore를 꼭 참고하세요.
-- excludeFromPriceRank가 true인 후보는 "price" 카드와 AI추천에서 절대 선택하지 마세요.
-- badges에 "옵션가 주의"가 있거나 priceRisk가 "high"이면 price 카드로 선택하지 마세요.
-- priceRiskReason이 있으면 반드시 참고하여 추천 이유(reason)에 녹여내세요. 
-- 특히 부품일 확률이 있는 저가 상품은 "이 상품은 가격은 매력적이지만 전문가 분석 결과 본품이 아닌 부품일 확률이 있습니다."라는 전문가 소견을 포함하세요.
-- useCaseMatch가 높은 상품은 사용자 질문의 의도(용도)에 완벽히 부합한다는 점을 강조하여 추천하세요.
-- 렌탈 상품(excludeFromPriceRank: true)은 구매 의도 검색 시 순위에서 최하위로 밀어내지만, 사용자가 직접 '렌탈'을 검색한 경우에는 이를 핵심 후보로 우선 추천하세요.
-- 가전제품(공기청정기 등)의 경우, 요즘 한국 시장의 구독/렌탈 트렌드를 언급하며 구매보다 서비스 이용이 유리할 수 있는 포인트를 짚어주세요.
-- totalPriceNum을 참고하여 가격 판단은 대표가보다 실구매 총액 기준으로 보수적으로 판단하세요.
-- AI추천은 finalScore가 높은 후보를 우선 고려하세요.
-- JSON만 출력하세요.`
-            }
-          ]
-        }
-      ]
+    const aiData = await window.ThisOneAPI.requestChat({ 
+      model: MODEL, 
+      max_tokens: 1400, 
+      system: RANKING_PROMPT, 
+      messages: aiMessages 
     });
 
     typingEl?.remove();

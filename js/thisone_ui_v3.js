@@ -389,35 +389,31 @@ function addResultCard(result) {
 }
 
 
-async function loadTrendingChips() {
-  const container = document.getElementById('chips');
+async function loadDynamicTrends() {
+  const container = document.getElementById('trendingChips');
   if (!container) return;
+  // 기존 프리미엄 칩이 이미 있다면 덮어쓰지 않음 (우선순위: 프리미엄 랭킹)
+  if (container.children.length > 0) return;
 
   try {
     const response = await fetch('/api/trends');
     const data = await response.json();
 
     if (data.status === 'success' && data.chips) {
-      container.innerHTML = ''; // 기존 칩 제거
-      data.chips.forEach(chip => {
-        const chipEl = document.createElement('div');
+      container.innerHTML = ''; 
+      data.chips.forEach((chip, i) => {
+        const chipEl = document.createElement('button');
         chipEl.className = 'chip';
-        chipEl.textContent = chip.label;
+        chipEl.style = "background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(226, 232, 240, 0.8); padding: 8px 16px; border-radius: 20px; font-size: 14px; color: #475569; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; font-weight: 500;";
+        chipEl.innerHTML = `<span style="font-weight: 800; color: #3b82f6; font-size: 12px; opacity: 0.8;">${i + 1}</span> ${chip.label}`;
         chipEl.onclick = () => {
-          if (typeof window.quick === 'function') {
-            window.quick(chip.query);
-          }
+          if (typeof window.quick === 'function') window.quick(chip.query);
         };
         container.appendChild(chipEl);
       });
     }
   } catch (err) {
     console.error('트렌드 칩 로딩 실패:', err);
-    // 폴백 기본 칩
-    container.innerHTML = `
-      <div class="chip" onclick="quick('로봇청소기 추천')">🤖 로봇청소기</div>
-      <div class="chip" onclick="quick('스탠바이미')">📺 스탠바이미</div>
-    `;
   }
 }
 
@@ -547,7 +543,7 @@ window.ThisOneUI = {
   renderBadgeList,
   renderRawResults,
   addResultCard,
-  loadTrendingChips,
+  loadDynamicTrends,
   openInquiryBoard,
   closeInquiryBoard,
   showInquiryForm,

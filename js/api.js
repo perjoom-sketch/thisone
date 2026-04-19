@@ -20,7 +20,7 @@ async function requestSearch(query, settings = {}) {
   });
 }
 
-async function requestChat(payload) {
+async function requestChat(payload, onChunk) {
   const res = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -42,18 +42,15 @@ async function requestChat(payload) {
     const { value, done: readerDone } = await reader.read();
     done = readerDone;
     if (value) {
-      fullText += decoder.decode(value, { stream: true });
+      const chunk = decoder.decode(value, { stream: true });
+      fullText += chunk;
+      if (typeof onChunk === 'function') {
+        onChunk(chunk, fullText);
+      }
     }
   }
 
-  try {
-    // 백엔드에서 스트리밍으로 보낸 최종 JSON 파싱
-    const parsed = JSON.parse(fullText);
-    return parsed;
-  } catch (e) {
-    console.error("스트리밍 JSON 파싱 실패:", fullText);
-    throw new Error("AI 응답 파싱 실패");
-  }
+  return fullText; // 최종 텍스트 반환 (호출부에서 JSON 파싱)
 }
 
 /**

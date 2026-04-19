@@ -42,7 +42,6 @@ async function handler(req, res) {
       systemInstruction: system,
       safetySettings,
       generationConfig: {
-        responseMimeType: "application/json",
         temperature: 0.1,
       }
     });

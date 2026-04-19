@@ -108,57 +108,57 @@ function addFallback() {
 
 function addTyping() {
   const d = document.createElement('div');
-  d.className = 'ai-result';
+  d.className = 'ai-result thinking-mode';
   d.innerHTML = `
-    <div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 자율탐색중...</div>
-    <div class="typing-wrap">
-      <div class="typing-steps">
-        <div class="typing-spinner"></div>
-        <div class="typing-msg">사용자의 목적지(의도)를 설정하고 경로를 탐색합니다...</div>
-        <div class="typing-sub">쇼핑 자율주행 엔진 '디스원'이 최적의 도착지를 찾고 있습니다.</div>
+    <div class="ai-label">
+      <span class="thinking-icon">🧠</span>
+      <span>디스원이 사고하는 중...</span>
+    </div>
+    <div class="thought-container">
+      <div class="thought-steps" id="thoughtSteps">
+        <div class="thought-step active">
+          <div class="step-dot"></div>
+          <div class="step-text">사용자의 숨겨진 구매 의도를 추론하고 있습니다...</div>
+        </div>
       </div>
+      <div id="liveResponse" class="live-response"></div>
+      <div class="thought-pulse"></div>
     </div>
   `;
   appendAndScroll(d);
 
-  const msgs = [
-    '웹 생태계 전방 도로를 스캔하고 있습니다...',
-    '광고 지뢰밭과 최저가 낚시 차량을 회피하는 중...',
-    '최적의 혜택이라는 목적지를 향해 자율 주행 중...',
-    '실시간 시장 트래픽과 사용자 리뷰 데이터를 동기화 중...',
-    '결정의 피로를 끝낼 최적의 도착지에 도착했습니다!'
-  ];
+  // 사고 단계 업데이트 함수
+  d.updateThought = (msg, isFinal = false) => {
+    const steps = d.querySelector('#thoughtSteps');
+    if (!steps) return;
+    
+    // 이전 단계 완료 처리
+    const lastStep = steps.querySelector('.thought-step.active');
+    if (lastStep) {
+      lastStep.classList.remove('active');
+      lastStep.classList.add('completed');
+      const dot = lastStep.querySelector('.step-dot');
+      if (dot) dot.innerHTML = '✓';
+    }
 
-  const subs = [
-    '전 세계 플랫폼의 데이터를 실시간으로 인지하고 통합합니다.',
-    '복잡한 조건 속에서 진정한 가치만을 정밀하게 선별해냅니다.',
-    '가장 빠르고 안전한 구매 경로를 실시간으로 설계하고 있습니다.',
-    '단순 가격을 넘어 서비스 품질과 판매자 신뢰도를 측정합니다.',
-    '완벽한 쇼핑 주행을 마치고 지능형 리포트를 출력합니다.'
-  ];
-
-  let idx = 0;
-  d._timer = setInterval(() => {
-    idx = (idx + 1) % msgs.length;
-    const m = d.querySelector('.typing-msg');
-    const s = d.querySelector('.typing-sub');
-    if (m) m.textContent = msgs[idx];
-    if (s) s.textContent = subs[idx];
-  }, 3500);
-
-  // 외부에서 상태를 직접 업데이트할 수 있는 함수 추가
-  d.updateStatus = (msg, sub) => {
-    clearInterval(d._timer); // 수동 업데이트 시 자동 롤링 중지
-    const m = d.querySelector('.typing-msg');
-    const s = d.querySelector('.typing-sub');
-    if (m) m.textContent = msg;
-    if (s) s.textContent = sub;
+    if (!isFinal) {
+      const newStep = document.createElement('div');
+      newStep.className = 'thought-step active';
+      newStep.innerHTML = `
+        <div class="step-dot"></div>
+        <div class="step-text">${msg}</div>
+      `;
+      steps.appendChild(newStep);
+    }
   };
 
-  const origRemove = d.remove.bind(d);
-  d.remove = () => {
-    clearInterval(d._timer);
-    origRemove();
+  // 실시간 스트리밍 텍스트 업데이트 함수
+  d.updateLiveResponse = (txt) => {
+    const el = d.querySelector('#liveResponse');
+    if (el) {
+      el.textContent = txt;
+      el.classList.add('active');
+    }
   };
 
   return d;

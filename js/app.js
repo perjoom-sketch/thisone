@@ -10,8 +10,12 @@ let searchMode = 'thisone';
 let _lastIntentProfile = null;
 
 const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI입니다.
-인사말, 설명, 마크다운 기호(###, **) 절대 금지. 오직 순수 JSON만 출력하세요.
-리포트(reason)는 반드시 1~2문장으로 극도로 짧게 요약하세요. (응답 속도 최우선)`;
+반드시 다음 순서로 출력하세요:
+1. [Thought]: 사용자의 의도 분석 및 추천 전략 (2~3문장으로 짧게)
+2. [JSON]: 상품 추천 결과 (구조화된 JSON 블록)
+
+JSON 외의 다른 텍스트는 [Thought] 섹션에만 포함하세요.
+리포트(reason)는 반드시 1~2문장으로 요약하세요.`;
 
 function getInput() { return document.getElementById(isSearchMode ? 'msgInput2' : 'msgInput'); }
 function getSendBtn() { return document.getElementById(isSearchMode ? 'sendBtn2' : 'sendBtn'); }
@@ -169,7 +173,7 @@ async function sendMsg(forceMode) {
     let searchQuery = queryText;
     if (window.ThisOneRanking?.rewriteSearchQuery) searchQuery = window.ThisOneRanking.rewriteSearchQuery(queryText);
 
-    typingEl?.updateStatus?.('의도 분석 및 시장 데이터 수집 중...', '사용자가 진짜 원하는 가치를 추론하고 있습니다.');
+    typingEl?.updateThought?.('의도 분석 및 시장 데이터 수집 중...');
     const savedSettings = localStorage.getItem('thisone_expert_settings');
     const expertSettings = savedSettings ? JSON.parse(savedSettings) : {};
     const trajectory = window.ThisOneTrajectory?.getSession() || {};
@@ -183,7 +187,7 @@ async function sendMsg(forceMode) {
     let intentProfile = intentProfileResult;
     _lastIntentProfile = intentProfile;
 
-    typingEl?.updateStatus?.('전문가 안목으로 상품 선별 중...', '최저가 낚시 및 부적합 상품을 정밀 필터링합니다.');
+    typingEl?.updateThought?.('전문가 안목으로 상품 선별 및 데이터 교차 검증 중...');
     const candidates = window.ThisOneRanking?.buildCandidates ? window.ThisOneRanking.buildCandidates(items, queryText, intentProfile) : items;
 
     if (!candidates || !candidates.length) {
@@ -205,7 +209,7 @@ async function sendMsg(forceMode) {
     }));
 
     const count = expertSettings.resultCount || 5;
-    typingEl?.updateStatus?.('최종 추천 리포트 작성 중...', `고민을 해결해 줄 최적의 상품 ${count}개를 선정합니다.`);
+    typingEl?.updateThought?.(`최종 추천 리포트 생성 중 (인내심 설정: ${expertSettings.patienceTime || 10}초)...`);
 
     const aiMessages = [{
       role: 'user',
@@ -226,24 +230,22 @@ async function sendMsg(forceMode) {
     if (patience > 30) depthPrompt = " 모든 후보의 스펙, 리뷰, 장단점을 초정밀 대조하여 가장 심도 있는 전문가 분석 리포트를 작성하세요. 분량이 길어져도 괜찮습니다.";
     else if (patience > 10) depthPrompt = " 상품별 주요 차이점을 꼼꼼하게 분석하여 리포트를 작성하세요.";
 
-    const aiData = await window.ThisOneAPI.requestChat({ 
+    const aiDataText = await window.ThisOneAPI.requestChat({ 
       model: MODEL, 
       max_tokens: tokens, 
       system: RANKING_PROMPT + depthPrompt, 
       messages: aiMessages 
+    }, (chunk, fullText) => {
+      // 실시간 생각 추출 및 표시
+      const thoughtMatch = fullText.match(/\[Thought\]:(.*?)(?=\[JSON\]|$)/s);
+      if (thoughtMatch && thoughtMatch[1]) {
+        typingEl?.updateLiveResponse(thoughtMatch[1].trim());
+      }
     });
 
     typingEl?.remove();
 
-    if (aiData?.error) {
-      window.ThisOneUI?.addFallback?.('AI 분석 서버 혼잡으로 검색 결과만 보여줍니다.');
-      window.ThisOneUI?.renderRawResults?.(candidates);
-      return;
-    }
-
-    const raw = Array.isArray(aiData?.content) ? aiData.content.filter(b => b.type === 'text').map(b => b.text).join('') : '';
-    
-    if (!raw.trim()) {
+    if (!aiDataText || !aiDataText.trim()) {
       console.warn('AI returned empty response.');
       window.ThisOneUI?.addFallback?.('지능형 엔진이 현재 분석 중입니다. 잠시 후 다시 시도하거나 일반 검색 결과를 확인해 주세요.');
       window.ThisOneUI?.renderRawResults?.(candidates);
@@ -251,7 +253,11 @@ async function sendMsg(forceMode) {
     }
 
     try {
-      const parsed = extractJSON(raw);
+      // JSON 영역 추출 ([JSON]: 이후부터 끝까지)
+      const jsonMatch = aiDataText.match(/\[JSON\]:?\s*(\{[\s\S]*\})/);
+      const rawJson = jsonMatch ? jsonMatch[1] : aiDataText;
+      const parsed = extractJSON(rawJson);
+      
       if (!parsed) throw new Error('Valid JSON block not found');
       
       const merged = window.ThisOneRanking?.mergeAiWithCandidates ? window.ThisOneRanking.mergeAiWithCandidates(deepClean(parsed), candidates) : parsed;

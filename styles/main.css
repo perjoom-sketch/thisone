@@ -549,6 +549,78 @@ a{
   to{ transform:rotate(360deg); }
 }
 
+/* thought step styles */
+.thought-container {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.thought-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  opacity: 0.5;
+  transition: all 0.3s ease;
+}
+
+.thought-step.active {
+  opacity: 1;
+}
+
+.thought-step.completed {
+  opacity: 0.8;
+  color: #64748b;
+}
+
+.step-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #fff;
+}
+
+.thought-step.active .step-dot {
+  background: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.thought-step.completed .step-dot {
+  background: #10b981;
+}
+
+.live-response {
+  margin-top: 12px;
+  padding: 14px;
+  background: #fff;
+  border-radius: 12px;
+  border-left: 3px solid #3b82f6;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #334155;
+  display: none;
+  white-space: pre-wrap;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+}
+
+.live-response.active {
+  display: block;
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* cards */
 .pick-card-link{
   display:block;
@@ -1004,9 +1076,11 @@ a{
 }
 .setting-group.inline {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px 20px;
-  margin-bottom: 16px;
+  flex-wrap: nowrap;
+  gap: 12px 24px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  padding-bottom: 8px;
 }
 .setting-group.inline label {
   display: flex;
@@ -1021,11 +1095,7 @@ a{
 
 /* 개수 선택 영역 별도 정렬 */
 .result-count-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  padding-top: 8px;
+  display: block;
   font-size: 13px;
   font-weight: 700;
   color: #64748b;
@@ -1042,6 +1112,16 @@ a{
   transition: border-color 0.2s;
 }
 .result-count-wrap select:hover { border-color: var(--accent); }
+
+.patience-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-bottom-row {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 20px;
+}
 
 .filter-footer {
   margin-top: 12px;
@@ -1238,4 +1318,101 @@ a{
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(5px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* === 사고 모드 (Thinking Mode) 스타일 === */
+.thinking-mode {
+  background: #f8fbff !important;
+  border: 1px solid #dbeafe !important;
+  padding: 24px !important;
+  border-radius: 20px !important;
+  margin: 16px 0 !important;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.05);
+}
+
+.thinking-icon {
+  font-size: 20px;
+  margin-right: 10px;
+  display: inline-block;
+  animation: brainPulse 2s infinite ease-in-out;
+}
+
+@keyframes brainPulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 1; filter: drop-shadow(0 0 8px #3b82f6); }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+
+.thought-container {
+  margin-top: 16px;
+  position: relative;
+  padding-left: 20px;
+  border-left: 2px solid #e2e8f0;
+}
+
+.thought-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+  opacity: 0.4;
+  transition: all 0.4s ease;
+}
+
+.thought-step.active {
+  opacity: 1;
+  transform: translateX(4px);
+}
+
+.thought-step.completed {
+  opacity: 0.8;
+  color: #64748b;
+}
+
+.step-dot {
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border: 2px solid #e2e8f0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  color: #3b82f6;
+  margin-top: 2px;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.thought-step.active .step-dot {
+  border-color: #3b82f6;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+}
+
+.thought-step.completed .step-dot {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+.step-text {
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.thought-pulse {
+  height: 2px;
+  width: 100px;
+  background: linear-gradient(90deg, #3b82f6, transparent);
+  margin-top: 12px;
+  animation: thoughtSlide 2s infinite linear;
+}
+
+@keyframes thoughtSlide {
+  0% { transform: translateX(-20px); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateX(150px); opacity: 0; }
 }

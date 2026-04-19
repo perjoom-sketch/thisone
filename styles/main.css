@@ -76,17 +76,32 @@ a{
 }
 @media (max-width: 768px) {
   .hdr {
-    padding: 12px 20px 14px;
-    flex-direction: column; /* 세로 배치로 변경 */
+    padding: 20px 20px 24px; /* 높이 확보를 위해 상하 패딩 확대 */
+    flex-direction: column;
     justify-content: center;
+    align-items: center;
     text-align: center;
+    min-height: 100px; /* 최소 높이 보장 */
   }
   .logo {
-    align-items: center; /* 로고와 슬로건을 중앙으로 */
-    width: 100%;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+  }
+  .logo-img {
+    width: 160px !important; /* 모바일에서 적절한 크기로 조정 */
+    height: auto !important;
+    margin-bottom: 6px;
+  }
+  .slogan {
+    margin-left: 0 !important;
+    font-size: 11px !important;
   }
   .hdr .badge {
-    margin-top: 10px; /* 배지가 있다면 아래로 배치 */
+    margin-top: 12px;
   }
 }
 

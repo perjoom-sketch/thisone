@@ -331,6 +331,31 @@ function getCandidateBonus(candidate, profile) {
     }
   }
 
+  // ── 2024-2025 최신 가전 트렌드 가중치 (로봇청소기/세탁건조기) ────────────────
+  const isRobotVacuum = name.includes('로봇청소기') || profile.categoryHint?.includes('로봇청소기');
+  if (isRobotVacuum) {
+    if (name.includes('올인원') || name.includes('스테이션') || name.includes('자동세척') || name.includes('온풍건조')) {
+      bonusScore += 5;
+      bonusReasons.push('최신 올인원 스테이션');
+    }
+    if (name.includes('직배수')) {
+      bonusScore += 3;
+      bonusReasons.push('직배수 지원 편리성');
+    }
+  }
+
+  const isLaundry = name.includes('세탁기') || name.includes('건조기') || profile.categoryHint?.includes('세탁');
+  if (isLaundry) {
+    if (name.includes('올인원') || name.includes('워시콤보') || name.includes('일체형')) {
+      bonusScore += 6;
+      bonusReasons.push('차세대 세탁건조 일체형');
+    }
+    if (name.includes('구독') || name.includes('렌탈') || name.includes('방문관리')) {
+      bonusScore += 2;
+      bonusReasons.push('케어 서비스 구독 트렌드');
+    }
+  }
+
   return {
     bonusScore,
     bonusReasons: bonusReasons.join(', ')

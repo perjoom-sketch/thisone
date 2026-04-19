@@ -258,7 +258,10 @@ async function sendMsg(forceMode) {
       system: RANKING_PROMPT + depthPrompt, 
       messages: aiMessages 
     }, (chunk, fullText) => {
-      // 실시간 생각 추출 및 표시
+      // [보안/UI] [JSON] 태그가 감지되면 소스 노출 방지를 위해 실시간 업데이트 중단
+      if (fullText.includes('[JSON]')) return;
+
+      // 실시간 생각(Thought) 섹션만 정밀하게 추출하여 표시
       const thoughtMatch = fullText.match(/\[Thought\]:(.*?)(?=\[JSON\]|$)/s);
       if (thoughtMatch && thoughtMatch[1]) {
         typingEl?.updateLiveResponse(thoughtMatch[1].trim());

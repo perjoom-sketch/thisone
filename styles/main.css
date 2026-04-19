@@ -230,7 +230,7 @@ a{
   flex-direction: column !important;
   align-items: stretch !important;
   gap:0;
-  padding:12px 16px 8px; /* 하단 패딩을 12px -> 8px로 축소 */
+  padding:12px 16px;
   border:2px solid #d8dfeb;
   border-radius:24px;
   background:#fff;
@@ -242,13 +242,20 @@ a{
   box-shadow:0 0 0 4px rgba(59,130,246,.08);
 }
 
+.input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  width: 100%;
+}
+
 .msg-input{
   flex: 1;
   min-width: 0;
-  min-height:30px; /* 살짝 줄여서 더 타이트하게 */
+  min-height:32px;
   max-height:160px;
-  margin:4px 0 0; /* 하단 마진 8px -> 0으로 제거 */
-  padding:0;
+  margin: 0;
+  padding: 6px 0;
   border:none;
   outline:none;
   resize:none;
@@ -314,18 +321,11 @@ a{
   padding: 0;
 }
 
-/* 하단 버튼 영역 */
-.search-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 4px;
-}
-
 .footer-right {
   display: flex;
-  gap: 28px; /* 8px + 20px(5mm) = 28px로 간격 확대 */
+  gap: 16px;
   align-items: center;
+  margin-bottom: 6px; /* 텍스트 입력창 하단 라인과 맞춤 */
 }
 
 .img-btn,

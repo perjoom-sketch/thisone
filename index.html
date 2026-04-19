@@ -38,17 +38,16 @@
           </div>
         </div>
 
-        <textarea
-          class="msg-input"
-          id="msgInput"
-          placeholder="검색어 입력 또는 이미지 붙여넣기(Ctrl+V)..."
-          rows="1"
-          oninput="autoResize(this)"
-          onkeydown="handleKey(event)"
-        ></textarea>
+        <div class="input-row">
+          <textarea
+            class="msg-input"
+            id="msgInput"
+            placeholder="검색어 입력 또는 이미지 붙여넣기(Ctrl+V)..."
+            rows="1"
+            oninput="autoResize(this)"
+            onkeydown="handleKey(event)"
+          ></textarea>
 
-        <div class="search-footer">
-          <div class="footer-left"></div>
           <div class="footer-right">
             <button class="img-btn" type="button" onclick="document.getElementById('fileInput').click()" title="이미지 업로드 또는 붙여넣기">
               <span class="new-badge">NEW</span>
@@ -130,17 +129,16 @@
         </div>
       </div>
 
-      <textarea
-        class="msg-input"
-        id="msgInput2"
-        placeholder="검색어 입력 또는 이미지 붙여넣기(Ctrl+V)..."
-        rows="1"
-        oninput="autoResize(this)"
-        onkeydown="handleKey(event)"
-      ></textarea>
+      <div class="input-row">
+        <textarea
+          class="msg-input"
+          id="msgInput2"
+          placeholder="검색어 입력 또는 이미지 붙여넣기(Ctrl+V)..."
+          rows="1"
+          oninput="autoResize(this)"
+          onkeydown="handleKey(event)"
+        ></textarea>
 
-      <div class="search-footer">
-        <div class="footer-left"></div>
         <div class="footer-right">
           <button class="img-btn" type="button" onclick="document.getElementById('fileInput').click()">
             <span class="new-badge">NEW</span>

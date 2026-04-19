@@ -118,17 +118,18 @@ a{
     overflow: visible !important;
   }
   .logo-img {
-    height: 36px !important; /* 높이를 고정하여 잘림 방지 */
+    height: 60px !important;
     width: auto !important;
-    max-width: 140px !important;
+    max-width: 240px !important;
     margin-bottom: 8px !important;
     object-fit: contain !important;
   }
   .slogan {
     margin-left: 0 !important;
     text-align: center !important;
-    font-size: 12px !important;
-    color: #64748b !important;
+    font-size: 14px !important;
+    color: #475569 !important;
+    font-weight: 800 !important;
     display: block !important;
   }
   .hdr .badge {

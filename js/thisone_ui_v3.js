@@ -476,6 +476,8 @@ async function submitInquiry() {
   const title = document.getElementById('inqTitle')?.value.trim();
   const content = document.getElementById('inqContent')?.value.trim();
 
+  console.log('[Inquiry] Attempting submission...', { title, content });
+
   if (!title || !content) {
     alert('제목과 내용을 모두 입력해주세요.');
     return;
@@ -487,17 +489,23 @@ async function submitInquiry() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, content })
     });
+    
+    console.log('[Inquiry] Status:', res.status);
     const result = await res.json();
+    console.log('[Inquiry] Result:', result);
 
-    if (result.status === 'success') {
+    if (res.ok && result.status === 'success') {
       alert('문의가 성공적으로 등록되었습니다.');
-      document.getElementById('inqTitle').value = '';
-      document.getElementById('inqContent').value = '';
+      if (document.getElementById('inqTitle')) document.getElementById('inqTitle').value = '';
+      if (document.getElementById('inqContent')) document.getElementById('inqContent').value = '';
       hideInquiryForm();
       fetchInquiries();
+    } else {
+      alert('등록 실패: ' + (result.message || '알 수 없는 오류'));
     }
   } catch (err) {
-    alert('등록 중 오류가 발생했습니다.');
+    console.error('[Inquiry] Critical Error:', err);
+    alert('등록 중 오류가 발생했습니다. 개발자 도구(F12) 콘솔을 확인해 주세요.');
   }
 }
 

@@ -1,13 +1,7 @@
-/**
- * api/inquiry.js
- * Vercel KV를 사용하여 문의 게시판 데이터를 관리하는 엔드포인트.
- */
-const { kv } = require('@vercel/kv');
+import { kv } from '@vercel/kv';
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  console.log(`[Inquiry API] ${req.method} request received`);
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -22,24 +16,29 @@ export default async function handler(req, res) {
     // 2. 문의 등록 (POST)
     if (req.method === 'POST') {
       const { title, content, author = '익명' } = req.body || {};
+      console.log('[Inquiry API] Received Data:', { title, content, author });
+
       if (!title || !content) {
         return res.status(400).json({ status: 'error', message: '제목과 내용을 입력해주세요.' });
       }
 
       const newInquiry = {
         id: Date.now(),
-        title,
-        content,
-        author,
+        title: String(title).substring(0, 100),
+        content: String(content).substring(0, 2000),
+        author: String(author).substring(0, 20),
         createdAt: new Date().toISOString()
       };
 
-      // 목록 맨 앞에 추가
-      await kv.lpush('thisone_inquiries', newInquiry);
-      // 최대 100개까지만 유지 (관리용)
-      await kv.ltrim('thisone_inquiries', 0, 99);
-
-      return res.status(200).json({ status: 'success', data: newInquiry });
+      try {
+        await kv.lpush('thisone_inquiries', JSON.stringify(newInquiry));
+        await kv.ltrim('thisone_inquiries', 0, 99);
+        console.log('[Inquiry API] Successfully saved to KV');
+        return res.status(200).json({ status: 'success', data: newInquiry });
+      } catch (kvErr) {
+        console.error('[Inquiry API KV Error]:', kvErr);
+        return res.status(500).json({ status: 'error', message: '데이터베이스 저장 실패: ' + kvErr.message });
+      }
     }
 
     return res.status(405).json({ error: 'Method Not Allowed' });

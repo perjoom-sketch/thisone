@@ -37,6 +37,20 @@ function quick(t) { currentQuery = t; syncQueryInputs(t); setSearchMode('thisone
 function handleImg(e) {
   const file = e.target.files[0];
   if (!file) return;
+  processFile(file);
+}
+
+function handlePaste(e) {
+  const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+  for (const item of items) {
+    if (item.type.indexOf("image") !== -1) {
+      const file = item.getAsFile();
+      processFile(file);
+    }
+  }
+}
+
+function processFile(file) {
   const r = new FileReader();
   r.onload = (ev) => {
     pendingImg = { data: ev.target.result.split(',')[1], src: ev.target.result };
@@ -44,11 +58,10 @@ function handleImg(e) {
     const el = document.getElementById('previewImg');
     const nm = document.getElementById('previewName');
     if (el) el.src = ev.target.result;
-    if (nm) nm.textContent = file.name;
+    if (nm) nm.textContent = file.name || "clipboard_image.png";
     if (pv) pv.classList.add('show');
   };
   r.readAsDataURL(file);
-  e.target.value = '';
 }
 
 function removeImg() {
@@ -306,4 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadTrendingChips();
   document.getElementById('thisoneSearchBtn')?.addEventListener('click', () => sendMsg('thisone'));
   document.getElementById('rawSearchBtn')?.addEventListener('click', () => sendMsg('raw'));
+  
+  // 이미지 붙여넣기 지원
+  document.addEventListener('paste', handlePaste);
 });

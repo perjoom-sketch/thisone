@@ -276,7 +276,6 @@ body.search-mode .slogan {
 
 body.search-mode #stickySearch {
   display: flex !important;
-  animation: slideDownCustom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sticky-inner {
@@ -284,23 +283,37 @@ body.search-mode #stickySearch {
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 16px; /* 24 -> 16으로 기본 간격 조정 */
   width: 100%;
 }
 
+@media (max-width: 640px) {
+  .sticky-inner { gap: 8px; } /* 모바일은 더 좁게 */
+}
+
+.sticky-logo {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
 .sticky-logo-img {
-  height: 42px;
+  height: 36px; /* 조금 더 컴팩트하게 */
   width: auto;
   object-fit: contain;
-  display: block;
+}
+
+@media (max-width: 640px) {
+  .sticky-logo-img { height: 28px; } /* 모바일 로고 크기 최적화 */
 }
 
 #stickySearch .search-box {
   flex: 1;
   background: var(--soft);
   border-radius: 14px;
-  padding: 4px 12px;
+  padding: 4px 10px;
   border: 1px solid var(--line);
+  min-width: 0;
 }
 
 .filter-trigger-btn {

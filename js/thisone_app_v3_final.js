@@ -369,20 +369,19 @@ async function sendMsg(forceMode) {
         const merged = window.ThisOneRanking?.mergeAiWithCandidates ? window.ThisOneRanking.mergeAiWithCandidates(deepClean(parsed), candidates) : parsed;
         window.ThisOneUI?.addResultCard?.(merged);
         
-        // 모바일 포함 전방위 스크롤 진압: 부드럽게 상단 이동
+        // 상단 이동을 즉시 수행하여 '날아다니는' 느낌 제거
         setTimeout(() => {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          // 로고 쪽으로 시선 고정하되, 너무 강제적이지 않게
-          const logo = document.querySelector('#stickySearch .logo') || document.querySelector('.hdr .logo');
-          if (logo) logo.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100); 
+          window.scrollTo(0, 0);
+          const logo = document.querySelector('#stickySearch .sticky-logo-img');
+          if (logo) logo.scrollIntoView({ block: 'start' });
+        }, 10); 
       } catch (e) {
         console.warn("Silent Fallback Triggered", e);
         window.ThisOneUI?.addFallback?.(); // 조용하고 우아한 마무리 문구 출력
         
         setTimeout(() => {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }, 100);
+          window.scrollTo(0, 0);
+        }, 10);
         window.ThisOneUI?.renderRawResults?.(candidates);
       }
     } catch (err) {

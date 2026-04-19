@@ -80,7 +80,7 @@ a{
 
 .logo{
   display:flex;
-  flex-direction: column;
+  flex-direction: column !important; /* 수직 배치 강제 */
   align-items: flex-start;
   gap: 2px;
   text-decoration:none;
@@ -113,7 +113,7 @@ a{
   .logo {
     display: flex !important;
     flex-direction: column !important;
-    align-items: flex-start !important;
+    align-items: center !important; /* 모바일은 중앙 정렬 */
     justify-content: center !important;
     width: auto !important;
     gap: 2px !important;
@@ -126,8 +126,8 @@ a{
   }
   .slogan {
     margin-top: 0 !important;
-    margin-left: 2px !important;
-    text-align: left !important;
+    margin-left: 0 !important;
+    text-align: center !important;
     font-size: 13px !important;
     color: #475569 !important;
     font-weight: 800 !important;

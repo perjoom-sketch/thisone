@@ -182,7 +182,7 @@ async function sendMsg(forceMode) {
     let searchQuery = queryText;
     if (window.ThisOneRanking?.rewriteSearchQuery) searchQuery = window.ThisOneRanking.rewriteSearchQuery(queryText);
 
-    typingEl?.updateThought?.('검색패턴을 관찰해서 당신이 찾고 있는 것을 분석 중...');
+    typingEl?.updateThought?.('검색패턴을 관찰해서 원하는 상품 추론 중...');
     const expertSettings = {
       minPrice: document.getElementById('minPrice')?.value || '',
       maxPrice: document.getElementById('maxPrice')?.value || '',
@@ -196,6 +196,7 @@ async function sendMsg(forceMode) {
     };
     const trajectory = window.ThisOneTrajectory?.getSession() || {};
 
+    typingEl?.updateThought?.('다양한 상품 데이터 수집 중...');
     const [searchData, intentProfileResult] = await Promise.all([
       window.ThisOneAPI.requestSearch(searchQuery, expertSettings),
       window.ThisOneAPI.requestIntentInfer(queryText, trajectory, queryImage).catch(() => null)
@@ -205,7 +206,7 @@ async function sendMsg(forceMode) {
     let intentProfile = intentProfileResult;
     _lastIntentProfile = intentProfile;
 
-    typingEl?.updateThought?.('전문가 안목으로 상품 선별 및 데이터 교차 검증 중...');
+    typingEl?.updateThought?.('상품 데이터 및 형상 분석 선별 중...');
     const candidates = window.ThisOneRanking?.buildCandidates ? window.ThisOneRanking.buildCandidates(items, queryText, intentProfile) : items;
 
     if (!candidates || !candidates.length) {
@@ -227,7 +228,7 @@ async function sendMsg(forceMode) {
     }));
 
     const count = expertSettings.resultCount || 5;
-    typingEl?.updateThought?.(`최종 추천 리포트 생성 중 (분석시간 설정: ${expertSettings.patienceTime || 20}초)...`);
+    typingEl?.updateThought?.(`검색결과 생성 중 (분석시간 설정: ${expertSettings.patienceTime || 20}초)...`);
 
     const aiMessages = [{
       role: 'user',

@@ -227,10 +227,10 @@ a{
   max-width:860px;
   margin:0 auto;
   display:flex;
-  flex-direction: column !important; /* 수직 적층 구조 */
+  flex-direction: column !important;
   align-items: stretch !important;
   gap:0;
-  padding:12px 16px;
+  padding:12px 16px 8px; /* 하단 패딩을 12px -> 8px로 축소 */
   border:2px solid #d8dfeb;
   border-radius:24px;
   background:#fff;
@@ -245,9 +245,9 @@ a{
 .msg-input{
   flex: 1;
   min-width: 0;
-  min-height:34px;
+  min-height:30px; /* 살짝 줄여서 더 타이트하게 */
   max-height:160px;
-  margin:4px 0 8px;
+  margin:4px 0 0; /* 하단 마진 8px -> 0으로 제거 */
   padding:0;
   border:none;
   outline:none;

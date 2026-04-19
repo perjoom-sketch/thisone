@@ -225,7 +225,25 @@ a{
 /* search */
 .search-wrap{
   width:min(860px, 92vw);
-  margin:0 auto;
+  margin:0 auto !important; /* 중앙 정렬 강제 */
+  position: relative;
+  z-index: 5;
+}
+
+.new-badge {
+  position: absolute;
+  top: -12px;
+  right: -8px;
+  background: #3b82f6;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 6px;
+  line-height: 1;
+  box-shadow: 0 2px 5px rgba(59, 130, 246, 0.4);
+  z-index: 10;
+  pointer-events: none;
 }
 
 .search-box{
@@ -369,24 +387,54 @@ a{
   box-shadow:0 6px 16px rgba(59,130,246,0.2);
 }
 
-.search-hint{
-  margin:12px auto 0;
-  text-align:center;
-  color:#9ca3af;
-  font-size:13px;
-  line-height:1.6;
-  word-break:keep-all;
-  max-width:540px;
+.filter-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px auto 0;
+  padding: 8px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  width: fit-content;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
-/* chips */
-#chips{
-  width:min(760px, 92vw);
-  margin:20px auto 0;
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  gap:10px;
+.filter-trigger:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.search-hint {
+  margin: 16px auto 0;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+  max-width: 500px;
+  line-height: 1.6;
+}
+
+.trending-section {
+  margin-top: 40px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.trending-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .chip{
@@ -1520,11 +1568,22 @@ a{
 
 /* 문의게시판 모달 전용 */
 .inquiry-board {
-  max-width: 600px;
-  width: 90%;
-  max-height: 80vh;
+  max-width: 800px;
+  width: 95%;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border-radius: 32px;
+  padding: 40px;
+  transform: scale(0.95);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.modal-overlay.show .inquiry-board {
+  transform: scale(1);
 }
 .inquiry-list {
   margin-top: 16px;
@@ -1878,3 +1937,101 @@ a{
     font-size: 16px;
   }
 }
+
+/* --- Premium Modal System --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.close-btn {
+  background: #f1f5f9;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  transform: rotate(90deg);
+}
+
+.trending-section {
+  margin-top: 48px;
+  text-align: center;
+  animation: fadeIn 0.8s ease-out;
+}
+
+.trending-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: #94a3b8;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* --- Sticky Search Optimization (Root Cause Fix) --- */
+#stickySearch {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-bottom: 1px solid #f1f5f9;
+}
+
+#stickySearch .search-box {
+  width: min(860px, 92vw);
+  margin: 0 auto;
+}
+
+/* Ensure no layout shift when sticky search appears */
+body.search-mode #stickySearch {
+  animation: slideDown 0.4s ease-out forwards;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+

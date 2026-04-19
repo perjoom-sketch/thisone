@@ -385,14 +385,7 @@ function toggleFilterModal() {
   }
   const el = document.getElementById('inlineFilter');
   if (!el) return;
-  const isShow = el.style.display === 'flex';
-  
-  if (!isShow) {
-    el.style.display = 'flex';
-    el.style.zIndex = '9999999';
-  } else {
-    el.style.display = 'none';
-  }
+  el.classList.toggle('show');
 }
 
 // 설정 로딩 기능 제거 (새로고침 시 초기화 원칙)
@@ -419,8 +412,7 @@ function saveExpertSettings() {
   }
 
   const el = document.getElementById('inlineFilter');
-  if (el) el.style.display = 'none';
-  // alert('설정이 현재 검색에 적용되었습니다.'); // 사용자 경험을 위해 얼럿 제거
+  if (el) el.classList.remove('show');
 }
 
 function applyPcView() {

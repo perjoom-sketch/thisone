@@ -82,14 +82,17 @@ function addUserMsg(txt, imgSrc) {
 }
 
 function addFallback(txt) {
-  if (typeof stripCitations === 'function') {
-    txt = stripCitations(txt);
-  }
-
   const d = document.createElement('div');
   d.className = 'ai-result';
+  
+  const defaultMsg = '데이터 분석을 바탕으로 최적의 후보군 선별을 마쳤습니다. 아래 리스트에서 사용자님의 환경에 가장 적합한 상품을 확인해 보세요.';
+  let contentTxt = txt || defaultMsg;
 
-  const fmt = String(txt || '')
+  if (typeof stripCitations === 'function') {
+    contentTxt = stripCitations(contentTxt);
+  }
+
+  const fmt = String(contentTxt)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -97,19 +100,12 @@ function addFallback(txt) {
     .replace(/\n/g, '<br>');
 
   d.innerHTML = `
-    <div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 지능형 분석 리포트</div>
-    <div class="pick-card" style="border-color:var(--border)">${fmt}</div>
-  `;
-  appendAndScroll(d);
-}
-
-function addFallback() {
-  const d = document.createElement('div');
-  d.className = 'ai-result';
-  d.innerHTML = `
-    <div class="ai-label"><div class="dot">✦</div> 분석 완료</div>
-    <div class="pick-card" style="border-left: 4px solid var(--accent); background: #f8fafc;">
-      데이터 분석을 바탕으로 최적의 후보군 선별을 마쳤습니다. 아래 리스트에서 사용자님의 환경에 가장 적합한 상품을 확인해 보세요.
+    <div class="ai-label">
+      <div class="dot">${window.MINI_SCOPE || '✦'}</div>
+      <span>분석 완료</span>
+    </div>
+    <div class="pick-card" style="border-left: 4px solid var(--accent); background: #f8fafc; padding: 20px; border-radius: 16px;">
+      ${fmt}
     </div>
   `;
   appendAndScroll(d);
@@ -432,14 +428,14 @@ async function loadDynamicTrends() {
 async function openInquiryBoard() {
   const modal = document.getElementById('inquiryModal');
   if (modal) {
-    modal.style.display = 'flex';
+    modal.classList.add('show');
     fetchInquiries();
   }
 }
 
 function closeInquiryBoard() {
   const modal = document.getElementById('inquiryModal');
-  if (modal) modal.style.display = 'none';
+  if (modal) modal.classList.remove('show');
   hideInquiryForm();
 }
 
@@ -472,13 +468,18 @@ async function fetchInquiries() {
       }
 
       list.innerHTML = result.data.map(inq => `
-        <div class="inquiry-item" style="border-bottom: 1px solid #f1f5f9; padding: 16px 0;">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <div class="inq-title" style="font-weight:700; color:#1e293b; font-size:15px; margin-bottom:4px;">${esc(inq.title)}</div>
-            <button onclick="window.ThisOneUI.prepareEdit('${inq.id}', '${escAttr(inq.title)}', '${escAttr(inq.content)}')" style="font-size:11px; background:#f1f5f9; border:none; padding:4px 8px; border-radius:6px; color:#64748b; cursor:pointer;">수정</button>
+        <div class="inquiry-item" style="background:#fff; border:1px solid #f1f5f9; border-radius:16px; padding:20px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,0.02);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="width:32px; height:32px; background:#eff6ff; color:#3b82f6; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px;">Q</div>
+              <div>
+                <div class="inq-title" style="font-weight:800; color:#1e293b; font-size:15px; margin:0;">${esc(inq.title)}</div>
+                <div class="inq-meta" style="font-size:12px; color:#94a3b8; margin-top:2px;">${inq.author} • ${new Date(inq.createdAt).toLocaleDateString()}</div>
+              </div>
+            </div>
+            <button class="close-btn" onclick="window.ThisOneUI.prepareEdit('${inq.id}', '${escAttr(inq.title)}', '${escAttr(inq.content)}')" style="width:auto; height:auto; padding:6px 12px; font-size:11px; font-weight:700; border-radius:8px;">수정</button>
           </div>
-          <div class="inq-meta" style="font-size:12px; color:#94a3b8;">${inq.author} · ${new Date(inq.createdAt).toLocaleDateString()}</div>
-          <div style="font-size:14px; color:#475569; margin-top:8px; line-height:1.5; white-space:pre-wrap;">${esc(inq.content)}</div>
+          <div style="font-size:14px; color:#475569; line-height:1.6; white-space:pre-wrap; background:#f8fafc; padding:12px; border-radius:10px;">${esc(inq.content)}</div>
         </div>
       `).join('');
     }

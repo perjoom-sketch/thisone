@@ -1,5 +1,5 @@
 // api/search.js - 유모차 같은 자연어 검색 개선 버전
-const { applyUniversalAIFilter } = require('../lib/universalFilter');
+
 
 function stripTags(text) {
   return String(text || '')
@@ -101,19 +101,8 @@ async function handler(req, res) {
       productId: item.productId || ''
     }));
 
-    // AI 필터 적용
-    const filterResult = await applyUniversalAIFilter({
-      query: q,           // 원본 쿼리 (의도 파악용)
-      items: items
-    });
-
-    let finalItems = [];
-    if (filterResult && filterResult.filteredItems && filterResult.filteredItems.length > 0) {
-      finalItems = filterResult.filteredItems.slice(0, 10); // 최대 10개
-    } else {
-      // 필터 실패 시 안전하게 상위 상품 사용
-      finalItems = items.slice(0, 10);
-    }
+    // 검색 결과 반환 (상위 15개)
+    const finalItems = items.slice(0, 15);
 
     return res.status(200).json({
       query: q,

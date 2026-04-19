@@ -245,16 +245,20 @@ async function sendMsg(forceMode) {
       let searchQuery = queryText;
       if (window.ThisOneRanking?.rewriteSearchQuery) searchQuery = window.ThisOneRanking.rewriteSearchQuery(queryText);
 
+      // 설정값이 존재하지 않을 경우(모달을 열지 않았을 때 등)를 위한 샌니타이징
+      const getVal = (id) => document.getElementById(id)?.value || '';
+      const getCheck = (id) => document.getElementById(id)?.checked || false;
+
       const expertSettings = {
-        minPrice: document.getElementById('minPrice')?.value || '',
-        maxPrice: document.getElementById('maxPrice')?.value || '',
-        freeShipping: document.getElementById('freeShipping')?.checked || false,
-        excludeOverseas: document.getElementById('excludeOverseas')?.checked || false,
-        excludeAgent: document.getElementById('excludeAgent')?.checked || false,
-        excludeUsed: document.getElementById('excludeUsed')?.checked || false,
-        includeRental: document.getElementById('includeRental')?.checked || false,
-        resultCount: document.getElementById('resultCount')?.value || 5,
-        patienceTime: document.getElementById('patienceTime')?.value || 20
+        minPrice: getVal('minPrice'),
+        maxPrice: getVal('maxPrice'),
+        freeShipping: getCheck('freeShipping'),
+        excludeOverseas: getCheck('excludeOverseas'),
+        excludeAgent: getCheck('excludeAgent'),
+        excludeUsed: getCheck('excludeUsed'),
+        excludeRental: getCheck('excludeRental'), // include -> exclude 수정
+        resultCount: getVal('resultCount') || 5,
+        patienceTime: getVal('patienceTime') || 20
       };
       const trajectory = window.ThisOneTrajectory?.getSession() || {};
 

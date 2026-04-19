@@ -630,6 +630,10 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
       specPenalty += 5;
       badges.push('유료배송 감점');
     }
+    if (expertSettings.excludeRental && /렌탈|구독|방문관리/i.test(candidate.name + candidate.store)) {
+      specPenalty += 20;
+      badges.push('렌탈/구독 페널티');
+    }
 
     // ── AI 의도 분석(focus_specs) 추가 보너스 ──────────
     if (profile?.expertFactors?.focus_specs) {

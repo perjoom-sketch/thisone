@@ -1060,6 +1060,40 @@ a{
   padding-top: 16px;
 }
 
+.img-btn {
+  position: relative; /* 배지 배치를 위해 부모 기준점 설정 */
+  background: #f3f4f6;
+  border: none;
+  border-radius: 12px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #4b5563;
+  flex-shrink: 0;
+}
+
+.new-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 5px;
+  border-radius: 6px;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+  animation: pulse-red 2s infinite;
+  z-index: 10;
+}
+
+@keyframes pulse-red {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
 .save-btn {
   width: 100%;
   padding: 14px;

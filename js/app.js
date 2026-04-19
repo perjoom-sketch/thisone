@@ -233,6 +233,7 @@ function loadExpertSettings() {
   document.getElementById('maxPrice').value = settings.maxPrice || '';
   document.getElementById('freeShipping').checked = !!settings.freeShipping;
   document.getElementById('excludeOverseas').checked = !!settings.excludeOverseas;
+  document.getElementById('excludeAgent').checked = !!settings.excludeAgent;
   document.getElementById('excludeUsed').checked = !!settings.excludeUsed;
   document.getElementById('includeRental').checked = !!settings.includeRental;
 }
@@ -243,6 +244,7 @@ function saveExpertSettings() {
     maxPrice: document.getElementById('maxPrice').value,
     freeShipping: document.getElementById('freeShipping').checked,
     excludeOverseas: document.getElementById('excludeOverseas').checked,
+    excludeAgent: document.getElementById('excludeAgent').checked,
     excludeUsed: document.getElementById('excludeUsed').checked,
     includeRental: document.getElementById('includeRental').checked
   };

@@ -324,7 +324,7 @@ a{
 
 .footer-right {
   display: flex;
-  gap: 8px;
+  gap: 28px; /* 8px + 20px(5mm) = 28px로 간격 확대 */
   align-items: center;
 }
 

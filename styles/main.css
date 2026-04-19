@@ -814,17 +814,38 @@ a{
   }
 }
 
-@media (max-width: 420px){
+@media (max-width: 600px){
+  #landing{
+    padding:24px 16px 40px;
+  }
+
+  #welcome{
+    margin-bottom:16px;
+  }
+
+  #welcome h2.rounded-headline{
+    font-size:30px;
+    line-height:1.35;
+    word-break:keep-all;
+  }
+
   .logo-img{
-    width:155px;
+    width:160px;
   }
 
-  #welcome h2{
-    font-size:28px;
+  .slogan{
+    font-size:10px;
+    letter-spacing:0.04em;
   }
 
-  #welcome p{
-    font-size:15px;
+  .trending-chips{
+    gap:8px;
+    margin-top:16px;
+  }
+
+  .chip{
+    font-size:12px;
+    padding:6px 12px;
   }
 }
 

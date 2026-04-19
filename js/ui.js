@@ -88,7 +88,7 @@ function addFallback(txt) {
     .replace(/\n/g, '<br>');
 
   d.innerHTML = `
-    <div class="ai-label"><div class="dot">${MINI_SCOPE}</div> ThisOne 분석</div>
+    <div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 지능형 분석 리포트</div>
     <div class="pick-card" style="border-color:var(--border)">${fmt}</div>
   `;
 

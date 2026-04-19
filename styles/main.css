@@ -43,9 +43,6 @@ body.search-mode #landingSearch,
 body.search-mode #landing,
 body.search-mode .hdr,
 body.search-mode .logo,
-body.search-mode .slogan {
-  display: none !important;
-}
 
 /* --- Header & Logo --- */
 .hdr {

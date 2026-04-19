@@ -252,12 +252,12 @@ a{
   max-width:860px;
   margin:0 auto;
   display:flex;
-  flex-direction: row !important; /* 무조건 가로 배치 */
-  align-items:flex-end;
-  gap:12px;
-  padding:8px 12px 8px 22px;
+  flex-direction: column !important; /* 수직 적층 구조 */
+  align-items: stretch !important;
+  gap:0;
+  padding:12px 16px;
   border:2px solid #d8dfeb;
-  border-radius:28px;
+  border-radius:24px;
   background:#fff;
   transition: all 0.2s ease;
 }
@@ -268,11 +268,11 @@ a{
 }
 
 .msg-input{
-  flex: 1 !important;
-  min-width: 0 !important;
-  min-height:28px;
-  max-height:120px;
-  margin:8px 0;
+  flex: 1;
+  min-width: 0;
+  min-height:34px;
+  max-height:160px;
+  margin:4px 0 8px;
   padding:0;
   border:none;
   outline:none;
@@ -280,16 +280,17 @@ a{
   background:transparent;
   color:#111827;
   font-size:17px;
-  line-height:1.5;
+  line-height:1.6;
   overflow-y:auto;
 }
 
+/* 상단 배치용 이미지 미리보기 */
 .img-preview {
   display: none;
   position: relative;
-  flex: 0 0 52px !important; /* 크기 고정 */
-  height: 52px;
-  margin-bottom: 4px;
+  width: 60px;
+  height: 60px;
+  margin: 4px 0 12px;
   background: #fff;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
@@ -326,40 +327,53 @@ a{
   padding: 0;
 }
 
+/* 하단 버튼 영역 */
+.search-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.footer-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .img-btn,
 .send-btn{
-  width:44px;
-  height:44px;
+  width:40px;
+  height:40px;
   border:none;
   outline:none;
-  border-radius:14px;
+  border-radius:12px;
   display:inline-flex;
   align-items:center;
   justify-content:center;
   flex-shrink:0;
   transition:.18s ease;
-  margin-bottom: 4px; /* 하단 정렬 맞춤 */
 }
 
 .img-btn{
-  background:#f5f7fb;
-  color:#8a94a6;
-  border:1px solid #d8dfeb;
+  background:#f8fafc;
+  color:#64748b;
+  border:1px solid #e2e8f0;
 }
 
 .img-btn:hover{
-  background:#eef2f7;
+  background:#f1f5f9;
 }
 
 .send-btn{
   background:#3b82f6;
   color:#fff;
-  box-shadow:0 6px 14px rgba(59,130,246,.22);
+  box-shadow:0 4px 12px rgba(59,130,246,0.15);
 }
 
 .send-btn:hover{
   transform:translateY(-1px);
-  box-shadow:0 10px 20px rgba(59,130,246,.25);
+  box-shadow:0 6px 16px rgba(59,130,246,0.2);
 }
 
 .search-hint{

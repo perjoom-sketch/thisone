@@ -323,13 +323,18 @@ function loadTrendingChips() {
   const container = document.getElementById('trendingChips');
   if (!container) return;
   const chips = [
-    { text: '로보락 S8 MaxV', query: '로보락 S8 MaxV' },
-    { text: '삼성 비스포크 AI 세탁건조기', query: '삼성 비스포크 AI 세탁건조기' },
-    { text: 'LG 트롬 워시콤보', query: 'LG 트롬 워시콤보' },
-    { text: '다이슨 에어랩', query: '다이슨 에어랩' },
-    { text: '가성비 정수기 렌탈', query: '정수기 렌탈 가격비교' }
+    { text: '로보락 S8 MaxV Ultra', query: '로보락 S8 MaxV Ultra' },
+    { text: '비스포크 AI 콤보', query: '비스포크 AI 콤보' },
+    { text: '다이슨 에어랩 멀티 스타일러', query: '다이슨 에어랩 멀티 스타일러' },
+    { text: '스탠바이미 Go', query: '스탠바이미 Go' },
+    { text: '아이패드 프로 M4', query: '아이패드 프로 M4' }
   ];
-  container.innerHTML = chips.map(c => `<button class="chip" onclick="quick('${c.query}')">${c.text}</button>`).join('');
+  container.innerHTML = chips.map((c, i) => `
+    <button class="chip" onclick="quick('${c.query}')" style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(226, 232, 240, 0.8); padding: 8px 16px; border-radius: 20px; font-size: 14px; color: #475569; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; font-weight: 500;">
+      <span style="font-weight: 800; color: #3b82f6; font-size: 12px; opacity: 0.8;">${i + 1}</span>
+      ${c.text}
+    </button>
+  `).join('');
 }
 
 function toggleFilterModal() {

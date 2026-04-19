@@ -472,7 +472,16 @@ async function fetchInquiries() {
   }
 }
 
+let lastSubmitTime = 0;
+
 async function submitInquiry() {
+  const now = Date.now();
+  if (now - lastSubmitTime < 10000) { // 10초 쿨타임
+    const remaining = Math.ceil((10000 - (now - lastSubmitTime)) / 1000);
+    alert(`도배 방지를 위해 ${remaining}초 후 다시 시도해주세요.`);
+    return;
+  }
+
   const title = document.getElementById('inqTitle')?.value.trim();
   const password = document.getElementById('inqPassword')?.value.trim();
   const content = document.getElementById('inqContent')?.value.trim();
@@ -484,9 +493,16 @@ async function submitInquiry() {
     return;
   }
 
-  if (password.length < 4) {
-    alert('비밀번호는 4자리 이상으로 설정해주세요.');
+  if (title.length < 2 || content.length < 5) {
+    alert('너무 짧은 내용은 등록할 수 없습니다. (제목 2자, 내용 5자 이상)');
     return;
+  }
+
+  const btn = document.getElementById('inqSubmitBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.textContent = '등록 중...';
   }
 
   try {
@@ -502,6 +518,7 @@ async function submitInquiry() {
 
     if (res.ok && result.status === 'success') {
       alert('문의가 성공적으로 등록되었습니다.');
+      lastSubmitTime = Date.now(); // 쿨타임 시작
       if (document.getElementById('inqTitle')) document.getElementById('inqTitle').value = '';
       if (document.getElementById('inqPassword')) document.getElementById('inqPassword').value = '';
       if (document.getElementById('inqContent')) document.getElementById('inqContent').value = '';
@@ -513,6 +530,12 @@ async function submitInquiry() {
   } catch (err) {
     console.error('[Inquiry] Critical Error:', err);
     alert('등록 중 오류가 발생했습니다.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.textContent = '등록하기';
+    }
   }
 }
 

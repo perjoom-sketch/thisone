@@ -85,8 +85,8 @@ a{
 }
 
 .logo-img{
-  height: 32px;
-  width: auto;
+  width: 220px; /* 로고 크기 시원하게 복구 */
+  height: auto;
   display:block;
   object-fit:contain;
 }
@@ -94,7 +94,7 @@ a{
 .slogan{
   font-size:13px;
   color:#6b7280;
-  margin-left: 46px; /* 로고 'T' 시작점에 맞추기 위해 46px로 정밀 보정 */
+  margin-left: 35px; /* 너무 멀리 가서 적정 지점(35px)으로 회군 */
   font-weight:400;
   white-space:nowrap;
   letter-spacing:0.08em;

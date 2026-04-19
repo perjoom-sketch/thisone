@@ -26,11 +26,21 @@ async function handler(req, res) {
     }
 
     const AI_CONFIG = require('../js/config');
-    console.log(`Gemini API 호출 시작 (Model: ${AI_CONFIG.MODEL_NAME})`);
     const genAI = new GoogleGenerativeAI(apiKey);
+    
+    // 안전 설정 완화 (쇼핑 정보 오탐 방지)
+    const safetySettings = [
+      { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+    ];
+
+    console.log(`Gemini API 스트리밍 호출 시작 (Model: ${AI_CONFIG.MODEL_NAME})`);
     const model = genAI.getGenerativeModel({
       model: AI_CONFIG.MODEL_NAME,
       systemInstruction: system,
+      safetySettings,
       generationConfig: {
         responseMimeType: "application/json",
         temperature: 0.1,
@@ -38,9 +48,7 @@ async function handler(req, res) {
     });
 
     const lastMessage = messages[messages.length - 1];
-    if (!lastMessage) {
-      throw new Error("메시지가 없습니다.");
-    }
+    if (!lastMessage) throw new Error("메시지가 없습니다.");
 
     // 멀티모달 파츠 구성
     let userParts = [];

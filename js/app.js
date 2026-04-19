@@ -177,25 +177,34 @@ async function sendMsg(forceMode) {
     }
 
     const raw = Array.isArray(aiData?.content) ? aiData.content.filter(b => b.type === 'text').map(b => b.text).join('') : '';
+    
+    if (!raw.trim()) {
+      console.warn('AI returned empty response.');
+      window.ThisOneUI?.addFallback?.('지능형 엔진이 현재 분석 중입니다. 잠시 후 다시 시도하거나 일반 검색 결과를 확인해 주세요.');
+      window.ThisOneUI?.renderRawResults?.(candidates);
+      return;
+    }
+
     try {
       let clean = raw.replace(/```json|```/g, '').trim();
       
-      // JSON 객체 { ... } 추출 정규표현식 (가장 긴 덩어리 찾기)
       const jsonMatches = clean.match(/\{[\s\S]*\}/g);
       if (jsonMatches) {
-        // 여러 덩어리 중 'cards' 키를 포함한 가장 긴 덩어리 선택
         clean = jsonMatches.reduce((a, b) => {
           if (b.includes('"cards"') && b.length > a.length) return b;
           return a.length > b.length ? a : b;
         }, "");
       }
 
+      if (!clean || !clean.startsWith('{')) throw new Error('Valid JSON block not found');
+
       const parsed = JSON.parse(clean);
       const merged = window.ThisOneRanking?.mergeAiWithCandidates ? window.ThisOneRanking.mergeAiWithCandidates(deepClean(parsed), candidates) : parsed;
       window.ThisOneUI?.addResultCard?.(merged);
     } catch (e) {
       console.error('Parsing error details:', e, 'Raw content:', raw);
-      window.ThisOneUI?.addFallback?.(raw || '지능형 응답 구성 중 예상치 못한 형식이 발견되었습니다.');
+      window.ThisOneUI?.addFallback?.('지능형 리포트 생성 중 데이터 형식이 맞지 않아 일반 결과를 노출합니다.');
+      window.ThisOneUI?.renderRawResults?.(candidates);
     }
   } catch (err) {
     console.error(err);

@@ -575,5 +575,59 @@ window.ThisOneUI = {
   showInquiryForm,
   hideInquiryForm,
   submitInquiry,
-  prepareEdit
+  prepareEdit,
+  showAdminStats
 };
+
+function showAdminStats(data) {
+  const modalId = 'adminStatsModal';
+  const existing = document.getElementById(modalId);
+  if (existing) existing.remove();
+
+  const m = document.createElement('div');
+  m.id = modalId;
+  m.className = 'modal-overlay';
+  m.style.cssText = 'display:flex; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.8); z-index:9999999; align-items:center; justify-content:center;';
+  
+  const maxVal = Math.max(...data.history.map(h => h.count), 1);
+  
+  m.innerHTML = `
+    <div class="modal-content" style="background:#fff; border-radius:24px; padding:32px; width:90%; max-width:450px; box-shadow:0 20px 50px rgba(0,0,0,0.3); position:relative;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+        <h3 style="margin:0; font-size:19px; font-weight:800; color:#0f172a;">📊 방문자 통계 리포트</h3>
+        <button onclick="this.closest('#adminStatsModal').remove()" style="background:#f1f5f9; border:none; width:30px; height:30px; border-radius:50%; cursor:pointer;">✕</button>
+      </div>
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:28px;">
+        <div style="background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); padding:20px; border-radius:18px; text-align:center;">
+          <div style="font-size:12px; color:#3b82f6; font-weight:700; margin-bottom:6px;">오늘 유입</div>
+          <div style="font-size:28px; font-weight:900; color:#1e40af;">${data.daily}</div>
+        </div>
+        <div style="background:#f8fafc; padding:20px; border-radius:18px; text-align:center; border:1px solid #e2e8f0;">
+          <div style="font-size:12px; color:#64748b; font-weight:700; margin-bottom:6px;">누적 방문</div>
+          <div style="font-size:28px; font-weight:900; color:#0f172a;">${data.total}</div>
+        </div>
+      </div>
+
+      <div style="background:#fff; border:1px solid #f1f5f9; padding:20px; border-radius:18px;">
+        <div style="font-size:14px; font-weight:800; color:#334155; margin-bottom:16px;">주간 방문 트렌드</div>
+        <div style="display:flex; align-items:flex-end; gap:10px; height:120px; padding-bottom:24px;">
+          ${data.history.map(h => {
+            const hRatio = (h.count / maxVal) * 80;
+            return `
+              <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                <div style="width:100%; background:#3b82f6; height:${hRatio}px; border-radius:6px 6px 2px 2px; position:relative; min-height:4px; opacity:${h.count === data.daily ? '1' : '0.4'}">
+                  <span style="position:absolute; top:-18px; left:50%; transform:translateX(-50%); font-size:10px; font-weight:700; color:#3b82f6;">${h.count}</span>
+                </div>
+                <span style="font-size:10px; color:#94a3b8; font-weight:600;">${h.date.split('-')[2]}일</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <button onclick="this.closest('#adminStatsModal').remove()" style="width:100%; margin-top:24px; background:#0f172a; color:#fff; border:none; padding:16px; border-radius:14px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(15,23,42,0.2);">닫기</button>
+    </div>
+  `;
+  document.body.appendChild(m);
+}

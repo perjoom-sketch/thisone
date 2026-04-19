@@ -1,4 +1,39 @@
-const MODEL = window.ThisOneConfig?.MODEL_NAME || 'gemini-2.5-flash';
+// --- 관리자 통계 및 트래킹 로직 ---
+async function trackVisit() {
+  try { fetch('/api/stats?action=track'); } catch(e) {}
+}
+
+let ftrClickCount = 0;
+function handleFooterClick() {
+  ftrClickCount++;
+  if (ftrClickCount >= 3) {
+    ftrClickCount = 0;
+    const pw = prompt('관리자 비밀번호를 입력하세요.');
+    if (pw) openAdminStats(pw);
+  }
+  setTimeout(() => { ftrClickCount = 0; }, 2000); // 2초 후 초기화
+}
+
+async function openAdminStats(pw) {
+  try {
+    const res = await fetch(`/api/stats?action=get&pw=${pw}`);
+    const result = await res.json();
+    if (res.ok && result.success) {
+      if (window.ThisOneUI && window.ThisOneUI.showAdminStats) {
+        window.ThisOneUI.showAdminStats(result.data);
+      }
+    } else {
+      alert(result.message || '인증 실패');
+    }
+  } catch(e) { alert('통계 로딩 실패'); }
+}
+
+window.addEventListener('load', () => {
+  trackVisit();
+  if (typeof window.ThisOneUI?.loadDynamicTrends === 'function') {
+    window.ThisOneUI.loadDynamicTrends();
+  }
+});
 const MINI_SCOPE = '<svg width="10" height="10" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="14" stroke="#fff" stroke-width="4" fill="none" opacity=".7"/><circle cx="32" cy="32" r="5" fill="#fff"/><line x1="32" y1="6" x2="32" y2="18" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="32" y1="46" x2="32" y2="58" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="6" y1="32" x2="18" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="46" y1="32" x2="58" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/></svg>';
 
 let pendingImg = null;

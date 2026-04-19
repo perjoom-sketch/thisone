@@ -11,6 +11,11 @@ function appendAndScroll(node) {
     const content = getContentEl();
     if (!content) return;
     content.appendChild(node);
+    
+    // 부드러운 스크롤 (사용자 경험 향상)
+    setTimeout(() => {
+      node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
   } catch(e) { console.error("Render append failed", e); }
 }
 

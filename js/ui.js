@@ -364,13 +364,6 @@ function addResultCard(result) {
       ${cardsHtml}
       ${rejectsHtml}
       
-      <div class="feedback-wrap" id="feedback_${Date.now()}">
-        <div class="feedback-title">이 추천이 도움이 되었나요?</div>
-        <div class="feedback-btns">
-          <button class="fb-btn like" onclick="ThisOneUI.handleFeedback(this, 'positive')">👍 도움이 됐어요</button>
-          <button class="fb-btn dislike" onclick="ThisOneUI.handleFeedback(this, 'negative')">👎 아쉬워요</button>
-        </div>
-      </div>
     </div>
   `;
 
@@ -378,27 +371,6 @@ function addResultCard(result) {
   // 강제 스크롤 제거: 사용자 시야 방해 방지
 }
 
-function handleFeedback(btn, type) {
-  const wrap = btn.closest('.feedback-wrap');
-  if (!wrap) return;
-
-  // 로그 전송
-  if (window.ThisOneTrajectory?.logEvent) {
-    window.ThisOneTrajectory.logEvent('user_feedback', {
-      query: window.currentQuery || '',
-      feedback_type: type,
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  // UI 전환
-  wrap.innerHTML = `
-    <div class="feedback-thanks">
-      ✨ 소중한 피드백 감사합니다!<br>
-      덕분에 디스원이 더 똑똑해지고 있어요.
-    </div>
-  `;
-}
 
 async function loadTrendingChips() {
   const container = document.getElementById('chips');

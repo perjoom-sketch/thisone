@@ -40,7 +40,7 @@ let pendingImg = null;
 let loading = false;
 let isSearchMode = false;
 let searchHistory = [];
-let currentQuery = '';
+// currentQuery는 index.html에서 이미 선언되었습니다.
 let searchMode = 'thisone';
 let _lastIntentProfile = null;
 

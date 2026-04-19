@@ -55,7 +55,7 @@ body.search-mode .slogan {
   gap: 20px;
   padding: 12px 40px;
   background: #fff;
-  position: sticky;
+  position: relative;
   top: 0;
   z-index: 10000;
   border-bottom: 1px solid var(--line-soft);

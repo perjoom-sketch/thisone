@@ -675,7 +675,8 @@ function mergeAiWithCandidates(aiResult, candidates = []) {
   const aiPickSourceType = String(safe.aiPickSourceType || '').trim();
 
   const mergedCards = aiCards.map((card) => {
-    const found = candidates.find((c) => String(c.id) === String(card.sourceId));
+    const sid = card.sourceId || card.id;
+    const found = candidates.find((c) => String(c.id) === String(sid));
 
     if (!found) {
       return {

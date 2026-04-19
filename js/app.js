@@ -11,11 +11,20 @@ let _lastIntentProfile = null;
 
 const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI입니다.
 반드시 다음 순서로 출력하세요:
-1. [Thought]: 사용자의 의도 분석 및 추천 전략 (2~3문장으로 짧게)
-2. [JSON]: 상품 추천 결과 (구조화된 JSON 블록)
+1. [Thought]: 사용자의 의도 분석 및 추천 전략 (2~3문장)
+2. [JSON]: 상품 추천 결과 (JSON 블록)
 
-JSON 외의 다른 텍스트는 [Thought] 섹션에만 포함하세요.
-리포트(reason)는 반드시 1~2문장으로 요약하세요.`;
+JSON 스키마:
+{
+  "cards": [
+    { "sourceId": "후보의 id", "reason": "추천 이유(1~2문장)" }
+  ],
+  "rejects": [
+    { "name": "제외 상품명", "reason": "제외 이유" }
+  ]
+}
+
+JSON 외의 다른 텍스트는 [Thought] 섹션에만 포함하세요.`;
 
 function getInput() { return document.getElementById(isSearchMode ? 'msgInput2' : 'msgInput'); }
 function getSendBtn() { return document.getElementById(isSearchMode ? 'sendBtn2' : 'sendBtn'); }

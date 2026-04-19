@@ -440,6 +440,10 @@ function showInquiryForm() {
 function hideInquiryForm() {
   document.getElementById('inquiryListArea').style.display = 'block';
   document.getElementById('inquiryFormArea').style.display = 'none';
+  // 수정 모드 초기화
+  window._editModeId = null;
+  const submitBtn = document.getElementById('inqSubmitBtn');
+  if (submitBtn) submitBtn.textContent = '등록하기';
 }
 
 async function fetchInquiries() {
@@ -457,15 +461,31 @@ async function fetchInquiries() {
       }
 
       list.innerHTML = result.data.map(inq => `
-        <div class="inquiry-item">
-          <div class="inq-title">${esc(inq.title)}</div>
-          <div class="inq-meta">${inq.author} · ${new Date(inq.createdAt).toLocaleDateString()}</div>
+        <div class="inquiry-item" style="border-bottom: 1px solid #f1f5f9; padding: 16px 0;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div class="inq-title" style="font-weight:700; color:#1e293b; font-size:15px; margin-bottom:4px;">${esc(inq.title)}</div>
+            <button onclick="window.ThisOneUI.prepareEdit('${inq.id}', '${escAttr(inq.title)}', '${escAttr(inq.content)}')" style="font-size:11px; background:#f1f5f9; border:none; padding:4px 8px; border-radius:6px; color:#64748b; cursor:pointer;">수정</button>
+          </div>
+          <div class="inq-meta" style="font-size:12px; color:#94a3b8;">${inq.author} · ${new Date(inq.createdAt).toLocaleDateString()}</div>
+          <div style="font-size:14px; color:#475569; margin-top:8px; line-height:1.5; white-space:pre-wrap;">${esc(inq.content)}</div>
         </div>
       `).join('');
     }
   } catch (err) {
     list.innerHTML = '<div class="loading-text">목록 로딩 실패</div>';
   }
+}
+
+function prepareEdit(id, title, content) {
+  window._editModeId = id;
+  document.getElementById('inqTitle').value = title;
+  document.getElementById('inqContent').value = content;
+  document.getElementById('inqPassword').value = '';
+  
+  showInquiryForm();
+  const submitBtn = document.getElementById('inqSubmitBtn');
+  if (submitBtn) submitBtn.textContent = '수정 완료';
+  alert('비밀번호를 입력해야 수정이 완료됩니다.');
 }
 
 let lastSubmitTime = 0;
@@ -502,10 +522,16 @@ async function submitInquiry() {
   }
 
   try {
-    const res = await fetch('/api/inquiry', {
-      method: 'POST',
+    const isEdit = !!window._editModeId;
+    const url = '/api/inquiry';
+    const method = isEdit ? 'PUT' : 'POST';
+    const body = { title, password, content };
+    if (isEdit) body.id = window._editModeId;
+
+    const res = await fetch(url, {
+      method: method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, password, content })
+      body: JSON.stringify(body)
     });
     
     console.log('[Inquiry] Status:', res.status);
@@ -513,15 +539,15 @@ async function submitInquiry() {
     console.log('[Inquiry] Result:', result);
 
     if (res.ok && result.status === 'success') {
-      alert('문의가 성공적으로 등록되었습니다.');
-      lastSubmitTime = Date.now(); // 쿨타임 시작
+      alert(isEdit ? '문의가 수정되었습니다.' : '문의가 성공적으로 등록되었습니다.');
+      lastSubmitTime = Date.now(); 
       if (document.getElementById('inqTitle')) document.getElementById('inqTitle').value = '';
       if (document.getElementById('inqPassword')) document.getElementById('inqPassword').value = '';
       if (document.getElementById('inqContent')) document.getElementById('inqContent').value = '';
       hideInquiryForm();
       fetchInquiries();
     } else {
-      alert('등록 실패: ' + (result.message || '알 수 없는 오류'));
+      alert('처리 실패: ' + (result.message || '비밀번호를 확인해주세요.'));
     }
   } catch (err) {
     console.error('[Inquiry] Critical Error:', err);
@@ -548,5 +574,6 @@ window.ThisOneUI = {
   closeInquiryBoard,
   showInquiryForm,
   hideInquiryForm,
-  submitInquiry
+  submitInquiry,
+  prepareEdit
 };

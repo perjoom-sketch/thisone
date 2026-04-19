@@ -10,10 +10,8 @@ let searchMode = 'thisone';
 let _lastIntentProfile = null;
 
 const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI입니다.
-절대 <cite>, </cite>, <b>, </b> 같은 태그를 출력하지 마세요.
-반드시 제공된 후보 상품 목록 안에서만 고르세요.
-반드시 JSON만 출력하세요. 설명이나 인사말은 절대 금지입니다.
-리포트 내용은 반드시 2~3문장 이내로 핵심만 요약하세요. (응답 길이 최소화)`;
+인사말, 설명, 마크다운 기호(###, **) 절대 금지. 오직 순수 JSON만 출력하세요.
+리포트(reason)는 반드시 1~2문장으로 극도로 짧게 요약하세요. (응답 속도 최우선)`;
 
 function getInput() { return document.getElementById(isSearchMode ? 'msgInput2' : 'msgInput'); }
 function getSendBtn() { return document.getElementById(isSearchMode ? 'sendBtn2' : 'sendBtn'); }
@@ -104,14 +102,26 @@ function setSearchMode(mode) {
 function extractJSON(str) {
   if (!str) return null;
   try {
-    // 마크다운 블록 제거 및 순수 JSON 영역 추출
-    const cleanStr = str.replace(/```json|```/g, '').trim();
+    // 1단계: 가장 흔한 마크다운 블록 제거
+    let cleanStr = str.replace(/```json|```/g, '').trim();
+    
+    // 2단계: 첫 번째 '{'와 마지막 '}' 사이를 추출 (가장 확실한 JSON 구간)
     const firstOpen = cleanStr.indexOf('{');
     const lastClose = cleanStr.lastIndexOf('}');
     if (firstOpen === -1 || lastClose === -1) return null;
-    return JSON.parse(cleanStr.substring(firstOpen, lastClose + 1));
+    
+    const candidate = cleanStr.substring(firstOpen, lastClose + 1);
+    
+    // 3단계: 일반 파싱 시도
+    try {
+      return JSON.parse(candidate);
+    } catch (e) {
+      // 4단계: 만약 잘린 JSON이라면 (끝에 '}'가 부족한 경우 등) 수동 복구 시도 (실험적)
+      console.warn("Standard JSON parse failed, attempting recovery...");
+      return JSON.parse(candidate + '}'); // 단순 누락 복구 시도
+    }
   } catch (e) {
-    console.warn("JSON extraction failed", e);
+    console.error("JSON extraction failed", e);
     return null;
   }
 }
@@ -211,7 +221,7 @@ async function sendMsg(forceMode) {
 
     const aiData = await window.ThisOneAPI.requestChat({ 
       model: MODEL, 
-      max_tokens: 1400, 
+      max_tokens: 800, // 응답 길이를 줄여서 타임아웃 및 잘림 방지
       system: RANKING_PROMPT, 
       messages: aiMessages 
     });

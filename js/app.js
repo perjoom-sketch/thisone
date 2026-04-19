@@ -17,7 +17,11 @@ const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI입니다.
 JSON 스키마:
 {
   "cards": [
-    { "sourceId": "후보의 id", "reason": "추천 이유(1~2문장)" }
+    { 
+      "sourceId": "후보의 id", 
+      "label": "짧은 추천 태그 (예: 🏆 최우수 추천, 💰 최저가 등)", 
+      "reason": "추천 이유(1~2문장)" 
+    }
   ],
   "rejects": [
     { "name": "제외 상품명", "reason": "제외 이유" }

@@ -78,8 +78,9 @@ a{
 .logo{
   display:flex;
   flex-direction: column; /* 수직 적층으로 변경 */
-  align-items: flex-start; /* 좌측 정렬 기준선 일치 */
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
   text-decoration:none;
   cursor:pointer;
 }
@@ -111,30 +112,27 @@ a{
   }
   .logo {
     display: flex !important;
-    flex-direction: column !important;
+    flex-direction: row !important; /* 가로 배치로 전환 */
     align-items: center !important;
     justify-content: center !important;
     width: 100% !important;
-    gap: 0 !important; /* 간격 완전 제거 */
+    gap: 8px !important; /* 적절한 가로 간격 */
   }
   .logo-img {
-    height: 50px !important;
+    height: 40px !important; /* 가로 배치에 최적화된 높이 */
     width: auto !important;
-    max-width: 100% !important;
     margin-bottom: 0 !important;
     object-fit: contain !important;
   }
   .slogan {
-    margin-top: -2px !important; /* 글자를 로고 쪽으로 더 올림 */
-    margin-left: 0 !important;
-    text-align: center !important;
-    font-size: 13px !important;
+    margin-top: 0 !important;
+    font-size: 14px !important;
     color: #475569 !important;
     font-weight: 800 !important;
     display: block !important;
     white-space: nowrap !important;
-    line-height: 1.2 !important;
   }
+}
 }
 
 .point-text{

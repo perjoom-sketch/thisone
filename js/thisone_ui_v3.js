@@ -216,10 +216,11 @@ function renderRawResults(items = []) {
   const d = document.createElement('div');
   d.className = 'ai-result';
 
-  let html = `<div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 원본 검색 결과</div>`;
+  let html = `<div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 추천 검색 결과</div>`;
+  html += `<div class="ai-box">`;
 
   if (!Array.isArray(items) || !items.length) {
-    html += `<div class="pick-card">원본 검색 결과가 없습니다.</div>`;
+    html += `<div class="pick-card">수집된 상품 데이터가 없습니다.</div></div>`;
     d.innerHTML = html;
     appendAndScroll(d);
     return;
@@ -258,7 +259,7 @@ function renderRawResults(items = []) {
       : '';
     const cardEnd = p.link ? '</a>' : '';
 
-    const rawBadges = [...p.badges];
+    const rawBadges = [...(p.badges || [])];
     if (p.excludeFromPriceRank && !rawBadges.includes('가격순 제외')) {
       rawBadges.push('가격순 제외');
     }
@@ -286,6 +287,7 @@ function renderRawResults(items = []) {
     `;
   });
 
+  html += `</div>`;
   d.innerHTML = html;
   appendAndScroll(d);
 }

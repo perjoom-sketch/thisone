@@ -23,24 +23,24 @@
       console.log('Global Click Target:', e.target);
     });
 
-    // 설정창 열기 함수 (스마트 이동 및 펼침 방식)
+    // 설정창 열기 함수 (최종 보안 버전)
     window.toggleFilterModal = function() {
-      const isSticky = document.getElementById('stickySearch').style.display !== 'none';
+      const sticky = document.getElementById('stickySearch');
+      const isSticky = sticky && (sticky.style.display === 'block' || sticky.offsetParent !== null);
       const targetId = isSticky ? 'inlineFilterSticky' : 'inlineFilterLanding';
       const target = document.getElementById(targetId);
       const content = document.getElementById('commonFilterContent');
       
       if (!target || !content) return;
 
-      const isShow = target.style.display !== 'none';
-      if (!isShow) {
-        // 설정창 내용을 타겟 위치로 이동 후 표시
+      const isHidden = target.style.display === 'none' || target.style.display === '';
+      if (isHidden) {
         target.appendChild(content);
-        content.style.display = 'block';
-        target.style.display = 'block';
-        target.style.animation = 'slideDown 0.3s ease-out';
+        content.style.setProperty('display', 'block', 'important');
+        target.style.setProperty('display', 'block', 'important');
+        target.style.zIndex = '3000';
       } else {
-        target.style.display = 'none';
+        target.style.setProperty('display', 'none', 'important');
       }
     };
     function toggleFilterModal() { window.toggleFilterModal(); }
@@ -199,7 +199,7 @@
         <span style="font-size:20px; font-weight:900; color:#0f172a; letter-spacing:-1px;">This<span style="color:#3b82f6;">One</span></span>
       </a>
 
-      <div class="search-box" style="position:relative; flex:1; margin:0 !important; width:auto !important;">
+      <div class="search-box" style="position:relative; flex:1; margin:0 !important; width:auto !important; min-width:300px; display:block !important;">
         <div class="img-preview" id="imgPreview2">
           <div class="pv-item">
             <img class="pv-img" id="previewImg2" src="" alt="">
@@ -207,14 +207,15 @@
           </div>
         </div>
 
-      <div class="input-row">
+      <div class="input-row" style="display:flex; align-items:center; width:100%;">
         <textarea
           class="msg-input"
           id="msgInput2"
-          placeholder="검색어 입력 또는 이미지 붙여넣기(Ctrl+V)..."
+          placeholder="검색어 입력 또는 이미지 붙여넣기..."
           rows="1"
           oninput="autoResize(this)"
           onkeydown="handleKey(event)"
+          style="width:100%; min-height:44px; padding:10px 15px; border-radius:12px; border:1px solid #e2e8f0; background:#f8fafc;"
         ></textarea>
 
         <div class="footer-right">
@@ -369,11 +370,11 @@
     </div>
   </div>
 
-  <script src="/js/trajectoryLogger.js?v=1.2.0" defer></script>
-  <script src="/js/api.js?v=1.2.0"></script>
-  <script src="/js/productFamilies.js?v=1.2.0"></script>
-  <script src="/js/ranking.js?v=1.2.0"></script>
-  <script src="/js/thisone_ui_v3.js?v=1.2.0"></script>
-  <script src="/js/thisone_app_v3_final.js?v=1.2.0"></script>
+  <script src="/js/trajectoryLogger.js?v=1.3.0" defer></script>
+  <script src="/js/api.js?v=1.3.0"></script>
+  <script src="/js/productFamilies.js?v=1.3.0"></script>
+  <script src="/js/ranking.js?v=1.3.0"></script>
+  <script src="/js/thisone_ui_v3.js?v=1.3.0"></script>
+  <script src="/js/thisone_app_v3_final.js?v=1.3.0"></script>
 </body>
 </html>

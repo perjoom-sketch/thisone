@@ -393,30 +393,7 @@ function loadTrendingChips() {
   `).join('');
 }
 
-window.toggleFilterModal = function() {
-  console.log("[ThisOne] window.toggleFilterModal called");
-  const el = document.getElementById('inlineFilter');
-  if (!el) {
-    console.error("[ThisOne] #inlineFilter not found");
-    return;
-  }
-
-  const isShow = el.classList.contains('show');
-
-  if (!isShow) {
-    console.log("[ThisOne] Opening Settings Modal");
-    el.style.setProperty('display', 'flex', 'important');
-    el.classList.add('show');
-    el.style.zIndex = '99999999';
-  } else {
-    console.log("[ThisOne] Closing Settings Modal");
-    el.style.display = 'none';
-    el.classList.remove('show');
-  }
-}
-
-// 앨리어스 유지
-function toggleFilterModal() { window.toggleFilterModal(); }
+// window.toggleFilterModal은 index.html에서 통합 관리합니다. (중복 제거)
 
 // 설정 로딩 기능 제거 (새로고침 시 초기화 원칙)
 function loadExpertSettings() {
@@ -441,8 +418,10 @@ function saveExpertSettings() {
     window.ThisOneTrajectory.logEvent('expert_settings_applied', settings);
   }
 
-  const el = document.getElementById('inlineFilter');
-  if (el) el.classList.remove('show');
+  // 설정창 닫기 (최신 토글 함수 호출)
+  if (typeof window.toggleFilterModal === 'function') {
+    window.toggleFilterModal();
+  }
 }
 
 function applyPcView() {

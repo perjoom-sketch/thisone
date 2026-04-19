@@ -74,6 +74,33 @@ a{
   border-bottom:1px solid #e5e7eb;
   background:#fff;
 }
+
+.logo{
+  display:flex;
+  flex-direction: column; /* 수직 적층으로 변경 */
+  align-items: flex-start; /* 좌측 정렬 기준선 일치 */
+  gap: 4px;
+  text-decoration:none;
+  cursor:pointer;
+}
+
+.logo-img{
+  height: 32px;
+  width: auto;
+  display:block;
+  object-fit:contain;
+}
+
+.slogan{
+  font-size:13px;
+  color:#6b7280;
+  margin-left: 0; /* 쏠림의 원인인 여백 제거 */
+  font-weight:400;
+  white-space:nowrap;
+  letter-spacing:0.08em;
+  opacity:0.85;
+}
+
 @media (max-width: 768px) {
   .hdr {
     padding: 30px 20px !important; /* 충분한 상하 공간 확보 */
@@ -85,7 +112,7 @@ a{
   .logo {
     display: flex !important;
     flex-direction: column !important;
-    align-items: center !important;
+    align-items: center !important; /* 모바일은 중앙 정렬 */
     justify-content: center !important;
     width: 100% !important;
     overflow: visible !important;
@@ -99,6 +126,7 @@ a{
   }
   .slogan {
     margin-left: 0 !important;
+    text-align: center !important;
     font-size: 12px !important;
     color: #64748b !important;
     display: block !important;

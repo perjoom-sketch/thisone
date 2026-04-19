@@ -21,6 +21,16 @@
   <link rel="stylesheet" href="/styles/main.css" />
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap" rel="stylesheet">
   <style>
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    .beta-badge {
+      display: inline-block;
+      position: relative;
+      animation: float 3s ease-in-out infinite;
+      vertical-align: middle;
+    }
     .ftr { position: relative; z-index: 10 !important; }
     .modal-overlay {
       position: fixed;
@@ -72,7 +82,7 @@
 </head>
 <body>
   <div class="hdr" style="padding: 12px 20px; display: flex; align-items: center; background: #fff; border-bottom: 1px solid #f1f5f9; position: sticky; top: 0; z-index: 10000;">
-<a href="/" class="logo">
+<a href="/" class="logo" style="text-decoration:none; color:inherit; display:flex; flex-direction:column; align-items:flex-start; gap:2px; white-space:nowrap;">
   <div style="display:flex; align-items:center; gap:8px;">
     <img
       src="/assets/thisone-logo-rough.png"
@@ -80,7 +90,7 @@
       class="logo-img"
       style="height:28px; width:auto; display:block;"
     />
-    <span class="beta-badge" style="display: inline-block; background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: #fff; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 4px 10px rgba(59,130,246,0.3); animation: float 3s ease-in-out infinite; line-height: 1; vertical-align: middle;">BETA</span>
+    <span class="beta-badge" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: #fff; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 4px 10px rgba(59,130,246,0.3); line-height: 1;">BETA</span>
   </div>
   <span class="slogan" style="margin-left:4px; font-size: 11px; color: #94a3b8; font-weight: 500;">고민은 디스원, 만족은 당신꺼</span>
 </a>
@@ -139,35 +149,7 @@
         검색설정
       </div>
 
-      <!-- 인라인 설정 영역 (펼침/접힘) -->
-      <div id="inlineFilter" class="inline-filter-wrap" style="display:none;">
-        <div class="setting-group">
-          <label>가격 범위 (원)</label>
-          <div class="price-inputs">
-            <input type="number" id="minPrice" placeholder="최소" />
-            <span>~</span>
-            <input type="number" id="maxPrice" placeholder="최대" />
-          </div>
-        </div>
-        <div class="setting-group inline">
-          <label><input type="checkbox" id="freeShipping"> 무료배송만</label>
-          <label><input type="checkbox" id="excludeOverseas" checked> 해외직구 제외</label>
-          <label><input type="checkbox" id="excludeAgent" checked> 구매대행 제외</label>
-          <label><input type="checkbox" id="excludeUsed" checked> 중고/리퍼 제외</label>
-          <label><input type="checkbox" id="includeRental"> 렌탈 상품 포함</label>
-        </div>
-        <div class="filter-bottom-row">
-          <div class="result-count-wrap">
-            <span class="count-label">검색결과</span>
-            <select id="resultCount">
-              <option value="3">3개</option>
-              <option value="5" selected>5개</option>
-              <option value="7">7개</option>
-              <option value="10">10개</option>
-            </select>
-          </div>
-
-          <div class="patience-wrap">
+      </div>
             <div class="patience-header">
               <span class="patience-label">분석시간</span>
               <div class="patience-val-wrap"><span id="patienceVal">20</span>초</div>
@@ -278,6 +260,54 @@
   </footer>
 
   <input type="file" id="fileInput" accept="image/*" onchange="handleImg(event)">
+
+  <!-- 검색 설정 모달 (글로벌 접근 가능) -->
+  <div id="inlineFilter" class="modal-overlay" style="display:none;">
+    <div class="modal-content inquiry-board" style="max-width:480px; padding:32px;">
+      <div class="modal-header">
+        <h3 style="margin:0; font-size:18px; font-weight:800;">⚙️ 검색 설정</h3>
+        <button class="close-btn" onclick="toggleFilterModal()">✕</button>
+      </div>
+      
+      <div class="setting-group" style="margin-bottom:20px;">
+        <label style="display:block; margin-bottom:8px; font-weight:700; font-size:14px; color:#475569;">가격 범위 (원)</label>
+        <div class="price-inputs" style="display:flex; align-items:center; gap:8px;">
+          <input type="number" id="minPrice" placeholder="최소" style="flex:1; padding:10px; border:1px solid #e2e8f0; border-radius:8px;">
+          <span>~</span>
+          <input type="number" id="maxPrice" placeholder="최대" style="flex:1; padding:10px; border:1px solid #e2e8f0; border-radius:8px;">
+        </div>
+      </div>
+
+      <div class="setting-group inline" style="display:flex; flex-direction:column; gap:10px; margin-bottom:24px;">
+        <label style="font-size:14px; color:#475569; display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="freeShipping"> 무료배송만</label>
+        <label style="font-size:14px; color:#475569; display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="excludeOverseas" checked> 해외직구 제외</label>
+        <label style="font-size:14px; color:#475569; display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="excludeAgent" checked> 구매대행 제외</label>
+        <label style="font-size:14px; color:#475569; display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="excludeUsed" checked> 중고/리퍼 제외</label>
+        <label style="font-size:14px; color:#475569; display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="includeRental"> 렌탈 상품 포함</label>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:16px;">
+        <div class="result-count-wrap" style="flex:1;">
+          <span style="font-size:12px; color:#94a3b8; display:block; margin-bottom:4px;">결과 개수</span>
+          <select id="resultCount" style="width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:8px;">
+            <option value="3">3개</option>
+            <option value="5" selected>5개</option>
+            <option value="7">7개</option>
+            <option value="10">10개</option>
+          </select>
+        </div>
+        <div class="patience-wrap" style="flex:2;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span style="font-size:12px; color:#94a3b8;">분석 정밀도</span>
+            <span style="font-size:12px; color:#3b82f6; font-weight:700;"><span id="patienceVal">20</span>초</span>
+          </div>
+          <input type="range" id="patienceTime" min="5" max="120" step="5" value="20" style="width:100%;" oninput="document.getElementById('patienceVal').textContent=this.value">
+        </div>
+      </div>
+
+      <button class="write-btn" style="width:100%; margin-top:24px; background:#3b82f6;" onclick="saveExpertSettings(); toggleFilterModal();">설정 저장 및 닫기</button>
+    </div>
+  </div>
 
   <!-- 문의게시판 모달 -->
   <div id="inquiryModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.5); backdrop-filter:blur(10px); z-index:999999; align-items:center; justify-content:center;">

@@ -340,11 +340,11 @@ function loadTrendingChips() {
 function toggleFilterModal() {
   const el = document.getElementById('inlineFilter');
   if (!el) return;
-  const isShow = el.style.display !== 'none';
+  const isShow = el.style.display === 'flex';
   
   if (!isShow) {
-    el.style.display = 'block';
-    el.style.animation = 'inlineSlideDown 0.3s ease-out forwards';
+    el.style.display = 'flex';
+    el.style.zIndex = '9999999';
   } else {
     el.style.display = 'none';
   }

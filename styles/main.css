@@ -900,3 +900,45 @@ a{
     transform: translateY(0);
   }
 }
+
+/* modal */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+.modal-content {
+  background: #fff;
+  width: min(460px, 92vw);
+  border-radius: 28px;
+  padding: 28px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.modal-header h3 { margin: 0; font-size: 20px; font-weight: 800; }
+.close-btn { background: none; border: none; font-size: 28px; color: #9ca3af; cursor: pointer; }
+.setting-group { margin-bottom: 20px; }
+.setting-group label { display: block; font-size: 14px; font-weight: 700; color: #374151; margin-bottom: 8px; }
+.price-inputs { display: flex; align-items: center; gap: 8px; }
+.price-inputs input { flex: 1; padding: 10px 14px; border: 1px solid #e5e7eb; border-radius: 12px; outline: none; }
+.setting-group.inline { display: flex; flex-wrap: wrap; gap: 16px; }
+.setting-group.inline label { display: flex !important; align-items: center !important; gap: 6px !important; font-weight: 500 !important; cursor: pointer; margin: 0 !important; }
+.save-btn { width: 100%; padding: 14px; background: var(--accent); color: #fff; border: none; border-radius: 14px; font-weight: 700; font-size: 16px; cursor: pointer; transition: transform 0.1s; }
+.save-btn:active { transform: scale(0.98); }

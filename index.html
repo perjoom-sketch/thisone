@@ -184,7 +184,7 @@
   <footer class="ftr">
     <div class="ftr-content">
       <div class="ftr-main">
-        <div class="ftr-logo">ThisOne</div>
+        <div class="ftr-logo" style="cursor:pointer;" onclick="location.href='/'">ThisOne</div>
         <p class="ftr-desc">당신의 고민을 기술로 해결합니다. 최적의 구매 결정을 돕는 인공지능 쇼핑 어시스턴트.</p>
       </div>
       <div class="ftr-info">
@@ -196,7 +196,7 @@
         </div>
         <div class="ftr-links-col">
           <div class="info-item"><strong>고객지원</strong></div>
-          <a href="javascript:void(0)" class="ftr-link" onclick="openInquiryBoard()">문의게시판</a>
+          <a href="javascript:void(0)" class="ftr-link" onclick="window.ThisOneUI.openInquiryBoard()">문의게시판</a>
           <a href="#" class="ftr-link">이용약관</a>
           <a href="#" class="ftr-link">개인정보처리방침</a>
         </div>
@@ -214,12 +214,12 @@
     <div class="modal-content inquiry-board">
       <div class="modal-header">
         <h3>📋 문의게시판</h3>
-        <button class="close-btn" onclick="closeInquiryBoard()">✕</button>
+        <button class="close-btn" onclick="window.ThisOneUI.closeInquiryBoard()">✕</button>
       </div>
       
       <div id="inquiryListArea">
         <div class="board-controls">
-          <button class="write-btn" onclick="showInquiryForm()">✍️ 문의하기</button>
+          <button class="write-btn" onclick="window.ThisOneUI.showInquiryForm()">✍️ 문의하기</button>
         </div>
         <div id="inquiryList" class="inquiry-list">
           <div class="loading-text">목록을 불러오는 중...</div>
@@ -236,8 +236,8 @@
           <textarea id="inqContent" rows="5" placeholder="궁금하신 내용을 남겨주세요"></textarea>
         </div>
         <div class="form-actions">
-          <button class="sub-btn secondary" onclick="hideInquiryForm()">취소</button>
-          <button class="sub-btn" onclick="submitInquiry()">등록하기</button>
+          <button class="sub-btn secondary" onclick="window.ThisOneUI.hideInquiryForm()">취소</button>
+          <button class="sub-btn" onclick="window.ThisOneUI.submitInquiry()">등록하기</button>
         </div>
       </div>
     </div>

@@ -118,7 +118,7 @@ function addTyping() {
       <div class="thought-steps" id="thoughtSteps">
         <div class="thought-step active">
           <div class="step-dot"></div>
-          <div class="step-text">사용자의 숨겨진 구매 의도를 추론하고 있습니다...</div>
+          <div class="step-text">검색패턴을 관찰해서 원하는 상품 추론 중...</div>
         </div>
       </div>
       <div id="liveResponse" class="live-response"></div>

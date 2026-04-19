@@ -182,7 +182,6 @@ async function sendMsg(forceMode) {
     let searchQuery = queryText;
     if (window.ThisOneRanking?.rewriteSearchQuery) searchQuery = window.ThisOneRanking.rewriteSearchQuery(queryText);
 
-    typingEl?.updateThought?.('검색패턴을 관찰해서 원하는 상품 추론 중...');
     const expertSettings = {
       minPrice: document.getElementById('minPrice')?.value || '',
       maxPrice: document.getElementById('maxPrice')?.value || '',

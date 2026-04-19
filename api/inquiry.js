@@ -1,6 +1,12 @@
 import { kv } from '@vercel/kv';
 
 export default async function handler(req, res) {
+  // Upstash 연동 시 변수명이 다를 수 있어 자동 매핑 시도
+  if (!process.env.KV_REST_API_URL && process.env.UPSTASH_REDIS_REST_URL) {
+    process.env.KV_REST_API_URL = process.env.UPSTASH_REDIS_REST_URL;
+    process.env.KV_REST_API_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+  }
+
   console.log(`[Inquiry API] ${req.method} request received`);
 
   if (req.method === 'OPTIONS') return res.status(200).end();

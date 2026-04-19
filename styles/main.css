@@ -2052,19 +2052,50 @@ body.search-mode #stickySearch {
 }
 
 .sticky-inner {
-  width: min(860px, 92vw);
+  max-width: 1200px;
   margin: 0 auto;
   display: flex;
-  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.sticky-logo {
+  text-decoration: none;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.sticky-logo .logo-text {
+  font-size: 18px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+}
+
+.sticky-logo .accent {
+  color: #3b82f6;
 }
 
 #stickySearch .search-box {
-  width: 100% !important;
+  flex: 1;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 14px;
   padding: 4px 12px;
   min-height: 48px;
+}
+
+.filter-trigger-btn {
+  background: #f8fafc;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 #stickySearch .msg-input {

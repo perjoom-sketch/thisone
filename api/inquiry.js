@@ -15,17 +15,18 @@ export default async function handler(req, res) {
 
     // 2. 문의 등록 (POST)
     if (req.method === 'POST') {
-      const { title, content, author = '익명' } = req.body || {};
-      console.log('[Inquiry API] Received Data:', { title, content, author });
+      const { title, content, password, author = '익명' } = req.body || {};
+      console.log('[Inquiry API] Received Data:', { title, author });
 
-      if (!title || !content) {
-        return res.status(400).json({ status: 'error', message: '제목과 내용을 입력해주세요.' });
+      if (!title || !content || !password) {
+        return res.status(400).json({ status: 'error', message: '제목, 내용, 비밀번호를 모두 입력해주세요.' });
       }
 
       const newInquiry = {
         id: Date.now(),
         title: String(title).substring(0, 100),
         content: String(content).substring(0, 2000),
+        password, // 해싱 없이 저장
         author: String(author).substring(0, 20),
         createdAt: new Date().toISOString()
       };

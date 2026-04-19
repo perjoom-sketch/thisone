@@ -474,12 +474,18 @@ async function fetchInquiries() {
 
 async function submitInquiry() {
   const title = document.getElementById('inqTitle')?.value.trim();
+  const password = document.getElementById('inqPassword')?.value.trim();
   const content = document.getElementById('inqContent')?.value.trim();
 
-  console.log('[Inquiry] Attempting submission...', { title, content });
+  console.log('[Inquiry] Attempting submission...');
 
-  if (!title || !content) {
-    alert('제목과 내용을 모두 입력해주세요.');
+  if (!title || !password || !content) {
+    alert('제목, 비밀번호, 내용을 모두 입력해주세요.');
+    return;
+  }
+
+  if (password.length < 4) {
+    alert('비밀번호는 4자리 이상으로 설정해주세요.');
     return;
   }
 
@@ -487,7 +493,7 @@ async function submitInquiry() {
     const res = await fetch('/api/inquiry', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content })
+      body: JSON.stringify({ title, password, content })
     });
     
     console.log('[Inquiry] Status:', res.status);
@@ -497,6 +503,7 @@ async function submitInquiry() {
     if (res.ok && result.status === 'success') {
       alert('문의가 성공적으로 등록되었습니다.');
       if (document.getElementById('inqTitle')) document.getElementById('inqTitle').value = '';
+      if (document.getElementById('inqPassword')) document.getElementById('inqPassword').value = '';
       if (document.getElementById('inqContent')) document.getElementById('inqContent').value = '';
       hideInquiryForm();
       fetchInquiries();
@@ -505,7 +512,7 @@ async function submitInquiry() {
     }
   } catch (err) {
     console.error('[Inquiry] Critical Error:', err);
-    alert('등록 중 오류가 발생했습니다. 개발자 도구(F12) 콘솔을 확인해 주세요.');
+    alert('등록 중 오류가 발생했습니다.');
   }
 }
 

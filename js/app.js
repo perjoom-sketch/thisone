@@ -12,7 +12,7 @@ let _lastIntentProfile = null;
 const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI입니다.
 절대 <cite>, </cite>, <b>, </b> 같은 태그를 출력하지 마세요.
 반드시 제공된 후보 상품 목록 안에서만 고르세요.
-반드시 JSON만 출력하세요.`;
+반드시 JSON만 출력하세요. 설명이나 인사말은 절대 금지입니다.`;
 
 function getInput() { return document.getElementById(isSearchMode ? 'msgInput2' : 'msgInput'); }
 function getSendBtn() { return document.getElementById(isSearchMode ? 'sendBtn2' : 'sendBtn'); }
@@ -101,10 +101,16 @@ function setSearchMode(mode) {
 }
 
 function extractJSON(str) {
+  if (!str) return null;
   try {
-    const match = str.match(/\{[\s\S]*\}/);
-    return match ? JSON.parse(match[0]) : null;
+    // 마크다운 블록 제거 및 순수 JSON 영역 추출
+    const cleanStr = str.replace(/```json|```/g, '').trim();
+    const firstOpen = cleanStr.indexOf('{');
+    const lastClose = cleanStr.lastIndexOf('}');
+    if (firstOpen === -1 || lastClose === -1) return null;
+    return JSON.parse(cleanStr.substring(firstOpen, lastClose + 1));
   } catch (e) {
+    console.warn("JSON extraction failed", e);
     return null;
   }
 }

@@ -155,9 +155,26 @@ function addThinking() {
   // 실시간 스트리밍 텍스트 업데이트 함수
   d.updateLiveResponse = (txt) => {
     const el = d.querySelector('#liveResponse');
-    if (el) {
-      el.textContent = txt;
+    if (!el) return;
+    
+    // [최종 검문소] 소스 코드(JSON) 징후가 보이면 아예 숨김
+    if (txt.includes('{') || txt.includes('[JSON]') || txt.includes('":') || txt.includes('```') || txt.includes('}')) {
+      el.style.display = 'none';
+      return;
+    }
+
+    // 시스템 태그 및 불필요한 기호 제거
+    let cleanText = txt.replace(/\[?Thought\]?:?/gi, '').trim();
+    // 만약 남아있는 텍스트에 JSON 특수문자가 섞여있다면 숨김
+    if (/[{}[\]"]/.test(cleanText)) {
+      el.style.display = 'none';
+      return;
+    }
+
+    if (cleanText) {
+      el.textContent = cleanText;
       el.classList.add('active');
+      el.style.display = 'block';
     }
   };
 

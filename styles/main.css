@@ -907,12 +907,17 @@ a{
   top: 0; left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.05); /* 투명하게 */
+  background: rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: flex-start;
   justify-content: center;
   z-index: 10000;
-  padding-top: 240px; /* 검색창 위치 근처로 조정 */
+  padding-top: 240px; /* 랜딩 모드 기본 높이 */
+  transition: padding 0.3s ease;
+}
+
+.modal-overlay.search-mode {
+  padding-top: 80px; /* 스티키 바 모드 높이 */
 }
 
 .modal-content {
@@ -922,9 +927,33 @@ a{
   padding: 24px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
   position: relative;
-  margin-right: 280px; /* 버튼 좌측 공간을 위해 우측으로 밀어냄 (데스크톱 기준) */
+  margin-right: 280px;
   animation: modalPop 0.25s ease-out;
   border: 1px solid var(--line);
+}
+
+.filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  margin-left: 10px;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.filter-trigger:hover {
+  background: var(--soft);
+  color: var(--accent);
+}
+
+#stickySearch .filter-trigger {
+  margin-top: 8px;
+  margin-bottom: 4px;
 }
 
 /* 말풍선 화살표 효과 (데스크톱) */

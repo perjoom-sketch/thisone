@@ -214,8 +214,15 @@ function toggleFilterModal() {
   const modal = document.getElementById('filterModal');
   if (!modal) return;
   const isShow = modal.style.display !== 'none';
-  modal.style.display = isShow ? 'none' : 'flex';
-  if (!isShow) loadExpertSettings();
+  
+  if (!isShow) {
+    // 검색 모드 여부에 따라 위치 클래스 토글
+    modal.classList.toggle('search-mode', isSearchMode);
+    loadExpertSettings();
+    modal.style.display = 'flex';
+  } else {
+    modal.style.display = 'none';
+  }
 }
 
 function loadExpertSettings() {

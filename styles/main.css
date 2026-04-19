@@ -1,4 +1,4 @@
-﻿:root{
+:root{
   --bg:#ffffff;
   --text:#111827;
   --muted:#6b7280;
@@ -224,8 +224,8 @@ a{
 
 /* search */
 .search-wrap{
-  width:min(860px, 92vw);
-  margin:0 auto !important; /* 以묒븰 ?뺣젹 媛뺤젣 */
+  width:min(1100px, 94vw);
+  margin:0 auto !important;
   position: relative;
   z-index: 5;
 }
@@ -248,7 +248,7 @@ a{
 
 .search-box{
   width:100%;
-  max-width:860px;
+  max-width:1100px;
   margin:0 auto;
   display:flex;
   flex-direction: column !important;

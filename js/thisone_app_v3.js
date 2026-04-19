@@ -256,6 +256,9 @@ async function sendMsg(forceMode) {
       return;
     }
 
+    // [Early Rendering] 수집된 결과를 즉시 화면에 노출 (사용자 대기 시간 제거)
+    window.ThisOneUI?.renderRawResults?.(candidates);
+
     if (searchMode === 'raw') {
       typingEl?.remove();
       window.ThisOneUI?.renderRawResults?.(candidates);

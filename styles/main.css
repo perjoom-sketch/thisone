@@ -112,21 +112,23 @@ a{
   }
   .logo {
     display: flex !important;
-    flex-direction: row !important; /* 가로 배치로 전환 */
-    align-items: center !important;
+    flex-direction: column !important; /* 다시 수직 배치로 회귀 */
+    align-items: flex-start !important;
     justify-content: center !important;
-    width: 100% !important;
-    gap: 8px !important; /* 적절한 가로 간격 */
+    width: auto !important;
+    gap: 2px !important; /* 아주 타이트한 간격 */
   }
   .logo-img {
-    height: 40px !important; /* 가로 배치에 최적화된 높이 */
+    height: 55px !important; /* 리더님이 만족하신 작은 크기 */
     width: auto !important;
     margin-bottom: 0 !important;
     object-fit: contain !important;
   }
   .slogan {
     margin-top: 0 !important;
-    font-size: 14px !important;
+    margin-left: 5px !important; /* 로고와 왼쪽 선 정렬 */
+    text-align: left !important;
+    font-size: 15px !important;
     color: #475569 !important;
     font-weight: 800 !important;
     display: block !important;

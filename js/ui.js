@@ -407,7 +407,8 @@ async function loadTrendingChips() {
 window.ThisOneUI = {
   renderHistoryBar,
   addUserMsg,
-  addThinking: addThinking,
+  addFallback,
+  addThinking,
   renderBadgeList,
   renderRawResults,
   addResultCard,

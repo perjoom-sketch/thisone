@@ -1340,8 +1340,8 @@ a{
 
 
 
-/* === 사고 모드 (Thinking Mode) 스타일 === */
-.thinking-mode {
+/* === 사고 모드 (Intelligence Mode) 스타일 === */
+.intelligence-mode {
   background: #f8fbff !important;
   border: 1px solid #dbeafe !important;
   padding: 24px !important;

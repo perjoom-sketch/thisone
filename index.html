@@ -32,8 +32,10 @@
     <div class="search-wrap" id="landingSearch">
       <div class="search-box">
         <div class="img-preview" id="imgPreview">
-          <img class="pv-img" id="previewImg" src="" alt="">
-          <button class="pv-del" type="button" onclick="removeImg()">✕</button>
+          <div class="pv-item">
+            <img class="pv-img" id="previewImg" src="" alt="">
+            <button class="pv-del" type="button" onclick="removeImg()">✕</button>
+          </div>
         </div>
 
         <textarea
@@ -122,8 +124,10 @@
   <div id="stickySearch" class="search-wrap" style="display:none; padding-top: 12px; border-bottom: 1px solid #eee; background: #fff; position: sticky; top: 0; z-index: 1000; padding-bottom: 8px;">
     <div class="search-box">
       <div class="img-preview" id="imgPreview2">
-        <img class="pv-img" id="previewImg2" src="" alt="">
-        <button class="pv-del" type="button" onclick="removeImg()">✕</button>
+        <div class="pv-item">
+          <img class="pv-img" id="previewImg2" src="" alt="">
+          <button class="pv-del" type="button" onclick="removeImg()">✕</button>
+        </div>
       </div>
 
       <textarea

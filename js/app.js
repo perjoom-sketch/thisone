@@ -100,6 +100,15 @@ function setSearchMode(mode) {
   if (t) t.classList.toggle('active', mode === 'thisone');
 }
 
+function extractJSON(str) {
+  try {
+    const match = str.match(/\{[\s\S]*\}/);
+    return match ? JSON.parse(match[0]) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 async function sendMsg(forceMode) {
   if (loading) return;
   if (forceMode) setSearchMode(forceMode);
@@ -203,24 +212,14 @@ async function sendMsg(forceMode) {
     }
 
     try {
-      let clean = raw.replace(/```json|```/g, '').trim();
+      const parsed = extractJSON(raw);
+      if (!parsed) throw new Error('Valid JSON block not found');
       
-      const jsonMatches = clean.match(/\{[\s\S]*\}/g);
-      if (jsonMatches) {
-        clean = jsonMatches.reduce((a, b) => {
-          if (b.includes('"cards"') && b.length > a.length) return b;
-          return a.length > b.length ? a : b;
-        }, "");
-      }
-
-      if (!clean || !clean.startsWith('{')) throw new Error('Valid JSON block not found');
-
-      const parsed = JSON.parse(clean);
       const merged = window.ThisOneRanking?.mergeAiWithCandidates ? window.ThisOneRanking.mergeAiWithCandidates(deepClean(parsed), candidates) : parsed;
       window.ThisOneUI?.addResultCard?.(merged);
     } catch (e) {
-      console.error('Parsing error details:', e, 'Raw content:', raw);
-      window.ThisOneUI?.addFallback?.('지능형 리포트 생성 중 데이터 형식이 맞지 않아 일반 결과를 노출합니다.');
+      console.error("Parse/Ranking Error", e, "Raw was:", raw);
+      window.ThisOneUI?.addFallback?.(candidates, `[시스템 리포트: AI 응답 구조적 오류 발생]`);
       window.ThisOneUI?.renderRawResults?.(candidates);
     }
   } catch (err) {

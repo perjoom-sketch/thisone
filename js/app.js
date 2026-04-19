@@ -176,7 +176,7 @@ async function sendMsg(forceMode) {
 
   loading = true;
   const btn = getSendBtn(); if (btn) btn.disabled = true;
-  const typingEl = window.ThisOneUI?.addTyping?.();
+  const typingEl = window.ThisOneUI?.addThinking?.();
 
   try {
     let searchQuery = queryText;

@@ -106,16 +106,16 @@ function addFallback() {
   appendAndScroll(d);
 }
 
-function addTyping() {
+function addThinking() {
   const d = document.createElement('div');
-  d.className = 'ai-result thinking-mode';
+  d.className = 'ai-result intelligence-mode';
   d.innerHTML = `
     <div class="ai-label">
       <span class="thinking-icon">✦</span>
-      <span>디스원이 사고하는 중...</span>
+      <span>디스원이 지능적으로 분석 중...</span>
     </div>
-    <div class="thought-container">
-      <div class="thought-steps" id="thoughtSteps">
+    <div class="thought-container" id="thinkContainerV2">
+      <div class="thought-steps" id="thoughtStepsV2">
         <div class="thought-step active">
           <div class="step-dot"></div>
           <div class="step-text">검색패턴을 관찰해서 원하는 상품 추론 중...</div>
@@ -129,7 +129,7 @@ function addTyping() {
 
   // 사고 단계 업데이트 함수
   d.updateThought = (msg, isFinal = false) => {
-    const steps = d.querySelector('#thoughtSteps');
+    const steps = d.querySelector('#thoughtStepsV2');
     if (!steps) return;
     
     // 이전 단계 완료 처리
@@ -407,8 +407,7 @@ async function loadTrendingChips() {
 window.ThisOneUI = {
   renderHistoryBar,
   addUserMsg,
-  addFallback,
-  addTyping,
+  addThinking: addThinking,
   renderBadgeList,
   renderRawResults,
   addResultCard,

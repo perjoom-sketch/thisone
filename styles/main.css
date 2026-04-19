@@ -1074,13 +1074,23 @@ a{
   margin-bottom: 10px;
   letter-spacing: -0.01em;
 }
-.setting-group.inline {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 12px 24px;
-  margin-bottom: 24px;
-  overflow-x: auto;
-  padding-bottom: 8px;
+@media (min-width: 601px) {
+  .setting-group.inline {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 12px 24px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+}
+@media (max-width: 600px) {
+  .setting-group.inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    margin-bottom: 16px;
+  }
 }
 .setting-group.inline label {
   display: flex;
@@ -1091,6 +1101,7 @@ a{
   color: #334155;
   font-size: 14px;
   margin-bottom: 0;
+  white-space: nowrap; /* 글자 겹침 방지 */
 }
 
 /* 개수 선택 영역 별도 정렬 */
@@ -1121,6 +1132,23 @@ a{
 .filter-bottom-row {
   border-top: 1px solid #f1f5f9;
   padding-top: 20px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 20px;
+}
+
+@media (max-width: 600px) {
+  .filter-bottom-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .mobile-btn-wrap .sub-btn,
+  .save-btn-wrap .save-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .filter-footer {
@@ -1238,21 +1266,6 @@ a{
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-.modal-header h3 { margin: 0; font-size: 20px; font-weight: 800; }
-.close-btn { background: none; border: none; font-size: 28px; color: #9ca3af; cursor: pointer; }
-.setting-group { margin-bottom: 20px; }
-.setting-group label { display: block; font-size: 14px; font-weight: 700; color: #374151; margin-bottom: 8px; }
-.price-inputs { display: flex; align-items: center; gap: 8px; }
-.price-inputs input { flex: 1; padding: 10px 14px; border: 1px solid #e5e7eb; border-radius: 12px; outline: none; }
-.setting-group.inline { display: flex; flex-wrap: wrap; gap: 16px; }
-.setting-group.inline label { display: flex !important; align-items: center !important; gap: 6px !important; font-weight: 500 !important; cursor: pointer; margin: 0 !important; }
-.save-btn { width: 100%; padding: 14px; background: var(--accent); color: #fff; border: none; border-radius: 14px; font-weight: 700; font-size: 16px; cursor: pointer; transition: transform 0.1s; }
 .save-btn:active { transform: scale(0.98); }
 
 /* feedback system */

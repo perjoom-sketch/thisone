@@ -260,76 +260,89 @@ body.search-mode .slogan {
 
 .filter-trigger:hover { color: var(--accent); border-color: var(--accent); }
 
-/* --- Sticky Search Bar --- */
 #stickySearch {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 20000;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
-  padding: 12px 4%;
   display: none;
-  flex-direction: column;
-  align-items: center;
 }
 
 body.search-mode #stickySearch {
-  display: flex !important;
+  display: block !important;
 }
 
 .sticky-inner {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
+  height: 70px;
   display: flex;
   align-items: center;
-  gap: 16px; /* 24 -> 16으로 기본 간격 조정 */
-  width: 100%;
+  gap: 16px;
+  padding: 0 20px;
 }
 
-@media (max-width: 640px) {
-  .sticky-inner { gap: 8px; } /* 모바일은 더 좁게 */
-}
+.sticky-logo { flex-shrink: 0; display: flex; align-items: center; }
+.sticky-logo-img { height: 38px; width: auto; }
 
-.sticky-logo {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-}
-
-.sticky-logo-img {
-  height: 36px; /* 조금 더 컴팩트하게 */
-  width: auto;
-  object-fit: contain;
-}
-
-@media (max-width: 640px) {
-  .sticky-logo-img { height: 28px; } /* 모바일 로고 크기 최적화 */
-}
-
-#stickySearch .search-box {
+.sticky-search-wrap {
   flex: 1;
+  display: flex;
+  align-items: center;
   background: var(--soft);
-  border-radius: 14px;
-  padding: 4px 10px;
   border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 2px 8px;
   min-width: 0;
 }
 
-.filter-trigger-btn {
-  background: var(--soft);
-  padding: 10px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  color: var(--muted);
+.sticky-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px;
+  font-size: 15px;
+  min-width: 0;
+  resize: none;
+  height: 38px;
+  line-height: 22px;
+}
+
+.sticky-img-btn, .sticky-send-btn, .sticky-filter-btn {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
-  flex-shrink: 0;
 }
 
-.filter-trigger-btn:hover { background: #fff; border-color: var(--accent); color: var(--accent); }
+.sticky-img-btn { color: var(--muted); padding: 8px; }
+.sticky-send-btn {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 10px;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+.sticky-filter-btn {
+  background: var(--soft);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+@media (max-width: 640px) {
+  .sticky-inner { height: 64px; gap: 8px; padding: 0 10px; }
+  .sticky-logo-img { height: 26px; }
+  .sticky-input { font-size: 14px; padding: 6px; height: 32px; line-height: 20px; }
+  .sticky-send-btn { padding: 6px 12px; font-size: 13px; }
+  .sticky-filter-btn { width: 40px; height: 40px; border-radius: 10px; }
+}
 
 /* --- Search Results UI --- */
 .content {

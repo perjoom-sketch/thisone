@@ -110,7 +110,7 @@ function addTyping() {
   const d = document.createElement('div');
   d.className = 'ai-result';
   d.innerHTML = `
-    <div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 쇼핑 도로 자율주행 중...</div>
+    <div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 자율탐색중...</div>
     <div class="typing-wrap">
       <div class="typing-steps">
         <div class="typing-spinner"></div>

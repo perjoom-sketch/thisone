@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <script>
+    console.log("%c [ThisOne] v3.0.2 Loaded - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
+    
     // [Core] 전역 UI 상수 정의 (렌더링 충돌 방지)
     if (typeof window !== 'undefined') {
       window.MINI_SCOPE = window.MINI_SCOPE || '✦';
@@ -12,7 +14,7 @@
     }
 
     let currentQuery = '';
-    console.log("%c [ThisOne] v3.0.2 Loaded - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
+    
     window.addEventListener('click', function(e) {
       console.log('Global Click Target:', e.target);
     });
@@ -25,25 +27,10 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>지능형 쇼핑 디스원</title>
-  <script>
-    console.log("%c [ThisOne] v3.0.2 Loaded - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
-    window.addEventListener('click', function(e) {
-      console.log('Global Click Target:', e.target);
-    });
-  </script>
+  
   <link rel="stylesheet" href="/styles/main.css" />
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap" rel="stylesheet">
   <style>
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-4px); }
-    }
-    .beta-badge {
-      display: inline-block;
-      position: relative;
-      animation: float 3s ease-in-out infinite;
-      vertical-align: middle;
-    }
     .ftr { position: relative; z-index: 10 !important; }
     .modal-overlay {
       position: fixed;

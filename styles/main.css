@@ -76,12 +76,11 @@ a{
 }
 @media (max-width: 768px) {
   .hdr {
-    padding: 20px 20px 24px; /* 높이 확보를 위해 상하 패딩 확대 */
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    min-height: 100px; /* 최소 높이 보장 */
+    padding: 30px 20px !important; /* 충분한 상하 공간 확보 */
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    min-height: auto !important;
   }
   .logo {
     display: flex !important;
@@ -89,16 +88,20 @@ a{
     align-items: center !important;
     justify-content: center !important;
     width: 100% !important;
-    margin: 0 auto !important;
+    overflow: visible !important;
   }
   .logo-img {
-    width: 160px !important; /* 모바일에서 적절한 크기로 조정 */
-    height: auto !important;
-    margin-bottom: 6px;
+    height: 36px !important; /* 높이를 고정하여 잘림 방지 */
+    width: auto !important;
+    max-width: 140px !important;
+    margin-bottom: 8px !important;
+    object-fit: contain !important;
   }
   .slogan {
     margin-left: 0 !important;
-    font-size: 11px !important;
+    font-size: 12px !important;
+    color: #64748b !important;
+    display: block !important;
   }
   .hdr .badge {
     margin-top: 12px;
@@ -743,7 +746,6 @@ a{
   .logo-img{
     width:128px !important;
     height:auto !important;
-    transform:translateY(-5px);
   }
 
   .badge{

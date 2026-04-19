@@ -91,7 +91,18 @@ function addFallback(txt) {
     <div class="ai-label"><div class="dot">${MINI_SCOPE}</div> 지능형 분석 리포트</div>
     <div class="pick-card" style="border-color:var(--border)">${fmt}</div>
   `;
+  appendAndScroll(d);
+}
 
+function addFallback(txt, msg) {
+  const d = document.createElement('div');
+  d.className = 'ai-fallback';
+  d.innerHTML = `
+    <div class="fb-msg">
+      지능형 엔진이 현재 분석 중입니다. 잠시 후 다시 시도하거나 일반 검색 결과를 확인해 주세요.
+      <div style="font-size:9px; color:#ccc; margin-top:5px; opacity:0.6;">(Debug: ${msg || 'Unknown error'})</div>
+    </div>
+  `;
   appendAndScroll(d);
 }
 

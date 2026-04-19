@@ -94,7 +94,7 @@ a{
 .slogan{
   font-size:13px;
   color:#6b7280;
-  margin-left: 20px; /* 로고 'T' 시작점에 맞추기 위해 20px(약 5mm) 우측 이동 */
+  margin-left: 46px; /* 로고 'T' 시작점에 맞추기 위해 46px로 정밀 보정 */
   font-weight:400;
   white-space:nowrap;
   letter-spacing:0.08em;

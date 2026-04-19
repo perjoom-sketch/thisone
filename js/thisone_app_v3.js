@@ -414,7 +414,7 @@ function saveExpertSettings() {
 
   const el = document.getElementById('inlineFilter');
   if (el) el.style.display = 'none';
-  alert('설정이 현재 검색에 적용되었습니다.');
+  // alert('설정이 현재 검색에 적용되었습니다.'); // 사용자 경험을 위해 얼럿 제거
 }
 
 function applyPcView() {

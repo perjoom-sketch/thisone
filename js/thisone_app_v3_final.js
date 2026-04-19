@@ -1,8 +1,6 @@
-// ---- 전역 설정 및 모델 정의 (변수외 선언) ----
-if (typeof window.NOEL === 'undefined') window.NOEL = 'gemini-2.0-flash';
+// ---- 전역 설정 및 모델 정의 ----
 if (typeof window.NOEL === 'undefined') window.NOEL = 'gemini-2.0-flash';
 var NOEL = window.NOEL;
-var NOEL = window.NOEL; // 중복되어 보이지만 클로드 제안대로 일관성 유지
 
 // --- 관리자 통계 및 트래킹 로직 ---
 async function trackVisit() {
@@ -81,8 +79,14 @@ function goHome() {
 function switchToSearchMode() {
   if (isSearchMode) return;
   isSearchMode = true;
-  const landing = document.getElementById('landing'), stickySearch = document.getElementById('stickySearch'), content = document.getElementById('content');
+  const landing = document.getElementById('landing'),
+        stickySearch = document.getElementById('stickySearch'),
+        content = document.getElementById('content'),
+        mainHdr = document.querySelector('.hdr');
+  
   if (landing) landing.style.display = 'none';
+  if (mainHdr) mainHdr.classList.add('hidden'); // 메인 헤더 숨김 (중첩 방지)
+  
   if (stickySearch) {
     stickySearch.style.setProperty('display', 'block', 'important');
     stickySearch.style.setProperty('position', 'fixed', 'important');
@@ -91,7 +95,7 @@ function switchToSearchMode() {
   }
   if (content) {
     content.style.display = 'block';
-    content.style.setProperty('padding-top', '100px', 'important');
+    content.style.setProperty('padding-top', '80px', 'important'); // 간격 조정
     content.style.minHeight = '100vh';
   }
 }
@@ -347,14 +351,13 @@ async function sendMsg(forceMode) {
         const merged = window.ThisOneRanking?.mergeAiWithCandidates ? window.ThisOneRanking.mergeAiWithCandidates(deepClean(parsed), candidates) : parsed;
         window.ThisOneUI?.addResultCard?.(merged);
         
-        // 모바일 포함 전방위 스크롤 진압: 3중 보안 및 타겟팅
+        // 모바일 포함 전방위 스크롤 진압: 부드럽게 상단 이동
         setTimeout(() => {
-          window.scrollTo(0, 0);
-          document.documentElement.scrollTop = 0;
-          document.body.scrollTop = 0;
-          // 헤더 로고 쪽으로 시선 고정
-          document.querySelector('.hdr')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 200); // 모바일 레이아웃 재계산 시간 확보
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          // 로고 쪽으로 시선 고정하되, 너무 강제적이지 않게
+          const logo = document.querySelector('#stickySearch .logo') || document.querySelector('.hdr .logo');
+          if (logo) logo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100); 
       } catch (e) {
         console.warn("Silent Fallback Triggered", e);
         window.ThisOneUI?.addFallback?.(); // 조용하고 우아한 마무리 문구 출력
@@ -454,7 +457,7 @@ function togglePcView() {
 document.addEventListener('DOMContentLoaded', () => {
   applyPcView();
   loadTrendingChips();
-  document.getElementById('thisoneSearchBtn')?.addEventListener('click', () => sendMsg('thisone'));
+  document.getElementById('sendBtn')?.addEventListener('click', () => sendMsg('thisone'));
   document.getElementById('rawSearchBtn')?.addEventListener('click', () => sendMsg('raw'));
   
   // 이미지 붙여넣기 지원

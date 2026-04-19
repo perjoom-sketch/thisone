@@ -70,9 +70,14 @@ a{
   align-items:center;
   justify-content:space-between;
   gap:16px;
-  padding:12px 24px 14px;
+  padding:16px 80px 18px; /* 좌측 여백을 80px(약 20mm)로 대폭 확대 */
   border-bottom:1px solid #e5e7eb;
   background:#fff;
+}
+@media (max-width: 768px) {
+  .hdr {
+    padding: 12px 20px 14px; /* 모바일에서는 적절히 조정 */
+  }
 }
 
 .logo{

@@ -230,7 +230,8 @@ async function sendMsg(forceMode) {
     window.ThisOneTrajectory.recordQuery(queryText);
   }
 
-  removeImg();
+  const queryImage = pendingImg; // 이미지 백업
+  removeImg(); // UI 초기화
 
   loading = true;
   const btn = getSendBtn();
@@ -254,7 +255,7 @@ async function sendMsg(forceMode) {
     const trajectory = window.ThisOneTrajectory?.getSession() || {};
     const [searchData, intentProfileResult] = await Promise.all([
       window.ThisOneAPI.requestSearch(searchQuery, expertSettings),
-      window.ThisOneAPI.requestIntentInfer(queryText, trajectory).catch(() => null)
+      window.ThisOneAPI.requestIntentInfer(queryText, trajectory, queryImage).catch(() => null)
     ]);
 
     const items = searchData?.items || [];
@@ -318,18 +319,65 @@ async function sendMsg(forceMode) {
 
     typingEl?.updateStatus?.('최종 추천 리포트 작성 중...', '고민을 해결해 줄 최적의 상품 5개를 선정합니다.');
 
+    const aiMessages = [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: `사용자 질문:
+${queryText}
+
+후보 상품 목록(JSON):
+${JSON.stringify(prunedCandidates, null, 2)}
+
+사용자 의도 분석 (전문가 가이드):
+${intentProfile ? `의도: ${intentProfile.intentTag}
+우선 분석 요소: ${intentProfile.expertFactors?.key_priority || '일반 탐색'}
+분석 근거: ${intentProfile.expertFactors?.rationale || '정보 부족'}
+핵심 스펙: ${intentProfile.expertFactors?.focus_specs?.join(', ') || '전체'}` : '기본 분석'}
+
+사용자 설정 필터 (강제 사항):
+${JSON.stringify(expertSettings, null, 2)}
+
+ 지시:
+ - 사용자 설정 필터(강제 사항)에 어긋나는 상품은 절대 추천하지 마세요. (예: 해외직구 제외 시 해외 배송 상품 탈락)
+ - 전문가 분석 결과를 바탕으로, 해당 핵심 스펙 및 용도 적합성(useCaseMatch)에서 가장 유리한 상품을 추천하세요.
+ - 반드시 후보 상품 목록 안에서만 선택하세요.
+ - cards 배열로만 답하세요.
+ - 허용 카드 type: "price", "review", "popular", "trust"
+ - 각 카드의 sourceId는 반드시 후보 상품의 id를 그대로 사용하세요.
+ - aiPickSourceType은 반드시 "price", "review", "popular", "trust" 중 하나만 사용하세요.
+ - cards 4개는 가능하면 서로 다른 sourceId를 사용하세요.
+ - bonusScore, specPenalty, finalScore를 꼭 참고하세요.
+ - excludeFromPriceRank가 true인 후보는 "price" 카드와 AI추천에서 절대 선택하지 마세요.
+ - badges에 "옵션가 주의"가 있거나 priceRisk가 "high"이면 price 카드로 선택하지 마세요.
+ - priceRiskReason이 있으면 반드시 참고하여 추천 이유(reason)에 녹여내세요. 
+ - 특히 부품일 확률이 있는 저가 상품은 "이 상품은 가격은 매력적이지만 전문가 분석 결과 본품이 아닌 부품일 확률이 있습니다."라는 전문가 소견을 포함하세요.
+ - useCaseMatch가 높은 상품은 사용자 질문의 의도(용도)에 완벽히 부합한다는 점을 강조하여 추천하세요.
+ - 렌탈 상품(excludeFromPriceRank: true)은 구매 의도 검색 시 순위에서 최하위로 밀어내지만, 사용자가 직접 '렌탈'을 검색한 경우에는 이를 핵심 후보로 우선 추천하세요.
+ - 가전제품(공기청정기 등)의 경우, 요즘 한국 시장의 구독/렌탈 트렌드를 언급하며 구매보다 서비스 이용이 유리할 수 있는 포인트를 짚어주세요.
+ - totalPriceNum을 참고하여 가격 판단은 대표가보다 실구매 총액 기준으로 보수적으로 판단하세요.
+ - AI추천은 finalScore가 높은 후보를 우선 고려하세요.
+ - JSON만 출력하세요.`
+          }
+        ]
+      }
+    ];
+
+    if (queryImage && queryImage.data) {
+      aiMessages[0].content.push({
+        type: 'image_url',
+        image_url: { url: \`data:image/jpeg;base64,\${queryImage.data}\` }
+      });
+    }
+
     const aiData = await window.ThisOneAPI.requestChat({
       model: MODEL,
       max_tokens: 1400,
       system: RANKING_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `사용자 질문:
-${queryText}
+      messages: aiMessages
+    });
 
 후보 상품 목록(JSON):
 ${JSON.stringify(prunedCandidates, null, 2)}
@@ -370,98 +418,3 @@ ${JSON.stringify(expertSettings, null, 2)}
     });
 
     typingEl?.remove();
-
-    if (aiData?.error) {
-  const errCode =
-    typeof aiData.error === 'string'
-      ? aiData.error
-      : JSON.stringify(aiData.error);
-
-  const isBusy = errCode === 'AI_SERVER_BUSY' || errCode === 'AI_TIMEOUT';
-
-  if (isBusy) {
-    window.ThisOneUI?.addFallback?.('AI 분석 서버가 혼잡하여 빠른 추천 결과로 대신 보여줍니다.');
-
-    if (window.ThisOneUI?.renderRawResults) {
-      window.ThisOneUI.renderRawResults(candidates);
-    }
-
-    return;
-  }
-
-  window.ThisOneUI?.addFallback?.('API 오류: ' + (aiData.detail || errCode));
-  return;
-}
-
-    const raw = Array.isArray(aiData?.content)
-      ? aiData.content
-          .filter((b) => b.type === 'text')
-          .map((b) => b.text)
-          .join('')
-      : '';
-
-    try {
-      let clean = raw.replace(/```json|```/g, '').trim();
-      const jsonMatch = clean.match(/\{[\s\S]*\}/);
-      if (jsonMatch) clean = jsonMatch[0];
-
-      const parsed = JSON.parse(clean);
-      const cleaned = deepClean(parsed);
-
-      const merged = window.ThisOneRanking?.mergeAiWithCandidates
-        ? window.ThisOneRanking.mergeAiWithCandidates(cleaned, candidates)
-        : cleaned;
-
-      window.ThisOneUI?.addResultCard?.(merged);
-    } catch (e) {
-      console.error('AI parse error:', e);
-      window.ThisOneUI?.addFallback?.(raw || '응답을 파싱할 수 없습니다.');
-    }
-  } catch (err) {
-  console.error('search error:', err);
-  typingEl?.remove();
-
-  const msg = String(err?.message || '');
-  const isAiBusy = /503|Service Unavailable|high demand|overloaded/i.test(msg);
-
-  if (isAiBusy) {
-    window.ThisOneUI?.addFallback?.('AI 분석 서버가 혼잡해서 원본 후보 결과로 대신 보여줍니다.');
-
-    if (window.ThisOneUI?.renderRawResults) {
-      window.ThisOneUI.renderRawResults(candidates);
-    } else {
-      window.ThisOneUI?.addFallback?.('원본 결과 렌더 함수가 없습니다.');
-    }
-  } else {
-    let displayMsg = msg;
-    try {
-      // JSON 형태의 에러인 경우 파싱 시도
-      const parsedErr = JSON.parse(msg);
-      if (parsedErr.detail) displayMsg = parsedErr.detail;
-      else if (parsedErr.error) displayMsg = parsedErr.error;
-    } catch (e) {
-      // JSON이 아니면 그대로 사용
-    }
-    window.ThisOneUI?.addFallback?.('검색 중 오류: ' + displayMsg);
-  }
-} finally {
-    loading = false;
-    const btn2 = getSendBtn();
-    if (btn2) btn2.disabled = false;
-    getInput()?.focus();
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  window.ThisOneUI?.loadTrendingChips?.(); // 실시간 트렌드 칩 로드
-
-  document.getElementById('thisoneSearchBtn')?.addEventListener('click', () => {
-    setSearchMode('thisone');
-    sendMsg('thisone');
-  });
-
-  document.getElementById('rawSearchBtn')?.addEventListener('click', () => {
-    setSearchMode('raw');
-    sendMsg('raw');
-  });
-});

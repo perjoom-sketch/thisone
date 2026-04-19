@@ -25,10 +25,10 @@ async function handler(req, res) {
       throw new Error("API 키가 설정되지 않았습니다. Vercel 환경 변수를 확인해주세요.");
     }
 
-    console.log("Gemini API 호출 시작 (Model: gemini-2.5-flash)");
+    console.log("Gemini API 호출 시작 (Model: gemini-2.0-flash)");
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.0-flash",
       systemInstruction: system,
       generationConfig: {
         responseMimeType: "application/json",
@@ -41,9 +41,25 @@ async function handler(req, res) {
       throw new Error("메시지가 없습니다.");
     }
 
-    const userContent = typeof lastMessage.content === "string" 
-      ? lastMessage.content 
-      : JSON.stringify(lastMessage.content);
+    // 멀티모달 파츠 구성
+    let userParts = [];
+    if (Array.isArray(lastMessage.content)) {
+      userParts = lastMessage.content.map(part => {
+        if (part.type === 'text') return { text: part.text };
+        if (part.type === 'image_url') {
+          const base64Data = part.image_url.url.split(',')[1];
+          return {
+            inlineData: {
+              data: base64Data,
+              mimeType: 'image/jpeg'
+            }
+          };
+        }
+        return null;
+      }).filter(Boolean);
+    } else {
+      userParts = [{ text: String(lastMessage.content) }];
+    }
 
     // 55초 타임아웃 설정 (Vercel 60초 제한 대비)
     const timeoutPromise = new Promise((_, reject) =>
@@ -51,7 +67,7 @@ async function handler(req, res) {
     );
 
     // AI 실행 (스트리밍 방식 도입)
-    const result = await model.generateContentStream(userContent);
+    const result = await model.generateContentStream(userParts);
     
     // 스트리밍 응답 헤더 설정
     res.setHeader('Content-Type', 'text/event-stream');

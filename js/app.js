@@ -211,17 +211,16 @@ function loadTrendingChips() {
 }
 
 function toggleFilterModal() {
-  const modal = document.getElementById('filterModal');
-  if (!modal) return;
-  const isShow = modal.style.display !== 'none';
+  const el = document.getElementById('inlineFilter');
+  if (!el) return;
+  const isShow = el.style.display !== 'none';
   
   if (!isShow) {
-    // 검색 모드 여부에 따라 위치 클래스 토글
-    modal.classList.toggle('search-mode', isSearchMode);
     loadExpertSettings();
-    modal.style.display = 'flex';
+    el.style.display = 'block';
+    el.style.animation = 'inlineSlideDown 0.3s ease-out forwards';
   } else {
-    modal.style.display = 'none';
+    el.style.display = 'none';
   }
 }
 
@@ -249,7 +248,11 @@ function saveExpertSettings() {
     includeRental: document.getElementById('includeRental').checked
   };
   localStorage.setItem('thisone_expert_settings', JSON.stringify(settings));
-  toggleFilterModal();
+  
+  // 저장 후 프레임 접기
+  const el = document.getElementById('inlineFilter');
+  if (el) el.style.display = 'none';
+  
   alert('설정이 저장되었습니다.');
 }
 

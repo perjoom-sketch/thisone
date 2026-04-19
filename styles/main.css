@@ -901,46 +901,25 @@ a{
   }
 }
 
-/* modal / popover / side drawer */
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(2px);
-  display: flex;
-  align-items: stretch;
-  justify-content: flex-start; /* 왼쪽 정렬 */
-  z-index: 10000;
-  padding: 0;
+/* inline settings frame (accordion) */
+.inline-filter-wrap {
+  background: #fdfdfd;
+  border: 1px solid #eee;
+  border-radius: 20px;
+  padding: 24px;
+  margin-top: 16px;
+  margin-bottom: 8px;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);
+  width: 100%;
+  overflow: hidden;
+  animation: inlineSlideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.modal-content {
-  background: #fff;
-  width: min(340px, 85vw); /* 폭을 살짝 더 콤팩트하게 */
-  height: 100vh;
-  border-radius: 0 32px 32px 0;
-  padding: 48px 28px;
-  box-shadow: 15px 0 50px rgba(0, 0, 0, 0.1);
-  position: relative;
-  margin: 0;
-  animation: drawerSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  border-right: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
+@keyframes inlineSlideDown {
+  from { opacity: 0; transform: translateY(-10px); max-height: 0; }
+  to { opacity: 1; transform: translateY(0); max-height: 600px; }
 }
 
-@keyframes drawerSlide {
-  from { transform: translateX(-100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
-.modal-content::-webkit-scrollbar { width: 4px; }
-.modal-content::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-
-/* 가격 입력 칸이 패널 밖으로 나가지 않도록 조정 */
 .price-inputs {
   display: flex;
   align-items: center;
@@ -948,9 +927,8 @@ a{
   width: 100%;
 }
 .price-inputs input {
-  width: 0; /* flex-grow가 작동하도록 초기 폭 제거 */
   flex: 1;
-  min-width: 0; /* overflow 방지 */
+  min-width: 0;
   padding: 12px;
   border: 1.5px solid #edf2f7;
   border-radius: 14px;
@@ -964,36 +942,53 @@ a{
   box-shadow: 0 0 0 3px rgba(15, 61, 138, 0.1);
 }
 
-/* 사이드 패널 모드에서는 화살표 제거 */
-.modal-content::after { display: none !important; }
-
-@media (max-width: 600px) {
-  .modal-overlay {
-    align-items: flex-end; /* 바닥에 정렬 */
-    background: rgba(0, 0, 0, 0.4); 
-  }
-  .modal-content {
-    width: 100vw;
-    height: auto;
-    max-height: 80vh;
-    border-radius: 28px 28px 0 0; /* 상단 라운드 */
-    padding: 32px 24px 40px;
-    animation: bottomSlide 0.35s cubic-bezier(0.32, 1, 0.2, 1);
-    border-right: none;
-    border-top: 1px solid var(--line);
-    margin: 0;
-  }
+.setting-group {
+  margin-bottom: 20px;
+}
+.setting-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+.setting-group.inline {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.setting-group.inline label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #334155;
 }
 
-@keyframes bottomSlide {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+.filter-footer {
+  margin-top: 12px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 16px;
 }
 
-@keyframes modalPop {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+.save-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
 }
+.save-btn:hover {
+  background: #0d3278;
+  box-shadow: 0 4px 12px rgba(15, 61, 138, 0.2);
+}
+.save-btn:active { transform: scale(0.98); }
 
 .filter-trigger {
   display: inline-flex;

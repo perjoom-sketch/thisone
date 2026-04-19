@@ -54,10 +54,35 @@
           </svg>
         </button>
       </div>
-      <!-- 전문가 필터 버튼 -->
       <div class="filter-trigger" onclick="toggleFilterModal()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
         검색설정
+      </div>
+
+      <!-- 인라인 설정 영역 (펼침/접힘) -->
+      <div id="inlineFilter" class="inline-filter-wrap" style="display:none;">
+        <div class="setting-group">
+          <label>가격 범위 (원)</label>
+          <div class="price-inputs">
+            <input type="number" id="minPrice" placeholder="최소" />
+            <span>~</span>
+            <input type="number" id="maxPrice" placeholder="최대" />
+          </div>
+        </div>
+        <div class="setting-group inline">
+          <label><input type="checkbox" id="freeShipping"> 무료배송만</label>
+          <label><input type="checkbox" id="excludeOverseas" checked> 해외직구 제외</label>
+        </div>
+        <div class="setting-group inline">
+          <label><input type="checkbox" id="excludeAgent" checked> 구매대행 제외</label>
+          <label><input type="checkbox" id="excludeUsed" checked> 중고/리퍼 제외</label>
+        </div>
+        <div class="setting-group inline">
+          <label><input type="checkbox" id="includeRental" checked> 렌탈 상품 포함</label>
+        </div>
+        <div class="filter-footer">
+          <button class="save-btn" onclick="saveExpertSettings()">설정 저장</button>
+        </div>
       </div>
 
       <div class="img-preview" id="imgPreview">
@@ -70,39 +95,6 @@
       <div id="trendingChips" class="trending-chips"></div>
     </div>
 
-    <!-- 검색설정 모달 -->
-    <div id="filterModal" class="modal-overlay" style="display:none;">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>검색설정</h3>
-          <button class="close-btn" onclick="toggleFilterModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="setting-group">
-            <label>가격 범위 (원)</label>
-            <div class="price-inputs">
-              <input type="number" id="minPrice" placeholder="최소" />
-              <span>~</span>
-              <input type="number" id="maxPrice" placeholder="최대" />
-            </div>
-          </div>
-          <div class="setting-group inline">
-            <label><input type="checkbox" id="freeShipping"> 무료배송만</label>
-            <label><input type="checkbox" id="excludeOverseas" checked> 해외직구 제외</label>
-          </div>
-          <div class="setting-group inline">
-            <label><input type="checkbox" id="excludeAgent" checked> 구매대행 제외</label>
-            <label><input type="checkbox" id="excludeUsed" checked> 중고/리퍼 제외</label>
-          </div>
-          <div class="setting-group inline">
-            <label><input type="checkbox" id="includeRental" checked> 렌탈 상품 포함</label>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="save-btn" onclick="saveExpertSettings()">설정 저장</button>
-        </div>
-      </div>
-    </div>
 
     <div id="chips">
       <!-- 트렌드 알고리즘에 의해 실시간으로 생성됩니다 -->

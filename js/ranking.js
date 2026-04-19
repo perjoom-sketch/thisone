@@ -543,18 +543,22 @@ function dedupeCandidatesByModel(items = []) {
 
   return Array.from(map.values());
 }
-function buildCandidates(items, queryText = '') {
-  const profile = inferIntentProfile(queryText);
+function buildCandidates(items, queryText = '', intentProfile = null) {
+  const profile = intentProfile || inferIntentProfile(queryText);
+  
+  // 사용자 설정 로드
+  const savedSettings = localStorage.getItem('thisone_expert_settings');
+  const expertSettings = savedSettings ? JSON.parse(savedSettings) : {};
 
   const mapped = (items || []).slice(0, 20).map((item, idx) => {
     const shipping = parseShippingCost(item.delivery || '');
-    const priceNum = parsePriceNumber(item.priceText || item.price || '');
+    const priceNum = parsePriceNumber(item.priceText || item.price || item.lprice || '');
     const hpriceNum = parsePriceNumber(item.hprice || item.highPrice || '');
 
     return {
       id: String(item.id ?? (idx + 1)),
       name: String(item.name || '').trim(),
-      price: String(item.priceText || item.price || '').trim(),
+      price: String(item.priceText || item.price || item.lprice || '').trim(),
       priceNum,
       hpriceNum,
       store: String(item.store || item.mallName || '').trim(),
@@ -564,7 +568,9 @@ function buildCandidates(items, queryText = '') {
       link: String(item.link || item.productUrl || item.url || '').trim(),
       shippingKnown: shipping.known,
       shippingCost: shipping.cost,
-      totalPriceNum: shipping.known ? (priceNum + shipping.cost) : priceNum
+      totalPriceNum: shipping.known ? (priceNum + shipping.cost) : priceNum,
+      isOverseas: /해외|직구|구매대행/i.test(`${item.name} ${item.delivery} ${item.store}`),
+      isUsed: /중고|리퍼|반품|전시/i.test(`${item.name}`)
     };
   });
 
@@ -576,6 +582,38 @@ function buildCandidates(items, queryText = '') {
     const priceRisk = shouldExcludeFromPriceRank(candidate, queryText, medianPrice);
 
     let specPenalty = 0;
+    const badges = [...(priceRisk.badges || [])];
+
+    // ── 전문가 설정 필터링 반영 ──────────────────
+    if (expertSettings.minPrice && candidate.totalPriceNum < Number(expertSettings.minPrice)) {
+      specPenalty += 20;
+      badges.push('설정가 미달');
+    }
+    if (expertSettings.maxPrice && candidate.totalPriceNum > Number(expertSettings.maxPrice)) {
+      specPenalty += 20;
+      badges.push('설정가 초과');
+    }
+    if (expertSettings.excludeOverseas && candidate.isOverseas) {
+      specPenalty += 15;
+      badges.push('해외직구 페널티');
+    }
+    if (expertSettings.excludeUsed && candidate.isUsed) {
+      specPenalty += 15;
+      badges.push('중고/리퍼 페널티');
+    }
+    if (expertSettings.freeShipping && candidate.shippingCost > 0) {
+      specPenalty += 5;
+      badges.push('유료배송 감점');
+    }
+
+    // ── AI 의도 분석(focus_specs) 추가 보너스 ──────────
+    if (profile?.expertFactors?.focus_specs) {
+      profile.expertFactors.focus_specs.forEach(spec => {
+        if (candidate.name.includes(spec)) {
+          bonus.bonusScore += 2;
+        }
+      });
+    }
 
     if (priceRisk.exclude) specPenalty += 12;
     else if (priceRisk.badges.includes('옵션가 확인')) specPenalty += 6;
@@ -590,9 +628,9 @@ function buildCandidates(items, queryText = '') {
       bonusReasons: bonus.bonusReasons,
       specPenalty,
       finalScore,
-      excludeFromPriceRank: priceRisk.exclude,
+      excludeFromPriceRank: priceRisk.exclude || specPenalty >= 15,
       priceRiskReason: priceRisk.reason,
-      badges: priceRisk.badges || []
+      badges
     };
   }).sort((a, b) => {
     if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;

@@ -264,7 +264,7 @@ async function sendMsg(forceMode) {
     typingEl?.updateStatus?.('전문가 안목으로 상품 선별 중...', '최저가 낚시 및 부적합 상품을 정밀 필터링합니다.');
 
     const candidates = window.ThisOneRanking?.buildCandidates
-      ? window.ThisOneRanking.buildCandidates(items, queryText)
+      ? window.ThisOneRanking.buildCandidates(items, queryText, intentProfile)
       : items;
 
     if (!candidates || !candidates.length) {

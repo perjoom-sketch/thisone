@@ -232,7 +232,6 @@ function loadExpertSettings() {
   document.getElementById('minPrice').value = settings.minPrice || '';
   document.getElementById('maxPrice').value = settings.maxPrice || '';
   document.getElementById('freeShipping').checked = !!settings.freeShipping;
-  document.getElementById('domesticOnly').checked = !!settings.domesticOnly;
   document.getElementById('excludeOverseas').checked = !!settings.excludeOverseas;
   document.getElementById('excludeUsed').checked = !!settings.excludeUsed;
   document.getElementById('includeRental').checked = !!settings.includeRental;
@@ -243,7 +242,6 @@ function saveExpertSettings() {
     minPrice: document.getElementById('minPrice').value,
     maxPrice: document.getElementById('maxPrice').value,
     freeShipping: document.getElementById('freeShipping').checked,
-    domesticOnly: document.getElementById('domesticOnly').checked,
     excludeOverseas: document.getElementById('excludeOverseas').checked,
     excludeUsed: document.getElementById('excludeUsed').checked,
     includeRental: document.getElementById('includeRental').checked

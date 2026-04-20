@@ -208,14 +208,14 @@ async function sendMsg(forceMode) {
   
   // 3단계 강제 제압: 구버전 요소 완전 소멸
   // 검색 후에도 검색창은 남겨두기 위해 landingSearch 제외
-  ['landing', 'welcome'].forEach(id => {
+  ['welcome'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       el.classList.add('hidden');
     }
   });
 
-  const contentEl = document.getElementById('content');
+  const contentEl = document.getElementById('msgContainer');
     if (contentEl) contentEl.innerHTML = '';
     if (txt) searchHistory.push(txt);
     syncQueryInputs(currentQuery);
@@ -349,8 +349,8 @@ async function sendMsg(forceMode) {
         // 상단 이동을 즉시 수행하여 '날아다니는' 느낌 제거
         setTimeout(() => {
           window.scrollTo(0, 0);
-          const logo = document.querySelector('#stickySearch .sticky-logo-img');
-          if (logo) logo.scrollIntoView({ block: 'start' });
+          const header = document.querySelector('.app-header');
+          if (header) header.scrollIntoView({ block: 'start' });
         }, 10); 
       } catch (e) {
         console.warn("Silent Fallback Triggered", e);

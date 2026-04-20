@@ -138,8 +138,15 @@ body {
 }
 
 /* ===== 상태 관리: 검색 모드 (레벨 3) ===== */
-body.search-mode .landing-view {
+body.search-mode .welcome-section,
+body.search-mode .trending-section,
+body.search-mode .settings-trigger {
   display: none !important;
+}
+
+body.search-mode .landing-view {
+  padding: 16px;
+  padding-bottom: 0;
 }
 
 body.search-mode .results-view {

@@ -21,6 +21,15 @@
   --mobile-breakpoint: 768px;
 }
 
+/* 초기 숨김 처리 (인라인 스타일 대체) */
+#imgPreview,
+#filterModal,
+#inquiryModal,
+#inquiryFormArea,
+#fileInput {
+  display: none;
+}
+
 /* ===== 기본 HTML 요소 (레벨 2) ===== */
 * {
   box-sizing: border-box;
@@ -454,6 +463,272 @@ body.search-mode .results-view {
 }
 
 /* ===== 기존 스타일 유지 (필요한 부분만) ===== */
-/* 이 아래는 기존 main.css에서 필요한 추가 스타일이 들어갈 자리
-   (예: .hidden, 각 컴포넌트별 세부 스타일 등)
-   현재는 기본 구조만 제시함 */
+
+/* ===== 공통 컴포넌트 (레벨 2) ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  font-family: inherit;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: var(--color-bg-light);
+  color: var(--color-text-light);
+}
+
+.btn-dark {
+  background: var(--color-text-dark);
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-light);
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.icon-btn:hover {
+  color: var(--color-primary);
+}
+
+.text-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-light);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  transition: color 0.2s;
+}
+
+.text-btn:hover {
+  color: var(--color-primary);
+}
+
+/* ===== 폼 요소 (레벨 2) ===== */
+.form-group {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-text-dark);
+}
+
+.form-group .sub-label {
+  font-size: 11px;
+  color: var(--color-text-light);
+  margin-bottom: 6px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  font-size: 15px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.form-input:focus {
+  border-color: var(--color-primary);
+}
+
+.form-input.sm {
+  padding: 9px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+
+.form-select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 12px;
+  background: var(--color-bg);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.form-range {
+  width: 100%;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+  height: 5px;
+}
+
+/* ===== 모달 (레벨 3) ===== */
+.modal-box {
+  background: #fff;
+  border-radius: 24px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  overflow: hidden;
+}
+
+.modal-lg {
+  max-width: 800px;
+}
+
+.modal-header {
+  padding: 24px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--color-text-dark);
+}
+
+.modal-body {
+  padding: 32px;
+  overflow-y: auto;
+}
+
+.action-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.action-row.right {
+  justify-content: flex-end;
+}
+
+/* ===== 랜딩 뷰 보완 (레벨 4) ===== */
+.welcome-section {
+  margin-bottom: 20px;
+}
+
+.trending-list {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--color-text-light);
+  font-size: 14px;
+}
+
+/* ===== 필터 패널 (레벨 4) ===== */
+.filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.separator {
+  color: var(--color-border);
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin: 8px 0;
+}
+
+.check-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--color-text-dark);
+  font-weight: 600;
+  background: var(--color-bg);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  transition: all 0.2s;
+}
+
+.check-btn:hover {
+  background: var(--color-bg-light);
+}
+
+.filter-footer {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 20px;
+  margin-top: 10px;
+}
+
+.slider-group {
+  flex: 1;
+}
+
+.slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--color-text-light);
+  font-weight: 600;
+}

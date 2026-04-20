@@ -46,7 +46,7 @@
   <meta name="theme-color" content="#ffffff" />
   <title>지능형 쇼핑 디스원</title>
   
-  <link rel="stylesheet" href="/styles/main.css" />
+  <link rel="stylesheet" href="styles/main.css" />
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap" rel="stylesheet">
 </head>
 
@@ -54,7 +54,7 @@
   <header class="app-header">
     <div class="header-content">
       <a href="/" class="logo" onclick="event.preventDefault(); goHome();">
-        <img src="/assets/thisone-logo-rough.png" alt="ThisOne" class="logo-img" />
+        <img src="assets/thisone-logo-rough.png" alt="ThisOne" class="logo-img" />
         <div class="logo-text">
           <span class="slogan">고민은 디스원, 만족은 당신꺼</span>
         </div>
@@ -70,7 +70,7 @@
 
       <div class="search-wrap" id="landingSearch">
         <div class="search-box">
-          <div class="img-preview" id="imgPreview" style="display:none;">
+          <div class="img-preview" id="imgPreview">
             <div class="pv-item">
               <img class="pv-img" id="previewImg" src="" alt="미리보기">
               <button class="pv-del" type="button" onclick="removeImg()">✕</button>
@@ -120,7 +120,7 @@
     </div>
   </footer>
 
-  <div class="modal-overlay" id="filterModal" style="display: none;">
+  <div class="modal-overlay" id="filterModal">
     <div class="modal-box">
       <div class="modal-header">
         <h3>검색설정</h3>
@@ -130,7 +130,7 @@
     </div>
   </div>
 
-  <div id="inquiryModal" class="modal-overlay" style="display: none;">
+  <div id="inquiryModal" class="modal-overlay">
     <div class="modal-box modal-lg">
       <div class="modal-header">
         <h3>📋 고객지원 센터</h3>
@@ -144,7 +144,7 @@
         <div id="inquiryList" class="empty-state">목록을 불러오는 중...</div>
       </div>
 
-      <div id="inquiryFormArea" class="modal-body" style="display: none;">
+      <div id="inquiryFormArea" class="modal-body">
         <div class="form-group">
           <label>제목</label>
           <input type="text" id="inqTitle" class="form-input" placeholder="제목을 입력하세요">
@@ -165,7 +165,7 @@
     </div>
   </div>
 
-  <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+  <input type="file" id="fileInput" accept="image/*" onchange="handleImageUpload(event)">
 
   <template id="filterTemplateV2">
     <div class="filter-panel">
@@ -205,11 +205,11 @@
     </div>
   </template>
 
-  <script src="/js/trajectoryLogger.js?v=3.1.0" defer></script>
-  <script src="/js/api.js?v=3.1.0"></script>
-  <script src="/js/productFamilies.js?v=3.1.0"></script>
-  <script src="/js/ranking.js?v=3.1.0"></script>
-  <script src="/js/thisone_ui_v3.js?v=3.1.0"></script>
-  <script src="/js/thisone_app_v3_final.js?v=3.1.0"></script>
+  <script src="js/trajectoryLogger.js?v=3.1.0" defer></script>
+  <script src="js/api.js?v=3.1.0"></script>
+  <script src="js/productFamilies.js?v=3.1.0"></script>
+  <script src="js/ranking.js?v=3.1.0"></script>
+  <script src="js/thisone_ui_v3.js?v=3.1.0"></script>
+  <script src="js/thisone_app_v3_final.js?v=3.1.0"></script>
 </body>
 </html>

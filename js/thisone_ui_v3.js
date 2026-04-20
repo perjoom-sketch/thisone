@@ -398,18 +398,23 @@ async function fetchInquiries() {
       }
 
       list.innerHTML = result.data.map(inq => `
-        <div class="inquiry-item" style="background:#fff; border:1px solid #f1f5f9; border-radius:16px; padding:20px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,0.02);">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <div style="display:flex; align-items:center; gap:10px;">
-              <div style="width:32px; height:32px; background:#eff6ff; color:#3b82f6; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px;">Q</div>
-              <div>
-                <div class="inq-title" style="font-weight:800; color:#1e293b; font-size:15px; margin:0;">${esc(inq.title)}</div>
-                <div class="inq-meta" style="font-size:12px; color:#94a3b8; margin-top:2px;">${inq.author} • ${new Date(inq.createdAt).toLocaleDateString()}</div>
+        <div class="inquiry-item">
+          <div class="inq-header" onclick="window.toggleInquiry('${inq.id}')">
+            <div class="inq-title-group">
+              <div class="inq-badge">Q</div>
+              <div class="inq-info">
+                <div class="inq-title">${esc(inq.title)}</div>
+                <div class="inq-meta">${inq.author} • ${new Date(inq.createdAt).toLocaleDateString()}</div>
               </div>
             </div>
-            <button class="close-btn" onclick="window.ThisOneUI.prepareEdit('${inq.id}', '${escAttr(inq.title)}', '${escAttr(inq.content)}')" style="width:auto; height:auto; padding:6px 12px; font-size:11px; font-weight:700; border-radius:8px;">수정</button>
+            <div class="inq-arrow">▼</div>
           </div>
-          <div style="font-size:14px; color:#475569; line-height:1.6; white-space:pre-wrap; background:#f8fafc; padding:12px; border-radius:10px;">${esc(inq.content)}</div>
+          <div class="inq-content-area" id="inqContent_${inq.id}">
+            <div class="inq-body">${esc(inq.content)}</div>
+            <div class="action-row right">
+              <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px;" onclick="event.stopPropagation(); window.ThisOneUI.prepareEdit('${inq.id}', '${escAttr(inq.title)}', '${escAttr(inq.content)}')">수정하기</button>
+            </div>
+          </div>
         </div>
       `).join('');
     }
@@ -419,15 +424,21 @@ async function fetchInquiries() {
 }
 
 function prepareEdit(id, title, content) {
+  const pw = prompt('글 작성 시 설정한 비밀번호를 입력해주세요.');
+  if (!pw) return;
+
   window._editModeId = id;
-  document.getElementById('inqTitle').value = title;
-  document.getElementById('inqContent').value = content;
-  document.getElementById('inqPassword').value = '';
+  const titleEl = document.getElementById('inqTitle');
+  const contentEl = document.getElementById('inqContent');
+  const passwordEl = document.getElementById('inqPassword');
+
+  if (titleEl) titleEl.value = title;
+  if (contentEl) contentEl.value = content;
+  if (passwordEl) passwordEl.value = pw;
   
   showInquiryForm();
   const submitBtn = document.getElementById('inqSubmitBtn');
   if (submitBtn) submitBtn.textContent = '수정 완료';
-  alert('비밀번호를 입력해야 수정이 완료됩니다.');
 }
 
 let lastSubmitTime = 0;

@@ -54,6 +54,14 @@
         target.innerHTML = '';
       }
     };
+    
+    // 문의게시판 아코디언 토글
+    window.toggleInquiry = function(id) {
+      const content = document.getElementById('inqContent_' + id);
+      if (content) {
+        content.classList.toggle('show');
+      }
+    };
   </script>
   
   <meta name="apple-mobile-web-app-title" content="ThisOne" />
@@ -200,11 +208,11 @@
           <option value="5" selected>5개 이하</option>
           <option value="10">10개 이하</option>
         </select>
-        <label class="check-btn"><input type="checkbox" id="freeShipping"> 무료배송</label>
+        <label class="check-btn"><input type="checkbox" id="freeShipping" checked> 무료배송</label>
         <label class="check-btn"><input type="checkbox" id="excludeOverseas"> 직구제외</label>
         <label class="check-btn"><input type="checkbox" id="excludeAgent"> 대형제외</label>
         <label class="check-btn"><input type="checkbox" id="excludeUsed"> 중고/리퍼제외</label>
-        <label class="check-btn"><input type="checkbox" id="excludeRental"> 렌탈제외</label>
+        <label class="check-btn"><input type="checkbox" id="excludeRental" checked> 렌탈제외</label>
       </div>
 
       <div class="filter-footer">

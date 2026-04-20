@@ -746,3 +746,81 @@ body.search-mode .results-view {
   color: var(--color-text-light);
   font-weight: 600;
 }
+
+/* 문의게시판 아코디언 */
+.inquiry-item {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.inq-header {
+  padding: 16px 20px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+}
+
+.inq-header:hover {
+  background: var(--color-bg-light);
+}
+
+.inq-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.inq-badge {
+  width: 28px;
+  height: 28px;
+  background: #eff6ff;
+  color: var(--color-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 11px;
+}
+
+.inq-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.inq-title {
+  font-weight: 700;
+  color: var(--color-text-dark);
+  font-size: 14px;
+}
+
+.inq-meta {
+  font-size: 11px;
+  color: var(--color-text-light);
+  margin-top: 2px;
+}
+
+.inq-content-area {
+  display: none;
+  padding: 20px;
+  background: var(--color-bg-light);
+  border-top: 1px solid var(--color-border);
+}
+
+.inq-content-area.show {
+  display: block !important;
+}
+
+.inq-body {
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  margin-bottom: 16px;
+}

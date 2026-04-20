@@ -36,9 +36,10 @@ async function handler(req, res) {
       { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
     ];
 
-    console.log(`Gemini API 스트리밍 호출 시작 (Model: ${AI_CONFIG.MODEL_NAME})`);
+    const targetModel = req.body.model || AI_CONFIG.MODEL_NAME;
+    console.log(`Gemini API 스트리밍 호출 시작 (Model: ${targetModel})`);
     const model = genAI.getGenerativeModel({
-      model: AI_CONFIG.MODEL_NAME,
+      model: targetModel,
       systemInstruction: system,
       safetySettings,
       generationConfig: {

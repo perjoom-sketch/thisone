@@ -207,7 +207,8 @@ async function sendMsg(forceMode) {
   switchToSearchMode();
   
   // 3단계 강제 제압: 구버전 요소 완전 소멸
-  ['landing', 'welcome', 'landingSearch', 'mainHeader'].forEach(id => {
+  // 검색 후에도 검색창은 남겨두기 위해 landingSearch 제외
+  ['landing', 'welcome'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       el.classList.add('hidden');

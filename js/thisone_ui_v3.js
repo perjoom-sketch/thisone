@@ -392,6 +392,9 @@ async function fetchInquiries() {
     const result = await res.json();
 
     if (result.status === 'success' && Array.isArray(result.data)) {
+      // 전역 캐시에 데이터 저장 (데이터 바인딩 버그 방지)
+      window._inquiryCache = result.data;
+
       if (result.data.length === 0) {
         list.innerHTML = '<div class="loading-text">등록된 문의가 없습니다. 첫 문의를 남겨보세요!</div>';
         return;
@@ -412,7 +415,7 @@ async function fetchInquiries() {
           <div class="inq-content-area" id="inqContent_${inq.id}">
             <div class="inq-body">${esc(inq.content)}</div>
             <div class="action-row right">
-              <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px;" onclick="event.stopPropagation(); window.ThisOneUI.prepareEdit('${inq.id}', '${escAttr(inq.title)}', '${escAttr(inq.content)}')">수정하기</button>
+              <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px;" onclick="event.stopPropagation(); window.ThisOneUI.prepareEdit('${inq.id}')">수정하기</button>
             </div>
           </div>
         </div>
@@ -423,7 +426,14 @@ async function fetchInquiries() {
   }
 }
 
-function prepareEdit(id, title, content) {
+function prepareEdit(id) {
+  // 캐시에서 해당 데이터 찾기
+  const item = (window._inquiryCache || []).find(inq => String(inq.id) === String(id));
+  if (!item) {
+    alert('데이터를 찾을 수 없습니다.');
+    return;
+  }
+
   const pw = prompt('글 작성 시 설정한 비밀번호를 입력해주세요.');
   if (!pw) return;
 
@@ -432,8 +442,8 @@ function prepareEdit(id, title, content) {
   const contentEl = document.getElementById('inqContent');
   const passwordEl = document.getElementById('inqPassword');
 
-  if (titleEl) titleEl.value = title;
-  if (contentEl) contentEl.value = content;
+  if (titleEl) titleEl.value = item.title;
+  if (contentEl) contentEl.value = item.content;
   if (passwordEl) passwordEl.value = pw;
   
   showInquiryForm();

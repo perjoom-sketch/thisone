@@ -1,5 +1,7 @@
 // ---- 전역 설정 및 모델 정의 ----
-if (typeof window.NOEL === 'undefined') window.NOEL = 'gemini-2.0-flash';
+if (typeof window.MODEL === 'undefined') window.MODEL = 'gemini-2.0-flash';
+if (typeof window.NOEL === 'undefined') window.NOEL = window.MODEL;
+var MODEL = window.MODEL;
 var NOEL = window.NOEL;
 
 // --- 관리자 통계 및 트래킹 로직 ---

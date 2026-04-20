@@ -859,13 +859,13 @@ body.search-mode .results-view {
   font-size: 12px;
 }
 
-/* 추천 카드 디자인 */
+/* 추천 카드 디자인 (Compact v3.2.0) */
 .pick-card {
   background: #fff;
   border: 1px solid var(--color-border);
-  border-radius: 24px;
-  padding: 24px;
-  margin-bottom: 20px;
+  border-radius: 20px;
+  padding: 16px;
+  margin-bottom: 16px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: block;
   text-decoration: none;
@@ -875,40 +875,41 @@ body.search-mode .results-view {
 }
 
 .pick-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
   border-color: var(--color-primary);
 }
 
 .pick-card.pick-first {
   border: 2px solid var(--color-primary);
-  background: linear-gradient(to bottom right, #ffffff, #f0f7ff);
+  background: linear-gradient(to bottom right, #ffffff, #f5faff);
 }
 
 .pick-badge {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  top: 12px;
+  left: 12px;
   background: var(--color-primary);
   color: #fff;
-  padding: 6px 12px;
-  border-radius: 12px;
-  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 11px;
   font-weight: 800;
   z-index: 10;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
 }
 
 .pick-body {
   display: flex;
-  gap: 24px;
-  margin-top: 40px;
+  gap: 20px;
+  margin-top: 32px;
 }
 
 .pick-media {
-  flex: 0 0 240px;
-  height: 240px;
+  flex: 0 0 180px;
+  height: 180px;
   background: #fff;
-  border-radius: 16px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -917,42 +918,43 @@ body.search-mode .results-view {
 }
 
 .pick-img {
-  max-width: 100%;
-  max-height: 100%;
+  max-width: 90%;
+  max-height: 90%;
   object-fit: contain;
   transition: transform 0.3s;
-}
-
-.pick-card:hover .pick-img {
-  transform: scale(1.05);
 }
 
 .pick-info {
   flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: center;
 }
 
 .pick-title {
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 800;
-  margin: 0 0 12px 0;
+  margin: 0 0 8px 0;
   color: var(--color-text-dark);
   line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .pick-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 16px;
-  font-size: 14px;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 13px;
 }
 
 .pick-price {
   color: #ef4444;
   font-weight: 900;
-  font-size: 18px;
+  font-size: 17px;
 }
 
 .pick-store {
@@ -961,50 +963,59 @@ body.search-mode .results-view {
 }
 
 .pick-reason-text {
-  background: #fff;
-  padding: 16px;
-  border-radius: 14px;
-  border: 1px dashed var(--color-border);
-  font-size: 14px;
-  line-height: 1.6;
+  background: #f8fafc;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+  font-size: 13px;
+  line-height: 1.5;
   color: #475569;
 }
 
 /* 제외 상품 리스트 */
 .reject-card {
   background: #f8fafc;
-  border-radius: 20px;
-  padding: 24px;
-  margin-top: 20px;
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin-top: 16px;
+  border: 1px solid #f1f5f9;
 }
 
 .reject-title {
   font-weight: 800;
   color: #64748b;
-  font-size: 14px;
-  margin-bottom: 16px;
+  font-size: 13px;
+  margin-bottom: 12px;
 }
 
 .reject-item {
   display: flex;
-  gap: 10px;
-  margin-bottom: 8px;
-  font-size: 13px;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
   color: #94a3b8;
 }
 
 /* 반응형 (모바일) */
 @media (max-width: 768px) {
+  .pick-card {
+    padding: 12px;
+  }
   .pick-body {
     flex-direction: column;
+    gap: 12px;
+    margin-top: 28px;
   }
   .pick-media {
-    flex: 0 0 200px;
+    flex: 0 0 140px;
     width: 100%;
-    height: 200px;
+    height: 140px;
   }
   .pick-title {
-    font-size: 17px;
+    font-size: 15px;
+  }
+  .pick-price {
+    font-size: 16px;
   }
 }
 

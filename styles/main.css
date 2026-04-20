@@ -338,6 +338,23 @@ body.search-mode .results-view {
   text-align: center;
 }
 
+.header-container {
+  max-width: var(--main-max-width);
+  margin: 0 auto;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+}
+
+/* 검색 모드에서도 헤더 요소 강제 노출 */
+.app-header .header-actions {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+}
+
 .ftr-content {
   max-width: var(--main-max-width);
   margin: 0 auto;
@@ -859,57 +876,59 @@ body.search-mode .results-view {
   font-size: 12px;
 }
 
-/* 추천 카드 디자인 (Compact v3.2.0) */
+/* 추천 카드 디자인 (Ultra-Compact v3.2.2) */
 .pick-card {
   background: #fff;
   border: 1px solid var(--color-border);
-  border-radius: 20px;
-  padding: 16px;
-  margin-bottom: 16px;
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 12px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: block;
   text-decoration: none;
   color: inherit;
   position: relative;
   overflow: hidden;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .pick-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.05);
   border-color: var(--color-primary);
 }
 
 .pick-card.pick-first {
   border: 2px solid var(--color-primary);
-  background: linear-gradient(to bottom right, #ffffff, #f5faff);
+  background: linear-gradient(to bottom right, #ffffff, #f8faff);
 }
 
 .pick-badge {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: 10px;
+  left: 10px;
   background: var(--color-primary);
   color: #fff;
-  padding: 4px 10px;
-  border-radius: 10px;
-  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 10px;
   font-weight: 800;
   z-index: 10;
-  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
 }
 
 .pick-body {
   display: flex;
-  gap: 20px;
-  margin-top: 32px;
+  gap: 16px;
+  margin-top: 24px;
 }
 
 .pick-media {
-  flex: 0 0 180px;
-  height: 180px;
+  flex: 0 0 140px;
+  height: 140px;
   background: #fff;
-  border-radius: 14px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -918,43 +937,38 @@ body.search-mode .results-view {
 }
 
 .pick-img {
-  max-width: 90%;
-  max-height: 90%;
+  max-width: 95%;
+  max-height: 95%;
   object-fit: contain;
-  transition: transform 0.3s;
 }
 
 .pick-info {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .pick-title {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 800;
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
   color: var(--color-text-dark);
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  line-height: 1.3;
 }
 
 .pick-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 12px;
-  font-size: 13px;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
 }
 
 .pick-price {
   color: #ef4444;
   font-weight: 900;
-  font-size: 17px;
+  font-size: 15px;
 }
 
 .pick-store {
@@ -964,11 +978,11 @@ body.search-mode .results-view {
 
 .pick-reason-text {
   background: #f8fafc;
-  padding: 12px 14px;
-  border-radius: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
   border: 1px solid #f1f5f9;
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.4;
   color: #475569;
 }
 

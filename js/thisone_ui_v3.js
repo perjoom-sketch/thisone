@@ -170,7 +170,7 @@ function addThinking() {
     
     // [최종 검문소] 소스 코드(JSON) 징후가 보이면 아예 숨김
     if (txt.includes('{') || txt.includes('[JSON]') || txt.includes('":') || txt.includes('```') || txt.includes('}')) {
-      el.style.display = 'none';
+      el.classList.add('hidden');
       return;
     }
 
@@ -178,14 +178,14 @@ function addThinking() {
     let cleanText = txt.replace(/\[?Thought\]?:?/gi, '').trim();
     // 만약 남아있는 텍스트에 JSON 특수문자가 섞여있다면 숨김
     if (/[{}[\]"]/.test(cleanText)) {
-      el.style.display = 'none';
+      el.classList.add('hidden');
       return;
     }
 
     if (cleanText) {
       el.textContent = cleanText;
       el.classList.add('active');
-      el.style.display = 'block';
+      el.classList.remove('hidden');
     }
   };
 
@@ -370,13 +370,13 @@ function closeInquiryBoard() {
 }
 
 function showInquiryForm() {
-  document.getElementById('inquiryListArea').style.display = 'none';
-  document.getElementById('inquiryFormArea').style.display = 'block';
+  document.getElementById('inquiryListArea').classList.add('hidden');
+  document.getElementById('inquiryFormArea').classList.add('show');
 }
 
 function hideInquiryForm() {
-  document.getElementById('inquiryListArea').style.display = 'block';
-  document.getElementById('inquiryFormArea').style.display = 'none';
+  document.getElementById('inquiryListArea').classList.remove('hidden');
+  document.getElementById('inquiryFormArea').classList.remove('show');
   // 수정 모드 초기화
   window._editModeId = null;
   const submitBtn = document.getElementById('inqSubmitBtn');

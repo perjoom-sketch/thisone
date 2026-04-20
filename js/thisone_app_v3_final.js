@@ -111,7 +111,7 @@ function processFile(file) {
     const pv = document.getElementById('imgPreview');
     const el = document.getElementById('previewImg');
     if (el) el.src = ev.target.result;
-    if (pv) { pv.style.display = 'flex'; }
+    if (pv) { pv.classList.add('show'); }
   };
   r.readAsDataURL(file);
 }
@@ -119,7 +119,7 @@ function processFile(file) {
 function removeImg() {
   pendingImg = null;
   const pv = document.getElementById('imgPreview');
-  if (pv) pv.style.display = 'none';
+  if (pv) pv.classList.remove('show');
 }
 
 function stripCitations(text) { return String(text || '').replace(/<cite\b[^>]*>|<\/cite>|<b>|<\/b>/gi, '').trim(); }
@@ -208,9 +208,7 @@ async function sendMsg(forceMode) {
   ['landing', 'welcome', 'landingSearch', 'mainHeader'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
-      el.style.setProperty('display', 'none', 'important');
-      el.style.setProperty('visibility', 'hidden', 'important');
-      el.style.setProperty('pointer-events', 'none', 'important');
+      el.classList.add('hidden');
     }
   });
 

@@ -33,10 +33,26 @@
     
     // 설정창 토글
     window.toggleFilterModal = function() {
-      const target = document.getElementById('filterModal');
-      if (!target) return;
-      const isHidden = target.style.display === 'none' || target.style.display === '';
-      target.style.display = isHidden ? 'flex' : 'none';
+      const target = document.getElementById('commonFilterContent');
+      const modal = document.getElementById('filterModal');
+      const template = document.getElementById('filterTemplateV2');
+      if (!target || !modal || !template) return;
+      
+      const isHidden = !modal.classList.contains('show');
+      
+      if (isHidden) {
+        target.innerHTML = '';
+        target.appendChild(template.content.cloneNode(true));
+        modal.classList.add('show');
+        
+        // 슬라이더 값 초기화
+        const range = target.querySelector('#patienceTime');
+        const val = target.querySelector('#patienceVal');
+        if (range && val) val.textContent = range.value + '초';
+      } else {
+        modal.classList.remove('show');
+        target.innerHTML = '';
+      }
     };
   </script>
   

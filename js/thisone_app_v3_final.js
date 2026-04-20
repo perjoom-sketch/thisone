@@ -69,8 +69,8 @@ JSON 스키마:
 
 JSON 외의 다른 텍스트는 [Thought] 섹션에만 포함하세요.`;
 
-function getInput() { return document.getElementById(isSearchMode ? 'msgInput2' : 'msgInput'); }
-function getSendBtn() { return document.getElementById(isSearchMode ? 'sendBtn2' : 'sendBtn'); }
+function getInput() { return document.getElementById('msgInput'); }
+function getSendBtn() { return document.getElementById('sendBtn'); }
 
 function goHome() {
   location.href = '/';
@@ -79,27 +79,7 @@ function goHome() {
 function switchToSearchMode() {
   if (isSearchMode) return;
   isSearchMode = true;
-  document.body.classList.add('search-mode'); // CSS 제어를 위한 클래스 추가
-
-  const landing = document.getElementById('landing'),
-        stickySearch = document.getElementById('stickySearch'),
-        content = document.getElementById('content'),
-        mainHdr = document.getElementById('mainHeader');
-  
-  if (landing) landing.style.display = 'none';
-  if (mainHdr) mainHdr.classList.add('hidden');
-  
-  if (stickySearch) {
-    stickySearch.style.setProperty('display', 'flex', 'important');
-    stickySearch.style.setProperty('position', 'fixed', 'important');
-    stickySearch.style.setProperty('top', '0', 'important');
-    stickySearch.style.setProperty('z-index', '20000', 'important');
-  }
-  if (content) {
-    content.style.display = 'block';
-    content.style.setProperty('padding-top', '80px', 'important');
-    content.style.minHeight = '100vh';
-  }
+  document.body.classList.add('search-mode');
 }
 
 function autoResize(el) { if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px'; }
@@ -128,22 +108,18 @@ function processFile(file) {
     pendingImg = { data: ev.target.result.split(',')[1], src: ev.target.result };
     
     // 두 개의 미리보기 영역 동기화
-    ['imgPreview', 'imgPreview2'].forEach(id => {
-      const pv = document.getElementById(id);
-      const el = document.getElementById(id === 'imgPreview' ? 'previewImg' : 'previewImg2');
-      if (el) el.src = ev.target.result;
-      if (pv) pv.style.display = 'flex';
-    });
+    const pv = document.getElementById('imgPreview');
+    const el = document.getElementById('previewImg');
+    if (el) el.src = ev.target.result;
+    if (pv) { pv.style.display = 'flex'; }
   };
   r.readAsDataURL(file);
 }
 
 function removeImg() {
   pendingImg = null;
-  ['imgPreview', 'imgPreview2'].forEach(id => {
-    const pv = document.getElementById(id);
-    if (pv) pv.style.display = 'none';
-  });
+  const pv = document.getElementById('imgPreview');
+  if (pv) pv.style.display = 'none';
 }
 
 function stripCitations(text) { return String(text || '').replace(/<cite\b[^>]*>|<\/cite>|<b>|<\/b>/gi, '').trim(); }
@@ -400,7 +376,7 @@ async function sendMsg(forceMode) {
 }
 
 function loadTrendingChips() {
-  const container = document.getElementById('trendingChips');
+  const container = document.getElementById('trendingList');
   if (!container) return;
   const chips = [
     { text: '로보락 S8 MaxV Ultra', query: '로보락 S8 MaxV Ultra' },

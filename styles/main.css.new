@@ -1,0 +1,459 @@
+/* ===== CSS 변수 정의 (레벨 1) ===== */
+:root {
+  /* 레이아웃 */
+  --header-height: 60px;
+  --main-max-width: 1100px;
+  --mobile-padding: 12px;
+  
+  /* Z-index 계층 */
+  --z-header: 100;
+  --z-modal: 1000;
+  
+  /* 색상 */
+  --color-primary: #3b82f6;
+  --color-text-dark: #0f172a;
+  --color-text-light: #64748b;
+  --color-border: #e2e8f0;
+  --color-bg: #f8fafc;
+  --color-bg-light: #f1f5f9;
+  
+  /* 모바일 */
+  --mobile-breakpoint: 768px;
+}
+
+/* ===== 기본 HTML 요소 (레벨 2) ===== */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+body {
+  font-family: 'Gowun Dodum', sans-serif;
+  background: #fff;
+  color: var(--color-text-dark);
+}
+
+/* ===== 헤더 (레벨 2) ===== */
+.app-header {
+  height: var(--header-height);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  background: #fff;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+}
+
+.header-content {
+  width: 100%;
+  max-width: var(--main-max-width);
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.logo-img {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+}
+
+.logo-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.slogan {
+  font-size: 11px;
+  color: var(--color-text-light);
+  font-weight: 600;
+  display: block;
+}
+
+/* ===== 메인 콘텐츠 (레벨 2) ===== */
+.app-main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.landing-view,
+.results-view {
+  width: 100%;
+  max-width: var(--main-max-width);
+}
+
+.landing-view {
+  display: block;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.results-view {
+  display: none;
+  padding: 20px;
+}
+
+/* ===== 상태 관리: 검색 모드 (레벨 3) ===== */
+body.search-mode .landing-view {
+  display: none !important;
+}
+
+body.search-mode .results-view {
+  display: block !important;
+}
+
+/* ===== 랜딩 페이지 콘텐츠 (레벨 4) ===== */
+.rounded-headline {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--color-text-dark);
+  margin: 40px 0 20px 0;
+  line-height: 1.4;
+}
+
+.point-text {
+  color: var(--color-primary);
+}
+
+.search-wrap {
+  width: min(var(--main-max-width), 94vw);
+  margin: 0 auto;
+  position: relative;
+}
+
+.search-box {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 12px 16px;
+  border: 2px solid var(--color-border);
+  border-radius: 24px;
+  background: #fff;
+  transition: all 0.2s ease;
+}
+
+.search-box:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08);
+}
+
+.input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  width: 100%;
+}
+
+.msg-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 32px;
+  max-height: 160px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+}
+
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.img-btn,
+.send-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-light);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.img-btn:hover,
+.send-btn:hover {
+  color: var(--color-primary);
+}
+
+.send-btn {
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.new-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.img-preview {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.pv-item {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.pv-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.pv-del {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #ff5252;
+  color: #fff;
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-hint {
+  margin-top: 8px;
+  opacity: 0.8;
+  font-size: 13px;
+  color: var(--color-text-light);
+}
+
+.settings-trigger {
+  margin-top: 16px;
+}
+
+.settings-trigger button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-light);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.settings-trigger button:hover {
+  color: var(--color-primary);
+}
+
+.trending-section {
+  margin-top: 32px;
+  text-align: center;
+}
+
+.trending-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-light);
+  margin-bottom: 12px;
+}
+
+#trendingList {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ===== 푸터 (레벨 2) ===== */
+.app-footer {
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+  padding: 20px;
+  text-align: center;
+}
+
+.ftr-content {
+  max-width: var(--main-max-width);
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  align-items: center;
+}
+
+.ftr-logo {
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--color-text-dark);
+  text-decoration: none;
+  letter-spacing: -1px;
+}
+
+/* ===== 모달 (레벨 2) ===== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 24px;
+  padding: 32px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.close-btn {
+  background: var(--color-bg-light);
+  border: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ===== 결과 페이지 (레벨 4) ===== */
+#msgContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ai-result {
+  width: 100%;
+  max-width: var(--main-max-width);
+  margin: 0 auto;
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg);
+}
+
+/* ===== 모바일 반응형 (레벨 5) ===== */
+@media (max-width: 768px) {
+  :root {
+    --header-height: 50px;
+    --main-max-width: 100%;
+    --mobile-padding: 12px;
+  }
+
+  .app-header {
+    padding: 0 12px;
+  }
+
+  .header-content {
+    padding: 0;
+  }
+
+  .logo-img {
+    height: 32px;
+  }
+
+  .slogan {
+    font-size: 10px;
+    display: block;
+  }
+
+  .landing-view {
+    padding: 20px 12px;
+  }
+
+  .rounded-headline {
+    font-size: 24px;
+    margin: 20px 0 16px 0;
+  }
+
+  .search-wrap {
+    width: calc(100% - 24px);
+    margin: 0 12px;
+  }
+
+  .results-view {
+    padding: 12px;
+  }
+
+  .modal-content {
+    padding: 20px;
+  }
+
+  .ai-result {
+    padding: 12px;
+  }
+
+  .ftr-content {
+    gap: 12px;
+  }
+}
+
+/* ===== 필터 모달 (레벨 4) ===== */
+.filter-modal-content {
+  padding: 16px;
+  background: #fff;
+  font-family: inherit;
+}
+
+/* ===== 기존 스타일 유지 (필요한 부분만) ===== */
+/* 이 아래는 기존 main.css에서 필요한 추가 스타일이 들어갈 자리
+   (예: .hidden, 각 컴포넌트별 세부 스타일 등)
+   현재는 기본 구조만 제시함 */

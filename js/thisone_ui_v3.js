@@ -6,7 +6,7 @@ var NOEL = window.NOEL;
 // index.html에서 이미 선언된 전역 상수를 사용합니다.
 
 function getContentEl() {
-  return document.getElementById('content');
+  return document.getElementById('msgContainer');
 }
 
 function appendAndScroll(node) {
@@ -283,7 +283,7 @@ function renderPickCard(card, isFirst = false) {
 }
 
 function addResultCard(result) {
-  const content = document.getElementById('content');
+  const content = document.getElementById('msgContainer');
   if (!content) return;
 
   const cards = Array.isArray(result?.cards) ? result.cards : [];

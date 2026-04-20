@@ -37,7 +37,7 @@
       if (!target) return;
       
       const isHidden = target.style.display === 'none' || target.style.display === '';
-      target.style.display = isHidden ? 'flex' : 'none';
+      target.style.display = isHidden ? 'block' : 'none';
     };
   </script>
   
@@ -115,7 +115,7 @@
       <!-- 검색 입력 영역 -->
       <div class="search-wrap" id="landingSearch">
         <div class="search-box">
-          <div class="img-preview" id="imgPreview" style="display:none;">
+          <div class="img-preview" id="imgPreview">
             <div class="pv-item">
               <img class="pv-img" id="previewImg" src="" alt="">
               <button class="pv-del" type="button" onclick="removeImg()">✕</button>

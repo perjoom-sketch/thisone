@@ -70,13 +70,13 @@ async function handler(req, res) {
       userParts = [{ text: String(lastMessage.content) }];
     }
 
-    // 55초 타임아웃 설정 (Vercel 60초 제한 대비)
+    // 55초 타임아웃 설정 (Vercel 60초 제한 대비), 최소 10초 보장
     const startTime = Date.now();
-    const getRemainingTime = () => Math.max(1000, 55000 - (Date.now() - startTime));
+    const getRemainingTime = () => Math.max(10000, 55000 - (Date.now() - startTime));
 
     // AI 실행 (스트리밍 방식 도입) 및 타임아웃/폴백 처리
     let result;
-    const modelsToTry = [targetModel, 'gemini-2.5-flash', 'gemini-3.1-flash', 'gemini-3.0-flash', 'gemini-2.0-flash'];
+    const modelsToTry = [...new Set([targetModel, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'])];
     let lastError;
 
     for (const m of modelsToTry) {

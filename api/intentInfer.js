@@ -130,12 +130,12 @@ async function aiInfer(query, trajectory, image = null) {
     });
   }
 
-  // 전체 8초 타임아웃 (Vercel 10초 제한 대비)
+  // 전체 55초 타임아웃 제한 내에서, 각 모델당 최소 10초 보장
   const startTime = Date.now();
-  const getRemainingTime = () => Math.max(1000, 8000 - (Date.now() - startTime));
+  const getRemainingTime = () => Math.max(10000, 55000 - (Date.now() - startTime));
 
   let result;
-  const modelsToTry = [AI_CONFIG.MODEL_NAME, 'gemini-2.5-flash', 'gemini-3.1-flash', 'gemini-3.0-flash', 'gemini-2.0-flash'];
+  const modelsToTry = [...new Set([AI_CONFIG.MODEL_NAME, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'])];
   let lastError;
 
   for (const m of modelsToTry) {
@@ -184,4 +184,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports.config = { maxDuration: 10 };
+module.exports.config = { maxDuration: 60 };

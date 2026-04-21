@@ -75,8 +75,30 @@ async function handler(req, res) {
       setTimeout(() => reject(Object.assign(new Error("AI 분석 시간 초과"), { code: 'TIMEOUT' })), 55000)
     );
 
-    // AI 실행 (스트리밍 방식 도입)
-    const result = await model.generateContentStream(userParts);
+    // AI 실행 (스트리밍 방식 도입) 및 타임아웃/폴백 처리
+    let result;
+    const modelsToTry = [targetModel, 'gemini-1.5-flash-latest', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-pro'];
+    let lastError;
+
+    for (const m of modelsToTry) {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: m,
+          systemInstruction: system,
+          safetySettings,
+          generationConfig: { temperature: 0.1 }
+        });
+        
+        result = await Promise.race([model.generateContentStream(userParts), timeoutPromise]);
+        console.log(`Success with model: ${m}`);
+        break;
+      } catch (e) {
+        lastError = e;
+        console.warn(`Fallback failed for model ${m}: ${e.message}`);
+      }
+    }
+
+    if (!result) throw lastError;
     
     // 스트리밍 응답 헤더 설정
     res.setHeader('Content-Type', 'text/event-stream');

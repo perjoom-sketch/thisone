@@ -82,11 +82,6 @@ async function aiInfer(query, trajectory, image = null) {
 
   const AI_CONFIG = require('../js/config');
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: AI_CONFIG.MODEL_NAME,
-    systemInstruction: "당신은 쇼핑 의도 분석 전문가입니다. 반드시 JSON만 출력하세요.",
-    generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
-  });
 
   const prompt = `
 당신은 10년 차 쇼핑 큐레이션 전문가이자 구매 데이터 분석가입니다.
@@ -140,7 +135,27 @@ async function aiInfer(query, trajectory, image = null) {
     setTimeout(() => reject(new Error('intentInfer 타임아웃')), 10000)
   );
 
-  const result = await Promise.race([model.generateContent(parts), timeout]);
+  let result;
+  const modelsToTry = [AI_CONFIG.MODEL_NAME, 'gemini-1.5-flash-latest', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-pro'];
+  let lastError;
+
+  for (const m of modelsToTry) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: m,
+        systemInstruction: "당신은 쇼핑 의도 분석 전문가입니다. 반드시 JSON만 출력하세요.",
+        generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
+      });
+      result = await Promise.race([model.generateContent(parts), timeout]);
+      break;
+    } catch (e) {
+      lastError = e;
+      console.warn(`Fallback failed for model ${m}: ${e.message}`);
+    }
+  }
+
+  if (!result) throw lastError;
+
   const text = result.response.text();
   return JSON.parse(text.replace(/```json|```/g, '').trim());
 }

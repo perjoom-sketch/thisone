@@ -130,10 +130,9 @@ async function aiInfer(query, trajectory, image = null) {
     });
   }
 
-  // 10초 타임아웃 (이미지 분석 시간 고려)
-  const timeout = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('intentInfer 타임아웃')), 10000)
-  );
+  // 전체 8초 타임아웃 (Vercel 10초 제한 대비)
+  const startTime = Date.now();
+  const getRemainingTime = () => Math.max(1000, 8000 - (Date.now() - startTime));
 
   let result;
   const modelsToTry = [AI_CONFIG.MODEL_NAME, 'gemini-2.5-flash', 'gemini-3.1-flash', 'gemini-3.0-flash', 'gemini-2.0-flash'];
@@ -146,6 +145,9 @@ async function aiInfer(query, trajectory, image = null) {
         systemInstruction: "당신은 쇼핑 의도 분석 전문가입니다. 반드시 JSON만 출력하세요.",
         generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
       });
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('intentInfer 타임아웃')), getRemainingTime())
+      );
       result = await Promise.race([model.generateContent(parts), timeout]);
       break;
     } catch (e) {

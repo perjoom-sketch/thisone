@@ -71,9 +71,8 @@ async function handler(req, res) {
     }
 
     // 55초 타임아웃 설정 (Vercel 60초 제한 대비)
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(Object.assign(new Error("AI 분석 시간 초과"), { code: 'TIMEOUT' })), 55000)
-    );
+    const startTime = Date.now();
+    const getRemainingTime = () => Math.max(1000, 55000 - (Date.now() - startTime));
 
     // AI 실행 (스트리밍 방식 도입) 및 타임아웃/폴백 처리
     let result;
@@ -88,6 +87,9 @@ async function handler(req, res) {
           safetySettings,
           generationConfig: { temperature: 0.1 }
         });
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(Object.assign(new Error("AI 분석 시간 초과"), { code: 'TIMEOUT' })), getRemainingTime())
+        );
         
         result = await Promise.race([model.generateContentStream(userParts), timeoutPromise]);
         console.log(`Success with model: ${m}`);

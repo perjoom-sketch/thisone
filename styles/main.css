@@ -18,7 +18,7 @@
   --color-bg-light: #f1f5f9;
   
   /* 모바일 */
-  --mobile-breakpoint: 768px;
+  --mobile-breakpoint: 640px;
 }
 
 /* 상태 제어 클래스 */
@@ -1021,7 +1021,27 @@ body.search-mode .results-view {
 }
 
 /* 반응형 (모바일) */
-@media (max-width: 768px) {
+@media (max-width: 640px) {
+  body.search-mode .app-main {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  
+  body.search-mode .landing-view {
+    width: 100%;
+    position: sticky;
+    top: var(--header-height);
+    z-index: 10;
+    background: #fff;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  body.search-mode .results-view {
+    width: 100%;
+  }
+
   .pick-card {
     padding: 12px;
   }

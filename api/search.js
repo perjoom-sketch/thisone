@@ -64,13 +64,27 @@ async function handler(req, res) {
     // 네이버 쇼핑 API 호출 (display=30으로 줄여서 속도 향상)
     const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(improvedQ)}&display=15&start=1&sort=sim`;
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'X-Naver-Client-Id': process.env.NAVER_CLIENT_ID,
-        'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15초 타임아웃
+
+    let response;
+    try {
+      response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-Naver-Client-Id': process.env.NAVER_CLIENT_ID,
+          'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET
+        },
+        signal: controller.signal
+      });
+    } catch (fetchErr) {
+      clearTimeout(timeoutId);
+      if (fetchErr.name === 'AbortError') {
+        throw new Error('Naver Shopping API timeout');
       }
-    });
+      throw fetchErr;
+    }
+    clearTimeout(timeoutId);
 
     const text = await response.text();
 

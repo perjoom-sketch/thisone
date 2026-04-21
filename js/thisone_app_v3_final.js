@@ -301,43 +301,47 @@ async function sendMsg(forceMode) {
         aiMessages[0].content.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${queryImage.data}` } });
       }
 
-      const patience = parseInt(expertSettings.patienceTime || 20);
-      const tokens = Math.min(400 + (patience * 20), 2000); // 인내심에 비례하여 응답 길이 조절
+      let fallbackTimer = null;
+      let isFallbackShown = false;
 
-      let depthPrompt = " 핵심 위주로 빠르게 요약하세요.";
-      if (patience > 30) depthPrompt = " 모든 후보의 스펙, 리뷰, 장단점을 초정밀 대조하여 가장 심도 있는 전문가 분석 리포트를 작성하세요. 분량이 길어져도 괜찮습니다.";
-      else if (patience > 10) depthPrompt = " 상품별 주요 차이점을 꼼꼼하게 분석하여 리포트를 작성하세요.";
+      // AI 분석이 너무 빨리 포기하지 않도록 20초 대기 타이머 설정
+      fallbackTimer = setTimeout(() => {
+        if (loading && candidates && candidates.length > 0 && !isFallbackShown) {
+          isFallbackShown = true;
+          window.ThisOneUI?.addFallback?.('지능형 분석이 길어지고 있어, 선별된 일반 검색 결과를 대신 보여드립니다.');
+          window.ThisOneUI?.renderRawResults?.(candidates);
+        }
+      }, 20000);
 
-      const aiDataText = await window.ThisOneAPI.requestChat({ 
-        model: MODEL, 
-        max_tokens: tokens, 
-        system: RANKING_PROMPT + depthPrompt, 
-        messages: aiMessages 
-      }, (chunk, fullText) => {
-        // [보안/UI] JSON 징후가 보이면 즉시 업데이트를 멈추고 고정 메시지 표시
-        if (fullText.includes('[JSON]') || fullText.includes('{') || fullText.includes('":') || fullText.includes('```')) {
-          typingEl?.updateLiveResponse('최종 추천 리포트를 생성하고 있습니다...'); 
+      try {
+        const aiDataText = await window.ThisOneAPI.requestChat({ 
+          model: MODEL, 
+          max_tokens: tokens, 
+          system: RANKING_PROMPT + depthPrompt, 
+          messages: aiMessages 
+        }, (chunk, fullText) => {
+          // [보안/UI] JSON 징후가 보이면 즉시 업데이트를 멈추고 고정 메시지 표시
+          if (fullText.includes('[JSON]') || fullText.includes('{') || fullText.includes('":') || fullText.includes('```')) {
+            typingEl?.updateLiveResponse('최종 추천 리포트를 생성하고 있습니다...'); 
+            return;
+          }
+
+          const thoughtMatch = fullText.match(/\[?Thought\]?:?(.*?)(?=\[?JSON\]?|$)/si);
+          if (thoughtMatch && thoughtMatch[1]) {
+            typingEl?.updateLiveResponse(thoughtMatch[1].trim());
+          }
+        });
+
+        clearTimeout(fallbackTimer);
+        if (isFallbackShown) return; // 이미 폴백이 노출되었다면 중단
+
+        typingEl?.remove();
+
+        if (!aiDataText || !aiDataText.trim()) {
+          window.ThisOneUI?.renderRawResults?.(candidates);
           return;
         }
 
-        // [Thought] 섹션만 정밀하게 추출하여 표시 (대소문자/괄호 유연하게 대응)
-        const thoughtMatch = fullText.match(/\[?Thought\]?:?(.*?)(?=\[?JSON\]?|$)/si);
-        if (thoughtMatch && thoughtMatch[1]) {
-          typingEl?.updateLiveResponse(thoughtMatch[1].trim());
-        }
-      });
-
-      typingEl?.remove();
-
-      if (!aiDataText || !aiDataText.trim()) {
-        console.warn('AI returned empty response.');
-        window.ThisOneUI?.addFallback?.('지능형 엔진이 현재 분석 중입니다. 잠시 후 다시 시도하거나 일반 검색 결과를 확인해 주세요.');
-        window.ThisOneUI?.renderRawResults?.(candidates);
-        return;
-      }
-
-      try {
-        // JSON 영역 추출 ([JSON]: 이후부터 끝까지)
         const jsonMatch = aiDataText.match(/\[JSON\]:?\s*(\{[\s\S]*\})/);
         const rawJson = jsonMatch ? jsonMatch[1] : aiDataText;
         const parsed = extractJSON(rawJson);
@@ -347,30 +351,27 @@ async function sendMsg(forceMode) {
         const merged = window.ThisOneRanking?.mergeAiWithCandidates ? window.ThisOneRanking.mergeAiWithCandidates(deepClean(parsed), candidates) : parsed;
         window.ThisOneUI?.addResultCard?.(merged);
         
-        // 상단 이동을 즉시 수행하여 '날아다니는' 느낌 제거
         setTimeout(() => {
           window.scrollTo(0, 0);
-          const header = document.querySelector('.app-header');
-          if (header) header.scrollIntoView({ block: 'start' });
         }, 10); 
+
       } catch (e) {
-        console.warn("Silent Fallback Triggered", e);
-        window.ThisOneUI?.addFallback?.(); // 조용하고 우아한 마무리 문구 출력
+        clearTimeout(fallbackTimer);
+        console.warn("AI Analysis Failed/Interrupted", e);
         
-        setTimeout(() => {
-          window.scrollTo(0, 0);
-        }, 10);
-        window.ThisOneUI?.renderRawResults?.(candidates);
+        if (!isFallbackShown && candidates && candidates.length > 0) {
+          isFallbackShown = true;
+          window.ThisOneUI?.renderRawResults?.(candidates);
+        }
       }
     } catch (err) {
       console.error("[ThisOne] Search flow error:", err);
       typingEl?.remove();
       
       if (candidates && candidates.length > 0) {
-        window.ThisOneUI?.addFallback?.('지능형 분석 엔진이 지연되고 있어, 선별된 일반 검색 결과를 대신 보여드립니다.');
         window.ThisOneUI?.renderRawResults?.(candidates);
       } else {
-        window.ThisOneUI?.addFallback?.('검색 결과를 가져오는 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+        window.ThisOneUI?.addFallback?.('검색 결과를 가져오는 중 문제가 발생했습니다.');
       }
     } finally {
       loading = false;

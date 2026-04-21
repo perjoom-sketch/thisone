@@ -219,8 +219,31 @@ function normalizeRawItem(p = {}) {
 }
 
 function renderRawResults(items = []) {
-  // [삭제] 구버전 레이아웃 오해 방지를 위해 원시 결과 렌더링 기능 비활성화
-  console.log('[ThisOne] Raw results suppressed to maintain high-fidelity AI view.');
+  const content = document.getElementById('msgContainer');
+  if (!content) return;
+
+  const cardsHtml = (items || [])
+    .map((item, idx) => renderPickCard(item, idx === 0))
+    .join('');
+
+  const html = `
+    <div class="ai-result">
+      <div class="ai-label">
+        <span class="dot">${window.MINI_SCOPE || '✦'}</span>
+        <span>일반 검색 결과 (AI 지연 중)</span>
+      </div>
+      <div class="pick-list">
+        ${cardsHtml}
+      </div>
+    </div>
+  `;
+
+  content.insertAdjacentHTML('beforeend', html);
+  
+  // 스크롤 상단 이동
+  setTimeout(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, 100);
 }
 
 function esc(s) {

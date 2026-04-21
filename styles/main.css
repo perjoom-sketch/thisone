@@ -141,8 +141,7 @@ body {
 
 /* ===== 상태 관리: 검색 모드 (레벨 3) ===== */
 body.search-mode .welcome-section,
-body.search-mode .trending-section,
-body.search-mode .settings-trigger {
+body.search-mode .trending-section {
   display: none !important;
 }
 

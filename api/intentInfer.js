@@ -135,7 +135,7 @@ async function aiInfer(query, trajectory, image = null) {
   const getRemainingTime = () => Math.max(10000, 55000 - (Date.now() - startTime));
 
   let result;
-  const modelsToTry = [...new Set([AI_CONFIG.MODEL_NAME, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'])];
+  const modelsToTry = [...new Set([AI_CONFIG.MODEL_NAME, 'gemini-1.5-flash-latest', 'gemini-1.5-pro-latest', 'gemini-1.5-flash'])];
   let lastError;
 
   for (const m of modelsToTry) {

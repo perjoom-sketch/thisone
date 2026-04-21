@@ -230,6 +230,7 @@ async function sendMsg(forceMode) {
     const btn = getSendBtn(); if (btn) btn.disabled = true;
     const typingEl = window.ThisOneUI?.addThinking?.();
 
+    let candidates = null;
     try {
       let searchQuery = queryText;
       if (window.ThisOneRanking?.rewriteSearchQuery) searchQuery = window.ThisOneRanking.rewriteSearchQuery(queryText);
@@ -262,7 +263,7 @@ async function sendMsg(forceMode) {
       _lastIntentProfile = intentProfile;
 
       typingEl?.updateThought?.('상품 데이터 및 형상 분석 선별 중...');
-      const candidates = window.ThisOneRanking?.buildCandidates ? window.ThisOneRanking.buildCandidates(items, queryText, intentProfile) : items;
+      candidates = window.ThisOneRanking?.buildCandidates ? window.ThisOneRanking.buildCandidates(items, queryText, intentProfile) : items;
 
       if (!candidates || !candidates.length) {
         typingEl?.remove();
@@ -362,9 +363,15 @@ async function sendMsg(forceMode) {
         window.ThisOneUI?.renderRawResults?.(candidates);
       }
     } catch (err) {
-      console.error(err);
+      console.error("[ThisOne] Search flow error:", err);
       typingEl?.remove();
-      window.ThisOneUI?.addFallback?.('검색 중 오류 발생');
+      
+      if (candidates && candidates.length > 0) {
+        window.ThisOneUI?.addFallback?.('지능형 분석 엔진이 지연되고 있어, 선별된 일반 검색 결과를 대신 보여드립니다.');
+        window.ThisOneUI?.renderRawResults?.(candidates);
+      } else {
+        window.ThisOneUI?.addFallback?.('검색 결과를 가져오는 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+      }
     } finally {
       loading = false;
       const b = getSendBtn(); if (b) b.disabled = false;

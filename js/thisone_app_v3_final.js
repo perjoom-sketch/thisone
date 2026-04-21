@@ -301,17 +301,24 @@ async function sendMsg(forceMode) {
         aiMessages[0].content.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${queryImage.data}` } });
       }
 
+      const patience = parseInt(expertSettings.patienceTime || 20);
+      const tokens = Math.min(400 + (patience * 20), 2000); // 인내심에 비례하여 응답 길이 조절
+
+      let depthPrompt = " 핵심 위주로 빠르게 요약하세요.";
+      if (patience > 30) depthPrompt = " 모든 후보의 스펙, 리뷰, 장단점을 초정밀 대조하여 가장 심도 있는 전문가 분석 리포트를 작성하세요. 분량이 길어져도 괜찮습니다.";
+      else if (patience > 10) depthPrompt = " 상품별 주요 차이점을 꼼꼼하게 분석하여 리포트를 작성하세요.";
+
       let fallbackTimer = null;
       let isFallbackShown = false;
 
-      // AI 분석이 너무 빨리 포기하지 않도록 20초 대기 타이머 설정
+      // 설정창의 '인내심(patienceTime)' 설정값을 폴백 전환 대기 시간으로 사용
       fallbackTimer = setTimeout(() => {
         if (loading && candidates && candidates.length > 0 && !isFallbackShown) {
           isFallbackShown = true;
-          window.ThisOneUI?.addFallback?.('지능형 분석이 길어지고 있어, 선별된 일반 검색 결과를 대신 보여드립니다.');
+          window.ThisOneUI?.addFallback?.(`설정한 인내심(${patience}초)이 경과하여 선별된 일반 검색 결과를 먼저 보여드립니다.`);
           window.ThisOneUI?.renderRawResults?.(candidates);
         }
-      }, 20000);
+      }, patience * 1000);
 
       try {
         const aiDataText = await window.ThisOneAPI.requestChat({ 

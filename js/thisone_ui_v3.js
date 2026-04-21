@@ -189,6 +189,22 @@ function addThinking() {
     }
   };
 
+  // 일반 결과 보기 버튼 노출 함수
+  d.showFallbackButton = (callback) => {
+    const container = d.querySelector('#thinkContainerV2');
+    if (!container || d.querySelector('.fallback-btn')) return;
+
+    const btn = document.createElement('button');
+    btn.className = 'fallback-btn';
+    btn.innerHTML = `<span>📂</span> 일반 결과 먼저 보기`;
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof callback === 'function') callback();
+    };
+    container.appendChild(btn);
+  };
+
   return d;
 }
 

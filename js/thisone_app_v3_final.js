@@ -308,19 +308,40 @@ async function sendMsg(forceMode) {
       if (patience > 30) depthPrompt = " 모든 후보의 스펙, 리뷰, 장단점을 초정밀 대조하여 가장 심도 있는 전문가 분석 리포트를 작성하세요. 분량이 길어져도 괜찮습니다.";
       else if (patience > 10) depthPrompt = " 상품별 주요 차이점을 꼼꼼하게 분석하여 리포트를 작성하세요.";
 
-      let fallbackTimer = null;
+      let delayTimer = null;
+      let autoFallbackTimer = null;
       let isFallbackShown = false;
 
-      const searchStartTime = Date.now();
-      // 설정창의 '인내심(patienceTime)' 설정값을 폴백 전환 대기 시간으로 사용
-      fallbackTimer = setTimeout(() => {
-        if (loading && candidates && candidates.length > 0 && !isFallbackShown) {
-          isFallbackShown = true;
-          const elapsed = Math.round((Date.now() - searchStartTime) / 1000);
-          console.log(`[ThisOne] Fallback triggered at ${elapsed}s (Patience: ${patience}s)`);
-          window.ThisOneUI?.addFallback?.(`설정한 인내심(${patience}초) 중 ${elapsed}초가 경과하여 선별된 일반 검색 결과를 먼저 보여드립니다.`);
-          window.ThisOneUI?.renderRawResults?.(candidates);
+      const triggerFallback = (reason = 'delay') => {
+        if (isFallbackShown || !loading) return;
+        isFallbackShown = true;
+        
+        // 모든 타이머 해제
+        if (delayTimer) clearTimeout(delayTimer);
+        if (autoFallbackTimer) clearTimeout(autoFallbackTimer);
+        
+        typingEl?.remove();
+        
+        const elapsed = Math.round((Date.now() - searchStartTime) / 1000);
+        let msg = `데이터 분석이 지연되고 있어(${elapsed}초), 선별된 일반 검색 결과를 먼저 보여드립니다.`;
+        if (reason === 'error') msg = `AI 분석 중 오류가 발생하여(${elapsed}초), 선별된 일반 검색 결과를 먼저 보여드립니다.`;
+        
+        window.ThisOneUI?.addFallback?.(msg);
+        window.ThisOneUI?.renderRawResults?.(candidates);
+      };
+
+      // 8초 지연 타이머: 메시지 변경 및 버튼 노출
+      delayTimer = setTimeout(() => {
+        if (!isFallbackShown && loading) {
+          typingEl?.updateThought?.('분석이 지연되고 있습니다. 조금만 더 기다려주시거나, 일반 결과를 먼저 확인하실 수 있습니다.');
+          typingEl?.showFallbackButton?.(() => triggerFallback('manual'));
         }
+      }, 8000);
+
+      // 20초 자동 폴백 타이머
+      const patience = parseInt(expertSettings.patienceTime || 20);
+      autoFallbackTimer = setTimeout(() => {
+        triggerFallback('delay');
       }, patience * 1000);
 
       try {
@@ -330,6 +351,8 @@ async function sendMsg(forceMode) {
           system: RANKING_PROMPT + depthPrompt, 
           messages: aiMessages 
         }, (chunk, fullText) => {
+          if (isFallbackShown) return; // 이미 폴백되었다면 업데이트 무시
+
           // [보안/UI] JSON 징후가 보이면 즉시 업데이트를 멈추고 고정 메시지 표시
           if (fullText.includes('[JSON]') || fullText.includes('{') || fullText.includes('":') || fullText.includes('```')) {
             typingEl?.updateLiveResponse('최종 추천 리포트를 생성하고 있습니다...'); 
@@ -342,13 +365,16 @@ async function sendMsg(forceMode) {
           }
         });
 
-        clearTimeout(fallbackTimer);
-        if (isFallbackShown) return; // 이미 폴백이 노출되었다면 중단
+        // 타이머 해제
+        if (delayTimer) clearTimeout(delayTimer);
+        if (autoFallbackTimer) clearTimeout(autoFallbackTimer);
+
+        if (isFallbackShown) return; // 이미 폴백이 노출되었다면 AI 결과 렌더링 스킵
 
         typingEl?.remove();
 
         if (!aiDataText || !aiDataText.trim()) {
-          window.ThisOneUI?.renderRawResults?.(candidates);
+          triggerFallback('error');
           return;
         }
 
@@ -366,15 +392,8 @@ async function sendMsg(forceMode) {
         }, 10); 
 
       } catch (e) {
-        clearTimeout(fallbackTimer);
         console.warn("AI Analysis Failed/Interrupted", e);
-        
-        if (!isFallbackShown && candidates && candidates.length > 0) {
-          isFallbackShown = true;
-          const elapsed = Math.round((Date.now() - searchStartTime) / 1000);
-          window.ThisOneUI?.addFallback?.(`AI 분석 중 오류가 발생하여(${elapsed}초), 선별된 일반 검색 결과를 먼저 보여드립니다.`);
-          window.ThisOneUI?.renderRawResults?.(candidates);
-        }
+        triggerFallback('error');
       }
     } catch (err) {
       console.error("[ThisOne] Search flow error:", err);

@@ -157,9 +157,9 @@ body.search-mode .results-view {
 
 /* ===== 랜딩 페이지 콘텐츠 (레벨 4) ===== */
 .rounded-headline {
-  font-size: clamp(1.5rem, 4vw, 3rem);
-  font-weight: 800;
-  color: var(--color-text-dark);
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  font-weight: 700;
+  color: #334155;
   margin: 40px 0 20px 0;
   line-height: 1.2;
 }
@@ -231,6 +231,7 @@ body.search-mode .results-view {
   align-items: center;
   justify-content: center;
   transition: color 0.2s;
+  position: relative;
 }
 
 .img-btn:hover,
@@ -247,15 +248,16 @@ body.search-mode .results-view {
 
 .new-badge {
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: -2px;
+  right: -2px;
   background: var(--color-primary);
   color: #fff;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 6px;
+  padding: 1px 4px;
+  border-radius: 4px;
   pointer-events: none;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
 }
 
 .img-preview {
@@ -304,21 +306,30 @@ body.search-mode .results-view {
 }
 
 .settings-trigger {
-  margin-top: 16px;
+  margin-top: 8px;
+  width: min(90%, clamp(320px, 50vw, 900px));
+  margin: 8px auto 0 auto;
+  display: flex;
+  justify-content: flex-end;
 }
 
-.settings-trigger button {
+.settings-trigger button,
+.settings-trigger .text-btn {
   background: none;
   border: none;
   cursor: pointer;
   color: var(--color-text-light);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  padding: 0;
+  padding: 4px 0;
   transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.settings-trigger button:hover {
+.settings-trigger button:hover,
+.settings-trigger .text-btn:hover {
   color: var(--color-primary);
 }
 

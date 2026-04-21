@@ -1,15 +1,23 @@
-async function safeFetchJson(url, options) {
-  const res = await fetch(url, options);
-  const text = await res.text();
-
-  if (!res.ok) {
-    throw new Error(text || `HTTP ${res.status}`);
-  }
+async function safeFetchJson(url, options = {}) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
 
   try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    const text = await res.text();
+    if (!res.ok) {
+      throw new Error(text || `HTTP ${res.status}`);
+    }
+
     return JSON.parse(text);
   } catch (e) {
-    throw new Error(`JSON 파싱 실패: ${text}`);
+    clearTimeout(timeoutId);
+    if (e.name === 'AbortError') {
+      throw new Error('요청 시간이 초과되었습니다. (10초)');
+    }
+    throw e;
   }
 }
 

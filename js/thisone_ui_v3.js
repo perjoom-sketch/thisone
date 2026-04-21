@@ -241,45 +241,58 @@ function escAttr(s) {
 
 function renderPickCard(card, isFirst = false) {
   const imageHtml = card.image
-    ? `<img class="pick-img" src="${escAttr(card.image)}" alt="${escAttr(card.name || '상품')}">`
-    : `<div class="pick-img-placeholder">상품</div>`;
+    ? `<img class="row-img" src="${escAttr(card.image)}" alt="${escAttr(card.name || '상품')}">`
+    : `<div class="row-img-placeholder">상품</div>`;
 
   const badgesHtml = Array.isArray(card.badges) && card.badges.length
-    ? `
-      <div class="pick-badges">
-        ${card.badges.map((b) => `<span class="pick-mini-badge">${esc(b)}</span>`).join('')}
-      </div>
-    `
+    ? card.badges.map((b) => `<span class="row-badge-item ${getBadgeClass(b)}">${esc(b)}</span>`).join('')
+    : '';
+
+  const labelBadge = card.label 
+    ? `<span class="row-badge-item row-label-badge">${esc(card.label)}</span>` 
     : '';
 
   return `
-    <a class="pick-card-link" href="${escAttr(card.link || '#')}" target="_blank" rel="noopener noreferrer">
-      <article class="pick-card ${isFirst ? 'pick-first' : ''}">
-        <div class="pick-badge">${esc(card.label || '')}</div>
+    <a class="pick-row-link" href="${escAttr(card.link || '#')}" target="_blank" rel="noopener noreferrer">
+      <article class="pick-row ${isFirst ? 'pick-row-first' : ''}">
+        <div class="row-thumb">
+          ${imageHtml}
+        </div>
 
-        <div class="pick-body">
-          <div class="pick-media">
-            ${imageHtml}
-          </div>
-
-          <div class="pick-info">
-            <h3 class="pick-title">${esc(card.name || '상품명 없음')}</h3>
-
-            <div class="pick-meta">
-              ${card.price ? `<span class="pick-price">${esc(card.price)}</span>` : ''}
-              ${card.store ? `<span class="pick-store">${esc(card.store)}</span>` : ''}
-              ${card.delivery ? `<span class="pick-delivery">${esc(card.delivery)}</span>` : ''}
-              ${card.review ? `<span class="pick-review">${esc(card.review)}</span>` : ''}
+        <div class="row-info">
+          <div class="row-header">
+            <div class="row-title-line">
+              <h3 class="row-title">${esc(card.name || '상품명 없음')}</h3>
+              <div class="row-badges">
+                ${labelBadge}
+                ${badgesHtml}
+              </div>
             </div>
-
-            ${badgesHtml}
-
-            ${card.reason ? `<div class="pick-reason-text">${esc(card.reason)}</div>` : ''}
           </div>
+
+          <div class="row-meta">
+            ${card.store ? `<span class="row-store-name">${esc(card.store)}</span>` : ''}
+            ${card.delivery ? `<span class="row-delivery">${esc(card.delivery)}</span>` : ''}
+            ${card.review ? `<span class="row-review">${esc(card.review)}</span>` : ''}
+          </div>
+
+          ${card.reason ? `<div class="row-reason-text">${esc(card.reason)}</div>` : ''}
+        </div>
+
+        <div class="row-price-area">
+          <div class="row-price">${card.price ? esc(card.price) : ''}</div>
+          <div class="row-cta">상세보기</div>
         </div>
       </article>
     </a>
   `;
+}
+
+function getBadgeClass(text) {
+  if (text.includes('가성비')) return 'badge-value';
+  if (text.includes('신뢰')) return 'badge-trust';
+  if (text.includes('추천')) return 'badge-thisone';
+  return 'badge-default';
 }
 
 function addResultCard(result) {
@@ -316,9 +329,10 @@ function addResultCard(result) {
         <span class="dot">✦</span>
         <span>지능형 추천 리포트</span>
       </div>
-      ${cardsHtml}
+      <div class="pick-list">
+        ${cardsHtml}
+      </div>
       ${rejectsHtml}
-      
     </div>
   `;
 

@@ -31,7 +31,7 @@ async function requestSearch(query, settings = {}) {
 async function requestChat(payload, onChunk) {
   // [보안/방어] 모델명이 누락된 경우 기본값 강제 할당 (503 에러 방지)
   if (!payload.model || payload.model === 'undefined') {
-    payload.model = 'gemini-1.5-flash';
+    payload.model = 'gemini-3-flash';
   }
 
   const res = await fetch('/api/chat', {

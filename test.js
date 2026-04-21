@@ -1,10 +1,9 @@
-const fetch = require('node-fetch'); // wait, node >= 18 has fetch built-in
-// If node < 18, this might fail, but let's assume fetch is available.
+// Using built-in fetch
 
 async function testQuery(query) {
   console.log(`\n=== Testing: ${query} ===`);
   const intentPayload = { query, trajectory: {} };
-  const chatPayload = { messages: [{ role: "user", content: query }], system: "test", model: "gemini-1.5-flash" };
+  const chatPayload = { messages: [{ role: "user", content: query }], system: "test", model: "gemini-3-flash" };
 
   try {
     console.log('1. Testing /api/intentInfer...');

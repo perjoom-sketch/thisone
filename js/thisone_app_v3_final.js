@@ -311,6 +311,7 @@ async function sendMsg(forceMode) {
       let delayTimer = null;
       let autoFallbackTimer = null;
       let isFallbackShown = false;
+      const searchStartTime = Date.now();
 
       const triggerFallback = (reason = 'delay') => {
         if (isFallbackShown || !loading) return;
@@ -339,7 +340,6 @@ async function sendMsg(forceMode) {
       }, 8000);
 
       // 20초 자동 폴백 타이머
-      const patience = parseInt(expertSettings.patienceTime || 20);
       autoFallbackTimer = setTimeout(() => {
         triggerFallback('delay');
       }, patience * 1000);

@@ -1,5 +1,5 @@
 // ---- 전역 설정 및 모델 정의 ----
-if (typeof window.MODEL === 'undefined') window.MODEL = 'gemini-2.5-flash';
+if (typeof window.MODEL === 'undefined') window.MODEL = 'gemini-1.5-flash';
 if (typeof window.NOEL === 'undefined') window.NOEL = window.MODEL;
 var MODEL = window.MODEL;
 var NOEL = window.NOEL;
@@ -246,9 +246,9 @@ async function sendMsg(forceMode) {
         excludeOverseas: getCheck('excludeOverseas'),
         excludeAgent: getCheck('excludeAgent'),
         excludeUsed: getCheck('excludeUsed'),
-        excludeRental: getCheck('excludeRental'), // include -> exclude 수정
-        resultCount: getVal('resultCount') || 5,
-        patienceTime: getVal('patienceTime') || 20
+        excludeRental: getCheck('excludeRental'),
+        resultCount: parseInt(getVal('resultCount')) || 5,
+        patienceTime: parseInt(getVal('patienceTime')) || 20
       };
       const trajectory = window.ThisOneTrajectory?.getSession() || {};
 
@@ -311,11 +311,14 @@ async function sendMsg(forceMode) {
       let fallbackTimer = null;
       let isFallbackShown = false;
 
+      const searchStartTime = Date.now();
       // 설정창의 '인내심(patienceTime)' 설정값을 폴백 전환 대기 시간으로 사용
       fallbackTimer = setTimeout(() => {
         if (loading && candidates && candidates.length > 0 && !isFallbackShown) {
           isFallbackShown = true;
-          window.ThisOneUI?.addFallback?.(`설정한 인내심(${patience}초)이 경과하여 선별된 일반 검색 결과를 먼저 보여드립니다.`);
+          const elapsed = Math.round((Date.now() - searchStartTime) / 1000);
+          console.log(`[ThisOne] Fallback triggered at ${elapsed}s (Patience: ${patience}s)`);
+          window.ThisOneUI?.addFallback?.(`설정한 인내심(${patience}초) 중 ${elapsed}초가 경과하여 선별된 일반 검색 결과를 먼저 보여드립니다.`);
           window.ThisOneUI?.renderRawResults?.(candidates);
         }
       }, patience * 1000);
@@ -368,6 +371,8 @@ async function sendMsg(forceMode) {
         
         if (!isFallbackShown && candidates && candidates.length > 0) {
           isFallbackShown = true;
+          const elapsed = Math.round((Date.now() - searchStartTime) / 1000);
+          window.ThisOneUI?.addFallback?.(`AI 분석 중 오류가 발생하여(${elapsed}초), 선별된 일반 검색 결과를 먼저 보여드립니다.`);
           window.ThisOneUI?.renderRawResults?.(candidates);
         }
       }
@@ -428,6 +433,9 @@ function saveExpertSettings() {
     resultCount: document.getElementById('resultCount')?.value || 5,
     patienceTime: document.getElementById('patienceTime')?.value || 20
   };
+
+  // 로컬 스토리지 저장 (랭킹 로직 등에서 참조)
+  localStorage.setItem('thisone_expert_settings', JSON.stringify(settings));
 
   // UI는 새로고침 시 초기화되더라도, 사용자의 설정 의도는 별도의 메모리(Trajectory)에 기록하여 AI가 참고하게 함
   if (window.ThisOneTrajectory?.logEvent) {

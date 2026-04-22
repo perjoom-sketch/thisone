@@ -53,7 +53,7 @@ let _lastIntentProfile = null;
 // 일반 검색 상태 관리
 const GeneralSearchState = {
   currentPage: 1,
-  currentSort: 'sim',
+  currentSort: 'asc', // 기본값을 sim에서 asc(최저가순)으로 변경
   total: 0,
   query: ''
 };
@@ -373,6 +373,7 @@ async function sendMsg(forceMode) {
         GeneralSearchState.currentPage = 1;
         GeneralSearchState.total = searchData?.total || 0;
         
+        GeneralSearchState.currentSort = 'asc'; // 기본 정렬 강제
         window.ThisOneUI?.renderRawResults?.(candidates, GeneralSearchState.total, GeneralSearchState.currentPage, GeneralSearchState.currentSort);
       };
 

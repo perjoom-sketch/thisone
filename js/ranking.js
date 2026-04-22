@@ -595,7 +595,7 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
   const savedSettings = localStorage.getItem('thisone_expert_settings');
   const expertSettings = savedSettings ? JSON.parse(savedSettings) : {};
 
-  const mapped = (items || []).slice(0, 20).map((item, idx) => {
+  const mapped = (items || []).slice(0, 50).map((item, idx) => { // 후보군 풀을 50개로 확대 (30개 노출 보장)
     const shipping = parseShippingCost(item.delivery || '');
     const priceNum = parsePriceNumber(item.priceText || item.price || item.lprice || '');
     const hpriceNum = parsePriceNumber(item.hprice || item.highPrice || '');

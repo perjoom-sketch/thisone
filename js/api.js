@@ -21,7 +21,7 @@ async function safeFetchJson(url, options = {}, timeoutMs = 10000) {
   }
 }
 
-async function requestSearch(query, settings = {}, start = 1, display = 30, sort = 'sim') {
+async function requestSearch(query, settings = {}, start = 1, display = 30, sort = 'asc') {
   const params = new URLSearchParams({ q: query, ...settings, start, display, sort });
   return await safeFetchJson(`/api/search?${params.toString()}`, {
     method: 'GET'

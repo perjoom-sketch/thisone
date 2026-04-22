@@ -356,6 +356,26 @@ function getCandidateBonus(candidate, profile) {
     }
   }
 
+  const isRazor = name.includes('면도기') || profile.categoryHint?.includes('면도');
+  if (isRazor) {
+    if (name.includes('3헤드') || name.includes('4D') || name.includes('입체')) {
+      bonusScore += 3;
+      bonusReasons.push('정밀 밀착 헤드');
+    }
+    if (name.includes('방수') || name.includes('IPX7')) {
+      bonusScore += 2;
+      bonusReasons.push('완전 방수 지원');
+    }
+    if (name.includes('올인원') || name.includes('코털') || name.includes('트리머')) {
+      bonusScore += 2;
+      bonusReasons.push('다용도 액세서리 포함');
+    }
+    if (price > 0 && price < 40000) {
+      bonusScore += 2;
+      bonusReasons.push('입문용 가성비 우수');
+    }
+  }
+
   return {
     bonusScore,
     bonusReasons: bonusReasons.join(', ')

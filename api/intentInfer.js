@@ -145,7 +145,7 @@ async function aiInfer(query, trajectory, image = null) {
   const getRemainingTime = () => Math.max(10000, 55000 - (Date.now() - startTime));
 
   let result;
-  const modelsToTry = [MODEL_NAME, 'gemini-2.5-flash', 'gemini-1.5-flash'].filter(m => m && m !== 'undefined');
+  const modelsToTry = [MODEL_NAME, 'gemini-2.5-flash'].filter(m => m && m !== 'undefined');
   let lastError;
 
   for (const m of modelsToTry) {
@@ -172,7 +172,7 @@ async function aiInfer(query, trajectory, image = null) {
         if (is503 && retryCount < maxRetries) {
           console.warn(`[intentInfer] 503 감지, ${retryCount + 1}차 재시도 중...`);
           retryCount++;
-          await new Promise(resolve => setTimeout(resolve, 800)); // 0.8초 대기 후 재시도
+          await new Promise(resolve => setTimeout(resolve, 1500)); // 대기 시간 1.5초로 증설
           continue;
         }
         

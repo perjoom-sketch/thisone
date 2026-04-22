@@ -252,18 +252,35 @@ async function sendMsg(forceMode) {
       };
       const trajectory = window.ThisOneTrajectory?.getSession() || {};
 
-      typingEl?.updateThought?.('다양한 상품 데이터 수집 중...');
-      const [searchData, intentProfileResult] = await Promise.all([
-        window.ThisOneAPI.requestSearch(searchQuery, expertSettings),
-        window.ThisOneAPI.requestIntentInfer(queryText, trajectory, queryImage).catch(() => null)
+      typingEl?.updateThought?.('이미지 분석 및 검색 의도 파악 중...');
+      
+      let intentProfile = null;
+      let finalSearchQuery = searchQuery;
+
+      // 이미지 검색 최적화: 이미지가 있으면 의도 추론을 먼저 수행하여 검색어 보정
+      if (queryImage) {
+        try {
+          intentProfile = await window.ThisOneAPI.requestIntentInfer(queryText, trajectory, queryImage);
+          if (intentProfile?.refinedSearchTerm && (!queryText || queryText.length < 3)) {
+            finalSearchQuery = intentProfile.refinedSearchTerm;
+            typingEl?.updateThought?.(`식별된 상품("${finalSearchQuery}") 데이터 수집 중...`);
+          }
+        } catch (e) {
+          console.warn("Intent inference failed, using original query:", e);
+        }
+      }
+
+      const [searchData, intentProfileAsync] = await Promise.all([
+        window.ThisOneAPI.requestSearch(finalSearchQuery, expertSettings),
+        intentProfile ? Promise.resolve(intentProfile) : window.ThisOneAPI.requestIntentInfer(queryText, trajectory, queryImage).catch(() => null)
       ]);
 
       const items = searchData?.items || [];
-      let intentProfile = intentProfileResult;
+      intentProfile = intentProfileAsync;
       _lastIntentProfile = intentProfile;
 
       typingEl?.updateThought?.('상품 데이터 및 형상 분석 선별 중...');
-      candidates = window.ThisOneRanking?.buildCandidates ? window.ThisOneRanking.buildCandidates(items, queryText, intentProfile) : items;
+      candidates = window.ThisOneRanking?.buildCandidates ? window.ThisOneRanking.buildCandidates(items, finalSearchQuery, intentProfile) : items;
 
       if (!candidates || !candidates.length) {
         typingEl?.remove();

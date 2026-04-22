@@ -1,5 +1,5 @@
 // --- UI Constants (Defensive) ---
-if (typeof window.MODEL === 'undefined') window.MODEL = 'gemini-3-flash';
+if (typeof window.MODEL === 'undefined') window.MODEL = 'gemini-2.5-flash';
 if (typeof window.NOEL === 'undefined') window.NOEL = window.MODEL;
 var MODEL = window.MODEL;
 var NOEL = window.NOEL;

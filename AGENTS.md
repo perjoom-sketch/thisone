@@ -137,18 +137,17 @@
 - 브랜드 톤: 블루 포인트 + 라이트 그레이 베이스
 - 배지/보조 UI 요소는 기능과 시각적으로 연결되어야 함
   (떨어진 위치 = 의미 전달 실패)
-  ### 사용 LLM 모델 (고정)
-- 주력 호출: gemini-3-flash
-- 경량 호출 (분류/필터): gemini-3.1-flash-lite
-- Fallback 체인: gemini-3-flash → gemini-3.1-flash-lite → Naver 일반 검색
+ ### 사용 LLM 모델 (고정)
+   - Primary: gemini-2.5-flash
+   - API 버전: v1
+   - 엔드포인트: 
+     https://generativelanguage.googleapis.com/v1/models/{model}:generateContent
+   
+   금지 모델 (발견 시 즉시 교체):
+   - gemini-1.0-*, gemini-1.5-* (종료됨)
+   - gemini-2.0-* (2026-06-01 종료 예정)
+   - gemini-3-*, gemini-3.1-* (Preview, 접근 불가)
+- Fallback 체인: gemini-2.5-flash → Naver 일반 검색
 - 타임아웃: 20초
 - 지연 경고 표시: 8초
 
-**금지 모델 (사용 시 즉시 교체):**
-- gemini-1.0-*
-- gemini-1.5-*
-- gemini-2.0-*
-- gemini-2.5-*
-- gemini-pro (구버전 alias)
-
-이 목록은 사용자 명시적 승인 없이 변경 금지.

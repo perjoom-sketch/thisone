@@ -3,7 +3,7 @@
 async function testQuery(query) {
   console.log(`\n=== Testing: ${query} ===`);
   const intentPayload = { query, trajectory: {} };
-  const chatPayload = { messages: [{ role: "user", content: query }], system: "test", model: "gemini-3-flash" };
+  const chatPayload = { messages: [{ role: "user", content: query }], system: "test", model: "gemini-2.5-flash" };
 
   try {
     console.log('1. Testing /api/intentInfer...');

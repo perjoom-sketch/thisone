@@ -76,7 +76,7 @@ async function handler(req, res) {
 
     // AI 실행 (스트리밍 방식 도입) 및 타임아웃/폴백 처리
     let result;
-    const modelsToTry = [...new Set([targetModel, 'gemini-3-flash', 'gemini-3.1-flash-lite'])];
+    const modelsToTry = [...new Set([targetModel, 'gemini-2.5-flash'])];
     let lastError;
 
     for (const m of modelsToTry) {

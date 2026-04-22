@@ -1,4 +1,44 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const AI_CONFIG = { MODEL_NAME: process.env.MODEL_NAME || 'gemini-2.5-flash' };
+
+// ─── OpenAI GPT 리포트 생성 (폴백) ──────────────────────────────
+async function openaiChatFallback(messages, system) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY 미설정');
+
+  const formattedMessages = [
+    { role: "system", content: system },
+    ...messages.map(m => ({
+      role: m.role === 'user' ? 'user' : 'assistant',
+      content: Array.isArray(m.content) ? m.content.map(c => {
+        if (c.type === 'text') return { type: 'text', text: c.text };
+        if (c.type === 'image_url') return { type: 'image_url', image_url: { url: c.image_url.url } };
+        return null;
+      }).filter(Boolean) : m.content
+    }))
+  ];
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: formattedMessages,
+      temperature: 0.1
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`OpenAI Error: ${errorData.error?.message || response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
 
 async function handler(req, res) {
   // CORS 헤더 설정
@@ -25,7 +65,6 @@ async function handler(req, res) {
       throw new Error("API 키가 설정되지 않았습니다. Vercel 환경 변수를 확인해주세요.");
     }
 
-    const AI_CONFIG = require('../js/config');
     const genAI = new GoogleGenerativeAI(apiKey);
     
     // 안전 설정 완화 (쇼핑 정보 오탐 방지)
@@ -122,23 +161,28 @@ async function handler(req, res) {
     const msg = err.message || '';
     console.error("Gemini Error:", msg);
 
-    // 실제 서버 과부하 / 503
-    if (err.code === 503 || /503|overloaded|Service Unavailable|high demand/i.test(msg)) {
-      return res.status(503).json({
-        error: 'AI_SERVER_BUSY',
-        detail: 'AI 서버가 일시적으로 혼잡합니다.'
-      });
+    // [OpenAI 폴백] Gemini 실패 시 즉시 GPT 시도
+    if (msg.includes('503') || /overloaded|Service Unavailable|high demand/i.test(msg)) {
+      console.log("[api/chat] Gemini 혼잡 감지, OpenAI 폴백 시작...");
+      try {
+        const { messages = [], system = "" } = req.body;
+        const gptText = await openaiChatFallback(messages, system);
+        
+        // SSE 포맷으로 결과 전송 (호환성 유지)
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.write(gptText);
+        res.end();
+        return;
+      } catch (gptErr) {
+        console.error("[api/chat] OpenAI 폴백마저 실패:", gptErr.message);
+        return res.status(503).json({
+          error: 'AI_SERVER_BUSY',
+          detail: '모든 AI 서버가 일시적으로 혼잡합니다.'
+        });
+      }
     }
 
-    // 타임아웃
-    if (err.code === 'TIMEOUT' || /시간 초과|timeout/i.test(msg)) {
-      return res.status(408).json({
-        error: 'AI_TIMEOUT',
-        detail: '응답 시간이 초과되었습니다.'
-      });
-    }
-
-    // 그 외 일반 오류
+    // 그 외 일반 오류 처리...
     return res.status(500).json({
       error: 'AI_ERROR',
       detail: msg || '서버에서 문제가 발생했습니다.'

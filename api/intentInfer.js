@@ -205,6 +205,53 @@ async function aiInfer(query, trajectory, image = null) {
   }
 }
 
+// ─── OpenAI GPT 추론 (고가용성 폴백) ──────────────────────────────
+async function openaiInfer(query, trajectory, image = null) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY 미설정');
+
+  const systemPrompt = "당신은 쇼핑 의도 분석 전문가입니다. 반드시 JSON으로만 응답하세요.";
+  const userPrompt = `다음 검색 정보를 바탕으로 전문가급 쇼핑 의도를 분석하세요.
+${query ? `현재 검색어: "${query}"` : ""}
+검색 히스토리: ${JSON.stringify(trajectory?.queries || [])}
+
+이미지 분석이 포함되어 있다면 가장 적합한 한국어 검색 키워드(브랜드+모델)를 refinedSearchTerm에 담으세요.
+반드시 { "intentTag": ..., "refinedSearchTerm": ..., "suggestedWeights": { "price": ..., "review": ..., "trust": ... } } 형식을 지키세요.`;
+
+  const content = [{ type: "text", text: userPrompt }];
+  if (image && image.data) {
+    content.push({
+      type: "image_url",
+      image_url: { url: `data:${image.type || 'image/jpeg'};base64,${image.data}` }
+    });
+  }
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini", // 안정성이 검증된 미니 모델 사용
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: content }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.1
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`OpenAI API Error: ${errorData.error?.message || response.statusText}`);
+  }
+
+  const data = await response.json();
+  return JSON.parse(data.choices[0].message.content);
+}
+
 // ─── 핸들러 ────────────────────────────────────────────────────────
 async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -220,14 +267,19 @@ async function handler(req, res) {
     const result = await aiInfer(query, trajectory, image);
     return res.status(200).json({ ...result, source: 'ai' });
   } catch (err) {
-    console.warn('[intentInfer] AI 실패, 로컬 폴백 사용:', err.message);
-    const fallback = localInfer(query, trajectory);
-    // [디버깅] AI 실패 원인을 클라이언트가 알 수 있게 응답에 추가
-    return res.status(200).json({ 
-      ...fallback, 
-      aiError: err.message,
-      aiStack: err.stack 
-    });
+    console.warn('[intentInfer] Gemini 실패, OpenAI 폴백 시도:', err.message);
+    
+    try {
+      const gptResult = await openaiInfer(query, trajectory, image);
+      return res.status(200).json({ ...gptResult, source: 'ai_gpt' });
+    } catch (gptErr) {
+      console.error('[intentInfer] 모든 AI 실패, 로컬 폴백 사용:', gptErr.message);
+      const fallback = localInfer(query, trajectory);
+      return res.status(200).json({ 
+        ...fallback, 
+        aiError: gptErr.message 
+      });
+    }
   }
 }
 

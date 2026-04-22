@@ -80,8 +80,8 @@ async function aiInfer(query, trajectory, image = null) {
   const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error('GOOGLE_API_KEY 미설정');
 
-  const AI_CONFIG = require('../js/config');
   const genAI = new GoogleGenerativeAI(apiKey);
+  const MODEL_NAME = process.env.MODEL_NAME || 'gemini-2.5-flash';
 
   const prompt = `
 당신은 10년 차 쇼핑 큐레이션 전문가이자 구매 데이터 분석가입니다.
@@ -144,7 +144,7 @@ async function aiInfer(query, trajectory, image = null) {
   const getRemainingTime = () => Math.max(10000, 55000 - (Date.now() - startTime));
 
   let result;
-  const modelsToTry = [...new Set([AI_CONFIG.MODEL_NAME, 'gemini-2.5-flash'])];
+  const modelsToTry = [MODEL_NAME, 'gemini-2.5-flash'];
   let lastError;
 
   for (const m of modelsToTry) {

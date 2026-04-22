@@ -61,8 +61,12 @@ async function handler(req, res) {
     const improvedQ = improveQuery(q);
     console.log(`[Search] 원본: "${q}" → 개선: "${improvedQ}"`);
 
-    // 네이버 쇼핑 API 호출 (display=30으로 줄여서 속도 향상)
-    const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(improvedQ)}&display=15&start=1&sort=sim`;
+    const start = parseInt(req.query.start || '1');
+    const display = parseInt(req.query.display || '30');
+    const sort = req.query.sort || 'sim'; // sim, date, asc, dsc
+
+    // 네이버 쇼핑 API 호출
+    const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(improvedQ)}&display=${display}&start=${start}&sort=${sort}`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15초 타임아웃
@@ -115,8 +119,8 @@ async function handler(req, res) {
       productId: item.productId || ''
     }));
 
-    // 검색 결과 반환 (상위 15개)
-    const finalItems = items.slice(0, 15);
+    // 검색 결과 반환
+    const finalItems = items;
 
     return res.status(200).json({
       query: q,

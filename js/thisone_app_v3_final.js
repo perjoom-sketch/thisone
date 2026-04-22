@@ -50,6 +50,14 @@ let searchHistory = [];
 let searchMode = 'thisone';
 let _lastIntentProfile = null;
 
+// 일반 검색 상태 관리
+const GeneralSearchState = {
+  currentPage: 1,
+  currentSort: 'sim',
+  total: 0,
+  query: ''
+};
+
 const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI입니다.
 반드시 다음 순서로 출력하세요:
 1. [Thought]: 사용자의 의도 분석 및 추천 전략 (2~3문장)
@@ -107,7 +115,11 @@ function handlePaste(e) {
 function processFile(file) {
   const r = new FileReader();
   r.onload = (ev) => {
-    pendingImg = { data: ev.target.result.split(',')[1], src: ev.target.result };
+    pendingImg = { 
+      data: ev.target.result.split(',')[1], 
+      src: ev.target.result,
+      type: file.type || 'image/jpeg'
+    };
     
     // 두 개의 미리보기 영역 동기화
     const pv = document.getElementById('imgPreview');
@@ -345,7 +357,12 @@ async function sendMsg(forceMode) {
         if (reason === 'error') msg = `AI 분석 중 오류가 발생하여(${elapsed}초), 선별된 일반 검색 결과를 먼저 보여드립니다.`;
         
         window.ThisOneUI?.addFallback?.(msg);
-        window.ThisOneUI?.renderRawResults?.(candidates);
+        
+        GeneralSearchState.query = finalSearchQuery;
+        GeneralSearchState.currentPage = 1;
+        GeneralSearchState.total = searchData?.total || 0;
+        
+        window.ThisOneUI?.renderRawResults?.(candidates, GeneralSearchState.total, GeneralSearchState.currentPage, GeneralSearchState.currentSort);
       };
 
       // 8초 지연 타이머: 메시지 변경 및 버튼 노출
@@ -505,6 +522,50 @@ function togglePcView() {
   applyPcView();
   // 설정창 닫기
   toggleFilterModal();
+}
+
+// 전역 함수 등록
+window.changePage = async function(page) {
+  if (loading) return;
+  GeneralSearchState.currentPage = page;
+  await refreshGeneralResults();
+};
+
+window.changeSort = async function(sort) {
+  if (loading) return;
+  GeneralSearchState.currentSort = sort;
+  GeneralSearchState.currentPage = 1; // 정렬 변경 시 1페이지로
+  await refreshGeneralResults();
+};
+
+async function refreshGeneralResults() {
+  loading = true;
+  const start = (GeneralSearchState.currentPage - 1) * 30 + 1;
+  
+  try {
+    const searchData = await window.ThisOneAPI.requestSearch(
+      GeneralSearchState.query, 
+      {}, 
+      start, 
+      30, 
+      GeneralSearchState.currentSort
+    );
+    
+    const items = searchData?.items || [];
+    GeneralSearchState.total = searchData?.total || 0;
+    
+    // UI 업데이트
+    window.ThisOneUI?.renderRawResults?.(
+      items, 
+      GeneralSearchState.total, 
+      GeneralSearchState.currentPage, 
+      GeneralSearchState.currentSort
+    );
+  } catch (e) {
+    console.error("Failed to refresh general results", e);
+  } finally {
+    loading = false;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

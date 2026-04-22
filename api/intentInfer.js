@@ -127,7 +127,7 @@ async function aiInfer(query, trajectory, image = null) {
     parts.push({
       inlineData: {
         data: image.data,
-        mimeType: 'image/jpeg'
+        mimeType: image.type || 'image/jpeg'
       }
     });
   }

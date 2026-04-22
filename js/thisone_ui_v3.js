@@ -234,32 +234,61 @@ function normalizeRawItem(p = {}) {
   };
 }
 
-function renderRawResults(items = []) {
+function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 'sim') {
   const content = document.getElementById('msgContainer');
   if (!content) return;
+
+  // 기존 일반 결과가 있다면 제거 (페이지 전환 시 교체)
+  const existing = document.querySelector('.general-results-wrap');
+  if (existing) existing.remove();
 
   const cardsHtml = (items || [])
     .map((item, idx) => renderPickCard(item, idx === 0))
     .join('');
 
+  const totalPages = Math.min(Math.ceil(total / 30), 10); // 최대 10페이지까지만 지원
+  
+  let paginationHtml = '';
+  if (totalPages > 1) {
+    paginationHtml = `
+      <div class="pagination">
+        <button class="page-btn" ${currentPage <= 1 ? 'disabled' : ''} onclick="window.changePage(${currentPage - 1})">이전</button>
+        <span class="page-info">${currentPage} / ${totalPages}</span>
+        <button class="page-btn" ${currentPage >= totalPages ? 'disabled' : ''} onclick="window.changePage(${currentPage + 1})">다음</button>
+      </div>
+    `;
+  }
+
   const html = `
-    <div class="ai-result">
-      <div class="ai-label">
-        <span class="dot">${window.MINI_SCOPE || '✦'}</span>
-        <span>일반 검색 결과 (AI 지연 중)</span>
+    <div class="ai-result general-results-wrap">
+      <div class="ai-label-row">
+        <div class="ai-label">
+          <span class="dot">${window.MINI_SCOPE || '✦'}</span>
+          <span>일반 검색 결과 ${total > 0 ? `(총 ${total.toLocaleString()}개)` : ''}</span>
+        </div>
+        <div class="sort-options">
+          <button class="sort-btn ${currentSort === 'sim' ? 'active' : ''}" onclick="window.changeSort('sim')">관련도순</button>
+          <button class="sort-btn ${currentSort === 'asc' ? 'active' : ''}" onclick="window.changeSort('asc')">최저가순</button>
+        </div>
       </div>
       <div class="pick-list">
         ${cardsHtml}
       </div>
+      ${paginationHtml}
     </div>
   `;
 
   content.insertAdjacentHTML('beforeend', html);
   
-  // 스크롤 상단 이동
-  setTimeout(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, 100);
+  // 첫 페이지 진입 시에만 스크롤 (페이지 전환 시에는 결과 영역으로 스크롤)
+  if (currentPage > 1) {
+    const wrap = document.querySelector('.general-results-wrap');
+    if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else {
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
+  }
 }
 
 function esc(s) {

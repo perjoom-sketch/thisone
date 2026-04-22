@@ -1,6 +1,6 @@
-async function safeFetchJson(url, options = {}) {
+async function safeFetchJson(url, options = {}, timeoutMs = 10000) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const res = await fetch(url, { ...options, signal: controller.signal });
@@ -15,14 +15,14 @@ async function safeFetchJson(url, options = {}) {
   } catch (e) {
     clearTimeout(timeoutId);
     if (e.name === 'AbortError') {
-      throw new Error('요청 시간이 초과되었습니다. (10초)');
+      throw new Error(`요청 시간이 초과되었습니다. (${timeoutMs/1000}초)`);
     }
     throw e;
   }
 }
 
-async function requestSearch(query, settings = {}) {
-  const params = new URLSearchParams({ q: query, ...settings });
+async function requestSearch(query, settings = {}, start = 1, display = 30, sort = 'sim') {
+  const params = new URLSearchParams({ q: query, ...settings, start, display, sort });
   return await safeFetchJson(`/api/search?${params.toString()}`, {
     method: 'GET'
   });
@@ -75,11 +75,12 @@ async function requestChat(payload, onChunk) {
  */
 async function requestIntentInfer(query, trajectory, image = null) {
   try {
+    const timeout = image ? 30000 : 12000; // 이미지가 있으면 30초, 없으면 12초
     return await safeFetchJson('/api/intentInfer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, trajectory, image }),
-    });
+    }, timeout);
   } catch (err) {
     console.warn('[api] intentInfer 실패 (무시):', err.message);
     return null;

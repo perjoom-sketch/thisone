@@ -85,8 +85,8 @@ async function aiInfer(query, trajectory, image = null) {
 
   const prompt = `
 당신은 10년 차 쇼핑 큐레이션 전문가이자 구매 데이터 분석가입니다.
-사용자의 검색 궤적과 현재 검색어, 그리고 제공된 이미지를 분석하여, 전문가가 제안할 법한 심층 의도를 추출하세요.
-반드시 JSON만 출력하세요.
+사용자의 검색 궤적과 현재 검색어, 그리고 제공된 이미지를 분석하여 전문가급 의도를 추출하세요.
+답변은 반드시 마크다운 코드블록(```)이나 설명 없이 순수 JSON 형식으로만 출력하세요. 오직 { ... } 블록만 반환해야 합니다.
 
 사용자 정보:
 - 검색 히스토리: ${JSON.stringify(trajectory?.queries || [])}
@@ -166,9 +166,20 @@ async function aiInfer(query, trajectory, image = null) {
   }
 
   if (!result) throw lastError;
-
   const text = result.response.text();
-  return JSON.parse(text.replace(/```json|```/g, '').trim());
+  
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    console.error("[intentInfer] JSON 추출 실패. AI 응답 전문:", text);
+    throw new Error('Valid JSON block not found');
+  }
+
+  try {
+    return JSON.parse(jsonMatch[0]);
+  } catch (e) {
+    console.error("[intentInfer] JSON 파싱 에러. 추출된 텍스트:", jsonMatch[0]);
+    throw e;
+  }
 }
 
 // ─── 핸들러 ────────────────────────────────────────────────────────

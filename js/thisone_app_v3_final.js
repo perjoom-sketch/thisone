@@ -277,9 +277,11 @@ async function sendMsg(forceMode) {
             finalSearchQuery = intentProfile.refinedSearchTerm;
             console.log(`%c[ThisOne] AI 식별 상품명: ${finalSearchQuery}`, "color: #10b981; font-weight: bold;");
             typingEl?.updateThought?.(`식별된 상품("${finalSearchQuery}") 데이터 수집 중...`);
+          } else {
+            console.warn("[ThisOne] AI가 상품명을 명확히 식별하지 못했습니다. 응답 데이터:", intentProfile);
           }
         } catch (e) {
-          console.warn("Intent inference failed, using original query:", e);
+          console.error("[ThisOne] 이미지 분석(Intent Infer) 실패:", e);
         }
       }
 

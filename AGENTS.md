@@ -142,7 +142,7 @@
    - **Primary (1순위)**: gemini-2.5-flash
      - API 버전: v1 (안정 엔드포인트)
      - 연동: Google Generative AI SDK
-   - **Secondary (2순위 폴백)**: gpt-4o-mini
+   - **Secondary (2순위 폴백)**: gpt-5.4-mini
      - 역할: Gemini 503(과부하) 또는 타임아웃 발생 시 즉시 전환
      - 연동: OpenAI API (Standard Fetch)
    

@@ -233,7 +233,7 @@ ${query ? `현재 검색어: "${query}"` : ""}
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini", // 안정성이 검증된 미니 모델 사용
+      model: "gpt-5.4-mini", // 최신 고효율 모델 사용
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: content }

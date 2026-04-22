@@ -165,19 +165,24 @@ async function aiInfer(query, trajectory, image = null) {
     }
   }
 
-  if (!result) throw lastError;
-  const text = result.response.text();
-  
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    console.error("[intentInfer] JSON 추출 실패. AI 응답 전문:", text);
-    throw new Error('Valid JSON block not found');
+  if (!result || !result.response) {
+    console.error("[intentInfer] AI 결과가 없거나 응답 객체가 유효하지 않음. 마지막 에러:", lastError?.message);
+    throw lastError || new Error('No AI response received');
   }
 
   try {
+    const text = result.response.text();
+    if (!text) throw new Error('Empty AI response');
+
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error("[intentInfer] JSON 패턴 매칭 실패. 응답 전문:", text);
+      throw new Error('Valid JSON block not found');
+    }
+
     return JSON.parse(jsonMatch[0]);
   } catch (e) {
-    console.error("[intentInfer] JSON 파싱 에러. 추출된 텍스트:", jsonMatch[0]);
+    console.error("[intentInfer] 분석/파싱 중 치명적 오류:", e.message);
     throw e;
   }
 }

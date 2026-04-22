@@ -73,6 +73,7 @@
 - 증상: "검색패턴 관찰", "데이터 수집" 후 멈춤 / "검색 중 오류 발생"
 - 원인: requestIntentInfer 또는 buildCandidates 실패
 - 수정: 모든 외부 API 호출에 Fallback + timeout 적용
+- 검증: Gemini 503(혼잡) 에러 발생 시 20초를 기다리지 않고 4초 내외로 빠른 폴백(Fail-Fast) 작동 확인 (사용자 경험 최적화)
 
 ### 커밋 메시지
 `fix: restore 640px breakpoint + list layout + intent fallback`

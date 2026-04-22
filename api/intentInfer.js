@@ -120,7 +120,7 @@ async function aiInfer(query, trajectory, image = null) {
   "categoryHint": "가전/프린터",
   "refinedSearchTerm": "삼성 비스포크 냉장고 RF85B9111AP"
 }
-주의: 사진 속 상품이 무엇인지 명확히 식별했다면, 그 상품을 네이버 쇼핑에서 검색하기 가장 적합한 검색어(브랜드+모델명)를 refinedSearchTerm에 담으세요.`;
+주의: 사진 속 상품을 식별했다면 가장 검색이 잘 되는 '브랜드+주요 모델명' 위주로 refinedSearchTerm을 생성하세요. (예: "삼성 비스포크 RF85B9111AP" 처럼 불필요한 수식어는 제외)`;
 
   const parts = [{ text: prompt }];
   if (image && image.data) {

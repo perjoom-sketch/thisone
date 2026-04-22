@@ -269,12 +269,13 @@ async function sendMsg(forceMode) {
       let intentProfile = null;
       let finalSearchQuery = searchQuery;
 
-      // 이미지 검색 최적화: 이미지가 있으면 의도 추론을 먼저 수행하여 검색어 보정
+      // 이미지 검색 최적화
       if (queryImage) {
         try {
           intentProfile = await window.ThisOneAPI.requestIntentInfer(queryText, trajectory, queryImage);
-          if (intentProfile?.refinedSearchTerm && (!queryText || queryText.length < 3)) {
+          if (intentProfile?.refinedSearchTerm) {
             finalSearchQuery = intentProfile.refinedSearchTerm;
+            console.log(`%c[ThisOne] AI 식별 상품명: ${finalSearchQuery}`, "color: #10b981; font-weight: bold;");
             typingEl?.updateThought?.(`식별된 상품("${finalSearchQuery}") 데이터 수집 중...`);
           }
         } catch (e) {
@@ -282,8 +283,16 @@ async function sendMsg(forceMode) {
         }
       }
 
-      const [searchData, intentProfileAsync] = await Promise.all([
-        window.ThisOneAPI.requestSearch(finalSearchQuery, expertSettings),
+      let searchData = await window.ThisOneAPI.requestSearch(finalSearchQuery, expertSettings);
+      
+      // [신규] 결과가 0건일 경우 재시도 로직 (다단계 검색)
+      if ((!searchData?.items || searchData.items.length === 0) && finalSearchQuery !== searchQuery) {
+        console.warn(`[ThisOne] "${finalSearchQuery}" 결과 없음. 원본 쿼리 "${searchQuery}"로 재시도...`);
+        typingEl?.updateThought?.(`정밀 검색 결과가 부족하여 범위를 넓혀 재검색 중...`);
+        searchData = await window.ThisOneAPI.requestSearch(searchQuery, expertSettings);
+      }
+
+      const [intentProfileAsync] = await Promise.all([
         intentProfile ? Promise.resolve(intentProfile) : window.ThisOneAPI.requestIntentInfer(queryText, trajectory, queryImage).catch(() => null)
       ]);
 

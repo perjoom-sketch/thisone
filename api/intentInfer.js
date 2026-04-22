@@ -144,7 +144,7 @@ async function aiInfer(query, trajectory, image = null) {
   const getRemainingTime = () => Math.max(10000, 55000 - (Date.now() - startTime));
 
   let result;
-  const modelsToTry = [MODEL_NAME, 'gemini-2.5-flash'];
+  const modelsToTry = [MODEL_NAME, 'gemini-2.5-flash'].filter(m => m && m !== 'undefined');
   let lastError;
 
   for (const m of modelsToTry) {
@@ -204,7 +204,12 @@ async function handler(req, res) {
   } catch (err) {
     console.warn('[intentInfer] AI 실패, 로컬 폴백 사용:', err.message);
     const fallback = localInfer(query, trajectory);
-    return res.status(200).json(fallback);
+    // [디버깅] AI 실패 원인을 클라이언트가 알 수 있게 응답에 추가
+    return res.status(200).json({ 
+      ...fallback, 
+      aiError: err.message,
+      aiStack: err.stack 
+    });
   }
 }
 

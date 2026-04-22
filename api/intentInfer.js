@@ -81,6 +81,7 @@ async function aiInfer(query, trajectory, image = null) {
   if (!apiKey) throw new Error('GOOGLE_API_KEY 미설정');
 
   const genAI = new GoogleGenerativeAI(apiKey);
+  // AGENTS.md 지침에 따라 v1 버전 사용 강제
   const MODEL_NAME = process.env.MODEL_NAME || 'gemini-2.5-flash';
 
   const prompt = `
@@ -148,21 +149,38 @@ async function aiInfer(query, trajectory, image = null) {
   let lastError;
 
   for (const m of modelsToTry) {
-    try {
-      const model = genAI.getGenerativeModel({
-        model: m,
-        systemInstruction: "당신은 쇼핑 의도 분석 전문가입니다. 반드시 JSON만 출력하세요.",
-        generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
-      });
-      const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('intentInfer 타임아웃')), getRemainingTime())
-      );
-      result = await Promise.race([model.generateContent(parts), timeout]);
-      break;
-    } catch (e) {
-      lastError = e;
-      console.warn(`Fallback failed for model ${m}: ${e.message}`);
+    let retryCount = 0;
+    const maxRetries = 1; // 503 에러 대비 1회 재시도
+
+    while (retryCount <= maxRetries) {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: m,
+          systemInstruction: "당신은 쇼핑 의도 분석 전문가입니다. 반드시 JSON만 출력하세요.",
+          generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
+        }, { apiVersion: 'v1' });
+
+        const timeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('intentInfer 타임아웃')), getRemainingTime())
+        );
+        result = await Promise.race([model.generateContent(parts), timeout]);
+        break; // 성공 시 루프 탈출
+      } catch (e) {
+        lastError = e;
+        const is503 = e.message?.includes('503') || e.message?.includes('high demand');
+        
+        if (is503 && retryCount < maxRetries) {
+          console.warn(`[intentInfer] 503 감지, ${retryCount + 1}차 재시도 중...`);
+          retryCount++;
+          await new Promise(resolve => setTimeout(resolve, 800)); // 0.8초 대기 후 재시도
+          continue;
+        }
+        
+        console.warn(`Fallback failed for model ${m}: ${e.message}`);
+        break; // 다른 에러거나 재시도 횟수 초과 시 다음 모델로
+      }
     }
+    if (result) break; // 성공한 모델이 있으면 전체 루프 탈출
   }
 
   if (!result || !result.response) {

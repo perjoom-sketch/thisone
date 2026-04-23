@@ -273,7 +273,8 @@ async function sendMsg(forceMode) {
       if (queryImage) {
         console.log("[Vision] 1차 이미지 분석 시작...");
         try {
-          intentProfile = await window.ThisOneAPI.requestIntentInfer(queryText, trajectory, queryImage);
+          // [방향 A] 이미지 검색 시 입력창 텍스트 격리 (비전 인식 오염 방지)
+          intentProfile = await window.ThisOneAPI.requestIntentInfer('', trajectory, queryImage);
           if (intentProfile?.refinedSearchTerm) {
             finalSearchQuery = intentProfile.refinedSearchTerm;
             console.log(`%c[Vision] 분석 성공: ${finalSearchQuery}`, "color: #10b981; font-weight: bold;");

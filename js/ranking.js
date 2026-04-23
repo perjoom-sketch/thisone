@@ -1,3 +1,13 @@
+const BASELINE_PRICES = {
+  "로보락 S8 MaxV Ultra": { "normal_range": [1290000, 2050000] },
+  "아이패드 프로 M4": { "normal_range": [1400000, 3500000] },
+  "스탠바이미 Go": { "normal_range": [810000, 1100000] },
+  "비스포크 AI 콤보": { "normal_range": [2800000, 4000000] },
+  "다이슨 에어랩 멀티 스타일러": { "normal_range": [500000, 750000] },
+  "공기청정기 필터": { "normal_range": [10000, 120000] },
+  "마우스패드": { "normal_range": [2000, 80000] }
+};
+
 function rewriteSearchQuery(query) {
   const q = String(query || '').trim();
   const lower = q.toLowerCase();
@@ -507,6 +517,27 @@ function shouldExcludeFromPriceRank(item, query, medianPrice) {
       return {
         exclude: true,
         reason: `중앙값(${medianPrice.toLocaleString()}원) 대비 과도하게 낮음(${Math.round((item.priceNum / medianPrice) * 100)}%)`,
+        badges
+      };
+    }
+  }
+
+  // 3. [신규] 시장가 기준가(Baseline) 기반 절대 필터
+  const queryLower = query.toLowerCase();
+  const matchedKey = Object.keys(BASELINE_PRICES).find(key => queryLower.includes(key.toLowerCase()));
+  if (matchedKey && item.priceNum > 0) {
+    const baseline = BASELINE_PRICES[matchedKey];
+    const minPrice = baseline.normal_range[0];
+    
+    // 기준가 대비 50% 미만이면 소모품/미끼로 확정 배제 (단, 마우스패드처럼 저가형은 비율 조정 필요)
+    const threshold = (matchedKey === '마우스패드' || matchedKey === '공기청정기 필터') ? 0.3 : 0.5;
+    
+    if (item.priceNum < minPrice * threshold) {
+      console.log(`[Filter Baseline] EXCLUDE: "${item.name}" (Price: ${item.priceNum.toLocaleString()} < BaselineMin*${threshold}: ${(minPrice * threshold).toLocaleString()})`);
+      badges.push('시장가 미달');
+      return {
+        exclude: true,
+        reason: `시장 최저가(${minPrice.toLocaleString()}원) 대비 현저히 낮음 (소모품/미끼 의심)`,
         badges
       };
     }

@@ -50,15 +50,41 @@ function validateSession(session) {
 // ─── 익명화: 민감 데이터 제거 ─────────────────────────────────────
 function sanitize(session) {
   return {
-    sessionId:   session.sessionId,
-    startedAt:   session.startedAt || Date.now(),
-    savedAt:     Date.now(),
-    queries:     (session.queries || []).map(q => String(q).slice(0, 200)),
-    dwellTimes:  (session.dwellTimes || []).map(Number),
-    clickEvents: session.clickEvents || [],
-    refinements: Number(session.refinements) || 0,
-    durationMs:  Number(session.durationMs) || 0,
+    sessionId:    session.sessionId,
+    startedAt:    session.startedAt || Date.now(),
+    savedAt:      Date.now(),
+    queries:      (session.queries || []).map(q => String(q).slice(0, 200)),
+    dwellTimes:   (session.dwellTimes || []).map(Number),
+    clickEvents:  session.clickEvents || [],
+    decisionLogs: session.decisionLogs || [], // 신규: 상세 결정 로그
+    refinements:  Number(session.refinements) || 0,
+    durationMs:   Number(session.durationMs) || 0,
   };
+}
+
+// ─── [Simulation] 실구매가(EMP) 편차 계산 ──────────────────────────
+function simulateValidation(decisionLogs) {
+  if (!decisionLogs || decisionLogs.length === 0) return null;
+
+  console.log('--- [Validation Simulation] 시작 ---');
+  decisionLogs.forEach(log => {
+    const price = Number(log.price);
+    if (!price) return;
+
+    // 가상의 기준가 (나중에 DB/Baseline 연동)
+    // 여기서는 간단히 100만원 이상 가전은 20% 오차, 이하는 10% 오차 시뮬레이션
+    let expectedMin = price * 0.9;
+    let expectedMax = price * 1.1;
+
+    console.log(`[Item] ${log.productName}`);
+    console.log(`[Clicked Price] ${price.toLocaleString()}원`);
+    console.log(`[Category] ${log.category}`);
+    
+    // 편차 계산 (실제로는 누적된 데이터를 기반으로 하겠지만, 여기선 시뮬레이션 로그만 출력)
+    const deviation = 0; // 초기값
+    console.log(`[EMP Deviation] 0% (최초 수집 데이터)`);
+  });
+  console.log('--- [Validation Simulation] 종료 ---');
 }
 
 // ─── 핸들러 ────────────────────────────────────────────────────────
@@ -85,10 +111,13 @@ async function handler(req, res) {
     return res.status(400).json({ error: '유효하지 않은 세션 데이터' });
   }
 
-  const clean = sanitize(session);
-  const key = `session:${clean.sessionId}`;
+    const clean = sanitize(session);
+    const key = `session:${clean.sessionId}`;
 
-  try {
+    // [Simulation] 로그 수집 즉시 검증 시뮬레이션 수행
+    simulateValidation(clean.decisionLogs);
+
+    try {
     // 1) 세션 데이터 저장 (TTL 7일)
     await kv.set(key, clean, { ex: SESSION_TTL });
 

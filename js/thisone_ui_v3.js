@@ -321,7 +321,8 @@ function renderPickCard(card, isFirst = false) {
     : '';
 
   return `
-    <a class="pick-row-link" href="${escAttr(card.link || '#')}" target="_blank" rel="noopener noreferrer">
+    <a class="pick-row-link" href="${escAttr(card.link || '#')}" target="_blank" rel="noopener noreferrer" 
+       onclick="if(window.ThisOneTrajectory) window.ThisOneTrajectory.recordDecision(${JSON.stringify(card).replace(/"/g, '&quot;')}, 'GO_TO_MALL')">
       <article class="pick-row ${isFirst ? 'pick-row-first' : ''}">
         <div class="row-thumb">
           ${imageHtml}

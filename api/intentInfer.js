@@ -106,6 +106,15 @@ async function aiInfer(query, trajectory, image = null) {
 - 바비온 전기면도기 이미지 -> 출력: "바비온 전기면도기"
 - 로보락 S8 로봇청소기 이미지 -> 출력: "로보락 S8"
 
+[표준 카테고리 체계]
+반드시 다음 카테고리 중 하나를 categoryHint로 선택하세요:
+- 컴퓨터 (노트북, CPU, 메인보드, 그래픽카드 등)
+- 가전 (TV, 냉장고, 세탁기, 청소기 등)
+- 모바일/디카 (스마트폰, 태블릿, 카메라 등)
+- 스포츠/골프 (골프클럽, 캠핑용품, 헬스기구 등)
+- 자동차용품 (블랙박스, 타이어, 오디오 등)
+- 생활/주방 (식기세척기, 주방가전, 생활가전 등)
+
 분석 지침:
 1. 사용자가 숨기고 있는 '진짜 니즈'를 파악하세요. (예: "프린터" -> 단순 구매 vs "회사 프린터 유지비" -> 운영 효율성 중시)
 2. 최신 트렌드 반영: 특히 한국 가전 시장의 경우, 공기청정기/정수기/의류관리기 등은 '구매'보다 '구독/렌탈' 서비스가 대세임을 인지하고, 관리 효율성을 분석에 포함하세요.
@@ -125,7 +134,7 @@ async function aiInfer(query, trajectory, image = null) {
   "suggestedWeights": {
     "price": 0.3, "review": 0.4, "trust": 0.3
   },
-  "categoryHint": "가전/프린터",
+  "categoryHint": "가전",
   "refinedSearchTerm": "삼성 비스포크 RF85B9111AP"
 }
 반드시 위 예시와 같이 짧고 명확한 키워드만 refinedSearchTerm에 포함하여 JSON으로 응답하세요.`;
@@ -215,8 +224,12 @@ async function openaiInfer(query, trajectory, image = null) {
 ${query ? `현재 검색어: "${query}"` : ""}
 검색 히스토리: ${JSON.stringify(trajectory?.queries || [])}
 
+[표준 카테고리 체계]
+다음 카테고리 중 하나를 선택하여 categoryHint에 담으세요:
+- 컴퓨터, 가전, 모바일/디카, 스포츠/골프, 자동차용품, 생활/주방
+
 이미지 분석이 포함되어 있다면 가장 적합한 한국어 검색 키워드(브랜드+모델)를 refinedSearchTerm에 담으세요.
-반드시 { "intentTag": ..., "refinedSearchTerm": ..., "suggestedWeights": { "price": ..., "review": ..., "trust": ... } } 형식을 지키세요.`;
+반드시 { "intentTag": ..., "categoryHint": ..., "refinedSearchTerm": ..., "suggestedWeights": { "price": ..., "review": ..., "trust": ... } } 형식을 지키세요.`;
 
   const content = [{ type: "text", text: userPrompt }];
   if (image && image.data) {

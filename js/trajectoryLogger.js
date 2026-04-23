@@ -59,9 +59,32 @@
   }
 
   /**
-   * 특정 인덱스의 검색 결과에서 상품을 클릭했을 때 기록한다.
-   * @param {string} productId - 클릭한 상품 ID
-   * @param {number} [queryIndex] - 몇 번째 검색어의 결과인지 (기본: 마지막)
+   * 특정 인덱스의 검색 결과에서 상품을 클릭했을 때 상세 정보를 기록한다.
+   * @param {object} product - 클릭한 상품 객체 { id, name, priceNum, category }
+   * @param {string} actionType - 'CLICK_DETAIL' | 'GO_TO_MALL' 등
+   */
+  function recordDecision(product, actionType = 'CLICK_DETAIL') {
+    const decision = {
+      productId: product.id,
+      productName: product.name,
+      price: product.priceNum || product.lprice || 0,
+      category: product.category || product.categoryHint || 'unknown',
+      actionType,
+      timestamp: Date.now()
+    };
+
+    if (!_session.decisionLogs) _session.decisionLogs = [];
+    _session.decisionLogs.push(decision);
+    
+    // 호환성을 위해 clickEvents에도 저장
+    const idx = _session.clickEvents.length - 1;
+    if (idx >= 0) _session.clickEvents[idx] = product.id;
+
+    _saveToSession();
+  }
+
+  /**
+   * (하위 호환용) 특정 인덱스의 검색 결과에서 상품을 클릭했을 때 기록한다.
    */
   function recordClick(productId, queryIndex) {
     const idx =
@@ -203,6 +226,7 @@
   window.ThisOneTrajectory = {
     recordQuery,
     recordClick,
+    recordDecision,
     getSession,
     getLocalIntentHint,
     flush,

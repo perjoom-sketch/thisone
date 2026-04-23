@@ -146,12 +146,21 @@ body.search-mode .trending-section {
 }
 
 body.search-mode .landing-view {
-  padding: 16px;
-  padding-bottom: 0;
+  padding: clamp(12px, 2vh, 20px) 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+body.search-mode .search-wrap {
+  width: min(95%, 900px);
+  margin: 0 auto;
 }
 
 body.search-mode .results-view {
   display: block !important;
+  width: 100%;
 }
 
 /* ===== 랜딩 페이지 콘텐츠 (레벨 4) ===== */
@@ -466,7 +475,7 @@ body.search-mode .results-view {
 #msgContainer {
   display: flex;
   flex-direction: column;
-  gap: clamp(12px, 2.5vw, 24px);
+  gap: clamp(8px, 2vw, 16px);
   width: min(95%, 900px);
   margin: 0 auto;
 }

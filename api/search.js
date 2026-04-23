@@ -103,6 +103,13 @@ async function handler(req, res) {
     let data;
     try {
       data = JSON.parse(text);
+      // [INVESTIGATION] 원본 데이터 로깅 추가
+      console.log(`[DEBUG] Naver raw items for query: "${improvedQ}"`);
+      if (data.items && data.items.length > 0) {
+        console.log(JSON.stringify(data.items.slice(0, 10), null, 2)); 
+      } else {
+        console.log("[DEBUG] No items found in Naver response.");
+      }
     } catch (e) {
       return res.status(500).json({ error: '네이버 응답 JSON 파싱 실패' });
     }

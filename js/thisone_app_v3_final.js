@@ -1,6 +1,5 @@
-// ---- 전역 설정 및 모델 정의 ----
 if (typeof window.MODEL === 'undefined') window.MODEL = 'gemini-2.5-flash';
-if (typeof window.NOEL === 'undefined') window.NOEL = window.MODEL;
+if (typeof window.NOEL === 'undefined') window.NOEL = 'gpt-5.4-mini';
 var MODEL = window.MODEL;
 var NOEL = window.NOEL;
 
@@ -58,26 +57,52 @@ const GeneralSearchState = {
   query: ''
 };
 
-const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI입니다.
-반드시 다음 순서로 출력하세요:
-1. [Thought]: 사용자의 의도 분석 및 추천 전략 (2~3문장)
-2. [JSON]: 상품 추천 결과 (JSON 블록)
+const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI 전문가입니다.
+사용자 검색어: "{query}"
 
-JSON 스키마:
+반드시 다음 규칙을 지켜 출력하세요:
+
+1. [시장 가격 상식 검증 - 필수]
+   추천 전 각 상품 가격이 해당 카테고리의 일반적 시장 가격 범위에 맞는지 먼저 판단하라. 너(AI)는 이미 학습 데이터로 일반 시장 가격대에 대한 상식이 있다. 그 상식을 적극 활용하라.
+
+   판단 원칙:
+   - 극단적 저가(1원, 10원, 100원대)는 약정 미끼, 할부 유인, 데이터 오류, 또는 소모품/액세서리로 간주
+   - 통상 본품 가격의 10% 미만은 "실구매 불가 본품"으로 판단
+   - 쿼리의 "본품"이 무엇인지 먼저 정의하고, 그 본품의 일반 시장 가격대를 먼저 떠올린 뒤 후보를 평가하라
+
+   검증 예시:
+   - "아이패드 프로 M4" → 본품 시장가 150만~260만원 → 1원, 1천원대 상품은 약정/할부/오류 → 추천 제외
+   - "로보락 S8 MaxV Ultra" → 본품 시장가 120만~200만원 → 900원, 1천원대 상품은 소모품/액세서리 → 추천 제외
+   - "마우스패드" → 본품 시장가 3천원~5만원 → 120원은 가격 오류/옵션 미끼 → 추천 제외
+   - "공기청정기 필터" → 본품(필터 자체)이 쿼리이므로 수천원~수만원대 정상. 10원은 오류/미끼 → 제외
+
+   만약 추천 후보가 시장 상식 범위 내에 3개 미만이면 "이 검색어에 대해 신뢰할 수 있는 본품 결과가 부족합니다"라고 명시하고, 억지로 미끼 상품을 추천하지 마라.
+
+2. [본품 vs 소모품 판별 (보조 규칙)]
+   - 검색 결과 중 가장 비싼 상품군을 "본품(본체)"으로 규정하고, 그 가격의 30% 미만인 상품은 무조건 [액세서리/소모품]으로 분류하세요.
+   - 상품명에 "본체", "본품", "패키지"가 포함된 것을 최우선으로 검토하세요.
+   - "필터", "브러쉬", "더스트백", "케이스", "대여", "렌탈"은 추천에서 100% 배제하세요.
+
+3. [추천 카드(cards) 구성]
+   - 추천 카드 5장은 **오직 [본품] 그룹에서만** 선택해야 합니다.
+   - 액세서리가 단 하나라도 추천 카드에 포함되면 당신의 분석은 '실패'로 간주됩니다.
+   - 만약 본품이 없다면 카드를 0개로 비워두고 rejects에 이유를 적으세요.
+
+4. [JSON 스키마]
 {
   "cards": [
     { 
       "sourceId": "후보의 id", 
       "label": "짧은 추천 태그 (예: 🏆 최우수 추천, 💰 최저가 등)", 
-      "reason": "추천 이유(1~2문장)" 
+      "reason": "왜 이 본품이 최선인지 설명 (가격/성능/신뢰도 중심)" 
     }
   ],
   "rejects": [
-    { "name": "제외 상품명", "reason": "제외 이유" }
+    { "name": "제외 상품명", "reason": "제외 이유 (예: 시장 가격 상식 미달, 약정 미끼 의심 등)" }
   ]
 }
 
-JSON 외의 다른 텍스트는 [Thought] 섹션에만 포함하세요.`;
+5. [Thought] 섹션에는 본품의 시장 가격대를 얼마로 정의했는지와 소모품/미끼를 걸러낸 상식적 근거를 기술하세요.`;
 
 function getInput() { return document.getElementById('msgInput'); }
 function getSendBtn() { return document.getElementById('sendBtn'); }
@@ -287,6 +312,24 @@ async function sendMsg(forceMode) {
 
       let searchData = await window.ThisOneAPI.requestSearch(finalSearchQuery, expertSettings);
       
+      // [Case C] 다중 쿼리 전략: 본품이 묻히기 쉬운 경우 변형 쿼리 추가 검색
+      const needsMultiQuery = /(로보락|다이슨|비스포크|아이패드|스탠바이미|청소기|스타일러)/i.test(finalSearchQuery);
+      if (needsMultiQuery && searchData?.items) {
+        console.log(`[Case C] 멀티 쿼리 시동: "${finalSearchQuery} 본체" 추가 검색 중...`);
+        const secondaryData = await window.ThisOneAPI.requestSearch(finalSearchQuery + " 본체", expertSettings);
+        if (secondaryData?.items) {
+          // 결과 병합 및 중복 제거 (productId 기준)
+          const existingIds = new Set(searchData.items.map(item => item.productId).filter(Boolean));
+          secondaryData.items.forEach(item => {
+            if (item.productId && !existingIds.has(item.productId)) {
+              searchData.items.push(item);
+              existingIds.add(item.productId);
+            }
+          });
+          console.log(`[Case C] 병합 완료: 총 ${searchData.items.length}개 후보 확보`);
+        }
+      }
+      
       // [신규] 결과가 0건일 경우 재시도 로직 (다단계 검색)
       if ((!searchData?.items || searchData.items.length === 0) && finalSearchQuery !== searchQuery) {
         console.warn(`[ThisOne] "${finalSearchQuery}" 결과 없음. 원본 쿼리 "${searchQuery}"로 재시도...`);
@@ -390,26 +433,43 @@ async function sendMsg(forceMode) {
         triggerFallback('delay');
       }, patience * 1000);
 
-      try {
-        const aiDataText = await window.ThisOneAPI.requestChat({ 
-          model: MODEL, 
-          max_tokens: tokens, 
-          system: RANKING_PROMPT + depthPrompt, 
-          messages: aiMessages 
-        }, (chunk, fullText) => {
-          if (isFallbackShown) return; // 이미 폴백되었다면 업데이트 무시
-
-          // [보안/UI] JSON 징후가 보이면 즉시 업데이트를 멈추고 고정 메시지 표시
-          if (fullText.includes('[JSON]') || fullText.includes('{') || fullText.includes('":') || fullText.includes('```')) {
-            typingEl?.updateLiveResponse('최종 추천 리포트를 생성하고 있습니다...'); 
-            return;
+        // [AGENTS.md] Fallback Chain: Gemini -> GPT (NOEL) -> Local
+        let aiDataText;
+        try {
+          const finalSystemPrompt = RANKING_PROMPT.replace('{query}', queryText) + depthPrompt;
+          
+          aiDataText = await window.ThisOneAPI.requestChat({ 
+            model: MODEL, // Primary: Gemini
+            max_tokens: tokens, 
+            system: finalSystemPrompt, 
+            messages: aiMessages 
+          }, (chunk, fullText) => {
+            if (isFallbackShown) return;
+            if (fullText.includes('[JSON]') || fullText.includes('{') || fullText.includes('":') || fullText.includes('```')) {
+              typingEl?.updateLiveResponse('최종 추천 리포트를 생성하고 있습니다...'); 
+              return;
+            }
+            const thoughtMatch = fullText.match(/\[?Thought\]?:?(.*?)(?=\[?JSON\]?|$)/si);
+            if (thoughtMatch && thoughtMatch[1]) typingEl?.updateLiveResponse(thoughtMatch[1].trim());
+          });
+        } catch (geminiErr) {
+          console.warn("[ThisOne] Primary AI (Gemini) Failed. Switching to Secondary (GPT)...", geminiErr);
+          typingEl?.updateThought?.('AI 엔진을 전환하여 분석을 재시도 중입니다 (GPT-5.4-mini)...');
+          
+          try {
+            // Secondary Fallback: GPT
+            aiDataText = await window.ThisOneAPI.requestChat({ 
+              model: NOEL, // Secondary: gpt-5.4-mini
+              max_tokens: tokens, 
+              system: RANKING_PROMPT.replace('{query}', queryText) + depthPrompt, 
+              messages: aiMessages 
+            });
+          } catch (gptErr) {
+            console.error("[ThisOne] Secondary AI (GPT) also failed. Falling back to Local search.");
+            triggerFallback('error');
+            throw gptErr;
           }
-
-          const thoughtMatch = fullText.match(/\[?Thought\]?:?(.*?)(?=\[?JSON\]?|$)/si);
-          if (thoughtMatch && thoughtMatch[1]) {
-            typingEl?.updateLiveResponse(thoughtMatch[1].trim());
-          }
-        });
+        }
 
         // 타이머 해제
         if (delayTimer) clearTimeout(delayTimer);

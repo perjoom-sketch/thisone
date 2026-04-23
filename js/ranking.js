@@ -137,20 +137,51 @@ function isBundleLike(title) {
   return /(1\+1|\d+\s*개입|\d+\s*팩|\d+\s*세트|\d+\s*묶음)/i.test(String(title || ''));
 }
 
+function isRentalOrContract(title, priceNum) {
+  const t = String(title || '').toLowerCase();
+  // 렌탈, 대여, 약정, 가입형 상품 감지
+  const rentalKeywords = ['대여', '렌탈', '약정', '가입', '요금제', '통신사', '월납', '공시지원'];
+  const hasRentalWord = rentalKeywords.some(w => t.includes(w));
+  
+  // 가격이 1원, 100원 등 극단적으로 낮으면서 상품명이 본체인 경우(아이패드 1원 등) 약정 상품 확률 높음
+  const isSuspiciousPrice = priceNum > 0 && priceNum <= 1000;
+
+  return hasRentalWord || isSuspiciousPrice;
+}
+
 function isAccessoryLike(title, query) {
   const t = String(title || '').toLowerCase();
   const q = String(query || '').toLowerCase();
 
-  const accessoryWords = [
-    '날개', '커버', '리모컨', '받침', '브라켓', '거치대',
-    '부품', '악세사리', '액세서리', '필터', '소모품',
-    '케이스', '보호필름', '충전기', '호환'
+  const ACCESSORY_KEYWORDS = [
+    '부품', '악세사리', '액세서리', '필터', '소모품', '보호필름', '충전기', 
+    '호환', '더스트백', '먼지봉투', '브러쉬', '물걸레', '패드', '세척액', 
+    '카트리지', '키트', '거름망', '헤파필터', '걸레', '전원선', '교체용', '여분', '노즐', '케이스'
   ];
 
-  const hasAccessoryWord = accessoryWords.some((w) => t.includes(w));
-  const queryIsMainProduct = /(선풍기|공기청정기|프린터|유모차|이어폰|에어팟|가전|의자|책상|노트북|모니터)/i.test(q);
+  const ACCESSORY_EXCEPTIONS = {
+    '패드': ['아이패드', '키패드', '마우스패드', '터치패드', '노트패드', '런치패드', 'ipad'],
+    '필터': ['공기청정기 필터', '정수기 필터', '샤워기 필터', '수전 필터'],
+    '케이스': ['아이패드 케이스', '맥북 케이스', '이어폰 케이스']
+  };
 
-  return hasAccessoryWord && queryIsMainProduct;
+  // 1. 쿼리에 포함된 키워드는 필터링 비활성화 (사용자가 검색 중인 품목)
+  const activeKeywords = ACCESSORY_KEYWORDS.filter(kw => !q.includes(kw.toLowerCase()));
+  
+  // 2. 각 키워드별 매칭 + 예외 체크
+  for (const kw of activeKeywords) {
+    if (!t.includes(kw.toLowerCase())) continue;
+    
+    const exceptions = ACCESSORY_EXCEPTIONS[kw] || [];
+    const hasException = exceptions.some(ex => t.includes(ex.toLowerCase()));
+    
+    if (!hasException) {
+      console.log(`[isAccessoryLike] EXCLUDE: "${title}" matched keyword "${kw}" (No exception)`);
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function getMedianPrice(items) {
@@ -159,10 +190,15 @@ function getMedianPrice(items) {
     .filter((n) => n > 0)
     .sort((a, b) => a - b);
 
-  if (!nums.length) return 0;
+  if (!nums.length) {
+    console.log('[getMedianPrice] No prices found');
+    return 0;
+  }
 
   const mid = Math.floor(nums.length / 2);
-  return nums.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2;
+  const median = nums.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2;
+  console.log(`[getMedianPrice] Count: ${nums.length}, Median: ${median.toLocaleString()}, Min: ${nums[0].toLocaleString()}, Max: ${nums[nums.length-1].toLocaleString()}`);
+  return median;
 }
 
 function inferIntentProfile(query) {
@@ -462,11 +498,30 @@ function shouldExcludeFromPriceRank(item, query, medianPrice) {
     };
   }
 
-  if (medianPrice && item.priceNum > 0 && item.priceNum < medianPrice * 0.15) {
-    badges.push('극단적 저가');
+  // [Case B] 가격 분포 기반 배제 (강화된 로직)
+  if (medianPrice && item.priceNum > 0) {
+    // 1. 중앙값 대비 30% 미만 (기존)
+    if (item.priceNum < medianPrice * 0.3) {
+      console.log(`[Filter Case B] EXCLUDE: "${item.name}" (Price: ${item.priceNum.toLocaleString()} < Median*0.3: ${(medianPrice*0.3).toLocaleString()})`);
+      badges.push('극단적 저가');
+      return {
+        exclude: true,
+        reason: `중앙값(${medianPrice.toLocaleString()}원) 대비 과도하게 낮음(${Math.round((item.priceNum / medianPrice) * 100)}%)`,
+        badges
+      };
+    }
+  }
+
+  // 2. [신규] 상품명 내 소모품 키워드가 포함되어 있고, 가격이 검색 쿼리 내 '본체 예상가'보다 현저히 낮은 경우
+  // (실제 전체 아이템 중 최고가 그룹의 일정 비율 미만이면 소모품 확률 급상승)
+  // 이 로직은 buildCandidates에서 최고가 정보를 넘겨받아 처리하도록 확장 예정이나,
+  // 현재는 isAccessoryLike로 1차 차단 후 여기서 렌탈/약정/소모품 여부를 최종 판정함.
+
+  if (isRentalOrContract(item.name, item.priceNum)) {
+    badges.push('렌탈/약정 의심');
     return {
       exclude: true,
-      reason: `중앙값 대비 ${Math.round((item.priceNum / medianPrice) * 100)}%`,
+      reason: '대여(렌탈) 또는 통신사 약정 상품으로 추정됨',
       badges
     };
   }
@@ -475,7 +530,7 @@ function shouldExcludeFromPriceRank(item, query, medianPrice) {
     badges.push('액세서리 의심');
     return {
       exclude: true,
-      reason: '본품이 아닌 액세서리/부품 의심',
+      reason: '본품이 아닌 액세서리/부속품으로 추정됨',
       badges
     };
   }
@@ -622,7 +677,7 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
   const deduped = dedupeCandidatesByModel(mapped);
   const medianPrice = getMedianPrice(deduped);
 
-  return deduped.map((candidate) => {
+  const scored = deduped.map((candidate) => {
     const bonus = getCandidateBonus(candidate, profile);
     const priceRisk = shouldExcludeFromPriceRank(candidate, queryText, medianPrice);
 
@@ -681,7 +736,9 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
       priceRiskReason: priceRisk.reason,
       badges
     };
-  }).sort((a, b) => {
+  });
+
+  const sorted = scored.sort((a, b) => {
     if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
 
     const ap = Number(a.totalPriceNum || a.priceNum || 0);
@@ -690,6 +747,23 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
 
     return 0;
   });
+
+  const filtered = sorted.filter(c => !c.excludeFromPriceRank);
+  
+  if (filtered.length < 3) {
+    console.log(`[SafetyNet] Filtered count ${filtered.length} < 3. Returning original sorted list with replacement labels.`);
+    return sorted.map(c => {
+      if (c.excludeFromPriceRank) {
+        return {
+          ...c,
+          badges: [...new Set([...c.badges, "본품 결과 부족", "관련 상품"])]
+        };
+      }
+      return c;
+    });
+  }
+
+  return filtered;
 }
 
 function mergeAiWithCandidates(aiResult, candidates = []) {

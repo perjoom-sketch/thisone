@@ -271,20 +271,28 @@ async function sendMsg(forceMode) {
 
       // 이미지 검색 최적화
       if (queryImage) {
+        console.log("[Vision] 1차 이미지 분석 시작...");
         try {
           intentProfile = await window.ThisOneAPI.requestIntentInfer(queryText, trajectory, queryImage);
           if (intentProfile?.refinedSearchTerm) {
             finalSearchQuery = intentProfile.refinedSearchTerm;
-            console.log(`%c[ThisOne] AI 식별 상품명: ${finalSearchQuery}`, "color: #10b981; font-weight: bold;");
+            console.log(`%c[Vision] 분석 성공: ${finalSearchQuery}`, "color: #10b981; font-weight: bold;");
             typingEl?.updateThought?.(`식별된 상품("${finalSearchQuery}") 데이터 수집 중...`);
           } else {
-            console.warn("[ThisOne] AI가 상품명을 명확히 식별하지 못했습니다. 응답 데이터:", intentProfile);
+            console.warn("[Vision] AI가 상품명을 식별하지 못함. 이미지 전용 검색 중단.");
+            typingEl?.remove();
+            window.ThisOneUI?.addFallback?.('이미지 속 상품을 식별하지 못했습니다. 명확한 사진으로 다시 시도해주세요.');
+            return;
           }
         } catch (e) {
-          console.error("[ThisOne] 이미지 분석(Intent Infer) 실패:", e);
+          console.error("[Vision] 이미지 분석 치명적 실패:", e);
+          typingEl?.remove();
+          window.ThisOneUI?.addFallback?.('이미지 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+          return;
         }
       }
 
+      console.log(`[Search] 쿼리 실행: ${finalSearchQuery}`);
       let searchData = await window.ThisOneAPI.requestSearch(finalSearchQuery, expertSettings);
       
       // [신규] 결과가 0건일 경우 재시도 로직 (다단계 검색)
@@ -294,12 +302,12 @@ async function sendMsg(forceMode) {
         searchData = await window.ThisOneAPI.requestSearch(searchQuery, expertSettings);
       }
 
-      const [intentProfileAsync] = await Promise.all([
-        intentProfile ? Promise.resolve(intentProfile) : window.ThisOneAPI.requestIntentInfer(queryText, trajectory, queryImage).catch(() => null)
-      ]);
+      // [개선] intentProfile이 이미 있다면 중복 호출 방지
+      if (!intentProfile && !queryImage) {
+        intentProfile = await window.ThisOneAPI.requestIntentInfer(queryText, trajectory, null).catch(() => null);
+      }
 
       const items = searchData?.items || [];
-      intentProfile = intentProfileAsync;
       _lastIntentProfile = intentProfile;
 
       typingEl?.updateThought?.('상품 데이터 및 형상 분석 선별 중...');

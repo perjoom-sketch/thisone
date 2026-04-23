@@ -91,44 +91,44 @@ async function aiInfer(query, trajectory, image = null) {
 
 사용자 정보:
 - 검색 히스토리: ${JSON.stringify(trajectory?.queries || [])}
+- 클릭 이력: ${JSON.stringify(trajectory?.clickEvents || [])}
+- 검색 수정 횟수: ${trajectory?.refinements ?? 0}
 - 현재 검색어: "${query}"
 
-[최우선 규칙 - 위반 금지]
-1. 이미지가 제공되면 이미지가 사용자 의도의 주인입니다. 텍스트는 보조 정보일 뿐, 절대 이미지보다 우선하지 않습니다.
-2. 이미지 속 상품과 텍스트가 충돌하면 반드시 이미지를 선택하세요.
-   - 예: 이미지=맥미니, 텍스트="아이패드 에어 M2" -> refinedSearchTerm = "맥미니 M2"
-3. 텍스트는 이미지와 같은 카테고리이면서 사양/옵션 정보를 보강할 때만 사용하세요. (예: 이미지=아이패드, 텍스트="512GB")
-4. 입력창 텍스트가 이전 검색 잔여물로 의심될 때(카테고리 전혀 다름)는 텍스트를 완전히 무시하고 이미지만으로 판단하세요.
-
 이미지 분석 지침:
-1. 이미지 속 제품을 네이버 쇼핑에서 검색할 수 있는 가장 적합한 한국어 키워드 3~5단어로 refinedSearchTerm에 담으세요.
+1. 다음 이미지 속 제품을 네이버 쇼핑에서 검색할 수 있는 가장 적합한 한국어 키워드 3~5단어로만 refinedSearchTerm에 담으세요.
 2. 브랜드명 + 제품 종류 형식을 우선하되, 명확한 시리즈가 있다면 포함하세요.
-3. 자기 검증: "이 검색어를 네이버에 넣으면 이미지 속 상품이 나올까?"를 자문하고, 나오지 않을 것 같으면 키워드를 다시 생성하세요.
+3. 설명이나 서술("이미지 속 제품은...", "이 제품은...")은 절대 금지합니다.
 
-[표준 카테고리 체계]
-반드시 다음 카테고리 중 하나를 categoryHint로 선택하세요:
-- 컴퓨터, 가전, 모바일/디카, 스포츠/골프, 자동차용품, 생활/주방
+키워드 생성 예시:
+- 다이슨 헤어드라이어 이미지 -> 출력: "다이슨 헤어드라이어"
+- 삼성 갤럭시 S24 이미지 -> 출력: "삼성 갤럭시 S24"
+- 바비온 전기면도기 이미지 -> 출력: "바비온 전기면도기"
+- 로보락 S8 로봇청소기 이미지 -> 출력: "로보락 S8"
 
 분석 지침:
-1. 전문가가 해당 카테고리에서 가장 중요하게 보는 3가지 요소(expertFactors)를 정의하세요.
-2. 랭킹 시스템을 위한 정밀 가중치(suggestedWeights)를 0~1 사이로 산출하세요.
-3. 왜 해당 검색어를 선택했는지에 대한 전문가적 근거를 reasoning 필드에 한 줄로 기술하세요.
+1. 사용자가 숨기고 있는 '진짜 니즈'를 파악하세요. (예: "프린터" -> 단순 구매 vs "회사 프린터 유지비" -> 운영 효율성 중시)
+2. 최신 트렌드 반영: 특히 한국 가전 시장의 경우, 공기청정기/정수기/의류관리기 등은 '구매'보다 '구독/렌탈' 서비스가 대세임을 인지하고, 관리 효율성을 분석에 포함하세요.
+3. 로봇청소기 특화 분석: 로봇청소기 검색 시에는 '홈스테이션 자동 세척/먼지비움', '청소력', '내구성'을 전문가의 핵심 평가 지표로 반드시 포함하세요.
+4. 전문가가 해당 카테고리에서 가장 중요하게 보는 3가지 요소(expertFactors)를 정의하세요.
+5. 랭킹 시스템을 위한 정밀 가중치(suggestedWeights)를 0~1 사이로 산출하세요.
 
 출력 형식 (JSON):
 {
   "intentTag": "spec_refine" | "price_focus" | "brand_seek" | "explore",
   "confidence": 0.85,
   "expertFactors": {
-    "key_priority": "사양 대조 및 확장성",
-    "rationale": "사진 속 제품의 세부 특징 분석...",
-    "focus_specs": ["M2 칩셋", "포트 구성", "발열 제어"]
+    "key_priority": "유지비 및 내구성",
+    "rationale": "사진 속 대형 가전 모델의 특성과 반복되는 검색어에서 운영 효율성에 대한 높은 민감도가 관찰됨",
+    "focus_specs": ["출력 속도", "토너 가격", "네트워크 지원"]
   },
-  "suggestedWeights": { "price": 0.3, "review": 0.4, "trust": 0.3 },
-  "categoryHint": "컴퓨터",
-  "refinedSearchTerm": "애플 맥미니 M2",
-  "reasoning": "텍스트(아이패드)와 이미지(맥미니)가 충돌하여, 최우선 규칙에 따라 이미지를 기준으로 검색어를 생성함"
+  "suggestedWeights": {
+    "price": 0.3, "review": 0.4, "trust": 0.3
+  },
+  "categoryHint": "가전/프린터",
+  "refinedSearchTerm": "삼성 비스포크 RF85B9111AP"
 }
-`;
+반드시 위 예시와 같이 짧고 명확한 키워드만 refinedSearchTerm에 포함하여 JSON으로 응답하세요.`;
 
   const parts = [{ text: prompt }];
   if (image && image.data) {
@@ -261,24 +261,16 @@ async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-  console.log("[Intent] input:", { hasImage: !!image, textInput: query });
+  const { query = '', trajectory = {}, image = null } = req.body || {};
 
   try {
     const result = await aiInfer(query, trajectory, image);
-    console.log("[Intent] output (Gemini):", { 
-      refinedSearchTerm: result.refinedSearchTerm, 
-      reasoning: result.reasoning 
-    });
     return res.status(200).json({ ...result, source: 'ai' });
   } catch (err) {
     console.warn('[intentInfer] Gemini 실패, OpenAI 폴백 시도:', err.message);
     
     try {
       const gptResult = await openaiInfer(query, trajectory, image);
-      console.log("[Intent] output (GPT):", { 
-        refinedSearchTerm: gptResult.refinedSearchTerm, 
-        reasoning: gptResult.reasoning 
-      });
       return res.status(200).json({ ...gptResult, source: 'ai_gpt' });
     } catch (gptErr) {
       console.error('[intentInfer] 모든 AI 실패, 로컬 폴백 사용:', gptErr.message);

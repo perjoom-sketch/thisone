@@ -194,38 +194,62 @@
 
   <template id="filterTemplateV2">
     <div class="filter-panel">
-      <div class="form-group">
-        <label class="sub-label">가격 범위</label>
+      <div class="filter-section">
+        <h4 class="filter-title">💰 가격 범위</h4>
         <div class="input-group">
-          <input type="number" id="minPrice" class="form-input sm" placeholder="최소">
-          <span class="separator">-</span>
-          <input type="number" id="maxPrice" class="form-input sm" placeholder="최대">
+          <input type="number" id="minPrice" class="form-input sm" placeholder="최소 가격">
+          <span class="separator">~</span>
+          <input type="number" id="maxPrice" class="form-input sm" placeholder="최대 가격">
         </div>
       </div>
 
-      <div class="filter-grid">
-        <select id="resultCount" class="form-select">
-          <option value="3">3개 이하</option>
-          <option value="5" selected>5개 이하</option>
-          <option value="10">10개 이하</option>
-        </select>
-        <label class="check-btn"><input type="checkbox" id="freeShipping" checked> 무료배송</label>
-        <label class="check-btn"><input type="checkbox" id="excludeOverseas"> 직구제외</label>
-        <label class="check-btn"><input type="checkbox" id="excludeAgent"> 대형제외</label>
-        <label class="check-btn"><input type="checkbox" id="excludeUsed"> 중고/리퍼제외</label>
-        <label class="check-btn"><input type="checkbox" id="excludeRental" checked> 렌탈제외</label>
+      <div class="filter-section">
+        <h4 class="filter-title">🔍 상세 필터</h4>
+        <div class="filter-list">
+          <label class="filter-item">
+            <div class="filter-info">
+              <span class="filter-name">무료배송만 보기</span>
+              <span class="filter-desc">배송비가 없는 상품 위주로 선별</span>
+            </div>
+            <input type="checkbox" id="freeShipping" checked>
+          </label>
+          <label class="filter-item">
+            <div class="filter-info">
+              <span class="filter-name">해외직구 제외</span>
+              <span class="filter-desc">국내 배송 상품만 확인</span>
+            </div>
+            <input type="checkbox" id="excludeOverseas">
+          </label>
+          <label class="filter-item">
+            <div class="filter-info">
+              <span class="filter-name">중고/리퍼 제외</span>
+              <span class="filter-desc">새 상품만 검색 결과에 포함</span>
+            </div>
+            <input type="checkbox" id="excludeUsed">
+          </label>
+          <label class="filter-item">
+            <div class="filter-info">
+              <span class="filter-name">렌탈/구독 제외</span>
+              <span class="filter-desc">일시불 구매 상품 위주</span>
+            </div>
+            <input type="checkbox" id="excludeRental" checked>
+          </label>
+        </div>
       </div>
 
-      <div class="filter-footer">
+      <div class="filter-section">
+        <h4 class="filter-title">⚡ 분석 강도</h4>
         <div class="slider-group">
           <div class="slider-header">
-            <label class="sub-label">검색시간</label>
             <span id="patienceVal" class="point-text">20초</span>
           </div>
           <input type="range" id="patienceTime" class="form-range" min="5" max="60" value="20" oninput="document.getElementById('patienceVal').textContent=this.value+'초'">
-          <div class="slider-labels"><span>빠른검색</span><span>심층검색</span></div>
+          <div class="slider-labels"><span>빠른 요약</span><span>정밀 분석</span></div>
         </div>
-        <button type="button" class="btn btn-dark" onclick="saveExpertSettings()">저장</button>
+      </div>
+
+      <div class="filter-footer">
+        <button type="button" class="btn btn-dark" style="width: 100%;" onclick="saveExpertSettings()">설정 저장 및 적용</button>
       </div>
     </div>
   </template>

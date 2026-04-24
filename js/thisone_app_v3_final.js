@@ -155,13 +155,6 @@ function syncQueryInputs(t) {
   });
 }
 
-function setSearchMode(mode) {
-  searchMode = mode;
-  const r = document.getElementById('rawSearchBtn'), t = document.getElementById('thisoneSearchBtn');
-  if (r) r.classList.toggle('active', mode === 'raw');
-  if (t) t.classList.toggle('active', mode === 'thisone');
-}
-
 function extractJSON(str) {
   if (!str) return null;
   try {
@@ -440,7 +433,7 @@ async function sendMsg(forceMode) {
         if (!parsed) throw new Error('Valid JSON block not found');
         
         const merged = window.ThisOneRanking?.mergeAiWithCandidates ? window.ThisOneRanking.mergeAiWithCandidates(deepClean(parsed), candidates) : parsed;
-        window.ThisOneUI?.addResultCard?.(merged);
+        window.ThisOneUI?.addResultCard?.(merged, intentProfile);
         
         setTimeout(() => {
           window.scrollTo(0, 0);
@@ -593,8 +586,4 @@ document.addEventListener('DOMContentLoaded', () => {
   applyPcView();
   loadTrendingChips();
   document.getElementById('sendBtn')?.addEventListener('click', () => sendMsg('thisone'));
-  document.getElementById('rawSearchBtn')?.addEventListener('click', () => sendMsg('raw'));
-  
-  // 이미지 붙여넣기 지원
-  document.addEventListener('paste', handlePaste);
 });

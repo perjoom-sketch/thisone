@@ -595,7 +595,7 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
   const savedSettings = localStorage.getItem('thisone_expert_settings');
   const expertSettings = savedSettings ? JSON.parse(savedSettings) : {};
 
-  const mapped = (items || []).slice(0, 50).map((item, idx) => { // 후보군 풀을 50개로 확대 (30개 노출 보장)
+  const mapped = (items || []).slice(0, 50).map((item, idx) => {
     const shipping = parseShippingCost(item.delivery || '');
     const priceNum = parsePriceNumber(item.priceText || item.price || item.lprice || '');
     const hpriceNum = parsePriceNumber(item.hprice || item.highPrice || '');
@@ -627,39 +627,47 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
     const priceRisk = shouldExcludeFromPriceRank(candidate, queryText, medianPrice);
 
     let specPenalty = 0;
+    let isStrictExcluded = false;
+    let excludeReason = '';
     const badges = [...(priceRisk.badges || [])];
 
-    // ── 전문가 설정 필터링 반영 ──────────────────
+    // ── 전문가 설정 필터링 반영 (Strict 모드 전환) ──────────────────
     if (expertSettings.minPrice && candidate.totalPriceNum < Number(expertSettings.minPrice)) {
-      specPenalty += 20;
-      badges.push('설정가 미달');
+      isStrictExcluded = true;
+      excludeReason = '설정 가격 미달';
     }
     if (expertSettings.maxPrice && candidate.totalPriceNum > Number(expertSettings.maxPrice)) {
-      specPenalty += 20;
-      badges.push('설정가 초과');
+      isStrictExcluded = true;
+      excludeReason = '설정 가격 초과';
     }
     if (expertSettings.excludeOverseas && candidate.isOverseas) {
-      specPenalty += 15;
-      badges.push('해외직구 페널티');
+      isStrictExcluded = true;
+      excludeReason = '해외직구 제외 설정';
     }
     if (expertSettings.excludeUsed && candidate.isUsed) {
-      specPenalty += 15;
-      badges.push('중고/리퍼 페널티');
-    }
-    if (expertSettings.freeShipping && candidate.shippingCost > 0) {
-      specPenalty += 5;
-      badges.push('유료배송 감점');
+      isStrictExcluded = true;
+      excludeReason = '중고/리퍼 제외 설정';
     }
     if (expertSettings.excludeRental && /렌탈|구독|방문관리/i.test(candidate.name + candidate.store)) {
-      specPenalty += 20;
-      badges.push('렌탈/구독 페널티');
+      isStrictExcluded = true;
+      excludeReason = '렌탈/구독 제외 설정';
+    }
+    
+    // 배송비 감점은 여전히 점수제로 유지 (완전 제외보다는 불이익)
+    if (expertSettings.freeShipping && candidate.shippingCost > 0) {
+      specPenalty += 10;
+      badges.push('유료배송 감점');
     }
 
-    // ── AI 의도 분석(focus_specs) 추가 보너스 ──────────
+    // ── AI 의도 분석(focus_specs) 추가 보너스 강화 ──────────
     if (profile?.expertFactors?.focus_specs) {
       profile.expertFactors.focus_specs.forEach(spec => {
+        // 더 정확한 매칭을 위해 정규식 사용 고려 가능
         if (candidate.name.includes(spec)) {
-          bonus.bonusScore += 2;
+          bonus.bonusScore += 3; // 가중치 상향
+          if (!bonus.bonusReasons.includes(spec)) {
+            bonus.bonusReasons += (bonus.bonusReasons ? ', ' : '') + `핵심기능(${spec}) 적합`;
+          }
         }
       });
     }
@@ -668,7 +676,7 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
     else if (priceRisk.badges.includes('옵션가 확인')) specPenalty += 6;
     else if (priceRisk.badges.includes('묶음상품')) specPenalty += 2;
 
-    const finalScore = bonus.bonusScore - specPenalty;
+    const finalScore = isStrictExcluded ? -999 : (bonus.bonusScore - specPenalty);
 
     return {
       ...candidate,
@@ -677,11 +685,12 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
       bonusReasons: bonus.bonusReasons,
       specPenalty,
       finalScore,
-      excludeFromPriceRank: priceRisk.exclude || specPenalty >= 15,
-      priceRiskReason: priceRisk.reason,
+      excludeFromPriceRank: isStrictExcluded || priceRisk.exclude || specPenalty >= 15,
+      priceRiskReason: isStrictExcluded ? excludeReason : priceRisk.reason,
       badges
     };
-  }).sort((a, b) => {
+  }).filter(c => c.finalScore > -50) // 엄격하게 제외된 상품(-999) 제거
+  .sort((a, b) => {
     if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
 
     const ap = Number(a.totalPriceNum || a.priceNum || 0);

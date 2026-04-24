@@ -75,13 +75,37 @@ function localInfer(query, trajectory) {
   };
 }
 
+const SYSTEM_PROMPT = `당신은 구매 결정 전문가 AI, 'ThisOne'입니다.
+사용자의 검색어와 이전 검색 이력을 바탕으로 최적의 쇼핑 전략을 수립하세요.
+
+출력은 반드시 다음 JSON 형식을 엄격히 따르세요:
+{
+  "intentTag": "spec_refine" | "price_focus" | "brand_seek" | "explore",
+  "confidence": 0.0 ~ 1.0,
+  "expertFactors": {
+    "key_priority": "가장 중요하게 봐야 할 한 줄 요약",
+    "rationale": "왜 이 요소가 중요한지에 대한 전문가적 근거",
+    "focus_specs": ["필터링에 즉시 활용 가능한 핵심 키워드 3~4개"]
+  },
+  "suggestedWeights": {
+    "price": -1.0 ~ 1.0 (낮을수록 저가 선호),
+    "brand": 0.0 ~ 1.0 (높을수록 브랜드 중시),
+    "review": 0.0 ~ 1.0 (높을수록 실사용평 중시)
+  },
+  "categoryHint": "예: 가전/로봇청소기",
+  "refinedSearchTerm": "데이터 수집을 위한 가장 정확한 검색 키워드 (이미지 분석 결과 반영 가능)"
+}
+
+[지침]
+- focus_specs는 사용자가 결과 페이지에서 '퀵 필터'로 사용할 수 있는 구체적인 사양이나 특징(예: "직배수", "스테이션 포함", "국내AS")이어야 합니다.
+- refinedSearchTerm은 불필요한 수식어를 빼고 모델명이나 카테고리 핵심어로 구성하세요.`;
+
 // ─── Gemini AI 추론 (전문가급 분석) ────────────────────────────────
 async function aiInfer(query, trajectory, image = null) {
   const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error('GOOGLE_API_KEY 미설정');
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  // AGENTS.md 지침에 따라 v1 버전 사용 강제
   const MODEL_NAME = process.env.MODEL_NAME || 'gemini-2.5-flash';
 
   const prompt = `
@@ -104,33 +128,9 @@ async function aiInfer(query, trajectory, image = null) {
 - 다이슨 헤어드라이어 이미지 -> 출력: "다이슨 헤어드라이어"
 - 삼성 갤럭시 S24 이미지 -> 출력: "삼성 갤럭시 S24"
 - 바비온 전기면도기 이미지 -> 출력: "바비온 전기면도기"
-- 로보락 S8 로봇청소기 이미지 -> 출력: "로보락 S8"
+- 로보락 S8 로봇청소기 이미지 -> 출력: "로보락 S8"`;
 
-분석 지침:
-1. 사용자가 숨기고 있는 '진짜 니즈'를 파악하세요. (예: "프린터" -> 단순 구매 vs "회사 프린터 유지비" -> 운영 효율성 중시)
-2. 최신 트렌드 반영: 특히 한국 가전 시장의 경우, 공기청정기/정수기/의류관리기 등은 '구매'보다 '구독/렌탈' 서비스가 대세임을 인지하고, 관리 효율성을 분석에 포함하세요.
-3. 로봇청소기 특화 분석: 로봇청소기 검색 시에는 '홈스테이션 자동 세척/먼지비움', '청소력', '내구성'을 전문가의 핵심 평가 지표로 반드시 포함하세요.
-4. 전문가가 해당 카테고리에서 가장 중요하게 보는 3가지 요소(expertFactors)를 정의하세요.
-5. 랭킹 시스템을 위한 정밀 가중치(suggestedWeights)를 0~1 사이로 산출하세요.
-
-출력 형식 (JSON):
-{
-  "intentTag": "spec_refine" | "price_focus" | "brand_seek" | "explore",
-  "confidence": 0.85,
-  "expertFactors": {
-    "key_priority": "유지비 및 내구성",
-    "rationale": "사진 속 대형 가전 모델의 특성과 반복되는 검색어에서 운영 효율성에 대한 높은 민감도가 관찰됨",
-    "focus_specs": ["출력 속도", "토너 가격", "네트워크 지원"]
-  },
-  "suggestedWeights": {
-    "price": 0.3, "review": 0.4, "trust": 0.3
-  },
-  "categoryHint": "가전/프린터",
-  "refinedSearchTerm": "삼성 비스포크 RF85B9111AP"
-}
-반드시 위 예시와 같이 짧고 명확한 키워드만 refinedSearchTerm에 포함하여 JSON으로 응답하세요.`;
-
-  const parts = [{ text: prompt }];
+  const parts = [{ text: SYSTEM_PROMPT + "\n\n" + prompt }];
   if (image && image.data) {
     parts.push({
       inlineData: {

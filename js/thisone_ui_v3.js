@@ -24,56 +24,6 @@ function appendAndScroll(node) {
   } catch(e) { console.error("Render append failed", e); }
 }
 
-function renderHistoryBar() {
-  if (!Array.isArray(searchHistory) || searchHistory.length < 2) return;
-
-  const content = getContentEl();
-  if (!content) return;
-
-  const existing = document.getElementById('historyBar');
-  if (existing) existing.remove();
-
-  const bar = document.createElement('div');
-  bar.className = 'history-bar';
-  bar.id = 'historyBar';
-
-  const uniqueHistory = [];
-  const seen = new Set();
-  // 뒤에서부터 중복 제거하여 최신 검색어 순서 유지
-  for (let i = searchHistory.length - 1; i >= 0; i--) {
-    const q = searchHistory[i];
-    if (q && !seen.has(q)) {
-      uniqueHistory.unshift(q);
-      seen.add(q);
-    }
-  }
-
-  uniqueHistory.slice(-5).forEach((q) => {
-    // [보안/운영] '플라스틱 날개' 등 부적절하거나 교체된 구형 키워드 필터링
-    if (q.includes('플라스틱 날개')) return;
-
-    const c = document.createElement('div');
-    c.className = 'history-chip';
-    c.textContent = '🔍 ' + q;
-    c.onclick = () => {
-      if (typeof quick === 'function') {
-        quick(q);
-      } else {
-        const inp = document.getElementById('msgInput2') || document.getElementById('msgInput');
-        if (inp) {
-          inp.value = q;
-          if (typeof autoResize === 'function') autoResize(inp);
-        }
-        if (typeof currentQuery !== 'undefined') currentQuery = q;
-        if (typeof sendMsg === 'function') sendMsg();
-      }
-    };
-    bar.appendChild(c);
-  });
-
-  content.appendChild(bar);
-}
-
 function addUserMsg(txt, imgSrc) {
   const d = document.createElement('div');
   d.className = 'user-msg-wrap';
@@ -138,12 +88,10 @@ function addThinking() {
   `;
   appendAndScroll(d);
 
-  // 사고 단계 업데이트 함수
   d.updateThought = (msg, isFinal = false) => {
     const steps = d.querySelector('#thoughtStepsV2');
     if (!steps) return;
     
-    // 이전 단계 완료 처리
     const lastStep = steps.querySelector('.thought-step.active');
     if (lastStep) {
       lastStep.classList.remove('active');
@@ -163,25 +111,18 @@ function addThinking() {
     }
   };
 
-  // 실시간 스트리밍 텍스트 업데이트 함수
   d.updateLiveResponse = (txt) => {
     const el = d.querySelector('#liveResponse');
     if (!el) return;
-    
-    // [최종 검문소] 소스 코드(JSON) 징후가 보이면 아예 숨김
     if (txt.includes('{') || txt.includes('[JSON]') || txt.includes('":') || txt.includes('```') || txt.includes('}')) {
       el.classList.add('hidden');
       return;
     }
-
-    // 시스템 태그 및 불필요한 기호 제거
     let cleanText = txt.replace(/\[?Thought\]?:?/gi, '').trim();
-    // 만약 남아있는 텍스트에 JSON 특수문자가 섞여있다면 숨김
     if (/[{}[\]"]/.test(cleanText)) {
       el.classList.add('hidden');
       return;
     }
-
     if (cleanText) {
       el.textContent = cleanText;
       el.classList.add('active');
@@ -189,11 +130,9 @@ function addThinking() {
     }
   };
 
-  // 일반 결과 보기 버튼 노출 함수
   d.showFallbackButton = (callback) => {
     const container = d.querySelector('#thinkContainerV2');
     if (!container || d.querySelector('.fallback-btn')) return;
-
     const btn = document.createElement('button');
     btn.className = 'fallback-btn';
     btn.innerHTML = `<span>📂</span> 일반 결과 먼저 보기`;
@@ -208,45 +147,80 @@ function addThinking() {
   return d;
 }
 
-function renderBadgeList(badges) {
-  if (!Array.isArray(badges) || !badges.length) return '';
+function renderFilterChips(profile) {
+  const specs = profile?.expertFactors?.focus_specs || window._lastIntentProfile?.expertFactors?.focus_specs;
+  if (!specs || !specs.length) return '';
 
   return `
-    <div class="pick-badges">
-      ${badges.map((b) => `<span class="pick-mini-badge">${esc(b)}</span>`).join('')}
+    <div class="filter-chips-row">
+      <span class="filter-chips-label">지능형 필터:</span>
+      <div class="filter-chips">
+        ${specs.map(spec => `
+          <button class="filter-chip" onclick="window.quick('${escAttr(spec)}')">
+            ${esc(spec)}
+          </button>
+        `).join('')}
+      </div>
     </div>
   `;
 }
 
-function normalizeRawItem(p = {}) {
-  return {
-    name: p.name || p.title || p.productName || '상품명 없음',
-    price: p.price || p.lprice || '',
-    store: p.store || p.mallName || p.mall || '',
-    delivery: p.delivery || p.shipping || '',
-    review: p.review || p.reviewText || '',
-    image: p.image || p.imageUrl || '',
-    link: p.link || p.productUrl || p.url || '',
-    badges: Array.isArray(p.badges) ? p.badges : [],
-    reason: p.reason || '',
-    rankReason: p.rankReason || '',
-    excludeFromPriceRank: !!p.excludeFromPriceRank
-  };
+function addResultCard(result, intentProfile = null) {
+  const content = document.getElementById('msgContainer');
+  if (!content) return;
+
+  const cards = Array.isArray(result?.cards) ? result.cards : [];
+  const rejects = Array.isArray(result?.rejects) ? result.rejects : [];
+
+  const chipsHtml = renderFilterChips(intentProfile || window._lastIntentProfile);
+
+  const cardsHtml = cards
+    .map((card, idx) => renderPickCard(card, idx === 0))
+    .join('');
+
+  const rejectsHtml = rejects.length
+    ? `
+      <div class="reject-card">
+        <div class="reject-title">제외된 후보</div>
+        ${rejects.map((r) => `
+          <div class="reject-item">
+            <div class="reject-dot">•</div>
+            <div class="reject-text">
+              <span class="reject-name">${esc(r.name || '후보')}</span>
+              ${r.reason ? ` — ${esc(r.reason)}` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `
+    : '';
+
+  const html = `
+    <div class="ai-result">
+      <div class="ai-label">
+        <span class="dot">✦</span>
+        <span>지능형 추천 리포트</span>
+      </div>
+      ${chipsHtml}
+      <div class="pick-list">
+        ${cardsHtml}
+      </div>
+      ${rejectsHtml}
+    </div>
+  `;
+
+  content.insertAdjacentHTML('beforeend', html);
 }
+
 
 function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 'sim') {
   const content = document.getElementById('msgContainer');
   if (!content) return;
-
-  // 기존 일반 결과가 있다면 제거 (페이지 전환 시 교체)
   const existing = document.querySelector('.general-results-wrap');
   if (existing) existing.remove();
 
-  const cardsHtml = (items || [])
-    .map((item, idx) => renderPickCard(item, idx === 0))
-    .join('');
-
-  const totalPages = Math.min(Math.ceil(total / 30), 10); // 최대 10페이지까지만 지원
+  const cardsHtml = (items || []).map((item, idx) => renderPickCard(item, idx === 0)).join('');
+  const totalPages = Math.min(Math.ceil(total / 30), 10);
   
   let paginationHtml = '';
   if (totalPages > 1) {
@@ -277,76 +251,39 @@ function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 
       ${paginationHtml}
     </div>
   `;
-
   content.insertAdjacentHTML('beforeend', html);
-  
-  // 첫 페이지 진입 시에만 스크롤 (페이지 전환 시에는 결과 영역으로 스크롤)
   if (currentPage > 1) {
     const wrap = document.querySelector('.general-results-wrap');
     if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  } else {
-    setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 100);
   }
 }
 
-function esc(s) {
-  return String(s || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
-
-function escAttr(s) {
-  return String(s || '')
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
+function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function escAttr(s) { return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
 function renderPickCard(card, isFirst = false) {
-  const imageHtml = card.image
-    ? `<img class="row-img" src="${escAttr(card.image)}" alt="${escAttr(card.name || '상품')}">`
-    : `<div class="row-img-placeholder">상품</div>`;
-
-  const badgesHtml = Array.isArray(card.badges) && card.badges.length
-    ? card.badges.map((b) => `<span class="row-badge-item ${getBadgeClass(b)}">${esc(b)}</span>`).join('')
-    : '';
-
-  const labelBadge = card.label 
-    ? `<span class="row-badge-item row-label-badge">${esc(card.label)}</span>` 
-    : '';
+  const imageHtml = card.image ? `<img class="row-img" src="${escAttr(card.image)}" alt="${escAttr(card.name || '상품')}">` : `<div class="row-img-placeholder">상품</div>`;
+  const badgesHtml = Array.isArray(card.badges) && card.badges.length ? card.badges.map((b) => `<span class="row-badge-item ${getBadgeClass(b)}">${esc(b)}</span>`).join('') : '';
+  const labelBadge = card.label ? `<span class="row-badge-item row-label-badge">${esc(card.label)}</span>` : '';
 
   return `
     <a class="pick-row-link" href="${escAttr(card.link || '#')}" target="_blank" rel="noopener noreferrer">
       <article class="pick-row ${isFirst ? 'pick-row-first' : ''}">
-        <div class="row-thumb">
-          ${imageHtml}
-        </div>
-
+        <div class="row-thumb">${imageHtml}</div>
         <div class="row-info">
           <div class="row-header">
             <div class="row-title-line">
               <h3 class="row-title">${esc(card.name || '상품명 없음')}</h3>
-              <div class="row-badges">
-                ${labelBadge}
-                ${badgesHtml}
-              </div>
+              <div class="row-badges">${labelBadge}${badgesHtml}</div>
             </div>
           </div>
-
           <div class="row-meta">
             ${card.store ? `<span class="row-store-name">${esc(card.store)}</span>` : ''}
             ${card.delivery ? `<span class="row-delivery">${esc(card.delivery)}</span>` : ''}
             ${card.review ? `<span class="row-review">${esc(card.review)}</span>` : ''}
           </div>
-
           ${card.reason ? `<div class="row-reason-text">${esc(card.reason)}</div>` : ''}
         </div>
-
         <div class="row-price-area">
           <div class="row-price">${card.price ? esc(card.price) : ''}</div>
           <div class="row-cta">상세보기</div>
@@ -362,54 +299,6 @@ function getBadgeClass(text) {
   if (text.includes('추천')) return 'badge-thisone';
   return 'badge-default';
 }
-
-function addResultCard(result) {
-  const content = document.getElementById('msgContainer');
-  if (!content) return;
-
-  const cards = Array.isArray(result?.cards) ? result.cards : [];
-  const rejects = Array.isArray(result?.rejects) ? result.rejects : [];
-
-  const cardsHtml = cards
-    .map((card, idx) => renderPickCard(card, idx === 0))
-    .join('');
-
-  const rejectsHtml = rejects.length
-    ? `
-      <div class="reject-card">
-        <div class="reject-title">제외된 후보</div>
-        ${rejects.map((r) => `
-          <div class="reject-item">
-            <div class="reject-dot">•</div>
-            <div class="reject-text">
-              <span class="reject-name">${esc(r.name || '후보')}</span>
-              ${r.reason ? ` — ${esc(r.reason)}` : ''}
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    `
-    : '';
-
-  const html = `
-    <div class="ai-result">
-      <div class="ai-label">
-        <span class="dot">✦</span>
-        <span>지능형 추천 리포트</span>
-      </div>
-      <div class="pick-list">
-        ${cardsHtml}
-      </div>
-      ${rejectsHtml}
-    </div>
-  `;
-
-  content.insertAdjacentHTML('beforeend', html);
-  // 강제 스크롤 제거: 사용자 시야 방해 방지
-}
-
-
-async function loadDynamicTrends() {
   const container = document.getElementById('trendingChips');
   if (!container) return;
   // 기존 프리미엄 칩이 이미 있다면 덮어쓰지 않음 (우선순위: 프리미엄 랭킹)
@@ -607,11 +496,9 @@ async function submitInquiry() {
 }
 
 window.ThisOneUI = {
-  renderHistoryBar,
   addUserMsg,
   addFallback,
   addThinking,
-  renderBadgeList,
   renderRawResults,
   addResultCard,
   loadDynamicTrends,

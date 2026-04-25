@@ -464,7 +464,48 @@ async function sendMsg(forceMode) {
         if (!parsed) throw new Error('Valid JSON block not found');
         
         const merged = window.ThisOneRanking?.mergeAiWithCandidates ? window.ThisOneRanking.mergeAiWithCandidates(deepClean(parsed), candidates) : parsed;
-        window.ThisOneUI?.addResultCard?.(merged, intentProfile);
+
+        const targetCount = expertSettings.resultCount || 5;
+        const mergedCards = Array.isArray(merged?.cards) ? merged.cards : [];
+        const mergedRejects = Array.isArray(merged?.rejects) ? merged.rejects : [];
+        const rejectSourceIds = new Set(
+          mergedRejects
+            .map((r) => String(r?.sourceId || r?.id || '').trim())
+            .filter(Boolean)
+        );
+
+        const usedSourceIds = new Set();
+        const usedNames = new Set();
+        mergedCards.forEach((card) => {
+          const sid = String(card?.sourceId || card?.id || '').trim();
+          if (sid) usedSourceIds.add(sid);
+          const n = String(card?.name || '').trim().toLowerCase();
+          if (n) usedNames.add(n);
+        });
+
+        const supplements = [];
+        for (const candidate of (candidates || [])) {
+          if (mergedCards.length + supplements.length >= targetCount) break;
+
+          const cid = String(candidate?.id || '').trim();
+          const cname = String(candidate?.name || '').trim().toLowerCase();
+          if (cid && rejectSourceIds.has(cid)) continue;
+          if (cid && usedSourceIds.has(cid)) continue;
+          if (cname && usedNames.has(cname)) continue;
+
+          supplements.push({
+            ...candidate,
+            sourceId: candidate?.id || '',
+            label: '추가 후보',
+            type: candidate?.type || 'extra'
+          });
+
+          if (cid) usedSourceIds.add(cid);
+          if (cname) usedNames.add(cname);
+        }
+
+        const finalCards = [...mergedCards, ...supplements].slice(0, targetCount);
+        window.ThisOneUI?.addResultCard?.({ ...merged, cards: finalCards }, intentProfile);
         
         setTimeout(() => {
           window.scrollTo(0, 0);

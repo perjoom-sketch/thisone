@@ -315,7 +315,7 @@ function escAttr(s) {
 function renderPickCard(card, isFirst = false, options = {}) {
   const hideRecommendationUi = !!options.hideRecommendationUi;
   const imageHtml = card.image
-    ? `<img class="row-img" src="${escAttr(card.image)}" alt="${escAttr(card.name || '상품')}">`
+    ? `<img class="row-img" src="${escAttr(card.image)}" alt="${escAttr(card.name || '상품')}" onerror="this.onerror=null;this.alt='';this.style.visibility='hidden';">`
     : `<div class="row-img-placeholder">상품</div>`;
 
   const badgesHtml = !hideRecommendationUi && Array.isArray(card.badges) && card.badges.length

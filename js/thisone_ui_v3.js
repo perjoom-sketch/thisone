@@ -234,7 +234,7 @@ function normalizeRawItem(p = {}) {
   };
 }
 
-function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 'sim') {
+function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 'sim', resultMode = 'normal') {
   const content = document.getElementById('msgContainer');
   if (!content) return;
 
@@ -242,8 +242,9 @@ function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 
   const existing = document.querySelector('.general-results-wrap');
   if (existing) existing.remove();
 
+  const isFallbackGeneral = resultMode === 'fallback_general';
   const cardsHtml = (items || [])
-    .map((item, idx) => renderPickCard(item, idx === 0))
+    .map((item, idx) => renderPickCard(item, idx === 0, { hideRecommendationUi: isFallbackGeneral }))
     .join('');
 
   const totalPages = Math.min(Math.ceil(total / 30), 10); // 최대 10페이지까지만 지원
@@ -259,12 +260,16 @@ function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 
     `;
   }
 
+  const headerTitle = isFallbackGeneral
+    ? `일반 검색 결과(디스원 AI 추천 아님) ${total > 0 ? `(총 ${total.toLocaleString()}개)` : ''}`
+    : `일반 검색 결과 ${total > 0 ? `(총 ${total.toLocaleString()}개)` : ''}`;
+
   const html = `
     <div class="ai-result general-results-wrap">
       <div class="ai-label-row">
         <div class="ai-label">
           <span class="dot">${window.MINI_SCOPE || '✦'}</span>
-          <span>일반 검색 결과 ${total > 0 ? `(총 ${total.toLocaleString()}개)` : ''}</span>
+          <span>${headerTitle}</span>
         </div>
         <div class="sort-options">
           <button class="sort-btn ${currentSort === 'sim' ? 'active' : ''}" onclick="window.changeSort('sim')">관련도순</button>
@@ -307,16 +312,17 @@ function escAttr(s) {
     .replace(/>/g, '&gt;');
 }
 
-function renderPickCard(card, isFirst = false) {
+function renderPickCard(card, isFirst = false, options = {}) {
+  const hideRecommendationUi = !!options.hideRecommendationUi;
   const imageHtml = card.image
     ? `<img class="row-img" src="${escAttr(card.image)}" alt="${escAttr(card.name || '상품')}">`
     : `<div class="row-img-placeholder">상품</div>`;
 
-  const badgesHtml = Array.isArray(card.badges) && card.badges.length
+  const badgesHtml = !hideRecommendationUi && Array.isArray(card.badges) && card.badges.length
     ? card.badges.map((b) => `<span class="row-badge-item ${getBadgeClass(b)}">${esc(b)}</span>`).join('')
     : '';
 
-  const labelBadge = card.label 
+  const labelBadge = !hideRecommendationUi && card.label 
     ? `<span class="row-badge-item row-label-badge">${esc(card.label)}</span>` 
     : '';
 
@@ -613,6 +619,7 @@ window.ThisOneUI = {
   addThinking,
   renderBadgeList,
   renderRawResults,
+  renderResults: renderRawResults,
   addResultCard,
   loadDynamicTrends,
   openInquiryBoard,

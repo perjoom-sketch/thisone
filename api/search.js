@@ -63,7 +63,7 @@ async function handler(req, res) {
 
     const start = parseInt(req.query.start || '1');
     const display = parseInt(req.query.display || '30');
-    const sort = req.query.sort || 'asc'; // 기본값을 sim에서 asc(최저가순)으로 변경
+    const sort = req.query.sort || 'sim';
 
     // 네이버 쇼핑 API 호출
     const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(improvedQ)}&display=${display}&start=${start}&sort=${sort}`;

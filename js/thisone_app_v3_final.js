@@ -506,6 +506,65 @@ async function sendMsg(forceMode) {
 
         const finalCards = [...mergedCards, ...supplements].slice(0, targetCount);
         window.ThisOneUI?.addResultCard?.({ ...merged, cards: finalCards }, intentProfile);
+
+        // AI 추천 리포트 아래에 일반 검색 결과를 함께 표시
+        const normalizeName = (v) => String(v || '').trim().toLowerCase();
+        const resolveModelKey = (item = {}) => {
+          if (item.modelKey) return String(item.modelKey).trim().toLowerCase();
+          if (window.ThisOneRanking?.getModelKey) {
+            return String(window.ThisOneRanking.getModelKey(item.name || '') || '').trim().toLowerCase();
+          }
+          return '';
+        };
+
+        const pickedSourceIds = new Set();
+        const pickedIds = new Set();
+        const pickedNames = new Set();
+        const pickedModelKeys = new Set();
+
+        finalCards.forEach((card) => {
+          const sid = String(card?.sourceId || '').trim();
+          const cid = String(card?.id || '').trim();
+          const name = normalizeName(card?.name);
+          const modelKey = resolveModelKey(card);
+
+          if (sid) pickedSourceIds.add(sid);
+          if (cid) pickedIds.add(cid);
+          if (name) pickedNames.add(name);
+          if (modelKey) pickedModelKeys.add(modelKey);
+        });
+
+        const generalCandidates = (candidates || []).filter((candidate) => {
+          const sid = String(candidate?.sourceId || '').trim();
+          const cid = String(candidate?.id || '').trim();
+          const name = normalizeName(candidate?.name);
+          const modelKey = resolveModelKey(candidate);
+
+          if (sid && pickedSourceIds.has(sid)) return false;
+          if (cid && pickedIds.has(cid)) return false;
+          if (name && pickedNames.has(name)) return false;
+          if (modelKey && pickedModelKeys.has(modelKey)) return false;
+          return true;
+        });
+
+        GeneralSearchState.query = finalSearchQuery;
+        GeneralSearchState.currentPage = 1;
+        GeneralSearchState.total = searchData?.total || 0;
+        GeneralSearchState.resultMode = 'fallback_general';
+
+        const allowedSorts = ['sim', 'asc'];
+        const preservedSort = allowedSorts.includes(GeneralSearchState.currentSort)
+          ? GeneralSearchState.currentSort
+          : 'sim';
+        GeneralSearchState.currentSort = preservedSort;
+
+        window.ThisOneUI?.renderResults?.(
+          generalCandidates,
+          GeneralSearchState.total,
+          GeneralSearchState.currentPage,
+          GeneralSearchState.currentSort,
+          GeneralSearchState.resultMode
+        );
         
         setTimeout(() => {
           window.scrollTo(0, 0);

@@ -55,7 +55,8 @@ const GeneralSearchState = {
   currentPage: 1,
   currentSort: 'sim',
   total: 0,
-  query: ''
+  query: '',
+  resultMode: 'normal'
 };
 
 const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI입니다.
@@ -242,6 +243,7 @@ async function sendMsg(forceMode) {
 
     let candidates = null;
     try {
+      GeneralSearchState.resultMode = 'normal';
       let searchQuery = queryText;
       if (window.ThisOneRanking?.rewriteSearchQuery) searchQuery = window.ThisOneRanking.rewriteSearchQuery(queryText);
 
@@ -377,17 +379,29 @@ async function sendMsg(forceMode) {
         typingEl?.remove();
         
         const elapsed = Math.round((Date.now() - searchStartTime) / 1000);
-        let msg = `데이터 분석이 지연되고 있어(${elapsed}초), 선별된 일반 검색 결과를 먼저 보여드립니다.`;
-        if (reason === 'error') msg = `AI 분석 중 오류가 발생하여(${elapsed}초), 선별된 일반 검색 결과를 먼저 보여드립니다.`;
+        let msg = `데이터 분석이 지연되고 있어(${elapsed}초), 디스원 AI 추천이 아닌 일반 검색 결과를 먼저 보여드립니다.`;
+        if (reason === 'error') msg = `AI 분석 중 오류가 발생하여(${elapsed}초), 디스원 AI 추천이 아닌 일반 검색 결과를 먼저 보여드립니다.`;
         
         window.ThisOneUI?.addFallback?.(msg);
         
         GeneralSearchState.query = finalSearchQuery;
         GeneralSearchState.currentPage = 1;
         GeneralSearchState.total = searchData?.total || 0;
-        
-        GeneralSearchState.currentSort = 'asc'; // 기본 정렬 강제
-        window.ThisOneUI?.renderResults?.(candidates, GeneralSearchState.total, GeneralSearchState.currentPage, GeneralSearchState.currentSort);
+        GeneralSearchState.resultMode = 'fallback_general';
+
+        const allowedSorts = ['sim', 'asc'];
+        const preservedSort = allowedSorts.includes(GeneralSearchState.currentSort)
+          ? GeneralSearchState.currentSort
+          : 'sim'; // 정렬 상태가 없으면 관련도 기준으로
+        GeneralSearchState.currentSort = preservedSort;
+
+        window.ThisOneUI?.renderResults?.(
+          candidates,
+          GeneralSearchState.total,
+          GeneralSearchState.currentPage,
+          GeneralSearchState.currentSort,
+          GeneralSearchState.resultMode
+        );
       };
 
       // 8초 지연 타이머: 메시지 변경 및 버튼 노출
@@ -459,7 +473,7 @@ async function sendMsg(forceMode) {
       typingEl?.remove();
       
       if (candidates && candidates.length > 0) {
-        window.ThisOneUI?.renderResults?.(candidates);
+        window.ThisOneUI?.renderResults?.(candidates, 0, 1, GeneralSearchState.currentSort, GeneralSearchState.resultMode || 'normal');
       } else {
         window.ThisOneUI?.addFallback?.('검색 결과를 가져오는 중 문제가 발생했습니다.');
       }
@@ -568,6 +582,7 @@ async function refreshGeneralResults() {
   const start = (GeneralSearchState.currentPage - 1) * 30 + 1;
   
   try {
+    if (!GeneralSearchState.resultMode) GeneralSearchState.resultMode = 'normal';
     const searchData = await window.ThisOneAPI.requestSearch(
       GeneralSearchState.query, 
       {}, 
@@ -584,7 +599,8 @@ async function refreshGeneralResults() {
       items, 
       GeneralSearchState.total, 
       GeneralSearchState.currentPage, 
-      GeneralSearchState.currentSort
+      GeneralSearchState.currentSort,
+      GeneralSearchState.resultMode
     );
   } catch (e) {
     console.error("Failed to refresh general results", e);

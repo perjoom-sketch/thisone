@@ -94,7 +94,13 @@ function switchToSearchMode() {
 }
 
 function autoResize(el) { if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px'; }
-function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } }
+function handleKey(e) {
+  if (e.isComposing === true || e.keyCode === 229 || e.which === 229) return;
+  if (e.key !== 'Enter') return;
+  if (e.shiftKey) return;
+  e.preventDefault();
+  sendMsg('thisone');
+}
 function quick(t) { currentQuery = t; syncQueryInputs(t); setSearchMode('thisone'); sendMsg(); }
 
 function handleImg(e) {
@@ -458,7 +464,45 @@ async function sendMsg(forceMode) {
         if (!parsed) throw new Error('Valid JSON block not found');
         
         const merged = window.ThisOneRanking?.mergeAiWithCandidates ? window.ThisOneRanking.mergeAiWithCandidates(deepClean(parsed), candidates) : parsed;
-        window.ThisOneUI?.addResultCard?.(merged, intentProfile);
+
+        const maxCards = Math.max(1, parseInt(expertSettings.resultCount || 5, 10) || 5);
+        const existingCards = Array.isArray(merged?.cards) ? merged.cards.slice(0, maxCards) : [];
+        const rejectSourceIds = new Set(
+          (Array.isArray(merged?.rejects) ? merged.rejects : [])
+            .map((r) => String(r?.sourceId || r?.id || '').trim())
+            .filter(Boolean)
+        );
+        const usedSourceIds = new Set(
+          existingCards
+            .map((card) => String(card?.sourceId || card?.id || '').trim())
+            .filter(Boolean)
+        );
+
+        if (existingCards.length < maxCards && Array.isArray(candidates) && candidates.length) {
+          for (const candidate of candidates) {
+            if (existingCards.length >= maxCards) break;
+
+            const cid = String(candidate?.id || '').trim();
+            if (!cid) continue;
+            if (usedSourceIds.has(cid)) continue;
+            if (rejectSourceIds.has(cid)) continue;
+
+            existingCards.push({
+              ...candidate,
+              sourceId: cid,
+              label: '추가 후보',
+              reason: 'AI 추천 보강을 위한 비교 후보'
+            });
+            usedSourceIds.add(cid);
+          }
+        }
+
+        const finalResult = {
+          ...(merged && typeof merged === 'object' ? merged : {}),
+          cards: existingCards.slice(0, maxCards)
+        };
+
+        window.ThisOneUI?.addResultCard?.(finalResult, intentProfile);
         
         setTimeout(() => {
           window.scrollTo(0, 0);

@@ -53,7 +53,7 @@ let _lastIntentProfile = null;
 // 일반 검색 상태 관리
 const GeneralSearchState = {
   currentPage: 1,
-  currentSort: 'asc', // 기본값을 sim에서 asc(최저가순)으로 변경
+  currentSort: 'sim',
   total: 0,
   query: ''
 };
@@ -148,18 +148,16 @@ function deepClean(value) {
   return value;
 }
 
+function setSearchMode(mode) {
+  searchMode = mode;
+  // 구버전 버튼 스타일링 로직은 제거 (UI 미노출 대응)
+}
+
 function syncQueryInputs(t) {
   ['msgInput', 'msgInput2'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) { el.value = t; autoResize(el); }
   });
-}
-
-function setSearchMode(mode) {
-  searchMode = mode;
-  const r = document.getElementById('rawSearchBtn'), t = document.getElementById('thisoneSearchBtn');
-  if (r) r.classList.toggle('active', mode === 'raw');
-  if (t) t.classList.toggle('active', mode === 'thisone');
 }
 
 function extractJSON(str) {
@@ -271,35 +269,50 @@ async function sendMsg(forceMode) {
 
       // 이미지 검색 최적화
       if (queryImage) {
+        console.log("[Vision] 1차 이미지 분석 시작...");
         try {
-          intentProfile = await window.ThisOneAPI.requestIntentInfer(queryText, trajectory, queryImage);
+          // [방향 A] 이미지 검색 시 입력창 텍스트 격리 (비전 인식 오염 방지)
+          intentProfile = await window.ThisOneAPI.requestIntentInfer('', trajectory, queryImage);
           if (intentProfile?.refinedSearchTerm) {
             finalSearchQuery = intentProfile.refinedSearchTerm;
-            console.log(`%c[ThisOne] AI 식별 상품명: ${finalSearchQuery}`, "color: #10b981; font-weight: bold;");
+            console.log(`%c[Vision] 분석 성공: ${finalSearchQuery}`, "color: #10b981; font-weight: bold;");
             typingEl?.updateThought?.(`식별된 상품("${finalSearchQuery}") 데이터 수집 중...`);
           } else {
-            console.warn("[ThisOne] AI가 상품명을 명확히 식별하지 못했습니다. 응답 데이터:", intentProfile);
+            console.warn("[Vision] AI가 상품명을 식별하지 못함. 이미지 전용 검색 중단.");
+            typingEl?.remove();
+            window.ThisOneUI?.addFallback?.('이미지 속 상품을 식별하지 못했습니다. 명확한 사진으로 다시 시도해주세요.');
+            return;
           }
         } catch (e) {
-          console.error("[ThisOne] 이미지 분석(Intent Infer) 실패:", e);
+          console.error("[Vision] 이미지 분석 치명적 실패:", e);
+          typingEl?.remove();
+          window.ThisOneUI?.addFallback?.('이미지 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+          return;
         }
       }
 
+      console.log(`[Search] 쿼리 실행: ${finalSearchQuery}`);
       let searchData = await window.ThisOneAPI.requestSearch(finalSearchQuery, expertSettings);
       
       // [신규] 결과가 0건일 경우 재시도 로직 (다단계 검색)
       if ((!searchData?.items || searchData.items.length === 0) && finalSearchQuery !== searchQuery) {
+        if (searchQuery === '이미지 기반 상품 검색') {
+          console.warn(`[ThisOne] "${finalSearchQuery}" 결과 없음. 이미지 검색만으로는 결과를 찾을 수 없습니다.`);
+          typingEl?.remove();
+          window.ThisOneUI?.addFallback?.('이미지에 해당하는 상품을 쇼핑 데이터에서 찾을 수 없습니다.');
+          return;
+        }
         console.warn(`[ThisOne] "${finalSearchQuery}" 결과 없음. 원본 쿼리 "${searchQuery}"로 재시도...`);
         typingEl?.updateThought?.(`정밀 검색 결과가 부족하여 범위를 넓혀 재검색 중...`);
         searchData = await window.ThisOneAPI.requestSearch(searchQuery, expertSettings);
       }
 
-      const [intentProfileAsync] = await Promise.all([
-        intentProfile ? Promise.resolve(intentProfile) : window.ThisOneAPI.requestIntentInfer(queryText, trajectory, queryImage).catch(() => null)
-      ]);
+      // [개선] intentProfile이 이미 있다면 중복 호출 방지
+      if (!intentProfile && !queryImage) {
+        intentProfile = await window.ThisOneAPI.requestIntentInfer(queryText, trajectory, null).catch(() => null);
+      }
 
       const items = searchData?.items || [];
-      intentProfile = intentProfileAsync;
       _lastIntentProfile = intentProfile;
 
       typingEl?.updateThought?.('상품 데이터 및 형상 분석 선별 중...');
@@ -374,7 +387,7 @@ async function sendMsg(forceMode) {
         GeneralSearchState.total = searchData?.total || 0;
         
         GeneralSearchState.currentSort = 'asc'; // 기본 정렬 강제
-        window.ThisOneUI?.renderRawResults?.(candidates, GeneralSearchState.total, GeneralSearchState.currentPage, GeneralSearchState.currentSort);
+        window.ThisOneUI?.renderResults?.(candidates, GeneralSearchState.total, GeneralSearchState.currentPage, GeneralSearchState.currentSort);
       };
 
       // 8초 지연 타이머: 메시지 변경 및 버튼 노출
@@ -431,7 +444,7 @@ async function sendMsg(forceMode) {
         if (!parsed) throw new Error('Valid JSON block not found');
         
         const merged = window.ThisOneRanking?.mergeAiWithCandidates ? window.ThisOneRanking.mergeAiWithCandidates(deepClean(parsed), candidates) : parsed;
-        window.ThisOneUI?.addResultCard?.(merged);
+        window.ThisOneUI?.addResultCard?.(merged, intentProfile);
         
         setTimeout(() => {
           window.scrollTo(0, 0);
@@ -446,7 +459,7 @@ async function sendMsg(forceMode) {
       typingEl?.remove();
       
       if (candidates && candidates.length > 0) {
-        window.ThisOneUI?.renderRawResults?.(candidates);
+        window.ThisOneUI?.renderResults?.(candidates);
       } else {
         window.ThisOneUI?.addFallback?.('검색 결과를 가져오는 중 문제가 발생했습니다.');
       }
@@ -567,7 +580,7 @@ async function refreshGeneralResults() {
     GeneralSearchState.total = searchData?.total || 0;
     
     // UI 업데이트
-    window.ThisOneUI?.renderRawResults?.(
+    window.ThisOneUI?.renderResults?.(
       items, 
       GeneralSearchState.total, 
       GeneralSearchState.currentPage, 
@@ -584,8 +597,4 @@ document.addEventListener('DOMContentLoaded', () => {
   applyPcView();
   loadTrendingChips();
   document.getElementById('sendBtn')?.addEventListener('click', () => sendMsg('thisone'));
-  document.getElementById('rawSearchBtn')?.addEventListener('click', () => sendMsg('raw'));
-  
-  // 이미지 붙여넣기 지원
-  document.addEventListener('paste', handlePaste);
 });

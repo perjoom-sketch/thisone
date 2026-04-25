@@ -94,7 +94,13 @@ function switchToSearchMode() {
 }
 
 function autoResize(el) { if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px'; }
-function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } }
+function handleKey(e) {
+  if (e.isComposing === true || e.keyCode === 229 || e.which === 229) return;
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMsg('thisone');
+  }
+}
 function quick(t) { currentQuery = t; syncQueryInputs(t); setSearchMode('thisone'); sendMsg(); }
 
 function handleImg(e) {

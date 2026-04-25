@@ -62,11 +62,14 @@ async function handler(req, res) {
     console.log(`[Search] 원본: "${q}" → 개선: "${improvedQ}"`);
 
     const start = parseInt(req.query.start || '1');
-    const display = parseInt(req.query.display || '30');
-    const sort = req.query.sort || 'asc'; // 기본값을 sim에서 asc(최저가순)으로 변경
+    const display = Math.min(parseInt(req.query.display || '60'), 100); 
+    const sort = req.query.sort || 'sim'; // 최저가순(asc) 보다는 관련도순(sim)이 낚시 제거에 유리함
+
+    const minPrice = req.query.minPrice ? `&min_price=${req.query.minPrice}` : '';
+    const maxPrice = req.query.maxPrice ? `&max_price=${req.query.maxPrice}` : '';
 
     // 네이버 쇼핑 API 호출
-    const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(improvedQ)}&display=${display}&start=${start}&sort=${sort}`;
+    const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(improvedQ)}&display=${display}&start=${start}&sort=${sort}${minPrice}${maxPrice}`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15초 타임아웃

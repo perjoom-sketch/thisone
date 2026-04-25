@@ -137,26 +137,41 @@ function isBundleLike(title) {
   return /(1\+1|\d+\s*개입|\d+\s*팩|\d+\s*세트|\d+\s*묶음)/i.test(String(title || ''));
 }
 
-function isAccessoryLike(title, query) {
+function isAccessoryLike(title, query, profile) {
   const t = String(title || '').toLowerCase();
   const q = String(query || '').toLowerCase();
 
   const accessoryWords = [
     '날개', '커버', '리모컨', '받침', '브라켓', '거치대',
     '부품', '악세사리', '액세서리', '필터', '소모품',
-    '케이스', '보호필름', '충전기', '호환'
+    '케이스', '보호필름', '충전기', '호환', '먼지봉투', '물걸레', '배터리', '헤드',
+    '전용선', '연결선', '케이블', '어댑터', '세정제', '클리너', '헤드세트',
+    '사이드브러쉬', '더스트백', '메인브러쉬', '브러쉬', '거름망', '연장관'
   ];
 
   const hasAccessoryWord = accessoryWords.some((w) => t.includes(w));
-  const queryIsMainProduct = /(선풍기|공기청정기|프린터|유모차|이어폰|에어팟|가전|의자|책상|노트북|모니터)/i.test(q);
+  const queryWantsAccessory = accessoryWords.some((w) => q.includes(w));
 
-  return hasAccessoryWord && queryIsMainProduct;
+  if (queryWantsAccessory) return false;
+
+  const queryIsMainProduct = /(선풍기|공기청정기|프린터|유모차|이어폰|에어팟|가전|의자|책상|노트북|모니터|로봇청소기|청소기|세탁기|건조기|스타일러|에어랩|로보락|다이슨|비스포크|갤럭시|아이폰|워치|패드|태블릿)/i.test(q) || (profile?.categoryHint && /(가전|기기|디지털|스마트)/i.test(profile.categoryHint));
+  const titleIsMainProduct = /(선풍기|공기청정기|프린터|유모차|이어폰|에어팟|가전|의자|책상|노트북|모니터|로봇청소기|청소기|세탁기|건조기|스타일러|에어랩|로보락|다이슨|비스포크|갤럭시|아이폰|워치|패드|태블릿)/i.test(t);
+
+  return hasAccessoryWord && (queryIsMainProduct || titleIsMainProduct || t.includes('호환') || t.includes('소모품'));
 }
 
-function getMedianPrice(items) {
+function getMedianPrice(items, query = '') {
+  const q = String(query || '').toLowerCase();
+  const queryIsMainProduct = /(선풍기|공기청정기|프린터|유모차|이어폰|에어팟|가전|의자|책상|노트북|모니터|로봇청소기|청소기|세탁기|건조기|스타일러|에어랩|로보락|다이슨|비스포크|갤럭시|아이폰|워치|패드|태블릿)/i.test(q);
+
   const nums = (items || [])
     .map((item) => Number(item.priceNum || 0))
-    .filter((n) => n > 0)
+    .filter((n) => {
+      if (n <= 0) return false;
+      // 가전 등 고가 제품 검색 시 5000원 이하 낚시는 중앙값 계산에서 제외
+      if (queryIsMainProduct && n < 5000) return false;
+      return true;
+    })
     .sort((a, b) => a - b);
 
   if (!nums.length) return 0;
@@ -448,8 +463,17 @@ function checkSpecMatch(query, title) {
   return { match: true, mismatchReason: '' };
 }
 
-function shouldExcludeFromPriceRank(item, query, medianPrice) {
+function shouldExcludeFromPriceRank(item, query, medianPrice, profile) {
   const badges = [];
+  const q = String(query || '').toLowerCase();
+  const t = String(item.name || '').toLowerCase();
+  const queryIsMainProduct = /(선풍기|공기청정기|프린터|유모차|이어폰|에어팟|가전|의자|책상|노트북|모니터|로봇청소기|청소기|세탁기|건조기|스타일러|에어랩|로보락|다이슨|비스포크|갤럭시|아이폰|워치|패드|태블릿)/i.test(q) || (profile?.categoryHint && /(가전|기기|디지털|스마트)/i.test(profile.categoryHint));
+  const titleIsMainProduct = /(선풍기|공기청정기|프린터|유모차|이어폰|에어팟|가전|의자|책상|노트북|모니터|로봇청소기|청소기|세탁기|건조기|스타일러|에어랩|로보락|다이슨|비스포크|갤럭시|아이폰|워치|패드|태블릿)/i.test(t);
+  
+  const accessoryWords = ['부품','악세사리','액세서리','필터','소모품','케이스','보호필름','충전기','먼지봉투','물걸레','배터리','사이드브러쉬','더스트백','브러쉬'];
+  const queryWantsAccessory = accessoryWords.some(w => q.includes(w));
+  const isMainProductContext = queryIsMainProduct || titleIsMainProduct;
+
   const option = isOptionItem(item);
   const specMatch = checkSpecMatch(query, item.name || '');
 
@@ -462,16 +486,25 @@ function shouldExcludeFromPriceRank(item, query, medianPrice) {
     };
   }
 
-  if (medianPrice && item.priceNum > 0 && item.priceNum < medianPrice * 0.15) {
-    badges.push('극단적 저가');
+  if (item.priceNum > 0 && item.priceNum < 5000 && isMainProductContext && !queryWantsAccessory) {
+    badges.push('극단적 저가(낚시)');
     return {
       exclude: true,
-      reason: `중앙값 대비 ${Math.round((item.priceNum / medianPrice) * 100)}%`,
+      reason: '5,000원 미만의 본체 의심 가격',
       badges
     };
   }
 
-  if (isAccessoryLike(item.name, query)) {
+  if (medianPrice && item.priceNum > 0 && item.priceNum < medianPrice * 0.2 && !queryWantsAccessory) {
+    badges.push('가격 불균형');
+    return {
+      exclude: true,
+      reason: `중앙값 대비 ${Math.round((item.priceNum / medianPrice) * 100)}% (본체 아닐 확률 높음)`,
+      badges
+    };
+  }
+
+  if (isAccessoryLike(item.name, query, profile)) {
     badges.push('액세서리 의심');
     return {
       exclude: true,
@@ -620,11 +653,11 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
   });
 
   const deduped = dedupeCandidatesByModel(mapped);
-  const medianPrice = getMedianPrice(deduped);
+  const medianPrice = getMedianPrice(deduped, queryText);
 
   return deduped.map((candidate) => {
     const bonus = getCandidateBonus(candidate, profile);
-    const priceRisk = shouldExcludeFromPriceRank(candidate, queryText, medianPrice);
+    const priceRisk = shouldExcludeFromPriceRank(candidate, queryText, medianPrice, profile);
 
     let specPenalty = 0;
     let isStrictExcluded = false;
@@ -672,9 +705,14 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
       });
     }
 
-    if (priceRisk.exclude) specPenalty += 12;
-    else if (priceRisk.badges.includes('옵션가 확인')) specPenalty += 6;
-    else if (priceRisk.badges.includes('묶음상품')) specPenalty += 2;
+    if (priceRisk.exclude) {
+      isStrictExcluded = true;
+      excludeReason = priceRisk.reason || '가격 리스크(낚시성/액세서리) 감지';
+    } else if (priceRisk.badges.includes('옵션가 확인')) {
+      specPenalty += 6;
+    } else if (priceRisk.badges.includes('묶음상품')) {
+      specPenalty += 2;
+    }
 
     const finalScore = isStrictExcluded ? -999 : (bonus.bonusScore - specPenalty);
 

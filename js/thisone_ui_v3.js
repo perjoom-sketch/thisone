@@ -213,7 +213,7 @@ function addResultCard(result, intentProfile = null) {
 }
 
 
-function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 'sim') {
+function renderResults(items = [], total = 0, currentPage = 1, currentSort = 'sim') {
   const content = document.getElementById('msgContainer');
   if (!content) return;
   const existing = document.querySelector('.general-results-wrap');
@@ -299,6 +299,7 @@ function getBadgeClass(text) {
   if (text.includes('추천')) return 'badge-thisone';
   return 'badge-default';
 }
+async function loadDynamicTrends() {
   const container = document.getElementById('trendingChips');
   if (!container) return;
   // 기존 프리미엄 칩이 이미 있다면 덮어쓰지 않음 (우선순위: 프리미엄 랭킹)
@@ -499,7 +500,7 @@ window.ThisOneUI = {
   addUserMsg,
   addFallback,
   addThinking,
-  renderRawResults,
+  renderResults,
   addResultCard,
   loadDynamicTrends,
   openInquiryBoard,

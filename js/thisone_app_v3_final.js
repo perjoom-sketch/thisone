@@ -53,7 +53,7 @@ let _lastIntentProfile = null;
 // 일반 검색 상태 관리
 const GeneralSearchState = {
   currentPage: 1,
-  currentSort: 'asc', // 기본값을 sim에서 asc(최저가순)으로 변경
+  currentSort: 'sim',
   total: 0,
   query: ''
 };
@@ -146,6 +146,11 @@ function deepClean(value) {
     return out;
   }
   return value;
+}
+
+function setSearchMode(mode) {
+  searchMode = mode;
+  // 구버전 버튼 스타일링 로직은 제거 (UI 미노출 대응)
 }
 
 function syncQueryInputs(t) {
@@ -291,6 +296,12 @@ async function sendMsg(forceMode) {
       
       // [신규] 결과가 0건일 경우 재시도 로직 (다단계 검색)
       if ((!searchData?.items || searchData.items.length === 0) && finalSearchQuery !== searchQuery) {
+        if (searchQuery === '이미지 기반 상품 검색') {
+          console.warn(`[ThisOne] "${finalSearchQuery}" 결과 없음. 이미지 검색만으로는 결과를 찾을 수 없습니다.`);
+          typingEl?.remove();
+          window.ThisOneUI?.addFallback?.('이미지에 해당하는 상품을 쇼핑 데이터에서 찾을 수 없습니다.');
+          return;
+        }
         console.warn(`[ThisOne] "${finalSearchQuery}" 결과 없음. 원본 쿼리 "${searchQuery}"로 재시도...`);
         typingEl?.updateThought?.(`정밀 검색 결과가 부족하여 범위를 넓혀 재검색 중...`);
         searchData = await window.ThisOneAPI.requestSearch(searchQuery, expertSettings);
@@ -376,7 +387,7 @@ async function sendMsg(forceMode) {
         GeneralSearchState.total = searchData?.total || 0;
         
         GeneralSearchState.currentSort = 'asc'; // 기본 정렬 강제
-        window.ThisOneUI?.renderRawResults?.(candidates, GeneralSearchState.total, GeneralSearchState.currentPage, GeneralSearchState.currentSort);
+        window.ThisOneUI?.renderResults?.(candidates, GeneralSearchState.total, GeneralSearchState.currentPage, GeneralSearchState.currentSort);
       };
 
       // 8초 지연 타이머: 메시지 변경 및 버튼 노출
@@ -448,7 +459,7 @@ async function sendMsg(forceMode) {
       typingEl?.remove();
       
       if (candidates && candidates.length > 0) {
-        window.ThisOneUI?.renderRawResults?.(candidates);
+        window.ThisOneUI?.renderResults?.(candidates);
       } else {
         window.ThisOneUI?.addFallback?.('검색 결과를 가져오는 중 문제가 발생했습니다.');
       }
@@ -569,7 +580,7 @@ async function refreshGeneralResults() {
     GeneralSearchState.total = searchData?.total || 0;
     
     // UI 업데이트
-    window.ThisOneUI?.renderRawResults?.(
+    window.ThisOneUI?.renderResults?.(
       items, 
       GeneralSearchState.total, 
       GeneralSearchState.currentPage, 

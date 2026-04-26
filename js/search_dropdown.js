@@ -1,15 +1,45 @@
 (function attachSearchDropdownNamespace(global) {
   const RECENT_SEARCHES_KEY = 'thisone_recent_searches';
   const LOCAL_SEARCH_SUGGESTIONS = [
+    // 생활가전
     '다이슨 에어랩',
     '다이슨 청소기',
     '다이슨 드라이기',
     '로보락 S8 MaxV Ultra',
     '로보락 로봇청소기',
+    '공기청정기',
+    '무선청소기',
+    '산업용 선풍기',
+    '30인치 산업용 선풍기',
+    '세탁건조기',
+    '건조기',
+    '전기면도기',
+    '무한잉크 프린터',
+
+    // 디지털/IT
     '맥미니',
-    '아이폰 17',
+    '맥미니 M4',
     '아이패드 프로 M4',
-    '스탠바이미 Go'
+    '아이폰 17',
+    '블루투스 이어폰',
+    '통화품질 좋은 블루투스 이어폰',
+    '게이밍 노트북',
+
+    // 가구/육아/레저
+    '스탠바이미 Go',
+    '유모차',
+    '카시트',
+    '전기자전거',
+    '캠핑의자',
+
+    // 펫푸드
+    '로얄캐닌',
+    '로얄캐닌 하이포알러제닉',
+    '강아지 사료',
+    '고양이 사료',
+
+    // 주방/대형가전
+    '비스포크 AI 콤보'
   ];
 
   const state = {
@@ -84,10 +114,13 @@
   function getMatchedLocalSuggestions(inputValue) {
     const keyword = String(inputValue || '').trim();
     if (keyword.length < 2) return [];
-    return LOCAL_SEARCH_SUGGESTIONS.filter((item) => {
+    const matched = LOCAL_SEARCH_SUGGESTIONS.filter((item) => {
       if (!item) return false;
-      return item.startsWith(keyword) || item.includes(keyword);
+      const suggestion = String(item).trim();
+      if (!suggestion) return false;
+      return suggestion.startsWith(keyword) || suggestion.includes(keyword);
     });
+    return [...new Set(matched)];
   }
 
   function runSearch(query, options = {}) {

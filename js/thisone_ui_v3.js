@@ -219,14 +219,37 @@ function renderBadgeList(badges) {
 }
 
 function normalizeRawItem(p = {}) {
+  const pick = (...values) => {
+    for (const value of values) {
+      if (value === null || value === undefined) continue;
+      if (typeof value === 'string') {
+        if (value.trim()) return value;
+        continue;
+      }
+      if (typeof value === 'number') return String(value);
+      const asString = String(value || '').trim();
+      if (asString) return asString;
+    }
+    return '';
+  };
+
+  const formatPrice = (...values) => {
+    const direct = pick(...values);
+    if (!direct) return '가격 정보 없음';
+    if (/원|₩|KRW/i.test(direct)) return direct;
+    const onlyNum = Number(String(direct).replace(/[^0-9]/g, ''));
+    if (!Number.isFinite(onlyNum) || onlyNum <= 0) return '가격 정보 없음';
+    return `${onlyNum.toLocaleString('ko-KR')}원`;
+  };
+
   return {
-    name: p.name || p.title || p.productName || '상품명 없음',
-    price: p.price || p.lprice || '',
-    store: p.store || p.mallName || p.mall || '',
-    delivery: p.delivery || p.shipping || '',
-    review: p.review || p.reviewText || '',
-    image: p.image || p.imageUrl || '',
-    link: p.link || p.productUrl || p.url || '',
+    name: pick(p.name, p.title, p.productName, '상품명 없음'),
+    price: formatPrice(p.price, p.lprice, p.lowPrice, p.salePrice),
+    store: pick(p.store, p.mallName, p.mall, p.seller, p.sellerName, p.shopName, '판매처 정보 없음'),
+    delivery: pick(p.delivery, p.shipping, p.deliveryInfo, p.deliveryFeeText, p.shippingInfo, '배송 정보 확인 필요'),
+    review: pick(p.review, p.reviewText, p.reviewCountText, p.ratingText),
+    image: pick(p.image, p.imageUrl, p.thumbnail, p.thumbnailUrl),
+    link: pick(p.link, p.productUrl, p.url, p.mallProductUrl, '#'),
     badges: Array.isArray(p.badges) ? p.badges : [],
     reason: p.reason || '',
     rankReason: p.rankReason || '',
@@ -244,6 +267,7 @@ function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 
 
   const isFallbackGeneral = resultMode === 'fallback_general';
   const cardsHtml = (items || [])
+    .map((item) => normalizeRawItem(item))
     .map((item, idx) => renderPickCard(item, idx === 0, { hideRecommendationUi: isFallbackGeneral }))
     .join('');
 
@@ -345,8 +369,8 @@ function renderPickCard(card, isFirst = false, options = {}) {
           </div>
 
           <div class="row-meta">
-            ${card.store ? `<span class="row-store-name">${esc(card.store)}</span>` : ''}
-            ${card.delivery ? `<span class="row-delivery">${esc(card.delivery)}</span>` : ''}
+            <span class="row-store-name">${esc(card.store || '판매처 정보 없음')}</span>
+            <span class="row-delivery">${esc(card.delivery || '배송 정보 확인 필요')}</span>
             ${card.review ? `<span class="row-review">${esc(card.review)}</span>` : ''}
           </div>
 
@@ -354,7 +378,7 @@ function renderPickCard(card, isFirst = false, options = {}) {
         </div>
 
         <div class="row-price-area">
-          <div class="row-price">${card.price ? esc(card.price) : ''}</div>
+          <div class="row-price">${esc(card.price || '가격 정보 없음')}</div>
           <div class="row-cta">상세보기</div>
         </div>
       </article>

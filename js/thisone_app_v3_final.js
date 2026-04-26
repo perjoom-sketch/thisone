@@ -683,6 +683,50 @@ window.changeSort = async function(sort) {
   await refreshGeneralResults();
 };
 
+function normalizeGeneralSearchItem(item = {}) {
+  if (!item || typeof item !== 'object') return {};
+
+  const pick = (...values) => {
+    for (const value of values) {
+      if (value === null || value === undefined) continue;
+      if (typeof value === 'string') {
+        if (value.trim()) return value;
+        continue;
+      }
+      if (typeof value === 'number') return String(value);
+      const asString = String(value || '').trim();
+      if (asString) return asString;
+    }
+    return '';
+  };
+
+  const numberToWon = (value) => {
+    const num = Number(String(value ?? '').replace(/[^0-9]/g, ''));
+    if (!Number.isFinite(num) || num <= 0) return '';
+    return `${num.toLocaleString('ko-KR')}원`;
+  };
+
+  const normalizedPrice = pick(
+    item.price,
+    item.formattedPrice,
+    numberToWon(item.lprice),
+    numberToWon(item.lowPrice),
+    numberToWon(item.salePrice)
+  );
+
+  return {
+    ...item,
+    name: pick(item.name, item.title, item.productName, item.product_title, item.goodsName, '상품명 없음'),
+    price: normalizedPrice,
+    store: pick(item.store, item.mallName, item.mall, item.seller, item.sellerName, item.shopName),
+    delivery: pick(item.delivery, item.shipping, item.deliveryInfo, item.deliveryFeeText, item.shippingInfo),
+    review: pick(item.review, item.reviewText, item.reviewCountText, item.ratingText),
+    image: pick(item.image, item.imageUrl, item.thumbnail, item.thumbnailUrl),
+    link: pick(item.link, item.productUrl, item.url, item.mallProductUrl, item.mobileLink),
+    badges: Array.isArray(item.badges) ? item.badges : []
+  };
+}
+
 async function refreshGeneralResults() {
   loading = true;
   const start = (GeneralSearchState.currentPage - 1) * 30 + 1;
@@ -697,7 +741,8 @@ async function refreshGeneralResults() {
       GeneralSearchState.currentSort
     );
     
-    const items = searchData?.items || [];
+    const rawItems = searchData?.items || [];
+    const items = rawItems.map(normalizeGeneralSearchItem);
     GeneralSearchState.total = searchData?.total || 0;
     
     // UI 업데이트

@@ -148,10 +148,15 @@ body.search-mode .trending-section {
 body.search-mode .landing-view {
   padding: 16px;
   padding-bottom: 0;
+  position: relative;
+  z-index: 25;
+  overflow: visible;
 }
 
 body.search-mode .results-view {
   display: block !important;
+  position: relative;
+  z-index: 1;
 }
 
 /* ===== 랜딩 페이지 콘텐츠 (레벨 4) ===== */
@@ -342,7 +347,7 @@ body.search-mode .results-view {
   top: calc(100% + clamp(4px, 1vw, 8px));
   left: 0;
   right: 0;
-  z-index: 30;
+  z-index: 60;
   padding: clamp(6px, 1.2vw, 10px);
   border: 1px solid var(--color-border);
   border-radius: clamp(10px, 1.8vw, 12px);
@@ -1299,10 +1304,11 @@ body.search-mode .results-view {
     width: 100%;
     position: sticky;
     top: var(--header-height);
-    z-index: 10;
+    z-index: 25;
     background: #fff;
     padding-top: 10px;
     padding-bottom: 10px;
+    overflow: visible;
   }
 
   .search-wrap {

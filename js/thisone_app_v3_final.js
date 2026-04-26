@@ -548,7 +548,7 @@ async function sendMsg(forceMode) {
           if (modelKey) pickedModelKeys.add(modelKey);
         });
 
-        const generalCandidates = (candidates || []).filter((candidate) => {
+        let generalCandidates = (candidates || []).filter((candidate) => {
           const sid = String(candidate?.sourceId || '').trim();
           const cid = String(candidate?.id || '').trim();
           const name = normalizeName(candidate?.name);
@@ -560,6 +560,32 @@ async function sendMsg(forceMode) {
           if (modelKey && pickedModelKeys.has(modelKey)) return false;
           return true;
         });
+
+        if (generalCandidates.length === 0) {
+          const rawGeneralItems = (searchData?.items || []).map(normalizeGeneralSearchItem);
+
+          if (rawGeneralItems.length > 0) {
+            const nonDuplicateRawItems = rawGeneralItems.filter((item) => {
+              const sid = String(item?.sourceId || '').trim();
+              const cid = String(item?.id || '').trim();
+              const name = normalizeName(item?.name);
+              const modelKey = resolveModelKey(item);
+
+              if (sid && pickedSourceIds.has(sid)) return false;
+              if (cid && pickedIds.has(cid)) return false;
+              if (name && pickedNames.has(name)) return false;
+              if (modelKey && pickedModelKeys.has(modelKey)) return false;
+              return true;
+            });
+
+            const safeFallbackItems = (nonDuplicateRawItems.length ? nonDuplicateRawItems : rawGeneralItems).filter((item) => {
+              const risk = window.ThisOneRanking?.shouldExcludeFromPriceRank?.(item, finalSearchQuery);
+              return !risk?.exclude;
+            });
+
+            generalCandidates = (safeFallbackItems.length ? safeFallbackItems : rawGeneralItems).slice(0, 30);
+          }
+        }
 
         GeneralSearchState.query = finalSearchQuery;
         GeneralSearchState.currentPage = 1;

@@ -142,24 +142,86 @@ function renderRecentSearches() {
   const box = RecentSearchUIState.boxEl;
   if (!list || !box) return;
 
+  const input = getInput();
+  const typedQuery = String(input?.value || '').trim();
+  const normalizedTypedQuery = typedQuery.toLowerCase();
   list.innerHTML = '';
-  if (!RecentSearchUIState.searches.length) {
+
+  const filteredRecentSearches = RecentSearchUIState.searches.filter((query) => {
+    if (!typedQuery) return true;
+    const normalizedQuery = String(query || '').toLowerCase();
+    if (normalizedQuery === normalizedTypedQuery) return false;
+    return normalizedQuery.includes(normalizedTypedQuery);
+  });
+
+  if (!typedQuery && !filteredRecentSearches.length) {
     hideRecentSearches();
     return;
   }
 
-  RecentSearchUIState.searches.forEach((query) => {
+  const createIcon = (type = 'history') => {
+    const icon = document.createElement('span');
+    icon.className = 'recent-search-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML = type === 'search'
+      ? `
+        <svg viewBox="0 0 24 24" focusable="false">
+          <circle cx="11" cy="11" r="7"></circle>
+          <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+        </svg>
+      `
+      : `
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M12 8v4l3 2"></path>
+          <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+          <path d="M3 4v3h3"></path>
+        </svg>
+      `;
+    return icon;
+  };
+
+  const createSearchItem = (query, type = 'history') => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'recent-search-item';
-    btn.textContent = query;
+    if (type === 'search') {
+      btn.classList.add('is-input-search');
+    }
+
+    const icon = createIcon(type);
+    const text = document.createElement('span');
+    text.className = 'recent-search-text';
+    text.textContent = type === 'search' ? `${query} 검색` : query;
+
+    btn.appendChild(icon);
+    btn.appendChild(text);
     btn.addEventListener('mousedown', (e) => e.preventDefault());
-    btn.addEventListener('click', () => {
-      const input = getInput();
+    return btn;
+  };
+
+  if (typedQuery) {
+    const searchBtn = createSearchItem(typedQuery, 'search');
+    searchBtn.addEventListener('click', () => {
+      const currentInput = getInput();
       hideAndLockRecentSearches();
-      if (input) {
-        input.value = query;
-        autoResize(input);
+      if (currentInput) {
+        currentInput.value = typedQuery;
+        autoResize(currentInput);
+      }
+      currentQuery = typedQuery;
+      sendMsg('thisone');
+    });
+    list.appendChild(searchBtn);
+  }
+
+  filteredRecentSearches.forEach((query) => {
+    const btn = createSearchItem(query, 'history');
+    btn.addEventListener('click', () => {
+      const currentInput = getInput();
+      hideAndLockRecentSearches();
+      if (currentInput) {
+        currentInput.value = query;
+        autoResize(currentInput);
       }
       currentQuery = query;
       sendMsg('thisone');
@@ -174,11 +236,11 @@ function canShowRecentSearches() {
   if (loading) return false;
   if (RecentSearchUIState.hideLocked) return false;
   if (RecentSearchUIState.isResultsRendering) return false;
-  if (!RecentSearchUIState.searches.length) return false;
   const isFocused = document.activeElement === input;
   if (!isFocused) return false;
   const isEmpty = !input.value.trim();
-  return isEmpty || RecentSearchUIState.lastActionByDirectClick;
+  if (isEmpty) return RecentSearchUIState.searches.length > 0;
+  return true;
 }
 
 function showRecentSearchesIfAllowed() {
@@ -204,15 +266,19 @@ function unlockRecentSearchesByUserAction() {
 function buildRecentSearchUi() {
   const searchWrap = document.getElementById('landingSearch');
   if (!searchWrap || getRecentSearchBox()) return;
+  const searchBox = searchWrap.querySelector('.search-box');
 
   const box = document.createElement('div');
   box.id = 'recentSearchBox';
   box.className = 'recent-search-box';
   box.innerHTML = `
-    <div class="recent-search-title">최근 검색어</div>
     <div class="recent-search-list" id="recentSearchList"></div>
   `;
-  searchWrap.appendChild(box);
+  if (searchBox) {
+    searchBox.insertAdjacentElement('afterend', box);
+  } else {
+    searchWrap.appendChild(box);
+  }
 
   RecentSearchUIState.boxEl = box;
   RecentSearchUIState.listEl = box.querySelector('#recentSearchList');

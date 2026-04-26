@@ -241,7 +241,7 @@ function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 
   const isFallbackGeneral = resultMode === 'fallback_general';
   const cardsHtml = (items || [])
     .map((item) => normalizeRawItem(item))
-    .map((item, idx) => renderPickCard(item, idx === 0, { hideRecommendationUi: isFallbackGeneral }))
+    .map((item, idx) => window.ThisOneResultCards?.renderPickCard?.(item, idx === 0, { hideRecommendationUi: isFallbackGeneral }) || '')
     .join('');
 
   const totalPages = Math.min(Math.ceil(total / 30), 10); // 최대 10페이지까지만 지원
@@ -309,63 +309,6 @@ function escAttr(s) {
     .replace(/>/g, '&gt;');
 }
 
-function renderPickCard(card, isFirst = false, options = {}) {
-  const hideRecommendationUi = !!options.hideRecommendationUi;
-  const imageHtml = card.image
-    ? `<img class="row-img" src="${escAttr(card.image)}" alt="${escAttr(card.name || '상품')}" onerror="this.onerror=null;this.alt='';this.style.visibility='hidden';">`
-    : `<div class="row-img-placeholder">상품</div>`;
-
-  const badgesHtml = !hideRecommendationUi && Array.isArray(card.badges) && card.badges.length
-    ? card.badges.map((b) => `<span class="row-badge-item ${getBadgeClass(b)}">${esc(b)}</span>`).join('')
-    : '';
-
-  const labelBadge = !hideRecommendationUi && card.label 
-    ? `<span class="row-badge-item row-label-badge">${esc(card.label)}</span>` 
-    : '';
-
-  return `
-    <a class="pick-row-link" href="${escAttr(card.link || '#')}" target="_blank" rel="noopener noreferrer">
-      <article class="pick-row ${isFirst ? 'pick-row-first' : ''}">
-        <div class="row-thumb">
-          ${imageHtml}
-        </div>
-
-        <div class="row-info">
-          <div class="row-header">
-            <div class="row-title-line">
-              <h3 class="row-title">${esc(card.name || '상품명 없음')}</h3>
-              <div class="row-badges">
-                ${labelBadge}
-                ${badgesHtml}
-              </div>
-            </div>
-          </div>
-
-          <div class="row-meta">
-            <span class="row-store-name">${esc(card.store || '판매처 정보 없음')}</span>
-            <span class="row-delivery">${esc(card.delivery || '배송 정보 확인 필요')}</span>
-            ${card.review ? `<span class="row-review">${esc(card.review)}</span>` : ''}
-          </div>
-
-          ${card.reason ? `<div class="row-reason-text">${esc(card.reason)}</div>` : ''}
-        </div>
-
-        <div class="row-price-area">
-          <div class="row-price">${esc(card.price || '가격 정보 없음')}</div>
-          <div class="row-cta">상세보기</div>
-        </div>
-      </article>
-    </a>
-  `;
-}
-
-function getBadgeClass(text) {
-  if (text.includes('가성비')) return 'badge-value';
-  if (text.includes('신뢰')) return 'badge-trust';
-  if (text.includes('추천')) return 'badge-thisone';
-  return 'badge-default';
-}
-
 function addResultCard(result) {
   const content = document.getElementById('msgContainer');
   if (!content) return;
@@ -375,17 +318,10 @@ function addResultCard(result) {
   const aiComment = String(result?.aiComment || '').trim();
 
   const cardsHtml = cards
-    .map((card, idx) => renderPickCard(card, idx === 0))
+    .map((card, idx) => window.ThisOneResultCards?.renderPickCard?.(card, idx === 0) || '')
     .join('');
 
-  const aiCommentHtml = aiComment
-    ? `
-      <details class="fold-box ai-comment-box">
-        <summary>AI 코멘트</summary>
-        <div class="fold-content">${esc(aiComment)}</div>
-      </details>
-    `
-    : '';
+  const aiCommentHtml = window.ThisOneResultCards?.renderAiComment?.(aiComment) || '';
 
   const rejectsHtml = rejects.length
     ? `

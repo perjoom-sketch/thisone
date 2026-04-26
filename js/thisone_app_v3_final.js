@@ -47,6 +47,35 @@ let loading = false;
 let isSearchMode = false;
 let searchHistory = [];
 const RECENT_SEARCHES_KEY = 'thisone_recent_searches';
+const LOCAL_KEYWORD_SUGGESTIONS = [
+  '다이슨 에어랩',
+  '다이슨 청소기',
+  '다이슨 드라이기',
+  '로보락 S8 MaxV Ultra',
+  '로보락 로봇청소기',
+  '스탠바이미 Go',
+  '아이패드 프로 M4',
+  '아이폰 17',
+  '맥미니',
+  '비스포크 AI 콤보',
+  '공기청정기',
+  '무선청소기',
+  '산업용 선풍기',
+  '30인치 산업용 선풍기',
+  '무한잉크 프린터',
+  '블루투스 이어폰',
+  '유모차',
+  '카시트',
+  '건조기',
+  '세탁건조기',
+  '로얄캐닌',
+  '로얄캐닌 하이포알러제닉',
+  '로얄캐닌 하이포알러제닉 2kg',
+  '강아지 사료',
+  '고양이 사료',
+  '강아지 간식',
+  '고양이 모래'
+];
 // currentQuery는 index.html에서 이미 선언되었습니다.
 let searchMode = 'thisone';
 let _lastIntentProfile = null;
@@ -131,6 +160,22 @@ function pushRecentSearch(query) {
   saveRecentSearches(deduped);
 }
 
+function getLocalKeywordMatches(inputValue) {
+  const query = String(inputValue || '').trim().toLowerCase();
+  if (!query) return [];
+  const seen = new Set();
+  return LOCAL_KEYWORD_SUGGESTIONS.filter((keyword) => {
+    const normalized = String(keyword || '').trim();
+    if (!normalized) return false;
+    const key = normalized.toLowerCase();
+    if (!key.includes(query)) return false;
+    if (key === query) return false;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function hideRecentSearches() {
   const box = getRecentSearchBox();
   if (!box) return;
@@ -140,13 +185,81 @@ function hideRecentSearches() {
 function renderRecentSearches() {
   const list = RecentSearchUIState.listEl;
   const box = RecentSearchUIState.boxEl;
+  const input = getInput();
+  const inputValue = input ? input.value.trim() : '';
   if (!list || !box) return;
 
   list.innerHTML = '';
-  if (!RecentSearchUIState.searches.length) {
+  if (!inputValue && !RecentSearchUIState.searches.length) {
     hideRecentSearches();
     return;
   }
+
+  if (inputValue) {
+    const searchActionBtn = document.createElement('button');
+    searchActionBtn.type = 'button';
+    searchActionBtn.className = 'recent-search-item';
+
+    const actionIcon = document.createElement('span');
+    actionIcon.className = 'recent-search-icon';
+    actionIcon.setAttribute('aria-hidden', 'true');
+    actionIcon.innerHTML = `
+      <svg viewBox="0 0 24 24" focusable="false">
+        <circle cx="11" cy="11" r="7"></circle>
+        <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
+      </svg>
+    `;
+
+    const actionText = document.createElement('span');
+    actionText.className = 'recent-search-text';
+    actionText.textContent = `${inputValue} 검색`;
+
+    searchActionBtn.appendChild(actionIcon);
+    searchActionBtn.appendChild(actionText);
+    searchActionBtn.addEventListener('mousedown', (e) => e.preventDefault());
+    searchActionBtn.addEventListener('click', () => {
+      hideAndLockRecentSearches();
+      currentQuery = inputValue;
+      sendMsg('thisone');
+    });
+    list.appendChild(searchActionBtn);
+  }
+
+  const matchedSuggestions = getLocalKeywordMatches(inputValue);
+  matchedSuggestions.forEach((suggestion) => {
+    const suggestionBtn = document.createElement('button');
+    suggestionBtn.type = 'button';
+    suggestionBtn.className = 'recent-search-item';
+
+    const suggestionIcon = document.createElement('span');
+    suggestionIcon.className = 'recent-search-icon';
+    suggestionIcon.setAttribute('aria-hidden', 'true');
+    suggestionIcon.innerHTML = `
+      <svg viewBox="0 0 24 24" focusable="false">
+        <circle cx="11" cy="11" r="7"></circle>
+        <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
+      </svg>
+    `;
+
+    const suggestionText = document.createElement('span');
+    suggestionText.className = 'recent-search-text';
+    suggestionText.textContent = suggestion;
+
+    suggestionBtn.appendChild(suggestionIcon);
+    suggestionBtn.appendChild(suggestionText);
+    suggestionBtn.addEventListener('mousedown', (e) => e.preventDefault());
+    suggestionBtn.addEventListener('click', () => {
+      const inputEl = getInput();
+      hideAndLockRecentSearches();
+      if (inputEl) {
+        inputEl.value = suggestion;
+        autoResize(inputEl);
+      }
+      currentQuery = suggestion;
+      sendMsg('thisone');
+    });
+    list.appendChild(suggestionBtn);
+  });
 
   RecentSearchUIState.searches.forEach((query) => {
     const btn = document.createElement('button');
@@ -188,14 +301,14 @@ function renderRecentSearches() {
 function canShowRecentSearches() {
   const input = getInput();
   if (!input) return false;
+  const inputValue = input.value.trim();
   if (loading) return false;
   if (RecentSearchUIState.hideLocked) return false;
   if (RecentSearchUIState.isResultsRendering) return false;
-  if (!RecentSearchUIState.searches.length) return false;
+  if (!inputValue && !RecentSearchUIState.searches.length) return false;
   const isFocused = document.activeElement === input;
   if (!isFocused) return false;
-  const isEmpty = !input.value.trim();
-  return isEmpty || RecentSearchUIState.lastActionByDirectClick;
+  return true;
 }
 
 function showRecentSearchesIfAllowed() {
@@ -251,12 +364,14 @@ function bindRecentSearchEvents() {
   });
 
   input.addEventListener('focus', () => {
+    renderRecentSearches();
     showRecentSearchesIfAllowed();
   });
 
   input.addEventListener('input', () => {
     RecentSearchUIState.lastActionByDirectClick = true;
     unlockRecentSearchesByUserAction();
+    renderRecentSearches();
     showRecentSearchesIfAllowed();
   });
 

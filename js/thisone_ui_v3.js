@@ -110,9 +110,10 @@ function addFallback(txt) {
       <div class="dot">${window.MINI_SCOPE || '✦'}</div>
       <span>분석 완료</span>
     </div>
-    <div class="pick-card" style="border-left: 4px solid var(--accent); background: #f8fafc; padding: 20px; border-radius: 16px;">
-      ${fmt}
-    </div>
+    <details class="fold-box ai-comment-box">
+      <summary>AI 코멘트</summary>
+      <div class="fold-content">${fmt}</div>
+    </details>
   `;
   appendAndScroll(d);
 }
@@ -121,46 +122,20 @@ function addThinking() {
   const d = document.createElement('div');
   d.className = 'ai-result intelligence-mode';
   d.innerHTML = `
-    <div class="ai-label">
+    <div class="status-line" id="thinkContainerV2">
       <span class="thinking-icon">✦</span>
-      <span>디스원이 지능적으로 분석 중...</span>
+      <span class="status-text" id="statusTextV2">검색패턴을 관찰하여 원하는 상품 추론 중...</span>
+      <button type="button" class="fallback-inline-btn hidden" id="fallbackInlineBtn">일반 결과 먼저 보기</button>
     </div>
-    <div class="thought-container" id="thinkContainerV2">
-      <div class="thought-steps" id="thoughtStepsV2">
-        <div class="thought-step active">
-          <div class="step-dot"></div>
-          <div class="step-text">검색패턴을 관찰하여 원하는 상품 추론 중...</div>
-        </div>
-      </div>
-      <div id="liveResponse" class="live-response"></div>
-      <div class="thought-pulse"></div>
-    </div>
+    <div id="liveResponse" class="live-response hidden"></div>
   `;
   appendAndScroll(d);
 
   // 사고 단계 업데이트 함수
-  d.updateThought = (msg, isFinal = false) => {
-    const steps = d.querySelector('#thoughtStepsV2');
-    if (!steps) return;
-    
-    // 이전 단계 완료 처리
-    const lastStep = steps.querySelector('.thought-step.active');
-    if (lastStep) {
-      lastStep.classList.remove('active');
-      lastStep.classList.add('completed');
-      const dot = lastStep.querySelector('.step-dot');
-      if (dot) dot.innerHTML = '✓';
-    }
-
-    if (!isFinal) {
-      const newStep = document.createElement('div');
-      newStep.className = 'thought-step active';
-      newStep.innerHTML = `
-        <div class="step-dot"></div>
-        <div class="step-text">${msg}</div>
-      `;
-      steps.appendChild(newStep);
-    }
+  d.updateThought = (msg) => {
+    const statusText = d.querySelector('#statusTextV2');
+    if (!statusText) return;
+    statusText.textContent = msg || '';
   };
 
   // 실시간 스트리밍 텍스트 업데이트 함수
@@ -191,18 +166,14 @@ function addThinking() {
 
   // 일반 결과 보기 버튼 노출 함수
   d.showFallbackButton = (callback) => {
-    const container = d.querySelector('#thinkContainerV2');
-    if (!container || d.querySelector('.fallback-btn')) return;
-
-    const btn = document.createElement('button');
-    btn.className = 'fallback-btn';
-    btn.innerHTML = `<span>📂</span> 일반 결과 먼저 보기`;
+    const btn = d.querySelector('#fallbackInlineBtn');
+    if (!btn) return;
+    btn.classList.remove('hidden');
     btn.onclick = (e) => {
       e.preventDefault();
       e.stopPropagation();
       if (typeof callback === 'function') callback();
     };
-    container.appendChild(btn);
   };
 
   return d;
@@ -399,25 +370,37 @@ function addResultCard(result) {
 
   const cards = Array.isArray(result?.cards) ? result.cards : [];
   const rejects = Array.isArray(result?.rejects) ? result.rejects : [];
+  const aiComment = String(result?.aiComment || '').trim();
 
   const cardsHtml = cards
     .map((card, idx) => renderPickCard(card, idx === 0))
     .join('');
 
+  const aiCommentHtml = aiComment
+    ? `
+      <details class="fold-box ai-comment-box">
+        <summary>AI 코멘트</summary>
+        <div class="fold-content">${esc(aiComment)}</div>
+      </details>
+    `
+    : '';
+
   const rejectsHtml = rejects.length
     ? `
-      <div class="reject-card">
-        <div class="reject-title">제외된 후보</div>
-        ${rejects.map((r) => `
-          <div class="reject-item">
-            <div class="reject-dot">•</div>
-            <div class="reject-text">
-              <span class="reject-name">${esc(r.name || '후보')}</span>
-              ${r.reason ? ` — ${esc(r.reason)}` : ''}
+      <details class="fold-box reject-card">
+        <summary>제외 후보</summary>
+        <div class="fold-content">
+          ${rejects.map((r) => `
+            <div class="reject-item">
+              <div class="reject-dot">•</div>
+              <div class="reject-text">
+                <span class="reject-name">${esc(r.name || '후보')}</span>
+                ${r.reason ? ` — ${esc(r.reason)}` : ''}
+              </div>
             </div>
-          </div>
-        `).join('')}
-      </div>
+          `).join('')}
+        </div>
+      </details>
     `
     : '';
 
@@ -430,6 +413,7 @@ function addResultCard(result) {
       <div class="pick-list">
         ${cardsHtml}
       </div>
+      ${aiCommentHtml}
       ${rejectsHtml}
     </div>
   `;

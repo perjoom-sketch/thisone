@@ -457,6 +457,9 @@ async function sendMsg(forceMode) {
           return;
         }
 
+        const thoughtMatchFromFinal = aiDataText.match(/\[?Thought\]?:?(.*?)(?=\[?JSON\]?|$)/si);
+        const aiComment = thoughtMatchFromFinal && thoughtMatchFromFinal[1] ? thoughtMatchFromFinal[1].trim() : '';
+
         const jsonMatch = aiDataText.match(/\[JSON\]:?\s*(\{[\s\S]*\})/);
         const rawJson = jsonMatch ? jsonMatch[1] : aiDataText;
         const parsed = extractJSON(rawJson);
@@ -505,7 +508,7 @@ async function sendMsg(forceMode) {
         }
 
         const finalCards = [...mergedCards, ...supplements].slice(0, targetCount);
-        window.ThisOneUI?.addResultCard?.({ ...merged, cards: finalCards }, intentProfile);
+        window.ThisOneUI?.addResultCard?.({ ...merged, cards: finalCards, aiComment }, intentProfile);
 
         // AI 추천 리포트 아래에 일반 검색 결과를 함께 표시
         const normalizeName = (v) => String(v || '').trim().toLowerCase();

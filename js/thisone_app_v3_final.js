@@ -698,11 +698,63 @@ async function refreshGeneralResults() {
     );
     
     const items = searchData?.items || [];
+    const parsePriceNumber = window.ThisOneRanking?.parsePriceNumber || ((value) => Number(String(value || '').replace(/[^\d]/g, '')) || 0);
+    const parseShippingCost = window.ThisOneRanking?.parseShippingCost || ((value) => {
+      const text = String(value || '');
+      if (!text) return { known: false, cost: 0 };
+      if (/무료/.test(text)) return { known: true, cost: 0 };
+      const m = text.match(/(\d[\d,]*)\s*원/);
+      return m ? { known: true, cost: parsePriceNumber(m[1]) } : { known: false, cost: 0 };
+    });
+
+    const normalizedItems = items.map((item, idx) => {
+      const fallbackPriceNum = parsePriceNumber(item.priceText || item.price || item.displayPrice || item.finalPrice || item.totalPrice || item.lprice || '');
+      const fallbackPriceText = item.price
+        || item.priceText
+        || item.displayPrice
+        || item.finalPrice
+        || item.totalPrice
+        || (fallbackPriceNum > 0 ? `${fallbackPriceNum.toLocaleString('ko-KR')}원` : '');
+
+      const storeName = item.store || item.mallName || item.seller || item.shopName || item.provider || item.channelName || '';
+      const rawDelivery = item.delivery || item.shipping || '';
+      const deliveryFeeRaw = item.shippingFee ?? item.deliveryFee ?? '';
+      const deliveryFeeNum = parsePriceNumber(deliveryFeeRaw);
+      const shippingParsed = parseShippingCost(rawDelivery || deliveryFeeRaw);
+      let deliveryText = rawDelivery;
+      if (!deliveryText) {
+        if (deliveryFeeNum > 0) {
+          deliveryText = `배송비 ${deliveryFeeNum.toLocaleString('ko-KR')}원`;
+        } else if (String(deliveryFeeRaw).trim()) {
+          deliveryText = String(deliveryFeeRaw).trim();
+        } else {
+          deliveryText = '배송비 미확인';
+        }
+      }
+
+      const priceNum = parsePriceNumber(fallbackPriceText || fallbackPriceNum);
+      const totalPriceNum = shippingParsed.known ? (priceNum + shippingParsed.cost) : priceNum;
+
+      return {
+        ...item,
+        id: String(item.id ?? (start + idx)),
+        sourceId: String(item.sourceId || item.id || (start + idx)),
+        name: item.name || item.title || item.productName || '상품명 없음',
+        price: String(fallbackPriceText || '').trim(),
+        priceNum,
+        totalPriceNum,
+        store: String(storeName || '').trim(),
+        delivery: String(deliveryText || '').trim(),
+        link: item.link || item.productUrl || item.url || '',
+        image: item.image || item.imageUrl || ''
+      };
+    });
+
     GeneralSearchState.total = searchData?.total || 0;
     
     // UI 업데이트
     window.ThisOneUI?.renderResults?.(
-      items, 
+      normalizedItems, 
       GeneralSearchState.total, 
       GeneralSearchState.currentPage, 
       GeneralSearchState.currentSort,

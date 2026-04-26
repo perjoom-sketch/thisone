@@ -312,10 +312,67 @@ function escAttr(s) {
     .replace(/>/g, '&gt;');
 }
 
+function formatKrw(value) {
+  if (value === null || value === undefined) return '';
+  const raw = String(value).trim();
+  if (!raw) return '';
+  if (/원/.test(raw)) return raw;
+  const num = Number(raw.replace(/[^\d]/g, ''));
+  if (!num) return '';
+  return `${num.toLocaleString('ko-KR')}원`;
+}
+
+function resolveCardPrice(card = {}) {
+  const direct =
+    card.price ??
+    card.priceText ??
+    card.displayPrice ??
+    card.finalPrice ??
+    card.totalPrice;
+
+  const directText = formatKrw(direct);
+  if (directText) return directText;
+
+  return formatKrw(card.lprice);
+}
+
+function resolveCardStore(card = {}) {
+  return (
+    card.store ||
+    card.mallName ||
+    card.seller ||
+    card.shopName ||
+    card.provider ||
+    card.channelName ||
+    ''
+  );
+}
+
+function resolveCardDelivery(card = {}) {
+  const direct = card.delivery || card.shipping || '';
+  if (String(direct).trim()) return String(direct).trim();
+
+  const feeRaw = card.shippingFee ?? card.deliveryFee ?? '';
+  const feeText = formatKrw(feeRaw);
+  if (feeText) {
+    if (Number(String(feeRaw).replace(/[^\d]/g, '')) === 0) return '무료배송';
+    return `배송비 ${feeText}`;
+  }
+
+  if (String(feeRaw).trim()) return String(feeRaw).trim();
+  return '배송비 미확인';
+}
+
 function renderPickCard(card, isFirst = false, options = {}) {
   const hideRecommendationUi = !!options.hideRecommendationUi;
-  const imageHtml = card.image
-    ? `<img class="row-img" src="${escAttr(card.image)}" alt="${escAttr(card.name || '상품')}" onerror="this.onerror=null;this.alt='';this.style.visibility='hidden';">`
+  const resolvedName = card.name || card.title || card.productName || '상품명 없음';
+  const resolvedPrice = resolveCardPrice(card);
+  const resolvedStore = resolveCardStore(card);
+  const resolvedDelivery = resolveCardDelivery(card);
+  const resolvedLink = card.link || card.productUrl || card.url || '#';
+  const resolvedImage = card.image || card.imageUrl || '';
+  const imageHtml = resolvedImage
+    ? `<img class="row-img" src="${escAttr(resolvedImage)}" alt="${escAttr(resolvedName || '상품')}" onerror="this.onerror=null;this.alt='';this.style.visibility='hidden';">`
     : `<div class="row-img-placeholder">상품</div>`;
 
   const badgesHtml = !hideRecommendationUi && Array.isArray(card.badges) && card.badges.length
@@ -327,7 +384,7 @@ function renderPickCard(card, isFirst = false, options = {}) {
     : '';
 
   return `
-    <a class="pick-row-link" href="${escAttr(card.link || '#')}" target="_blank" rel="noopener noreferrer">
+    <a class="pick-row-link" href="${escAttr(resolvedLink)}" target="_blank" rel="noopener noreferrer">
       <article class="pick-row ${isFirst ? 'pick-row-first' : ''}">
         <div class="row-thumb">
           ${imageHtml}
@@ -336,7 +393,7 @@ function renderPickCard(card, isFirst = false, options = {}) {
         <div class="row-info">
           <div class="row-header">
             <div class="row-title-line">
-              <h3 class="row-title">${esc(card.name || '상품명 없음')}</h3>
+              <h3 class="row-title">${esc(resolvedName)}</h3>
               <div class="row-badges">
                 ${labelBadge}
                 ${badgesHtml}
@@ -345,8 +402,8 @@ function renderPickCard(card, isFirst = false, options = {}) {
           </div>
 
           <div class="row-meta">
-            ${card.store ? `<span class="row-store-name">${esc(card.store)}</span>` : ''}
-            ${card.delivery ? `<span class="row-delivery">${esc(card.delivery)}</span>` : ''}
+            ${resolvedStore ? `<span class="row-store-name">${esc(resolvedStore)}</span>` : ''}
+            ${resolvedDelivery ? `<span class="row-delivery">${esc(resolvedDelivery)}</span>` : ''}
             ${card.review ? `<span class="row-review">${esc(card.review)}</span>` : ''}
           </div>
 
@@ -354,7 +411,7 @@ function renderPickCard(card, isFirst = false, options = {}) {
         </div>
 
         <div class="row-price-area">
-          <div class="row-price">${card.price ? esc(card.price) : ''}</div>
+          <div class="row-price">${resolvedPrice ? esc(resolvedPrice) : ''}</div>
           <div class="row-cta">상세보기</div>
         </div>
       </article>

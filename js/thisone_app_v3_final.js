@@ -204,6 +204,7 @@ function unlockRecentSearchesByUserAction() {
 function buildRecentSearchUi() {
   const searchWrap = document.getElementById('landingSearch');
   if (!searchWrap || getRecentSearchBox()) return;
+  const searchBox = searchWrap.querySelector('.search-box');
 
   const box = document.createElement('div');
   box.id = 'recentSearchBox';
@@ -212,7 +213,11 @@ function buildRecentSearchUi() {
     <div class="recent-search-title">최근 검색어</div>
     <div class="recent-search-list" id="recentSearchList"></div>
   `;
-  searchWrap.appendChild(box);
+  if (searchBox) {
+    searchBox.insertAdjacentElement('afterend', box);
+  } else {
+    searchWrap.appendChild(box);
+  }
 
   RecentSearchUIState.boxEl = box;
   RecentSearchUIState.listEl = box.querySelector('#recentSearchList');

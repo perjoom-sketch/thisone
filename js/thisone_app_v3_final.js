@@ -434,14 +434,14 @@ async function sendMsg(forceMode) {
 
           // [보안/UI] JSON 징후가 보이면 즉시 업데이트를 멈추고 고정 메시지 표시
           if (fullText.includes('[JSON]') || fullText.includes('{') || fullText.includes('":') || fullText.includes('```')) {
-            typingEl?.updateLiveResponse('최종 추천 리포트를 생성하고 있습니다...'); 
             return;
           }
 
           const thoughtMatch = fullText.match(/\[?Thought\]?:?(.*?)(?=\[?JSON\]?|$)/si);
           if (thoughtMatch && thoughtMatch[1]) {
-            typingEl?.updateLiveResponse(thoughtMatch[1].trim());
+            typingEl?.updateThought?.(thoughtMatch[1].trim());
           }
+          window.ThisOneUI?.purgeProgressLeak?.();
         });
 
         // 타이머 해제
@@ -451,11 +451,15 @@ async function sendMsg(forceMode) {
         if (isFallbackShown) return; // 이미 폴백이 노출되었다면 AI 결과 렌더링 스킵
 
         typingEl?.remove();
+        window.ThisOneUI?.purgeProgressLeak?.();
 
         if (!aiDataText || !aiDataText.trim()) {
           triggerFallback('error');
           return;
         }
+
+        const thoughtMatchFromFinal = aiDataText.match(/\[?Thought\]?:?(.*?)(?=\[?JSON\]?|$)/si);
+        const aiComment = thoughtMatchFromFinal && thoughtMatchFromFinal[1] ? thoughtMatchFromFinal[1].trim() : '';
 
         const jsonMatch = aiDataText.match(/\[JSON\]:?\s*(\{[\s\S]*\})/);
         const rawJson = jsonMatch ? jsonMatch[1] : aiDataText;
@@ -505,7 +509,7 @@ async function sendMsg(forceMode) {
         }
 
         const finalCards = [...mergedCards, ...supplements].slice(0, targetCount);
-        window.ThisOneUI?.addResultCard?.({ ...merged, cards: finalCards }, intentProfile);
+        window.ThisOneUI?.addResultCard?.({ ...merged, cards: finalCards, aiComment }, intentProfile);
 
         // AI 추천 리포트 아래에 일반 검색 결과를 함께 표시
         const normalizeName = (v) => String(v || '').trim().toLowerCase();
@@ -577,7 +581,8 @@ async function sendMsg(forceMode) {
     } catch (err) {
       console.error("[ThisOne] Search flow error:", err);
       typingEl?.remove();
-      
+      window.ThisOneUI?.purgeProgressLeak?.();
+
       if (candidates && candidates.length > 0) {
         window.ThisOneUI?.renderResults?.(candidates, 0, 1, GeneralSearchState.currentSort, GeneralSearchState.resultMode || 'normal');
       } else {

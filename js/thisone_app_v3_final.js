@@ -164,19 +164,33 @@ function pushRecentSearch(query) {
 }
 
 function getLocalKeywordMatches(inputValue) {
-  const query = String(inputValue || '').trim().toLowerCase();
-  if (!query) return [];
+  const query = normalizeSuggestionText(inputValue);
+  if (!query || query.length < 2) return [];
   const seen = new Set();
   return LOCAL_KEYWORD_SUGGESTIONS.filter((keyword) => {
     const normalized = String(keyword || '').trim();
     if (!normalized) return false;
-    const key = normalized.toLowerCase();
-    if (!key.includes(query)) return false;
+    if (!isSuggestionMatched(query, normalized)) return false;
+    const key = normalizeSuggestionText(normalized);
     if (key === query) return false;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
+}
+
+function normalizeSuggestionText(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '');
+}
+
+function isSuggestionMatched(normalizedQuery, candidateText) {
+  const query = normalizeSuggestionText(normalizedQuery);
+  const candidate = normalizeSuggestionText(candidateText);
+  if (!query || !candidate) return false;
+  return candidate.startsWith(query) || candidate.includes(query);
 }
 
 async function requestRemoteSuggestions(inputValue) {
@@ -197,9 +211,10 @@ async function requestRemoteSuggestions(inputValue) {
     const currentValue = input ? input.value.trim() : '';
     if (requestSeq !== RecentSearchUIState.requestSeq) return;
     if (currentValue !== query) return;
+    const normalizedQuery = normalizeSuggestionText(query);
     RecentSearchUIState.remoteSuggestions = remoteItems
       .map((item) => String(item || '').trim())
-      .filter(Boolean)
+      .filter((item) => item && isSuggestionMatched(normalizedQuery, item))
       .slice(0, 10);
   } catch (_) {
     if (requestSeq !== RecentSearchUIState.requestSeq) return;
@@ -278,12 +293,12 @@ function renderRecentSearches() {
   }
 
   const duplicateGuard = new Set();
-  if (inputValue) duplicateGuard.add(inputValue.toLowerCase());
+  if (inputValue) duplicateGuard.add(normalizeSuggestionText(inputValue));
 
   const appendSuggestionItem = (suggestionLabel) => {
     const normalized = String(suggestionLabel || '').trim();
     if (!normalized) return;
-    const dedupeKey = normalized.toLowerCase();
+    const dedupeKey = normalizeSuggestionText(normalized);
     if (duplicateGuard.has(dedupeKey)) return;
     duplicateGuard.add(dedupeKey);
 
@@ -334,7 +349,9 @@ function renderRecentSearches() {
   });
 
   RecentSearchUIState.searches.forEach((query) => {
-    const dedupeKey = String(query || '').trim().toLowerCase();
+    const recentText = String(query || '').trim();
+    if (inputValue && !isSuggestionMatched(inputValue, recentText)) return;
+    const dedupeKey = normalizeSuggestionText(recentText);
     if (!dedupeKey || duplicateGuard.has(dedupeKey)) return;
     duplicateGuard.add(dedupeKey);
     const btn = document.createElement('button');
@@ -354,7 +371,7 @@ function renderRecentSearches() {
 
     const text = document.createElement('span');
     text.className = 'recent-search-text';
-    text.textContent = query;
+    text.textContent = recentText;
 
     btn.appendChild(icon);
     btn.appendChild(text);
@@ -363,10 +380,10 @@ function renderRecentSearches() {
       const input = getInput();
       hideAndLockRecentSearches();
       if (input) {
-        input.value = query;
+        input.value = recentText;
         autoResize(input);
       }
-      currentQuery = query;
+      currentQuery = recentText;
       sendMsg('thisone');
     });
     list.appendChild(btn);

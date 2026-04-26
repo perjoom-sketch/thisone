@@ -368,7 +368,7 @@ body.search-mode .results-view {
   background: transparent;
   color: #334155;
   border-radius: clamp(8px, 1.6vw, 10px);
-  font-size: clamp(12px, 1.7vw, 14px);
+  font-size: clamp(11px, 1.5vw, 13px);
   text-align: left;
   padding: clamp(5px, 1vw, 8px) clamp(8px, 1.5vw, 11px);
   line-height: 1.35;

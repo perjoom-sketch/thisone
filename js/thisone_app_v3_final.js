@@ -47,6 +47,33 @@ let loading = false;
 let isSearchMode = false;
 let searchHistory = [];
 const RECENT_SEARCHES_KEY = 'thisone_recent_searches';
+const LOCAL_KEYWORD_SUGGESTIONS = [
+  '다이슨 에어랩',
+  '다이슨 청소기',
+  '다이슨 드라이기',
+  '로보락 S8 MaxV Ultra',
+  '로보락 로봇청소기',
+  '스탠바이미 Go',
+  '아이패드 프로 M4',
+  '아이폰 17',
+  '맥미니',
+  '비스포크 AI 콤보',
+  '공기청정기',
+  '무선청소기',
+  '산업용 선풍기',
+  '30인치 산업용 선풍기',
+  '무한잉크 프린터',
+  '블루투스 이어폰',
+  '통화품질 좋은 블루투스 이어폰',
+  '유모차',
+  '카시트',
+  '건조기',
+  '세탁건조기',
+  '전기면도기',
+  '전기자전거',
+  '캠핑의자',
+  '게이밍 노트북'
+];
 // currentQuery는 index.html에서 이미 선언되었습니다.
 let searchMode = 'thisone';
 let _lastIntentProfile = null;
@@ -140,27 +167,52 @@ function hideRecentSearches() {
 function getRecentSearchSuggestions(rawInput = '') {
   const inputValue = String(rawInput || '').trim();
   const hasInput = inputValue.length > 0;
-  const filtered = hasInput
-    ? RecentSearchUIState.searches.filter((query) => query.includes(inputValue))
-    : RecentSearchUIState.searches.slice();
+  const lowerInput = inputValue.toLowerCase();
 
-  const recentItems = filtered.slice(0, 5).map((query) => ({
-    type: 'recent',
-    query,
-    label: query,
-    icon: '🕘'
-  }));
+  const recentItems = (hasInput
+    ? RecentSearchUIState.searches.filter((query) => query.includes(inputValue))
+    : RecentSearchUIState.searches.slice()
+  )
+    .slice(0, 5)
+    .map((query) => ({
+      type: 'recent',
+      query,
+      label: query,
+      icon: '🕘'
+    }));
 
   if (!hasInput) return recentItems;
 
-  recentItems.unshift({
+  const dedupe = new Set([inputValue]);
+  const items = [{
     type: 'input',
     query: inputValue,
     label: `${inputValue} 검색`,
     icon: '🔍'
+  }];
+
+  const localSuggestions = LOCAL_KEYWORD_SUGGESTIONS
+    .filter((keyword) => String(keyword || '').toLowerCase().includes(lowerInput))
+    .slice(0, 6);
+
+  localSuggestions.forEach((keyword) => {
+    if (dedupe.has(keyword)) return;
+    dedupe.add(keyword);
+    items.push({
+      type: 'suggestion',
+      query: keyword,
+      label: keyword,
+      icon: '🔍'
+    });
   });
 
-  return recentItems;
+  recentItems.forEach((item) => {
+    if (dedupe.has(item.query)) return;
+    dedupe.add(item.query);
+    items.push(item);
+  });
+
+  return items;
 }
 
 function runSearchFromDropdown(query) {
@@ -191,7 +243,7 @@ function renderRecentSearches(rawInput = '') {
   suggestions.forEach((item) => {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = `recent-search-item ${item.type === 'input' ? 'recent-search-item--query' : 'recent-search-item--history'}`;
+    btn.className = `recent-search-item ${item.type === 'recent' ? 'recent-search-item--history' : 'recent-search-item--query'}`;
 
     const icon = document.createElement('span');
     icon.className = 'recent-search-icon';
@@ -252,10 +304,7 @@ function buildRecentSearchUi() {
   const box = document.createElement('div');
   box.id = 'recentSearchBox';
   box.className = 'recent-search-box';
-  box.innerHTML = `
-    <div class="recent-search-title">최근 검색어</div>
-    <div class="recent-search-list" id="recentSearchList"></div>
-  `;
+  box.innerHTML = `<div class="recent-search-list" id="recentSearchList"></div>`;
   if (hint) {
     searchWrap.insertBefore(box, hint);
   } else {

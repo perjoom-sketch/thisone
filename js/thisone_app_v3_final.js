@@ -46,6 +46,21 @@ let pendingImg = null;
 let loading = false;
 let isSearchMode = false;
 let searchHistory = [];
+const SEARCH_HISTORY_STORAGE_KEY = 'thisone_search_history';
+const MAX_SEARCH_HISTORY = 10;
+const AUTOCOMPLETE_RECOMMENDED = [
+  '아이패드 프로 M4',
+  '로보락 S8 MaxV Ultra',
+  '비스포크 AI 콤보',
+  '다이슨 에어랩 멀티 스타일러',
+  '로얄캐닌 하이포알러제닉 2kg',
+  '스탠바이미 Go',
+  '맥미니 M2',
+  '공기청정기 필터',
+  '저소음 산업용 선풍기',
+  '무한잉크 프린터'
+];
+let autocompleteDropdownEl = null;
 // currentQuery는 index.html에서 이미 선언되었습니다.
 let searchMode = 'thisone';
 let _lastIntentProfile = null;
@@ -82,6 +97,140 @@ JSON 외의 다른 텍스트는 [Thought] 섹션에만 포함하세요.`;
 
 function getInput() { return document.getElementById('msgInput'); }
 function getSendBtn() { return document.getElementById('sendBtn'); }
+
+function loadSearchHistoryFromStorage() {
+  try {
+    const raw = localStorage.getItem(SEARCH_HISTORY_STORAGE_KEY);
+    const parsed = JSON.parse(raw || '[]');
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item) => String(item || '').trim())
+      .filter(Boolean)
+      .slice(0, MAX_SEARCH_HISTORY);
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveSearchHistory(query) {
+  const normalized = String(query || '').trim();
+  if (!normalized) return;
+  const base = loadSearchHistoryFromStorage().filter((item) => item !== normalized);
+  const next = [normalized, ...base].slice(0, MAX_SEARCH_HISTORY);
+  try {
+    localStorage.setItem(SEARCH_HISTORY_STORAGE_KEY, JSON.stringify(next));
+  } catch (e) {}
+  searchHistory = next.slice();
+}
+
+function ensureAutocompleteDropdown() {
+  if (autocompleteDropdownEl) return autocompleteDropdownEl;
+  const searchWrap = document.querySelector('.search-wrap');
+  if (!searchWrap) return null;
+  const dropdown = document.createElement('div');
+  dropdown.className = 'autocomplete-dropdown hidden';
+  dropdown.id = 'autocompleteDropdown';
+  searchWrap.appendChild(dropdown);
+  autocompleteDropdownEl = dropdown;
+  return dropdown;
+}
+
+function closeAutocompleteDropdown() {
+  const dropdown = ensureAutocompleteDropdown();
+  if (!dropdown) return;
+  dropdown.classList.add('hidden');
+}
+
+function getAutocompleteSections(keyword) {
+  const q = String(keyword || '').trim().toLowerCase();
+  const history = loadSearchHistoryFromStorage();
+  if (!q) {
+    return {
+      history: history.slice(0, MAX_SEARCH_HISTORY),
+      recommended: AUTOCOMPLETE_RECOMMENDED.slice(0, 10)
+    };
+  }
+  const includesQuery = (item) => item.toLowerCase().includes(q);
+  return {
+    history: history.filter(includesQuery),
+    recommended: AUTOCOMPLETE_RECOMMENDED.filter(includesQuery)
+  };
+}
+
+function renderAutocompleteDropdown(keyword) {
+  const dropdown = ensureAutocompleteDropdown();
+  if (!dropdown) return;
+  const sections = getAutocompleteSections(keyword);
+  const hasHistory = sections.history.length > 0;
+  const hasRecommended = sections.recommended.length > 0;
+
+  if (!hasHistory && !hasRecommended) {
+    dropdown.innerHTML = '<div class="autocomplete-empty">추천 결과가 없습니다.</div>';
+    dropdown.classList.remove('hidden');
+    return;
+  }
+
+  const sectionToHtml = (title, items, typeClass) => {
+    if (!items.length) return '';
+    return `
+      <div class="autocomplete-group ${typeClass}">
+        <div class="autocomplete-title">${title}</div>
+        <ul class="autocomplete-list">
+          ${items.map((item) => `
+            <li>
+              <button type="button" class="autocomplete-item" data-query="${item.replace(/"/g, '&quot;')}">${item}</button>
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+    `;
+  };
+
+  dropdown.innerHTML =
+    sectionToHtml('최근 검색어', sections.history, 'history') +
+    sectionToHtml('추천 검색어', sections.recommended, 'recommended');
+  dropdown.classList.remove('hidden');
+}
+
+function initAutocomplete() {
+  const input = getInput();
+  const dropdown = ensureAutocompleteDropdown();
+  if (!input || !dropdown) return;
+
+  input.addEventListener('focus', () => {
+    renderAutocompleteDropdown(input.value);
+  });
+
+  input.addEventListener('input', (e) => {
+    if (e.isComposing) return;
+    renderAutocompleteDropdown(input.value);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeAutocompleteDropdown();
+    }
+  });
+
+  dropdown.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+  });
+
+  dropdown.addEventListener('click', (e) => {
+    const btn = e.target.closest('.autocomplete-item');
+    if (!btn) return;
+    const query = btn.dataset.query || btn.textContent || '';
+    closeAutocompleteDropdown();
+    quick(String(query));
+  });
+
+  document.addEventListener('click', (e) => {
+    const searchWrap = document.querySelector('.search-wrap');
+    if (!searchWrap) return;
+    if (searchWrap.contains(e.target)) return;
+    closeAutocompleteDropdown();
+  });
+}
 
 function goHome() {
   location.href = '/';
@@ -205,7 +354,9 @@ async function sendMsg(forceMode) {
     const inp = getInput();
     const txt = inp ? inp.value.trim() : "";
     if (!txt && !pendingImg) return;
+    closeAutocompleteDropdown();
     currentQuery = txt; // 쿼리 저장 복구
+    if (txt) saveSearchHistory(txt);
 
     // 모바일 스크롤 진압 1단계: 즉시 포커스 해제 및 키보드 닫기
     if (inp) inp.blur();
@@ -718,5 +869,7 @@ async function refreshGeneralResults() {
 document.addEventListener('DOMContentLoaded', () => {
   applyPcView();
   loadTrendingChips();
+  searchHistory = loadSearchHistoryFromStorage();
+  initAutocomplete();
   document.getElementById('sendBtn')?.addEventListener('click', () => sendMsg('thisone'));
 });

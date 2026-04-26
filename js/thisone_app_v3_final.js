@@ -46,29 +46,10 @@ let pendingImg = null;
 let loading = false;
 let isSearchMode = false;
 let searchHistory = [];
-const RECENT_SEARCHES_KEY = 'thisone_recent_searches';
-const LOCAL_SEARCH_SUGGESTIONS = [
-  '다이슨 에어랩',
-  '다이슨 청소기',
-  '다이슨 드라이기',
-  '로보락 S8 MaxV Ultra',
-  '로보락 로봇청소기',
-  '맥미니',
-  '아이폰 17',
-  '아이패드 프로 M4',
-  '스탠바이미 Go'
-];
+const SearchDropdown = window.ThisOneSearchDropdown;
 // currentQuery는 index.html에서 이미 선언되었습니다.
 let searchMode = 'thisone';
 let _lastIntentProfile = null;
-const RecentSearchUIState = {
-  searches: [],
-  listEl: null,
-  boxEl: null,
-  hideLocked: false,
-  isResultsRendering: false,
-  lastActionByDirectClick: false
-};
 
 // 일반 검색 상태 관리
 const GeneralSearchState = {
@@ -102,264 +83,6 @@ JSON 외의 다른 텍스트는 [Thought] 섹션에만 포함하세요.`;
 
 function getInput() { return document.getElementById('msgInput'); }
 function getSendBtn() { return document.getElementById('sendBtn'); }
-function getRecentSearchBox() { return document.getElementById('recentSearchBox'); }
-
-function blurSearchInput() {
-  const input = getInput();
-  if (input && document.activeElement === input) {
-    input.blur();
-  }
-}
-
-function loadRecentSearches() {
-  try {
-    const raw = localStorage.getItem(RECENT_SEARCHES_KEY);
-    const parsed = JSON.parse(raw || '[]');
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map((v) => String(v || '').trim())
-      .filter(Boolean)
-      .slice(0, 5);
-  } catch (_) {
-    return [];
-  }
-}
-
-function saveRecentSearches(list = []) {
-  const normalized = (Array.isArray(list) ? list : [])
-    .map((v) => String(v || '').trim())
-    .filter(Boolean)
-    .slice(0, 5);
-  RecentSearchUIState.searches = normalized;
-  localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(normalized));
-}
-
-function pushRecentSearch(query) {
-  const q = String(query || '').trim();
-  if (!q) return;
-  const deduped = RecentSearchUIState.searches.filter((item) => item !== q);
-  deduped.unshift(q);
-  saveRecentSearches(deduped);
-}
-
-function hideRecentSearches() {
-  const box = getRecentSearchBox();
-  if (!box) return;
-  box.classList.remove('show');
-}
-
-function renderRecentSearches() {
-  const list = RecentSearchUIState.listEl;
-  const box = RecentSearchUIState.boxEl;
-  const input = getInput();
-  const inputValue = input ? input.value.trim() : '';
-  if (!list || !box) return;
-
-  list.innerHTML = '';
-  if (!inputValue && !RecentSearchUIState.searches.length) {
-    hideRecentSearches();
-    return;
-  }
-
-  if (inputValue) {
-    const searchActionBtn = document.createElement('button');
-    searchActionBtn.type = 'button';
-    searchActionBtn.className = 'recent-search-item';
-
-    const actionIcon = document.createElement('span');
-    actionIcon.className = 'recent-search-icon';
-    actionIcon.setAttribute('aria-hidden', 'true');
-    actionIcon.innerHTML = `
-      <svg viewBox="0 0 24 24" focusable="false">
-        <circle cx="11" cy="11" r="7"></circle>
-        <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
-      </svg>
-    `;
-
-    const actionText = document.createElement('span');
-    actionText.className = 'recent-search-text';
-    actionText.textContent = `${inputValue} 검색`;
-
-    searchActionBtn.appendChild(actionIcon);
-    searchActionBtn.appendChild(actionText);
-    searchActionBtn.addEventListener('mousedown', (e) => e.preventDefault());
-    searchActionBtn.addEventListener('click', () => {
-      hideAndLockRecentSearches();
-      currentQuery = inputValue;
-      sendMsg('thisone');
-    });
-    list.appendChild(searchActionBtn);
-  }
-
-  const matchedLocalSuggestions = getMatchedLocalSuggestions(inputValue);
-  matchedLocalSuggestions.forEach((query) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'recent-search-item';
-
-    const icon = document.createElement('span');
-    icon.className = 'recent-search-icon';
-    icon.setAttribute('aria-hidden', 'true');
-    icon.innerHTML = `
-      <svg viewBox="0 0 24 24" focusable="false">
-        <circle cx="11" cy="11" r="7"></circle>
-        <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
-      </svg>
-    `;
-
-    const text = document.createElement('span');
-    text.className = 'recent-search-text';
-    text.textContent = query;
-
-    btn.appendChild(icon);
-    btn.appendChild(text);
-    btn.addEventListener('mousedown', (e) => e.preventDefault());
-    btn.addEventListener('click', () => {
-      const input = getInput();
-      hideAndLockRecentSearches();
-      if (input) {
-        input.value = query;
-        autoResize(input);
-      }
-      currentQuery = query;
-      sendMsg('thisone');
-    });
-    list.appendChild(btn);
-  });
-
-  RecentSearchUIState.searches.forEach((query) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'recent-search-item';
-
-    const icon = document.createElement('span');
-    icon.className = 'recent-search-icon';
-    icon.setAttribute('aria-hidden', 'true');
-    icon.innerHTML = `
-      <svg viewBox="0 0 24 24" focusable="false">
-        <path d="M12 8v4l3 2"></path>
-        <path d="M3 12a9 9 0 1 0 3-6.7"></path>
-        <path d="M3 4v3h3"></path>
-      </svg>
-    `;
-
-    const text = document.createElement('span');
-    text.className = 'recent-search-text';
-    text.textContent = query;
-
-    btn.appendChild(icon);
-    btn.appendChild(text);
-    btn.addEventListener('mousedown', (e) => e.preventDefault());
-    btn.addEventListener('click', () => {
-      const input = getInput();
-      hideAndLockRecentSearches();
-      if (input) {
-        input.value = query;
-        autoResize(input);
-      }
-      currentQuery = query;
-      sendMsg('thisone');
-    });
-    list.appendChild(btn);
-  });
-}
-
-function getMatchedLocalSuggestions(inputValue = '') {
-  const keyword = String(inputValue || '').trim();
-  if (keyword.length < 2) return [];
-  return LOCAL_SEARCH_SUGGESTIONS.filter((item) => {
-    if (!item) return false;
-    return item.startsWith(keyword) || item.includes(keyword);
-  });
-}
-
-function canShowRecentSearches() {
-  const input = getInput();
-  if (!input) return false;
-  const inputValue = input.value.trim();
-  if (loading) return false;
-  if (RecentSearchUIState.hideLocked) return false;
-  if (RecentSearchUIState.isResultsRendering) return false;
-  if (!inputValue && !RecentSearchUIState.searches.length) return false;
-  const isFocused = document.activeElement === input;
-  if (!isFocused) return false;
-  return true;
-}
-
-function showRecentSearchesIfAllowed() {
-  const box = getRecentSearchBox();
-  if (!box) return;
-  if (!canShowRecentSearches()) {
-    hideRecentSearches();
-    return;
-  }
-  box.classList.add('show');
-}
-
-function hideAndLockRecentSearches() {
-  RecentSearchUIState.hideLocked = true;
-  RecentSearchUIState.lastActionByDirectClick = false;
-  hideRecentSearches();
-}
-
-function unlockRecentSearchesByUserAction() {
-  RecentSearchUIState.hideLocked = false;
-}
-
-function buildRecentSearchUi() {
-  const searchWrap = document.getElementById('landingSearch');
-  if (!searchWrap || getRecentSearchBox()) return;
-  const searchBox = searchWrap.querySelector('.search-box');
-
-  const box = document.createElement('div');
-  box.id = 'recentSearchBox';
-  box.className = 'recent-search-box';
-  box.innerHTML = `
-    <div class="recent-search-list" id="recentSearchList"></div>
-  `;
-  if (searchBox) {
-    searchBox.insertAdjacentElement('afterend', box);
-  } else {
-    searchWrap.appendChild(box);
-  }
-
-  RecentSearchUIState.boxEl = box;
-  RecentSearchUIState.listEl = box.querySelector('#recentSearchList');
-}
-
-function bindRecentSearchEvents() {
-  const input = getInput();
-  if (!input) return;
-
-  input.addEventListener('click', () => {
-    RecentSearchUIState.lastActionByDirectClick = true;
-    unlockRecentSearchesByUserAction();
-    renderRecentSearches();
-    showRecentSearchesIfAllowed();
-  });
-
-  input.addEventListener('focus', () => {
-    renderRecentSearches();
-    showRecentSearchesIfAllowed();
-  });
-
-  input.addEventListener('input', () => {
-    RecentSearchUIState.lastActionByDirectClick = true;
-    unlockRecentSearchesByUserAction();
-    renderRecentSearches();
-    showRecentSearchesIfAllowed();
-  });
-
-  input.addEventListener('blur', () => {
-    hideRecentSearches();
-  });
-
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      hideRecentSearches();
-    }
-  });
-}
 
 function goHome() {
   location.href = '/';
@@ -478,7 +201,7 @@ function extractJSON(str) {
 async function sendMsg(forceMode) {
   try {
     if (loading) return;
-    hideAndLockRecentSearches();
+    SearchDropdown?.hideAndLockRecentSearches?.();
     if (forceMode) setSearchMode(forceMode);
 
     const inp = getInput();
@@ -487,7 +210,7 @@ async function sendMsg(forceMode) {
     currentQuery = txt; // 쿼리 저장 복구
 
     // 모바일 스크롤 진압 1단계: 즉시 포커스 해제 및 키보드 닫기
-    blurSearchInput();
+    SearchDropdown?.blurSearchInput?.();
 
     // 모바일 스크롤 진압 2단계: 여러 번에 걸쳐 상단 고정 (키보드 닫힘 애니메이션 대응)
     const fixScroll = () => {
@@ -515,8 +238,8 @@ async function sendMsg(forceMode) {
     if (contentEl) contentEl.innerHTML = '';
     if (txt) {
       searchHistory.push(txt);
-      pushRecentSearch(txt);
-      renderRecentSearches();
+      SearchDropdown?.pushRecentSearch?.(txt);
+      SearchDropdown?.renderRecentSearches?.();
     }
     syncQueryInputs(currentQuery);
     // 구버전 역사의 잔재(HistoryBar) 제거
@@ -527,7 +250,7 @@ async function sendMsg(forceMode) {
     removeImg();
 
     loading = true;
-    RecentSearchUIState.isResultsRendering = false;
+    SearchDropdown?.setResultsRendering?.(false);
     const btn = getSendBtn(); if (btn) btn.disabled = true;
     const typingEl = window.ThisOneUI?.addThinking?.();
 
@@ -667,7 +390,7 @@ async function sendMsg(forceMode) {
         if (autoFallbackTimer) clearTimeout(autoFallbackTimer);
         
         typingEl?.remove();
-        RecentSearchUIState.isResultsRendering = true;
+        SearchDropdown?.setResultsRendering?.(true);
         
         const elapsed = Math.round((Date.now() - searchStartTime) / 1000);
         let msg = `데이터 분석이 지연되고 있어(${elapsed}초), 디스원 AI 추천이 아닌 일반 검색 결과를 먼저 보여드립니다.`;
@@ -686,7 +409,7 @@ async function sendMsg(forceMode) {
           : 'sim'; // 정렬 상태가 없으면 관련도 기준으로
         GeneralSearchState.currentSort = preservedSort;
 
-        RecentSearchUIState.isResultsRendering = true;
+        SearchDropdown?.setResultsRendering?.(true);
         window.ThisOneUI?.renderResults?.(
           candidates,
           GeneralSearchState.total,
@@ -795,7 +518,7 @@ async function sendMsg(forceMode) {
         }
 
         const finalCards = [...mergedCards, ...supplements].slice(0, targetCount);
-        RecentSearchUIState.isResultsRendering = true;
+        SearchDropdown?.setResultsRendering?.(true);
         window.ThisOneUI?.addResultCard?.({ ...merged, cards: finalCards, aiComment }, intentProfile);
 
         // AI 추천 리포트 아래에 일반 검색 결과를 함께 표시
@@ -849,7 +572,7 @@ async function sendMsg(forceMode) {
           : 'sim';
         GeneralSearchState.currentSort = preservedSort;
 
-        RecentSearchUIState.isResultsRendering = true;
+        SearchDropdown?.setResultsRendering?.(true);
         window.ThisOneUI?.renderResults?.(
           generalCandidates,
           GeneralSearchState.total,
@@ -872,18 +595,18 @@ async function sendMsg(forceMode) {
       window.ThisOneUI?.purgeProgressLeak?.();
 
       if (candidates && candidates.length > 0) {
-        RecentSearchUIState.isResultsRendering = true;
+        SearchDropdown?.setResultsRendering?.(true);
         window.ThisOneUI?.renderResults?.(candidates, 0, 1, GeneralSearchState.currentSort, GeneralSearchState.resultMode || 'normal');
       } else {
-        RecentSearchUIState.isResultsRendering = true;
+        SearchDropdown?.setResultsRendering?.(true);
         window.ThisOneUI?.addFallback?.('검색 결과를 가져오는 중 문제가 발생했습니다.');
       }
     } finally {
       loading = false;
-      RecentSearchUIState.isResultsRendering = false;
-      hideAndLockRecentSearches();
+      SearchDropdown?.setResultsRendering?.(false);
+      SearchDropdown?.hideAndLockRecentSearches?.();
       const b = getSendBtn(); if (b) b.disabled = false;
-      blurSearchInput();
+      SearchDropdown?.blurSearchInput?.();
       if (document.activeElement && typeof document.activeElement.blur === 'function') {
         document.activeElement.blur();
       }
@@ -1063,9 +786,20 @@ async function refreshGeneralResults() {
 document.addEventListener('DOMContentLoaded', () => {
   applyPcView();
   loadTrendingChips();
-  buildRecentSearchUi();
-  RecentSearchUIState.searches = loadRecentSearches();
-  renderRecentSearches();
-  bindRecentSearchEvents();
+  SearchDropdown?.init?.({
+    getInput,
+    getSearchWrap: () => document.getElementById('landingSearch'),
+    autoResize,
+    isLoading: () => loading,
+    onSearch: (query, options = {}) => {
+      const input = getInput();
+      if (input && options.updateInput) {
+        input.value = query;
+        autoResize(input);
+      }
+      currentQuery = query;
+      sendMsg('thisone');
+    }
+  });
   document.getElementById('sendBtn')?.addEventListener('click', () => sendMsg('thisone'));
 });

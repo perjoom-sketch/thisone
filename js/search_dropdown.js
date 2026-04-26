@@ -48,7 +48,11 @@
     boxEl: null,
     hideLocked: false,
     isResultsRendering: false,
-    lastActionByDirectClick: false
+    lastActionByDirectClick: false,
+    autocompleteItems: [],
+    autocompleteQuery: '',
+    autocompleteDebounceTimer: null,
+    autocompleteRequestSeq: 0
   };
 
   const config = {
@@ -123,6 +127,52 @@
     return [...new Set(matched)];
   }
 
+  async function fetchRemoteAutocomplete(query) {
+    try {
+      const response = await fetch(`/api/autocomplete?q=${encodeURIComponent(query)}`);
+      if (!response.ok) return [];
+      const payload = await response.json();
+      if (!payload || !Array.isArray(payload.items)) return [];
+      return payload.items
+        .map((item) => String(item || '').trim())
+        .filter(Boolean)
+        .slice(0, 10);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function queueAutocompleteFetch() {
+    const input = getInput();
+    const query = input ? input.value.trim() : '';
+
+    if (state.autocompleteDebounceTimer) {
+      clearTimeout(state.autocompleteDebounceTimer);
+      state.autocompleteDebounceTimer = null;
+    }
+
+    if (query.length < 2) {
+      state.autocompleteQuery = '';
+      state.autocompleteItems = [];
+      return;
+    }
+
+    state.autocompleteDebounceTimer = setTimeout(async () => {
+      const requestSeq = ++state.autocompleteRequestSeq;
+      const requestedQuery = query;
+      const items = await fetchRemoteAutocomplete(requestedQuery);
+      const latestInput = (getInput() ? getInput().value : '').trim();
+
+      if (requestSeq !== state.autocompleteRequestSeq) return;
+      if (latestInput !== requestedQuery) return;
+
+      state.autocompleteQuery = requestedQuery;
+      state.autocompleteItems = items;
+      renderRecentSearches();
+      showRecentSearchesIfAllowed();
+    }, 300);
+  }
+
   function runSearch(query, options = {}) {
     if (typeof config.onSearch !== 'function') return;
     config.onSearch(query, options);
@@ -170,8 +220,11 @@
       list.appendChild(searchActionBtn);
     }
 
-    const matchedLocalSuggestions = getMatchedLocalSuggestions(inputValue);
-    matchedLocalSuggestions.forEach((query) => {
+    const remoteSuggestions = inputValue && state.autocompleteQuery === inputValue
+      ? state.autocompleteItems
+      : [];
+
+    const appendSuggestionItem = (query) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'recent-search-item';
@@ -198,6 +251,19 @@
         runSearch(query, { updateInput: true });
       });
       list.appendChild(btn);
+    };
+
+    const remoteSet = new Set();
+    remoteSuggestions.forEach((query) => {
+      if (!query || remoteSet.has(query)) return;
+      remoteSet.add(query);
+      appendSuggestionItem(query);
+    });
+
+    const matchedLocalSuggestions = getMatchedLocalSuggestions(inputValue);
+    matchedLocalSuggestions.forEach((query) => {
+      if (remoteSet.has(query)) return;
+      appendSuggestionItem(query);
     });
 
     state.searches.forEach((query) => {
@@ -304,6 +370,7 @@
     input.addEventListener('input', () => {
       state.lastActionByDirectClick = true;
       unlockRecentSearchesByUserAction();
+      queueAutocompleteFetch();
       renderRecentSearches();
       showRecentSearchesIfAllowed();
     });

@@ -47,6 +47,17 @@ let loading = false;
 let isSearchMode = false;
 let searchHistory = [];
 const RECENT_SEARCHES_KEY = 'thisone_recent_searches';
+const LOCAL_SEARCH_SUGGESTIONS = [
+  '다이슨 에어랩',
+  '다이슨 청소기',
+  '다이슨 드라이기',
+  '로보락 S8 MaxV Ultra',
+  '로보락 로봇청소기',
+  '맥미니',
+  '아이폰 17',
+  '아이패드 프로 M4',
+  '스탠바이미 Go'
+];
 // currentQuery는 index.html에서 이미 선언되었습니다.
 let searchMode = 'thisone';
 let _lastIntentProfile = null;
@@ -167,7 +178,7 @@ function renderRecentSearches() {
 
     const actionText = document.createElement('span');
     actionText.className = 'recent-search-text';
-    actionText.textContent = `${inputValue} 검색`;
+    actionText.textContent = '🔍 입력값 검색';
 
     searchActionBtn.appendChild(actionIcon);
     searchActionBtn.appendChild(actionText);
@@ -179,6 +190,43 @@ function renderRecentSearches() {
     });
     list.appendChild(searchActionBtn);
   }
+
+  const matchedLocalSuggestions = getMatchedLocalSuggestions(inputValue);
+  matchedLocalSuggestions.forEach((query) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'recent-search-item';
+
+    const icon = document.createElement('span');
+    icon.className = 'recent-search-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML = `
+      <svg viewBox="0 0 24 24" focusable="false">
+        <path d="M3 7h18"></path>
+        <path d="M3 12h18"></path>
+        <path d="M3 17h18"></path>
+      </svg>
+    `;
+
+    const text = document.createElement('span');
+    text.className = 'recent-search-text';
+    text.textContent = query;
+
+    btn.appendChild(icon);
+    btn.appendChild(text);
+    btn.addEventListener('mousedown', (e) => e.preventDefault());
+    btn.addEventListener('click', () => {
+      const input = getInput();
+      hideAndLockRecentSearches();
+      if (input) {
+        input.value = query;
+        autoResize(input);
+      }
+      currentQuery = query;
+      sendMsg('thisone');
+    });
+    list.appendChild(btn);
+  });
 
   RecentSearchUIState.searches.forEach((query) => {
     const btn = document.createElement('button');
@@ -214,6 +262,15 @@ function renderRecentSearches() {
       sendMsg('thisone');
     });
     list.appendChild(btn);
+  });
+}
+
+function getMatchedLocalSuggestions(inputValue = '') {
+  const keyword = String(inputValue || '').trim();
+  if (keyword.length < 2) return [];
+  return LOCAL_SEARCH_SUGGESTIONS.filter((item) => {
+    if (!item) return false;
+    return item.startsWith(keyword) || item.includes(keyword);
   });
 }
 

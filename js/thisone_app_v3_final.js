@@ -153,15 +153,12 @@ function getRecentSearchSuggestions(rawInput = '') {
 
   if (!hasInput) return recentItems;
 
-  const hasExactMatch = RecentSearchUIState.searches.some((query) => query === inputValue);
-  if (!hasExactMatch) {
-    recentItems.unshift({
-      type: 'input',
-      query: inputValue,
-      label: `${inputValue} 검색`,
-      icon: '🔍'
-    });
-  }
+  recentItems.unshift({
+    type: 'input',
+    query: inputValue,
+    label: `${inputValue} 검색`,
+    icon: '🔍'
+  });
 
   return recentItems;
 }

@@ -380,7 +380,7 @@ body.search-mode .results-view {
   background: transparent;
   color: #334155;
   border-radius: clamp(6px, 1.2vw, 8px);
-  font-size: clamp(12px, 1.6vw, 13px);
+  font-size: clamp(12px, 1.2vw, 14px);
   text-align: left;
   padding: clamp(7px, 1.2vw, 9px) clamp(8px, 1.6vw, 10px);
   cursor: pointer;
@@ -395,7 +395,7 @@ body.search-mode .results-view {
 }
 
 .recent-search-icon {
-  font-size: clamp(11px, 1.4vw, 13px);
+  font-size: clamp(10px, 1vw, 12px);
   color: #94a3b8;
   flex-shrink: 0;
 }

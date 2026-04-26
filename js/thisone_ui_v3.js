@@ -140,28 +140,20 @@ function addThinking() {
 
   // 실시간 스트리밍 텍스트 업데이트 함수
   d.updateLiveResponse = (txt) => {
-    const el = d.querySelector('#liveResponse');
-    if (!el) return;
-    
-    // [최종 검문소] 소스 코드(JSON) 징후가 보이면 아예 숨김
-    if (txt.includes('{') || txt.includes('[JSON]') || txt.includes('":') || txt.includes('```') || txt.includes('}')) {
-      el.classList.add('hidden');
+    // 별도 진행 문구 영역을 쓰지 않고 한 줄 상태창 텍스트만 갱신
+    const statusText = d.querySelector('#statusTextV2');
+    if (!statusText) return;
+
+    const cleanText = String(txt || '')
+      .replace(/\[?Thought\]?:?/gi, '')
+      .trim();
+
+    if (!cleanText) return;
+    if (cleanText.includes('{') || cleanText.includes('[JSON]') || cleanText.includes('":') || cleanText.includes('```') || /[{}[\]"]/.test(cleanText)) {
       return;
     }
 
-    // 시스템 태그 및 불필요한 기호 제거
-    let cleanText = txt.replace(/\[?Thought\]?:?/gi, '').trim();
-    // 만약 남아있는 텍스트에 JSON 특수문자가 섞여있다면 숨김
-    if (/[{}[\]"]/.test(cleanText)) {
-      el.classList.add('hidden');
-      return;
-    }
-
-    if (cleanText) {
-      el.textContent = cleanText;
-      el.classList.add('active');
-      el.classList.remove('hidden');
-    }
+    statusText.textContent = cleanText;
   };
 
   // 일반 결과 보기 버튼 노출 함수

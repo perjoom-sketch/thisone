@@ -434,7 +434,7 @@ async function sendMsg(forceMode) {
 
           // [보안/UI] JSON 징후가 보이면 즉시 업데이트를 멈추고 고정 메시지 표시
           if (fullText.includes('[JSON]') || fullText.includes('{') || fullText.includes('":') || fullText.includes('```')) {
-            typingEl?.updateLiveResponse('최종 추천 리포트를 생성하고 있습니다...'); 
+            typingEl?.updateThought?.('최종 추천 리포트를 생성하고 있습니다...'); 
             return;
           }
 

@@ -127,7 +127,6 @@ function addThinking() {
       <span class="status-text" id="statusTextV2">검색패턴을 관찰하여 원하는 상품 추론 중...</span>
       <button type="button" class="fallback-inline-btn hidden" id="fallbackInlineBtn">일반 결과 먼저 보기</button>
     </div>
-    <div id="liveResponse" class="live-response hidden"></div>
   `;
   appendAndScroll(d);
 
@@ -140,20 +139,8 @@ function addThinking() {
 
   // 실시간 스트리밍 텍스트 업데이트 함수
   d.updateLiveResponse = (txt) => {
-    // 별도 진행 문구 영역을 쓰지 않고 한 줄 상태창 텍스트만 갱신
-    const statusText = d.querySelector('#statusTextV2');
-    if (!statusText) return;
-
-    const cleanText = String(txt || '')
-      .replace(/\[?Thought\]?:?/gi, '')
-      .trim();
-
-    if (!cleanText) return;
-    if (cleanText.includes('{') || cleanText.includes('[JSON]') || cleanText.includes('":') || cleanText.includes('```') || /[{}[\]"]/.test(cleanText)) {
-      return;
-    }
-
-    statusText.textContent = cleanText;
+    // 상태창 외 별도 렌더링 금지: 상태 라인만 갱신
+    d.updateThought?.(txt);
   };
 
   // 일반 결과 보기 버튼 노출 함수

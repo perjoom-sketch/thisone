@@ -178,7 +178,7 @@ function renderRecentSearches() {
 
     const actionText = document.createElement('span');
     actionText.className = 'recent-search-text';
-    actionText.textContent = '🔍 입력값 검색';
+    actionText.textContent = `${inputValue} 검색`;
 
     searchActionBtn.appendChild(actionIcon);
     searchActionBtn.appendChild(actionText);
@@ -202,9 +202,8 @@ function renderRecentSearches() {
     icon.setAttribute('aria-hidden', 'true');
     icon.innerHTML = `
       <svg viewBox="0 0 24 24" focusable="false">
-        <path d="M3 7h18"></path>
-        <path d="M3 12h18"></path>
-        <path d="M3 17h18"></path>
+        <circle cx="11" cy="11" r="7"></circle>
+        <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
       </svg>
     `;
 

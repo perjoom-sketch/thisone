@@ -140,12 +140,44 @@ function hideRecentSearches() {
 function renderRecentSearches() {
   const list = RecentSearchUIState.listEl;
   const box = RecentSearchUIState.boxEl;
+  const input = getInput();
+  const inputValue = input ? input.value.trim() : '';
   if (!list || !box) return;
 
   list.innerHTML = '';
-  if (!RecentSearchUIState.searches.length) {
+  if (!inputValue && !RecentSearchUIState.searches.length) {
     hideRecentSearches();
     return;
+  }
+
+  if (inputValue) {
+    const searchActionBtn = document.createElement('button');
+    searchActionBtn.type = 'button';
+    searchActionBtn.className = 'recent-search-item';
+
+    const actionIcon = document.createElement('span');
+    actionIcon.className = 'recent-search-icon';
+    actionIcon.setAttribute('aria-hidden', 'true');
+    actionIcon.innerHTML = `
+      <svg viewBox="0 0 24 24" focusable="false">
+        <circle cx="11" cy="11" r="7"></circle>
+        <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
+      </svg>
+    `;
+
+    const actionText = document.createElement('span');
+    actionText.className = 'recent-search-text';
+    actionText.textContent = `${inputValue} 검색`;
+
+    searchActionBtn.appendChild(actionIcon);
+    searchActionBtn.appendChild(actionText);
+    searchActionBtn.addEventListener('mousedown', (e) => e.preventDefault());
+    searchActionBtn.addEventListener('click', () => {
+      hideAndLockRecentSearches();
+      currentQuery = inputValue;
+      sendMsg('thisone');
+    });
+    list.appendChild(searchActionBtn);
   }
 
   RecentSearchUIState.searches.forEach((query) => {
@@ -188,14 +220,14 @@ function renderRecentSearches() {
 function canShowRecentSearches() {
   const input = getInput();
   if (!input) return false;
+  const inputValue = input.value.trim();
   if (loading) return false;
   if (RecentSearchUIState.hideLocked) return false;
   if (RecentSearchUIState.isResultsRendering) return false;
-  if (!RecentSearchUIState.searches.length) return false;
+  if (!inputValue && !RecentSearchUIState.searches.length) return false;
   const isFocused = document.activeElement === input;
   if (!isFocused) return false;
-  const isEmpty = !input.value.trim();
-  return isEmpty || RecentSearchUIState.lastActionByDirectClick;
+  return true;
 }
 
 function showRecentSearchesIfAllowed() {
@@ -251,12 +283,14 @@ function bindRecentSearchEvents() {
   });
 
   input.addEventListener('focus', () => {
+    renderRecentSearches();
     showRecentSearchesIfAllowed();
   });
 
   input.addEventListener('input', () => {
     RecentSearchUIState.lastActionByDirectClick = true;
     unlockRecentSearchesByUserAction();
+    renderRecentSearches();
     showRecentSearchesIfAllowed();
   });
 

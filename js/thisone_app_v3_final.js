@@ -85,7 +85,10 @@ const RecentSearchUIState = {
   boxEl: null,
   hideLocked: false,
   isResultsRendering: false,
-  lastActionByDirectClick: false
+  lastActionByDirectClick: false,
+  remoteSuggestions: [],
+  debounceTimer: null,
+  requestSeq: 0
 };
 
 // 일반 검색 상태 관리
@@ -176,6 +179,55 @@ function getLocalKeywordMatches(inputValue) {
   });
 }
 
+async function requestRemoteSuggestions(inputValue) {
+  const query = String(inputValue || '').trim();
+  const input = getInput();
+  if (query.length < 2) {
+    RecentSearchUIState.remoteSuggestions = [];
+    renderRecentSearches();
+    showRecentSearchesIfAllowed();
+    return;
+  }
+
+  const requestSeq = ++RecentSearchUIState.requestSeq;
+  try {
+    const response = await fetch(`/api/autocomplete?q=${encodeURIComponent(query)}`);
+    const data = await response.json().catch(() => ({ items: [] }));
+    const remoteItems = Array.isArray(data?.items) ? data.items : [];
+    const currentValue = input ? input.value.trim() : '';
+    if (requestSeq !== RecentSearchUIState.requestSeq) return;
+    if (currentValue !== query) return;
+    RecentSearchUIState.remoteSuggestions = remoteItems
+      .map((item) => String(item || '').trim())
+      .filter(Boolean)
+      .slice(0, 10);
+  } catch (_) {
+    if (requestSeq !== RecentSearchUIState.requestSeq) return;
+    RecentSearchUIState.remoteSuggestions = [];
+  }
+  renderRecentSearches();
+  showRecentSearchesIfAllowed();
+}
+
+function scheduleRemoteSuggestionsFetch() {
+  const input = getInput();
+  if (!input) return;
+  const query = input.value.trim();
+  if (RecentSearchUIState.debounceTimer) {
+    clearTimeout(RecentSearchUIState.debounceTimer);
+  }
+  if (query.length < 2) {
+    RecentSearchUIState.requestSeq += 1;
+    RecentSearchUIState.remoteSuggestions = [];
+    renderRecentSearches();
+    showRecentSearchesIfAllowed();
+    return;
+  }
+  RecentSearchUIState.debounceTimer = setTimeout(() => {
+    requestRemoteSuggestions(query);
+  }, 300);
+}
+
 function hideRecentSearches() {
   const box = getRecentSearchBox();
   if (!box) return;
@@ -225,8 +277,16 @@ function renderRecentSearches() {
     list.appendChild(searchActionBtn);
   }
 
-  const matchedSuggestions = getLocalKeywordMatches(inputValue);
-  matchedSuggestions.forEach((suggestion) => {
+  const duplicateGuard = new Set();
+  if (inputValue) duplicateGuard.add(inputValue.toLowerCase());
+
+  const appendSuggestionItem = (suggestionLabel) => {
+    const normalized = String(suggestionLabel || '').trim();
+    if (!normalized) return;
+    const dedupeKey = normalized.toLowerCase();
+    if (duplicateGuard.has(dedupeKey)) return;
+    duplicateGuard.add(dedupeKey);
+
     const suggestionBtn = document.createElement('button');
     suggestionBtn.type = 'button';
     suggestionBtn.className = 'recent-search-item';
@@ -241,27 +301,42 @@ function renderRecentSearches() {
       </svg>
     `;
 
-    const suggestionText = document.createElement('span');
-    suggestionText.className = 'recent-search-text';
-    suggestionText.textContent = suggestion;
+    const suggestionTextEl = document.createElement('span');
+    suggestionTextEl.className = 'recent-search-text';
+    suggestionTextEl.textContent = normalized;
 
     suggestionBtn.appendChild(suggestionIcon);
-    suggestionBtn.appendChild(suggestionText);
+    suggestionBtn.appendChild(suggestionTextEl);
     suggestionBtn.addEventListener('mousedown', (e) => e.preventDefault());
     suggestionBtn.addEventListener('click', () => {
       const inputEl = getInput();
       hideAndLockRecentSearches();
       if (inputEl) {
-        inputEl.value = suggestion;
+        inputEl.value = normalized;
         autoResize(inputEl);
       }
-      currentQuery = suggestion;
+      currentQuery = normalized;
       sendMsg('thisone');
     });
     list.appendChild(suggestionBtn);
+  };
+
+  const remoteSuggestions = Array.isArray(RecentSearchUIState.remoteSuggestions)
+    ? RecentSearchUIState.remoteSuggestions
+    : [];
+  remoteSuggestions.forEach((suggestion) => {
+    appendSuggestionItem(suggestion);
+  });
+
+  const matchedSuggestions = getLocalKeywordMatches(inputValue);
+  matchedSuggestions.forEach((suggestion) => {
+    appendSuggestionItem(suggestion);
   });
 
   RecentSearchUIState.searches.forEach((query) => {
+    const dedupeKey = String(query || '').trim().toLowerCase();
+    if (!dedupeKey || duplicateGuard.has(dedupeKey)) return;
+    duplicateGuard.add(dedupeKey);
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'recent-search-item';
@@ -371,6 +446,7 @@ function bindRecentSearchEvents() {
   input.addEventListener('input', () => {
     RecentSearchUIState.lastActionByDirectClick = true;
     unlockRecentSearchesByUserAction();
+    scheduleRemoteSuggestionsFetch();
     renderRecentSearches();
     showRecentSearchesIfAllowed();
   });

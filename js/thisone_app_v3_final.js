@@ -85,10 +85,7 @@ const RecentSearchUIState = {
   boxEl: null,
   hideLocked: false,
   isResultsRendering: false,
-  lastActionByDirectClick: false,
-  remoteSuggestions: [],
-  debounceTimer: null,
-  requestSeq: 0
+  lastActionByDirectClick: false
 };
 
 // 일반 검색 상태 관리
@@ -193,56 +190,6 @@ function isSuggestionMatched(normalizedQuery, candidateText) {
   return candidate.startsWith(query) || candidate.includes(query);
 }
 
-async function requestRemoteSuggestions(inputValue) {
-  const query = String(inputValue || '').trim();
-  const input = getInput();
-  if (query.length < 2) {
-    RecentSearchUIState.remoteSuggestions = [];
-    renderRecentSearches();
-    showRecentSearchesIfAllowed();
-    return;
-  }
-
-  const requestSeq = ++RecentSearchUIState.requestSeq;
-  try {
-    const response = await fetch(`/api/autocomplete?q=${encodeURIComponent(query)}`);
-    const data = await response.json().catch(() => ({ items: [] }));
-    const remoteItems = Array.isArray(data?.items) ? data.items : [];
-    const currentValue = input ? input.value.trim() : '';
-    if (requestSeq !== RecentSearchUIState.requestSeq) return;
-    if (currentValue !== query) return;
-    const normalizedQuery = normalizeSuggestionText(query);
-    RecentSearchUIState.remoteSuggestions = remoteItems
-      .map((item) => String(item || '').trim())
-      .filter((item) => item && isSuggestionMatched(normalizedQuery, item))
-      .slice(0, 10);
-  } catch (_) {
-    if (requestSeq !== RecentSearchUIState.requestSeq) return;
-    RecentSearchUIState.remoteSuggestions = [];
-  }
-  renderRecentSearches();
-  showRecentSearchesIfAllowed();
-}
-
-function scheduleRemoteSuggestionsFetch() {
-  const input = getInput();
-  if (!input) return;
-  const query = input.value.trim();
-  if (RecentSearchUIState.debounceTimer) {
-    clearTimeout(RecentSearchUIState.debounceTimer);
-  }
-  if (query.length < 2) {
-    RecentSearchUIState.requestSeq += 1;
-    RecentSearchUIState.remoteSuggestions = [];
-    renderRecentSearches();
-    showRecentSearchesIfAllowed();
-    return;
-  }
-  RecentSearchUIState.debounceTimer = setTimeout(() => {
-    requestRemoteSuggestions(query);
-  }, 300);
-}
-
 function hideRecentSearches() {
   const box = getRecentSearchBox();
   if (!box) return;
@@ -335,13 +282,6 @@ function renderRecentSearches() {
     });
     list.appendChild(suggestionBtn);
   };
-
-  const remoteSuggestions = Array.isArray(RecentSearchUIState.remoteSuggestions)
-    ? RecentSearchUIState.remoteSuggestions
-    : [];
-  remoteSuggestions.forEach((suggestion) => {
-    appendSuggestionItem(suggestion);
-  });
 
   const matchedSuggestions = getLocalKeywordMatches(inputValue);
   matchedSuggestions.forEach((suggestion) => {
@@ -463,7 +403,6 @@ function bindRecentSearchEvents() {
   input.addEventListener('input', () => {
     RecentSearchUIState.lastActionByDirectClick = true;
     unlockRecentSearchesByUserAction();
-    scheduleRemoteSuggestionsFetch();
     renderRecentSearches();
     showRecentSearchesIfAllowed();
   });

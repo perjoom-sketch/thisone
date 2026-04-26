@@ -182,6 +182,13 @@ function addThinking() {
       return;
     }
 
+    if (cleanText.includes('최종 추천 리포트를 생성하고 있습니다')) {
+      el.textContent = '';
+      el.classList.remove('active');
+      el.classList.add('hidden');
+      return;
+    }
+
     if (cleanText) {
       el.textContent = cleanText;
       el.classList.add('active');

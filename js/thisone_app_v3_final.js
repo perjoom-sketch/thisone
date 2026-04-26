@@ -434,7 +434,6 @@ async function sendMsg(forceMode) {
 
           // [보안/UI] JSON 징후가 보이면 즉시 업데이트를 멈추고 고정 메시지 표시
           if (fullText.includes('[JSON]') || fullText.includes('{') || fullText.includes('":') || fullText.includes('```')) {
-            typingEl?.updateThought?.('최종 추천 리포트를 생성하고 있습니다...'); 
             return;
           }
 
@@ -442,6 +441,7 @@ async function sendMsg(forceMode) {
           if (thoughtMatch && thoughtMatch[1]) {
             typingEl?.updateLiveResponse(thoughtMatch[1].trim());
           }
+          window.ThisOneUI?.purgeProgressLeak?.();
         });
 
         // 타이머 해제
@@ -451,6 +451,7 @@ async function sendMsg(forceMode) {
         if (isFallbackShown) return; // 이미 폴백이 노출되었다면 AI 결과 렌더링 스킵
 
         typingEl?.remove();
+        window.ThisOneUI?.purgeProgressLeak?.();
 
         if (!aiDataText || !aiDataText.trim()) {
           triggerFallback('error');
@@ -580,7 +581,8 @@ async function sendMsg(forceMode) {
     } catch (err) {
       console.error("[ThisOne] Search flow error:", err);
       typingEl?.remove();
-      
+      window.ThisOneUI?.purgeProgressLeak?.();
+
       if (candidates && candidates.length > 0) {
         window.ThisOneUI?.renderResults?.(candidates, 0, 1, GeneralSearchState.currentSort, GeneralSearchState.resultMode || 'normal');
       } else {

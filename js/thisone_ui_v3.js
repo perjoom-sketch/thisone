@@ -138,9 +138,8 @@ function addThinking() {
   };
 
   // 실시간 스트리밍 텍스트 업데이트 함수
-  d.updateLiveResponse = (txt) => {
-    // 상태창 외 별도 렌더링 금지: 상태 라인만 갱신
-    d.updateThought?.(txt);
+  d.updateLiveResponse = () => {
+    // 상태창 단일화 정책: 별도 라이브 텍스트 렌더링 금지
   };
 
   // 일반 결과 보기 버튼 노출 함수
@@ -599,6 +598,23 @@ async function submitInquiry() {
   }
 }
 
+
+function purgeProgressLeak() {
+  const root = document.getElementById('msgContainer');
+  if (!root) return;
+  const banned = '최종 추천 리포트를 생성하고 있습니다';
+
+  root.querySelectorAll('*').forEach((el) => {
+    if (el.id === 'statusTextV2') return;
+    if ((el.textContent || '').includes(banned)) {
+      el.textContent = (el.textContent || '').replaceAll(banned, '').trim();
+      if (!el.textContent && !el.children.length) {
+        el.remove();
+      }
+    }
+  });
+}
+
 window.ThisOneUI = {
   renderHistoryBar,
   addUserMsg,
@@ -608,6 +624,7 @@ window.ThisOneUI = {
   renderRawResults,
   renderResults: renderRawResults,
   addResultCard,
+  purgeProgressLeak,
   loadDynamicTrends,
   openInquiryBoard,
   closeInquiryBoard,

@@ -365,13 +365,18 @@ body.search-mode .results-view {
 .recent-search-item {
   width: 100%;
   border: 0;
-  background: var(--color-bg-light);
+  background: transparent;
   color: #334155;
   border-radius: clamp(8px, 1.6vw, 10px);
   font-size: clamp(12px, 1.7vw, 14px);
   text-align: left;
   padding: clamp(7px, 1.4vw, 10px) clamp(10px, 1.8vw, 12px);
   cursor: pointer;
+}
+
+.recent-search-item:hover,
+.recent-search-item:focus-visible {
+  background: rgba(15, 23, 42, 0.05);
 }
 
 .settings-trigger {

@@ -1175,6 +1175,8 @@ body.search-mode .results-view {
   display: flex;
   align-items: center;
   gap: clamp(8px, 1.5vw, 12px);
+  position: relative;
+  overflow: hidden;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 999px;
@@ -1187,11 +1189,24 @@ body.search-mode .results-view {
   color: var(--color-primary);
   font-weight: 800;
   flex-shrink: 0;
+  animation: thinkingPulse 1.4s ease-in-out infinite;
 }
 
 .status-text {
   flex: 1;
   min-width: 0;
+}
+
+.status-line::after {
+  content: "";
+  position: absolute;
+  left: -38%;
+  bottom: 0;
+  width: 38%;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0), rgba(59, 130, 246, 0.85), rgba(59, 130, 246, 0));
+  animation: thinkingProgressFlow 1.6s ease-in-out infinite;
 }
 
 .fallback-inline-btn {
@@ -1284,6 +1299,16 @@ body.search-mode .results-view {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes thinkingPulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+@keyframes thinkingProgressFlow {
+  0% { left: -38%; }
+  100% { left: 100%; }
 }
 
 

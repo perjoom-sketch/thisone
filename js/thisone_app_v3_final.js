@@ -93,6 +93,13 @@ function getInput() { return document.getElementById('msgInput'); }
 function getSendBtn() { return document.getElementById('sendBtn'); }
 function getRecentSearchBox() { return document.getElementById('recentSearchBox'); }
 
+function blurSearchInput() {
+  const input = getInput();
+  if (input && document.activeElement === input) {
+    input.blur();
+  }
+}
+
 function loadRecentSearches() {
   try {
     const raw = localStorage.getItem(RECENT_SEARCHES_KEY);
@@ -369,7 +376,7 @@ async function sendMsg(forceMode) {
     currentQuery = txt; // 쿼리 저장 복구
 
     // 모바일 스크롤 진압 1단계: 즉시 포커스 해제 및 키보드 닫기
-    if (inp) inp.blur();
+    blurSearchInput();
 
     // 모바일 스크롤 진압 2단계: 여러 번에 걸쳐 상단 고정 (키보드 닫힘 애니메이션 대응)
     const fixScroll = () => {
@@ -765,7 +772,10 @@ async function sendMsg(forceMode) {
       RecentSearchUIState.isResultsRendering = false;
       hideAndLockRecentSearches();
       const b = getSendBtn(); if (b) b.disabled = false;
-      getInput()?.focus();
+      blurSearchInput();
+      if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+      }
     }
   } catch (globalErr) {
     console.error("[ThisOne] Global sendMsg Error:", globalErr);

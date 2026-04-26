@@ -148,10 +148,15 @@ body.search-mode .trending-section {
 body.search-mode .landing-view {
   padding: 16px;
   padding-bottom: 0;
+  position: relative;
+  z-index: 25;
+  overflow: visible;
 }
 
 body.search-mode .results-view {
   display: block !important;
+  position: relative;
+  z-index: 1;
 }
 
 /* ===== 랜딩 페이지 콘텐츠 (레벨 4) ===== */
@@ -338,40 +343,73 @@ body.search-mode .results-view {
 
 .recent-search-box {
   display: none;
-  margin-top: clamp(6px, 1.2vw, 10px);
-  padding: clamp(8px, 1.6vw, 12px);
+  width: 100%;
+  margin-top: clamp(0px, 0.4vw, 4px);
+  padding: clamp(6px, 1.2vw, 10px);
   border: 1px solid var(--color-border);
-  border-radius: clamp(10px, 2vw, 14px);
+  border-radius: clamp(10px, 1.8vw, 12px);
   background: #fff;
   text-align: left;
+  box-shadow: 0 clamp(6px, 1.4vw, 12px) clamp(18px, 3vw, 28px) rgba(15, 23, 42, 0.08);
 }
 
 .recent-search-box.show {
   display: block;
 }
 
+.recent-search-box.show + .search-hint {
+  display: none;
+}
+
 .recent-search-title {
-  font-size: clamp(11px, 1.5vw, 13px);
+  font-size: clamp(10px, 1.3vw, 12px);
   color: var(--color-text-light);
-  margin-bottom: clamp(6px, 1vw, 8px);
+  margin-bottom: clamp(4px, 0.8vw, 6px);
+  padding: 0 clamp(8px, 1.4vw, 10px);
 }
 
 .recent-search-list {
   display: flex;
   flex-direction: column;
-  gap: clamp(4px, 1vw, 6px);
+  gap: clamp(2px, 0.6vw, 4px);
 }
 
 .recent-search-item {
   width: 100%;
   border: 0;
-  background: var(--color-bg-light);
+  background: transparent;
   color: #334155;
-  border-radius: clamp(8px, 1.6vw, 10px);
-  font-size: clamp(12px, 1.7vw, 14px);
+  border-radius: clamp(6px, 1.2vw, 8px);
+  font-size: clamp(12px, 1.6vw, 13px);
   text-align: left;
-  padding: clamp(7px, 1.4vw, 10px) clamp(10px, 1.8vw, 12px);
+  padding: clamp(7px, 1.2vw, 9px) clamp(8px, 1.6vw, 10px);
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 1.2vw, 8px);
+}
+
+.recent-search-item:hover,
+.recent-search-item:focus-visible {
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.recent-search-icon {
+  font-size: clamp(11px, 1.4vw, 13px);
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.recent-search-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-search-item--query .recent-search-label {
+  color: #1e293b;
+  font-weight: 600;
 }
 
 .settings-trigger {
@@ -1170,6 +1208,8 @@ body.search-mode .results-view {
   display: flex;
   align-items: center;
   gap: clamp(8px, 1.5vw, 12px);
+  position: relative;
+  overflow: hidden;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 999px;
@@ -1182,11 +1222,24 @@ body.search-mode .results-view {
   color: var(--color-primary);
   font-weight: 800;
   flex-shrink: 0;
+  animation: thinkingPulse 1.4s ease-in-out infinite;
 }
 
 .status-text {
   flex: 1;
   min-width: 0;
+}
+
+.status-line::after {
+  content: "";
+  position: absolute;
+  left: -38%;
+  bottom: 0;
+  width: 38%;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0), rgba(59, 130, 246, 0.85), rgba(59, 130, 246, 0));
+  animation: thinkingProgressFlow 1.6s ease-in-out infinite;
 }
 
 .fallback-inline-btn {
@@ -1252,10 +1305,11 @@ body.search-mode .results-view {
     width: 100%;
     position: sticky;
     top: var(--header-height);
-    z-index: 10;
+    z-index: 25;
     background: #fff;
     padding-top: 10px;
     padding-bottom: 10px;
+    overflow: visible;
   }
 
   .search-wrap {
@@ -1279,6 +1333,16 @@ body.search-mode .results-view {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes thinkingPulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+@keyframes thinkingProgressFlow {
+  0% { left: -38%; }
+  100% { left: 100%; }
 }
 
 

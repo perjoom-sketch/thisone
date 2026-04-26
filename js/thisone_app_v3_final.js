@@ -137,33 +137,78 @@ function hideRecentSearches() {
   box.classList.remove('show');
 }
 
-function renderRecentSearches() {
+function getRecentSearchSuggestions(rawInput = '') {
+  const inputValue = String(rawInput || '').trim();
+  const hasInput = inputValue.length > 0;
+  const filtered = hasInput
+    ? RecentSearchUIState.searches.filter((query) => query.includes(inputValue))
+    : RecentSearchUIState.searches.slice();
+
+  const recentItems = filtered.slice(0, 5).map((query) => ({
+    type: 'recent',
+    query,
+    label: query,
+    icon: '🕘'
+  }));
+
+  if (!hasInput) return recentItems;
+
+  const hasExactMatch = RecentSearchUIState.searches.some((query) => query === inputValue);
+  if (!hasExactMatch) {
+    recentItems.unshift({
+      type: 'input',
+      query: inputValue,
+      label: `${inputValue} 검색`,
+      icon: '🔍'
+    });
+  }
+
+  return recentItems;
+}
+
+function runSearchFromDropdown(query) {
+  const normalized = String(query || '').trim();
+  if (!normalized) return;
+  const input = getInput();
+  hideAndLockRecentSearches();
+  if (input) {
+    input.value = normalized;
+    autoResize(input);
+  }
+  currentQuery = normalized;
+  sendMsg('thisone');
+}
+
+function renderRecentSearches(rawInput = '') {
   const list = RecentSearchUIState.listEl;
   const box = RecentSearchUIState.boxEl;
   if (!list || !box) return;
 
+  const suggestions = getRecentSearchSuggestions(rawInput);
   list.innerHTML = '';
-  if (!RecentSearchUIState.searches.length) {
+  if (!suggestions.length) {
     hideRecentSearches();
     return;
   }
 
-  RecentSearchUIState.searches.forEach((query) => {
+  suggestions.forEach((item) => {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'recent-search-item';
-    btn.textContent = query;
+    btn.className = `recent-search-item ${item.type === 'input' ? 'recent-search-item--query' : 'recent-search-item--history'}`;
+
+    const icon = document.createElement('span');
+    icon.className = 'recent-search-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = item.icon;
+
+    const label = document.createElement('span');
+    label.className = 'recent-search-label';
+    label.textContent = item.label;
+
+    btn.appendChild(icon);
+    btn.appendChild(label);
     btn.addEventListener('mousedown', (e) => e.preventDefault());
-    btn.addEventListener('click', () => {
-      const input = getInput();
-      hideAndLockRecentSearches();
-      if (input) {
-        input.value = query;
-        autoResize(input);
-      }
-      currentQuery = query;
-      sendMsg('thisone');
-    });
+    btn.addEventListener('click', () => runSearchFromDropdown(item.query));
     list.appendChild(btn);
   });
 }
@@ -174,16 +219,17 @@ function canShowRecentSearches() {
   if (loading) return false;
   if (RecentSearchUIState.hideLocked) return false;
   if (RecentSearchUIState.isResultsRendering) return false;
-  if (!RecentSearchUIState.searches.length) return false;
   const isFocused = document.activeElement === input;
   if (!isFocused) return false;
-  const isEmpty = !input.value.trim();
-  return isEmpty || RecentSearchUIState.lastActionByDirectClick;
+  const suggestions = getRecentSearchSuggestions(input.value);
+  return suggestions.length > 0;
 }
 
 function showRecentSearchesIfAllowed() {
   const box = getRecentSearchBox();
+  const input = getInput();
   if (!box) return;
+  renderRecentSearches(input ? input.value : '');
   if (!canShowRecentSearches()) {
     hideRecentSearches();
     return;
@@ -204,6 +250,7 @@ function unlockRecentSearchesByUserAction() {
 function buildRecentSearchUi() {
   const searchWrap = document.getElementById('landingSearch');
   if (!searchWrap || getRecentSearchBox()) return;
+  const hint = searchWrap.querySelector('.search-hint');
 
   const box = document.createElement('div');
   box.id = 'recentSearchBox';
@@ -212,7 +259,11 @@ function buildRecentSearchUi() {
     <div class="recent-search-title">최근 검색어</div>
     <div class="recent-search-list" id="recentSearchList"></div>
   `;
-  searchWrap.appendChild(box);
+  if (hint) {
+    searchWrap.insertBefore(box, hint);
+  } else {
+    searchWrap.appendChild(box);
+  }
 
   RecentSearchUIState.boxEl = box;
   RecentSearchUIState.listEl = box.querySelector('#recentSearchList');
@@ -225,11 +276,11 @@ function bindRecentSearchEvents() {
   input.addEventListener('click', () => {
     RecentSearchUIState.lastActionByDirectClick = true;
     unlockRecentSearchesByUserAction();
-    renderRecentSearches();
     showRecentSearchesIfAllowed();
   });
 
   input.addEventListener('focus', () => {
+    unlockRecentSearchesByUserAction();
     showRecentSearchesIfAllowed();
   });
 

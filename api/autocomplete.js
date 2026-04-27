@@ -1,5 +1,51 @@
+const { kv } = require('@vercel/kv');
+
 function normalizeString(value) {
   return String(value || '').replace(/<[^>]*>/g, '').trim();
+}
+
+function normalizeCacheQuery(value) {
+  return normalizeString(value).replace(/\s+/g, ' ').toLowerCase();
+}
+
+function getAutocompleteCacheKey(query) {
+  return `autocomplete:v1:${encodeURIComponent(normalizeCacheQuery(query))}`;
+}
+
+function normalizeItems(items) {
+  if (!Array.isArray(items)) return [];
+  return [...new Set(items.map((item) => normalizeString(item)).filter(Boolean))].slice(0, 10);
+}
+
+async function readAutocompleteCache(query) {
+  try {
+    const key = getAutocompleteCacheKey(query);
+    const cached = await kv.get(key);
+    if (Array.isArray(cached)) return normalizeItems(cached);
+    if (cached && Array.isArray(cached.items)) return normalizeItems(cached.items);
+    return [];
+  } catch (_) {
+    return [];
+  }
+}
+
+async function writeAutocompleteCache(query, items, source) {
+  const normalizedItems = normalizeItems(items);
+  if (!normalizeCacheQuery(query) || normalizedItems.length === 0) return;
+
+  try {
+    const key = getAutocompleteCacheKey(query);
+    await kv.set(key, {
+      query: normalizeCacheQuery(query),
+      items: normalizedItems,
+      source: source || 'unknown',
+      updatedAt: new Date().toISOString()
+    });
+    await kv.incr(`${key}:hitCount`);
+  } catch (_) {
+    // KV is an optional acceleration/data-building layer.
+    // Autocomplete must continue to work even when KV is not configured.
+  }
 }
 
 function extractFromItem(item) {
@@ -44,7 +90,7 @@ function extractAutocompleteItems(payload) {
     });
   });
 
-  return [...new Set(candidates)].slice(0, 10);
+  return normalizeItems(candidates);
 }
 
 async function fetchWithTimeout(url, options, timeoutMs) {
@@ -77,6 +123,8 @@ function buildResponse(items, debugEnabled, debugInfo) {
     status: debugInfo.status || null,
     rawType: debugInfo.rawType || null,
     itemCount: typeof debugInfo.itemCount === 'number' ? debugInfo.itemCount : 0,
+    cacheHit: Boolean(debugInfo.cacheHit),
+    cacheCount: typeof debugInfo.cacheCount === 'number' ? debugInfo.cacheCount : 0,
     error: debugInfo.error || null
   };
 }
@@ -96,6 +144,21 @@ async function handler(req, res) {
   }
 
   const debugEnabled = parseDebugFlag(req.query.debug);
+  const cachedItems = await readAutocompleteCache(q);
+  const debugInfo = {
+    source: cachedItems.length > 0 ? 'cache' : null,
+    status: cachedItems.length > 0 ? 200 : null,
+    rawType: null,
+    itemCount: cachedItems.length,
+    cacheHit: cachedItems.length > 0,
+    cacheCount: cachedItems.length,
+    error: null
+  };
+
+  if (cachedItems.length >= 3) {
+    return res.status(200).json(buildResponse(cachedItems, debugEnabled, debugInfo));
+  }
+
   const endpoints = [
     {
       source: 'shopping',
@@ -112,14 +175,6 @@ async function handler(req, res) {
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
     Accept: 'application/json,text/plain,*/*',
     Referer: 'https://search.shopping.naver.com/'
-  };
-
-  const debugInfo = {
-    source: null,
-    status: null,
-    rawType: null,
-    itemCount: 0,
-    error: null
   };
 
   for (const endpoint of endpoints) {
@@ -143,14 +198,18 @@ async function handler(req, res) {
       debugInfo.itemCount = items.length;
       debugInfo.error = null;
 
-      return res.status(200).json(buildResponse(items, debugEnabled, debugInfo));
+      if (items.length > 0) {
+        await writeAutocompleteCache(q, items, endpoint.source);
+      }
+
+      return res.status(200).json(buildResponse(items.length ? items : cachedItems, debugEnabled, debugInfo));
     } catch (error) {
       debugInfo.source = endpoint.source;
       debugInfo.error = error instanceof Error ? error.message : 'Unknown error';
     }
   }
 
-  return res.status(200).json(buildResponse([], debugEnabled, debugInfo));
+  return res.status(200).json(buildResponse(cachedItems, debugEnabled, debugInfo));
 }
 
 module.exports = handler;

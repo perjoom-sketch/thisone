@@ -47,7 +47,7 @@
 
     const brandModelPatterns = [
       /\b(FLEXISPOT)\s+([A-Z]{1,3}\d{1,4}[A-Z0-9-]*)\b/,
-      /\b(ROBOROCK)\s+([A-Z]{1,3}\d{1,4}[A-Z0-9\s-]*(?:ULTRA|MAXV|PRO|PLUS)?)\b/,
+      /\b(ROBOROCK)\s+([A-Z]{1,3}\d{1,4}(?:\s*(?:MAXV|ULTRA|PRO|PLUS))*)\b/,
       /\b(DYSON)\s+([A-Z0-9]{1,8}(?:\s+(?:ABSOLUTE|COMPLETE|DETECT|SLIM|PLUS|PRO))?)\b/,
       /\b(SAMSUNG|LG)\s+([A-Z]{1,10}\d{2,}[A-Z0-9-]*)\b/
     ];
@@ -59,8 +59,8 @@
 
     const codePatterns = [
       /\b([A-Z]{1,10}-\d{2,}[A-Z0-9-]*)\b/,
-      /\b([A-Z]{1,10}\d{2,}[A-Z0-9-]*)\b/,
-      /\b(\d{3,}[A-Z]{1,10})\b/
+      /\b([A-Z]{2,10}\d{2,}[A-Z0-9-]*)\b/,
+      /\b(\d{3,}[A-Z]{2,10})\b/
     ];
 
     for (const pattern of codePatterns) {
@@ -68,11 +68,7 @@
       if (match) return match[1];
     }
 
-    return normalized
-      .split(/\s+/)
-      .filter((word) => word.length >= 2)
-      .slice(0, 3)
-      .join(' ');
+    return '';
   }
 
   function candidateQuality(candidate) {
@@ -102,12 +98,12 @@
 
   function dedupeByStrongModel(items) {
     const map = new Map();
-    const output = [];
+    const passthrough = [];
 
     (items || []).forEach((item) => {
       const key = extractStrongModelKey(item && item.name);
       if (!key) {
-        output.push(item);
+        passthrough.push(item);
         return;
       }
 
@@ -116,7 +112,7 @@
       map.set(key, prev ? preferCandidate(prev, enriched) : enriched);
     });
 
-    return [...map.values(), ...output];
+    return [...map.values(), ...passthrough];
   }
 
   function patchedBuildCandidates(...args) {

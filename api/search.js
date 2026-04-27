@@ -7,15 +7,49 @@ function stripTags(text) {
     .trim();
 }
 
+function normalizeSpaces(text) {
+  return stripTags(text).replace(/\s+/g, ' ').trim();
+}
+
 function buildNaverShoppingSearchLink(query) {
-  const safeQuery = stripTags(query).replace(/\s+/g, ' ').trim();
+  const safeQuery = normalizeSpaces(query);
   return `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(safeQuery)}`;
+}
+
+function getCompactShoppingQuery(name, fallbackQuery) {
+  const text = normalizeSpaces(name || fallbackQuery);
+  const upper = text.toUpperCase();
+
+  const modelPatterns = [
+    { brand: '로보락', pattern: /(?:로보락|ROBOROCK)\s*([A-Z]{1,3}\d{1,4}(?:\s*(?:MAXV|MAX V|ULTRA|PRO|PLUS))*)/i },
+    { brand: '다이슨', pattern: /(?:다이슨|DYSON)\s*([A-Z0-9]{1,8}(?:\s*(?:에어랩|AIRWRAP|ABSOLUTE|COMPLETE|DETECT|SLIM|PLUS|PRO))?)/i },
+    { brand: 'FLEXISPOT', pattern: /(?:플렉티엠|플렉스팟|플렉시스팟|FLEXISPOT)\s*([A-Z]{1,3}\d{1,4}[A-Z0-9-]*)/i },
+    { brand: '삼성', pattern: /(?:삼성|SAMSUNG)\s*([A-Z]{1,10}\d{2,}[A-Z0-9-]*)/i },
+    { brand: 'LG', pattern: /(?:LG전자|엘지|LG)\s*([A-Z]{1,10}\d{2,}[A-Z0-9-]*)/i }
+  ];
+
+  for (const { brand, pattern } of modelPatterns) {
+    const match = text.match(pattern) || upper.match(pattern);
+    if (match && match[1]) {
+      return normalizeSpaces(`${brand} ${match[1]}`);
+    }
+  }
+
+  return text
+    .replace(/\b(정품|공식|공식판매|국내정품|사은품|무료배송|당일배송|빠른배송|방문설치|설치|행사|특가)\b/g, ' ')
+    .replace(/\b(화이트|블랙|실버|그레이|레드|블루|핑크|베이지|오크|월넛|단품|세트)\b/g, ' ')
+    .replace(/[,/|+·ㆍ:]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .slice(0, 6)
+    .join(' ');
 }
 
 function buildSafeShoppingLink(item, name, fallbackQuery) {
   // 원본 판매처/네이버 경유 링크는 일부 환경에서 로그인 화면으로 빠질 수 있다.
   // 사용자가 먼저 안전하게 상품을 확인하도록 네이버 쇼핑 검색결과 링크를 우선 사용한다.
-  return buildNaverShoppingSearchLink(name || fallbackQuery);
+  return buildNaverShoppingSearchLink(getCompactShoppingQuery(name, fallbackQuery));
 }
 
 // 자연어 쿼리를 네이버 쇼핑에 잘 맞는 키워드로 변환

@@ -191,6 +191,55 @@ function renderBadgeList(badges) {
   `;
 }
 
+function normalizeUiText(value) {
+  return String(value || '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function parseUiPrice(value) {
+  return Number(String(value || '').replace(/[^\d]/g, '')) || 0;
+}
+
+function isUiMaskNonRetail(item = {}) {
+  const q = normalizeUiText(typeof currentQuery !== 'undefined' ? currentQuery : '');
+  const text = normalizeUiText([item.name, item.store, item.delivery, item.reason, item.review].filter(Boolean).join(' '));
+  if (!q.includes('마스크') || !text.includes('마스크')) return false;
+
+  const strongWords = ['판촉', '판촉물', '홍보', '인쇄', '제작', '주문제작', '단체', '행사', '기념품', '답례품', '사은품', '기프트', '기프트랜드'];
+  const consumableWords = ['필터', '교체필터', '리필', '교체용', '호환', '부품', '소모품', '패드', '스트랩', '클립', '고리', '밸브', '케이스'];
+  const price = Number(item.totalPriceNum || item.priceNum || item.lprice || 0) || parseUiPrice(item.price);
+
+  if (strongWords.some((word) => text.includes(word))) return true;
+  if (consumableWords.some((word) => text.includes(word))) return true;
+  if (text.includes('상세페이지 확인') && price > 0 && price < 1000) return true;
+  return false;
+}
+
+function hasUsableUiProductData(item = {}) {
+  const name = String(item.name || '').trim();
+  const price = String(item.price || item.priceText || '').trim();
+  const link = String(item.link || item.productUrl || item.url || '').trim();
+  if (!name || name === '상품명 없음' || name === '상품') return false;
+  if (!price || price === '가격 정보 없음') return false;
+  if (!link || link === '#') return false;
+  return true;
+}
+
+function filterUiVisibleItems(items = [], { strict = false } = {}) {
+  const normalized = (items || []).map((item) => normalizeRawItem(item));
+  const filtered = normalized.filter((item) => {
+    if (!hasUsableUiProductData(item)) return false;
+    if (item.maskNonRetailSuspect || item.maskConsumableSuspect || item.isExcluded || item.excludeFromPriceRank) return false;
+    if (Array.isArray(item.badges) && item.badges.some((badge) => /소모품\s*의심|판촉\/제작\s*의심|액세서리\s*의심/.test(String(badge || '')))) return false;
+    if (isUiMaskNonRetail(item)) return false;
+    return true;
+  });
+
+  if (filtered.length || strict) return filtered;
+
+  // 일반 결과 전체 소거 방지: 실제 상품 데이터가 있는 것만 되살림.
+  return normalized.filter(hasUsableUiProductData);
+}
+
 function normalizeRawItem(p = {}) {
   const pick = (...values) => {
     for (const value of values) {
@@ -217,7 +266,9 @@ function normalizeRawItem(p = {}) {
 
   return {
     name: pick(p.name, p.title, p.productName, '상품명 없음'),
-    price: formatPrice(p.price, p.lprice, p.lowPrice, p.salePrice),
+    price: formatPrice(p.price, p.priceText, p.lprice, p.lowPrice, p.salePrice),
+    priceNum: Number(p.priceNum || p.lprice || 0) || parseUiPrice(p.price || p.priceText),
+    totalPriceNum: Number(p.totalPriceNum || p.priceNum || p.lprice || 0) || parseUiPrice(p.price || p.priceText),
     store: pick(p.store, p.mallName, p.mall, p.seller, p.sellerName, p.shopName, '판매처 정보 없음'),
     delivery: pick(p.delivery, p.shipping, p.deliveryInfo, p.deliveryFeeText, p.shippingInfo, '배송 정보 확인 필요'),
     review: pick(p.review, p.reviewText, p.reviewCountText, p.ratingText),
@@ -226,6 +277,9 @@ function normalizeRawItem(p = {}) {
     badges: Array.isArray(p.badges) ? p.badges : [],
     reason: p.reason || '',
     rankReason: p.rankReason || '',
+    maskNonRetailSuspect: !!p.maskNonRetailSuspect,
+    maskConsumableSuspect: !!p.maskConsumableSuspect,
+    isExcluded: !!p.isExcluded,
     excludeFromPriceRank: !!p.excludeFromPriceRank
   };
 }
@@ -239,8 +293,8 @@ function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 
   if (existing) existing.remove();
 
   const isFallbackGeneral = resultMode === 'fallback_general';
-  const cardsHtml = (items || [])
-    .map((item) => normalizeRawItem(item))
+  const visibleItems = filterUiVisibleItems(items, { strict: false });
+  const cardsHtml = visibleItems
     .map((item, idx) => window.ThisOneResultCards?.renderPickCard?.(item, idx === 0, { hideRecommendationUi: isFallbackGeneral }) || '')
     .join('');
 
@@ -313,7 +367,7 @@ function addResultCard(result) {
   const content = document.getElementById('msgContainer');
   if (!content) return;
 
-  const cards = Array.isArray(result?.cards) ? result.cards : [];
+  const cards = filterUiVisibleItems(Array.isArray(result?.cards) ? result.cards : [], { strict: true });
   const rejects = Array.isArray(result?.rejects) ? result.rejects : [];
   const aiComment = String(result?.aiComment || '').trim();
 

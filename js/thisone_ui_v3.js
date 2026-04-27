@@ -205,13 +205,20 @@ function isUiMaskNonRetail(item = {}) {
   if (!q.includes('마스크') || !text.includes('마스크')) return false;
 
   const strongWords = ['판촉', '판촉물', '홍보', '인쇄', '제작', '주문제작', '단체', '행사', '기념품', '답례품', '사은품', '기프트', '기프트랜드'];
-  const consumableWords = ['필터', '교체필터', '리필', '교체용', '호환', '부품', '소모품', '패드', '스트랩', '클립', '고리', '밸브', '케이스'];
+  const consumableWords = ['필터', '교체필터', '필터교체', '리필', '교체용', '교체형', '호환', '부품', '소모품', '패드', '스트랩', '클립', '고리', '밸브', '케이스'];
   const price = Number(item.totalPriceNum || item.priceNum || item.lprice || 0) || parseUiPrice(item.price);
 
   if (strongWords.some((word) => text.includes(word))) return true;
   if (consumableWords.some((word) => text.includes(word))) return true;
   if (text.includes('상세페이지 확인') && price > 0 && price < 1000) return true;
   return false;
+}
+
+function isUiMaskMainProduct(item = {}) {
+  const text = normalizeUiText([item.name, item.store, item.delivery, item.reason, item.review].filter(Boolean).join(' '));
+  if (!text.includes('마스크')) return false;
+  if (isUiMaskNonRetail(item)) return false;
+  return /kf\s*-?\s*(94|80|ad)/i.test(text) || /\d+\s*(매|개입|개|팩|박스|box)/i.test(text) || ['새부리', '덴탈', '일회용', '보건용', '비말', '방역', '의약외품', '세탁마스크', '면마스크'].some((word) => text.includes(word));
 }
 
 function hasUsableUiProductData(item = {}) {
@@ -236,7 +243,11 @@ function filterUiVisibleItems(items = [], { strict = false } = {}) {
 
   if (filtered.length || strict) return filtered;
 
-  // 일반 결과 전체 소거 방지: 실제 상품 데이터가 있는 것만 되살림.
+  const q = normalizeUiText(typeof currentQuery !== 'undefined' ? currentQuery : '');
+  if (q.includes('마스크')) {
+    return normalized.filter((item) => isUiMaskMainProduct(item) && hasUsableUiProductData(item));
+  }
+
   return normalized.filter(hasUsableUiProductData);
 }
 
@@ -288,7 +299,6 @@ function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 
   const content = document.getElementById('msgContainer');
   if (!content) return;
 
-  // 기존 일반 결과가 있다면 제거 (페이지 전환 시 교체)
   const existing = document.querySelector('.general-results-wrap');
   if (existing) existing.remove();
 
@@ -298,8 +308,7 @@ function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 
     .map((item, idx) => window.ThisOneResultCards?.renderPickCard?.(item, idx === 0, { hideRecommendationUi: isFallbackGeneral }) || '')
     .join('');
 
-  const totalPages = Math.min(Math.ceil(total / 30), 10); // 최대 10페이지까지만 지원
-  
+  const totalPages = Math.min(Math.ceil(total / 30), 10);
   let paginationHtml = '';
   if (totalPages > 1) {
     paginationHtml = `
@@ -315,6 +324,10 @@ function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 
     ? `일반 검색 결과(디스원 AI 추천 아님) ${total > 0 ? `(총 ${total.toLocaleString()}개)` : ''}`
     : `일반 검색 결과 ${total > 0 ? `(총 ${total.toLocaleString()}개)` : ''}`;
 
+  const emptyHtml = !cardsHtml
+    ? `<div class="empty-state">판촉/제작/소모품 후보를 제외하니 표시할 본품 후보가 없습니다.</div>`
+    : '';
+
   const html = `
     <div class="ai-result general-results-wrap">
       <div class="ai-label-row">
@@ -329,14 +342,14 @@ function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 
       </div>
       <div class="pick-list">
         ${cardsHtml}
+        ${emptyHtml}
       </div>
       ${paginationHtml}
     </div>
   `;
 
   content.insertAdjacentHTML('beforeend', html);
-  
-  // 첫 페이지 진입 시에만 스크롤 (페이지 전환 시에는 결과 영역으로 스크롤)
+
   if (currentPage > 1) {
     const wrap = document.querySelector('.general-results-wrap');
     if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -411,14 +424,12 @@ function addResultCard(result) {
   `;
 
   content.insertAdjacentHTML('beforeend', html);
-  // 강제 스크롤 제거: 사용자 시야 방해 방지
 }
 
 
 async function loadDynamicTrends() {
   const container = document.getElementById('trendingChips');
   if (!container) return;
-  // 기존 프리미엄 칩이 이미 있다면 덮어쓰지 않음 (우선순위: 프리미엄 랭킹)
   if (container.children.length > 0) return;
 
   try {
@@ -426,7 +437,7 @@ async function loadDynamicTrends() {
     const data = await response.json();
 
     if (data.status === 'success' && data.chips) {
-      container.innerHTML = ''; 
+      container.innerHTML = '';
       data.chips.forEach((chip, i) => {
         const chipEl = document.createElement('button');
         chipEl.className = 'chip';
@@ -465,7 +476,6 @@ function showInquiryForm() {
 function hideInquiryForm() {
   document.getElementById('inquiryListArea').classList.remove('hidden');
   document.getElementById('inquiryFormArea').classList.remove('show');
-  // 수정 모드 초기화
   window._editModeId = null;
   const submitBtn = document.getElementById('inqSubmitBtn');
   if (submitBtn) submitBtn.textContent = '등록하기';
@@ -480,7 +490,6 @@ async function fetchInquiries() {
     const result = await res.json();
 
     if (result.status === 'success' && Array.isArray(result.data)) {
-      // 전역 캐시에 데이터 저장 (데이터 바인딩 버그 방지)
       window._inquiryCache = result.data;
 
       if (result.data.length === 0) {
@@ -515,7 +524,6 @@ async function fetchInquiries() {
 }
 
 function prepareEdit(id) {
-  // 캐시에서 해당 데이터 찾기
   const item = (window._inquiryCache || []).find(inq => String(inq.id) === String(id));
   if (!item) {
     alert('데이터를 찾을 수 없습니다.');
@@ -533,7 +541,7 @@ function prepareEdit(id) {
   if (titleEl) titleEl.value = item.title;
   if (contentEl) contentEl.value = item.content;
   if (passwordEl) passwordEl.value = pw;
-  
+
   showInquiryForm();
   const submitBtn = document.getElementById('inqSubmitBtn');
   if (submitBtn) submitBtn.textContent = '수정 완료';
@@ -543,7 +551,7 @@ let lastSubmitTime = 0;
 
 async function submitInquiry() {
   const now = Date.now();
-  if (now - lastSubmitTime < 10000) { // 10초 쿨타임
+  if (now - lastSubmitTime < 10000) {
     const remaining = Math.ceil((10000 - (now - lastSubmitTime)) / 1000);
     alert(`도배 방지를 위해 ${remaining}초 후 다시 시도해주세요.`);
     return;
@@ -584,14 +592,14 @@ async function submitInquiry() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
-    
+
     console.log('[Inquiry] Status:', res.status);
     const result = await res.json();
     console.log('[Inquiry] Result:', result);
 
     if (res.ok && result.status === 'success') {
       alert(isEdit ? '문의가 수정되었습니다.' : '문의가 성공적으로 등록되었습니다.');
-      lastSubmitTime = Date.now(); 
+      lastSubmitTime = Date.now();
       if (document.getElementById('inqTitle')) document.getElementById('inqTitle').value = '';
       if (document.getElementById('inqPassword')) document.getElementById('inqPassword').value = '';
       if (document.getElementById('inqContent')) document.getElementById('inqContent').value = '';
@@ -659,16 +667,16 @@ function showAdminStats(data) {
   m.id = modalId;
   m.className = 'modal-overlay';
   m.style.cssText = 'display:flex; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.8); z-index:9999999; align-items:center; justify-content:center;';
-  
+
   const maxVal = Math.max(...data.history.map(h => h.count), 1);
-  
+
   m.innerHTML = `
     <div class="modal-content" style="background:#fff; border-radius:24px; padding:32px; width:90%; max-width:450px; box-shadow:0 20px 50px rgba(0,0,0,0.3); position:relative;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
         <h3 style="margin:0; font-size:19px; font-weight:800; color:#0f172a;">📊 방문자 통계 리포트</h3>
         <button onclick="this.closest('#adminStatsModal').remove()" style="background:#f1f5f9; border:none; width:30px; height:30px; border-radius:50%; cursor:pointer;">✕</button>
       </div>
-      
+
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:28px;">
         <div style="background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); padding:20px; border-radius:18px; text-align:center;">
           <div style="font-size:12px; color:#3b82f6; font-weight:700; margin-bottom:6px;">오늘 유입</div>

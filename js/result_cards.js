@@ -15,6 +15,10 @@
       .replace(/>/g, '&gt;');
   }
 
+  function normalizeBadgeText(text) {
+    return text === '배송비 미확인' ? '배송비 상세확인' : text;
+  }
+
   function getBadgeClass(text) {
     if (text.includes('가성비')) return 'badge-value';
     if (text.includes('신뢰')) return 'badge-trust';
@@ -30,7 +34,7 @@
       : `<div class="row-img-placeholder">상품</div>`;
 
     const badgesHtml = !hideRecommendationUi && Array.isArray(card.badges) && card.badges.length
-      ? card.badges.map((b) => `<span class="row-badge-item ${getBadgeClass(b)}">${esc(b)}</span>`).join('')
+      ? card.badges.map((badge) => normalizeBadgeText(badge)).map((b) => `<span class="row-badge-item ${getBadgeClass(b)}">${esc(b)}</span>`).join('')
       : '';
 
     const labelBadge = !hideRecommendationUi && card.label

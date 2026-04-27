@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThisOne Search Diagnostics</title>
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background: #f6f7f9; color: #111827; }
+    main { max-width: 980px; margin: 0 auto; padding: 28px 16px 60px; }
+    h1 { font-size: 24px; margin: 0 0 8px; }
+    p { color: #6b7280; line-height: 1.55; }
+    textarea { width: 100%; min-height: 150px; box-sizing: border-box; padding: 14px; border: 1px solid #d1d5db; border-radius: 14px; font-size: 15px; line-height: 1.5; resize: vertical; background: white; }
+    button { border: 0; border-radius: 999px; padding: 11px 18px; font-weight: 700; cursor: pointer; background: #111827; color: white; }
+    button:disabled { opacity: 0.5; cursor: wait; }
+    .panel { background: white; border: 1px solid #e5e7eb; border-radius: 20px; padding: 18px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05); margin-top: 18px; }
+    .actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
+    .muted { color: #6b7280; font-size: 13px; }
+    .result { margin-top: 14px; border: 1px solid #e5e7eb; border-radius: 16px; background: white; overflow: hidden; }
+    .result-head { padding: 14px 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .query { font-weight: 800; }
+    .badge { display: inline-flex; padding: 4px 9px; border-radius: 999px; background: #eef2ff; color: #3730a3; font-size: 12px; font-weight: 700; }
+    .badge.warn { background: #fff7ed; color: #9a3412; }
+    .badge.bad { background: #fef2f2; color: #991b1b; }
+    .body { padding: 14px 16px; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 12px 0; }
+    .metric { background: #f9fafb; border-radius: 12px; padding: 10px; }
+    .metric b { display: block; font-size: 18px; margin-bottom: 2px; }
+    .metric span { color: #6b7280; font-size: 12px; }
+    ol { padding-left: 20px; }
+    li { margin: 7px 0; }
+    code { background: #f3f4f6; border-radius: 6px; padding: 2px 5px; }
+    pre { white-space: pre-wrap; word-break: break-word; background: #0f172a; color: #e5e7eb; padding: 14px; border-radius: 14px; overflow: auto; }
+    @media (max-width: 720px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>ThisOne 검색 진단기</h1>
+    <p>검색어별로 네이버 raw 결과, 디스원 검색어 보정, 제목 샘플, 의심 플래그를 확인한다. 검색 안 되는 키워드가 어느 단계에서 죽는지 찾기 위한 도구다.</p>
+
+    <section class="panel">
+      <textarea id="queries">김서방마스크
+화장지 3겹 30m 30롤
+로보락 S8 MaxV Ultra
+다이슨 에어랩</textarea>
+      <div class="actions">
+        <button id="runBtn" type="button">진단 실행</button>
+        <span class="muted">한 줄에 하나씩 입력</span>
+      </div>
+    </section>
+
+    <section id="results"></section>
+  </main>
+
+  <script>
+    const runBtn = document.getElementById('runBtn');
+    const queriesEl = document.getElementById('queries');
+    const resultsEl = document.getElementById('results');
+
+    function esc(value) {
+      return String(value || '').replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[ch]));
+    }
+
+    function badgeClass(data) {
+      if (!data.ok || data.diagnosis?.status === 'no_raw_results') return 'bad';
+      if ((data.diagnosis?.suspects || []).length) return 'warn';
+      return '';
+    }
+
+    function renderResult(data) {
+      const suspects = data.diagnosis?.suspects || [];
+      const sample = data.sample || [];
+      return `
+        <article class="result">
+          <div class="result-head">
+            <div>
+              <div class="query">${esc(data.query)}</div>
+              <div class="muted">개선 검색어: <code>${esc(data.improvedQuery)}</code></div>
+            </div>
+            <span class="badge ${badgeClass(data)}">${esc(data.diagnosis?.status || (data.ok ? 'ok' : 'error'))}</span>
+          </div>
+          <div class="body">
+            <div class="grid">
+              <div class="metric"><b>${esc(data.naver?.total ?? '-')}</b><span>Naver total</span></div>
+              <div class="metric"><b>${esc(data.naver?.returnedItems ?? '-')}</b><span>returned items</span></div>
+              <div class="metric"><b>${esc(suspects.length)}</b><span>suspects</span></div>
+              <div class="metric"><b>${esc(Object.keys(data.flagCounts || {}).length)}</b><span>flag types</span></div>
+            </div>
+            ${suspects.length ? `<p>의심: ${suspects.map((s) => `<code>${esc(s)}</code>`).join(' ')}</p>` : '<p>큰 의심 플래그 없음</p>'}
+            ${data.error ? `<p>오류: <code>${esc(data.error)}</code></p>` : ''}
+            <ol>
+              ${sample.map((item) => `<li><b>${esc(item.title)}</b><br><span class="muted">${esc(item.mallName)} · ${Number(item.lprice || 0).toLocaleString('ko-KR')}원 · type ${esc(item.productType)} · ${esc((item.flags || []).join(', ') || 'flag 없음')}</span></li>`).join('')}
+            </ol>
+            <details>
+              <summary>JSON 보기</summary>
+              <pre>${esc(JSON.stringify(data, null, 2))}</pre>
+            </details>
+          </div>
+        </article>
+      `;
+    }
+
+    async function diagnose(query) {
+      const response = await fetch(`/api/diagnose-search?q=${encodeURIComponent(query)}`);
+      return response.json();
+    }
+
+    runBtn.addEventListener('click', async () => {
+      const queries = queriesEl.value.split('\n').map((q) => q.trim()).filter(Boolean);
+      resultsEl.innerHTML = '';
+      runBtn.disabled = true;
+      runBtn.textContent = '진단 중...';
+      try {
+        for (const query of queries) {
+          const holder = document.createElement('div');
+          holder.innerHTML = `<article class="result"><div class="body">${esc(query)} 진단 중...</div></article>`;
+          resultsEl.appendChild(holder);
+          const data = await diagnose(query);
+          holder.innerHTML = renderResult(data);
+        }
+      } finally {
+        runBtn.disabled = false;
+        runBtn.textContent = '진단 실행';
+      }
+    });
+  </script>
+</body>
+</html>

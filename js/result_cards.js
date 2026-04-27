@@ -70,7 +70,7 @@
 
         <div class="row-price-area">
           <div class="row-price">${esc(card.price || '가격 정보 없음')}</div>
-          <div class="row-cta">상세보기</div>
+          <div class="row-cta">최종가 확인</div>
         </div>
       </article>
     </a>

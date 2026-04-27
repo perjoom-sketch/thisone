@@ -7,6 +7,21 @@ function stripTags(text) {
     .trim();
 }
 
+function buildNaverShoppingSearchLink(query) {
+  const safeQuery = stripTags(query).replace(/\s+/g, ' ').trim();
+  return `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(safeQuery)}`;
+}
+
+function buildSafeShoppingLink(item, name, fallbackQuery) {
+  const productId = String(item?.productId || '').replace(/[^0-9]/g, '');
+
+  if (productId) {
+    return `https://search.shopping.naver.com/catalog/${productId}`;
+  }
+
+  return buildNaverShoppingSearchLink(name || fallbackQuery);
+}
+
 // 자연어 쿼리를 네이버 쇼핑에 잘 맞는 키워드로 변환
 function improveQuery(originalQuery) {
   let q = String(originalQuery || '').trim();
@@ -108,16 +123,23 @@ async function handler(req, res) {
     }
 
     // 기본 아이템 리스트
-    let items = (data.items || []).map((item, idx) => ({
-      id: String(idx + 1),
-      name: stripTags(item.title),
-      link: item.link || '',
-      image: item.image || '',
-      lprice: Number(item.lprice || 0),
-      priceText: item.lprice ? `${Number(item.lprice).toLocaleString('ko-KR')}원` : '',
-      store: stripTags(item.mallName || ''),
-      productId: item.productId || ''
-    }));
+    let items = (data.items || []).map((item, idx) => {
+      const name = stripTags(item.title);
+      const originalLink = item.link || '';
+
+      return {
+        id: String(idx + 1),
+        name,
+        link: buildSafeShoppingLink(item, name, improvedQ),
+        originalLink,
+        directLink: originalLink,
+        image: item.image || '',
+        lprice: Number(item.lprice || 0),
+        priceText: item.lprice ? `${Number(item.lprice).toLocaleString('ko-KR')}원` : '',
+        store: stripTags(item.mallName || ''),
+        productId: item.productId || ''
+      };
+    });
 
     // 검색 결과 반환
     const finalItems = items;

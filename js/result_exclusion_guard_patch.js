@@ -3,6 +3,10 @@
     return String(value || '').toLowerCase().replace(/\s+/g, ' ').trim();
   }
 
+  function parsePriceNumber(value) {
+    return Number(String(value || '').replace(/[^\d]/g, '')) || 0;
+  }
+
   function hasBadge(item, pattern) {
     return Array.isArray(item && item.badges) && item.badges.some((badge) => pattern.test(String(badge || '')));
   }
@@ -43,20 +47,25 @@
       item && item.reason,
       item && item.review
     ].filter(Boolean).join(' '));
+    const price = Number(item && (item.totalPriceNum || item.priceNum || item.lprice || 0)) || parsePriceNumber(item && item.price);
 
     if (!q.includes('마스크')) return false;
     if (!text.includes('마스크')) return false;
 
-    const promoWords = [
+    const strongPromoWords = [
       '판촉', '판촉물', '홍보', '인쇄', '제작', '주문제작', '단체', '행사',
-      '기념품', '답례품', '사은품', '기프트', '기프트랜드', '상세페이지 확인'
+      '기념품', '답례품', '사은품', '기프트', '기프트랜드'
     ];
     const consumableWords = [
       '필터', '교체필터', '리필', '교체용', '호환', '부품', '소모품',
       '패드', '스트랩', '클립', '고리', '밸브', '케이스'
     ];
 
-    return promoWords.some((word) => text.includes(word)) || consumableWords.some((word) => text.includes(word));
+    const hasStrongPromo = strongPromoWords.some((word) => text.includes(word));
+    const hasConsumable = consumableWords.some((word) => text.includes(word));
+    const detailOnlyLowPrice = text.includes('상세페이지 확인') && price > 0 && price < 1000;
+
+    return hasStrongPromo || hasConsumable || detailOnlyLowPrice;
   }
 
   function isLikelyMaskMainProduct(item) {
@@ -73,7 +82,7 @@
     return (
       /kf\s*-?\s*(94|80|ad)/i.test(text) ||
       /\d+\s*(매|개입|개|팩|박스|box)/i.test(text) ||
-      ['새부리', '덴탈', '일회용', '보건용', '비말', '방역', '의약외품'].some((word) => text.includes(word))
+      ['새부리', '덴탈', '일회용', '보건용', '비말', '방역', '의약외품', '세탁마스크', '면마스크'].some((word) => text.includes(word))
     );
   }
 
@@ -93,7 +102,7 @@
     // 단, AI 추천 카드에서는 가짜/매칭 실패 카드를 되살리지 않는다.
     if (!opts.strict && filtered.length === 0 && items.length > 0 && isMaskQuery(query)) {
       const mainLike = items.filter(isLikelyMaskMainProduct);
-      if (mainLike.length > 0) return mainLike;
+      if (mainLike.length > 0) return mainLike.filter(hasUsableProductData);
       return items.filter(hasUsableProductData);
     }
 

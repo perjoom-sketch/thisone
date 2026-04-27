@@ -1,15 +1,44 @@
 // api/search.js - 유모차 같은 자연어 검색 개선 버전
 
-
 function stripTags(text) {
   return String(text || '')
     .replace(/<[^>]*>/g, '')
     .trim();
 }
 
+function normalizeSpaces(text) {
+  return String(text || '').replace(/\s+/g, ' ').trim();
+}
+
+function normalizeHouseholdQuery(query) {
+  let q = normalizeSpaces(query);
+
+  // 진단기 PR #47에서 확인한 생활용품 검색어 보정.
+  // 실제 검색 API에도 동일하게 적용해야 진단 결과와 검색 결과가 어긋나지 않는다.
+  q = q.replace(/김\s*서방\s*마스크/g, '김서방 마스크');
+  q = q.replace(/김서방마스크/g, '김서방 마스크');
+
+  if (/(화장지|휴지)/.test(q)) {
+    q = q.replace(/휴지/g, '화장지');
+    q = q.replace(/(\d+)\s*겹/g, '$1겹');
+    q = q.replace(/(\d+)\s*m/gi, '$1m');
+    q = q.replace(/(\d+)\s*롤/g, '$1롤');
+
+    const hasThreePly = /3겹/.test(q);
+    const hasThirtyMeter = /30m/i.test(q);
+    const hasThirtyRoll = /30롤/.test(q);
+
+    if (hasThreePly && hasThirtyMeter && hasThirtyRoll) {
+      q = '3겹 화장지 30m 30롤';
+    }
+  }
+
+  return normalizeSpaces(q);
+}
+
 // 자연어 쿼리를 네이버 쇼핑에 잘 맞는 키워드로 변환
 function improveQuery(originalQuery) {
-  let q = String(originalQuery || '').trim();
+  let q = normalizeHouseholdQuery(String(originalQuery || '').trim());
 
   // 유모차 관련 키워드 보강
   if (q.includes('유모차') || q.includes('맘카페') || q.includes('유아차')) {
@@ -22,10 +51,6 @@ function improveQuery(originalQuery) {
     }
   }
 
-  // 제외 키워드(-) 추출 (예: -삼성)
-  const excludeMatch = originalQuery.match(/-[^\s]+/g);
-  const excludes = excludeMatch ? excludeMatch.map(s => s.substring(1)) : [];
-  
   // 검색어에서 제외 기호 제거 (API 검색용)
   q = q.replace(/-[^\s]+/g, '');
 
@@ -39,7 +64,7 @@ function improveQuery(originalQuery) {
   // 기타 흔한 자연어 정리
   q = q.replace(/유지비 포함|배송비 포함|가장 나은|가장 좋은/g, '');
 
-  return q.trim();
+  return normalizeSpaces(q);
 }
 
 async function handler(req, res) {

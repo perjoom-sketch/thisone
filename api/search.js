@@ -13,12 +13,8 @@ function buildNaverShoppingSearchLink(query) {
 }
 
 function buildSafeShoppingLink(item, name, fallbackQuery) {
-  const productId = String(item?.productId || '').replace(/[^0-9]/g, '');
-
-  if (productId) {
-    return `https://search.shopping.naver.com/catalog/${productId}`;
-  }
-
+  // 원본 판매처/네이버 경유 링크는 일부 환경에서 로그인 화면으로 빠질 수 있다.
+  // 사용자가 먼저 안전하게 상품을 확인하도록 네이버 쇼핑 검색결과 링크를 우선 사용한다.
   return buildNaverShoppingSearchLink(name || fallbackQuery);
 }
 

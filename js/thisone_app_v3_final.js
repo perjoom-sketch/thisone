@@ -518,8 +518,6 @@ async function sendMsg(forceMode) {
         }
 
         const finalCards = [...mergedCards, ...supplements].slice(0, targetCount);
-        SearchDropdown?.setResultsRendering?.(true);
-        window.ThisOneUI?.addResultCard?.({ ...merged, cards: finalCards, aiComment }, intentProfile);
 
         // AI 추천 리포트 아래에 일반 검색 결과를 함께 표시
         const normalizeName = (v) => String(v || '').trim().toLowerCase();
@@ -561,8 +559,12 @@ async function sendMsg(forceMode) {
           return true;
         });
 
+        const rawItems = searchData?.items || [];
+        const rawCount = rawItems.length;
+        const finalRecommendedCount = finalCards.length;
+
         if (generalCandidates.length === 0) {
-          const rawGeneralItems = (searchData?.items || []).map(normalizeGeneralSearchItem);
+          const rawGeneralItems = buildSafeFallbackGeneralItems(rawItems, finalSearchQuery, intentProfile, 100);
 
           if (rawGeneralItems.length > 0) {
             const nonDuplicateRawItems = rawGeneralItems.filter((item) => {
@@ -577,15 +579,26 @@ async function sendMsg(forceMode) {
               if (modelKey && pickedModelKeys.has(modelKey)) return false;
               return true;
             });
-
-            const safeFallbackItems = (nonDuplicateRawItems.length ? nonDuplicateRawItems : rawGeneralItems).filter((item) => {
-              const risk = window.ThisOneRanking?.shouldExcludeFromPriceRank?.(item, finalSearchQuery);
-              return !risk?.exclude;
-            });
-
-            generalCandidates = (safeFallbackItems.length ? safeFallbackItems : rawGeneralItems).slice(0, 30);
+            generalCandidates = (nonDuplicateRawItems.length ? nonDuplicateRawItems : rawGeneralItems).slice(0, 30);
           }
         }
+
+        let fallbackReason = '';
+        let fallbackCount = 0;
+        if (rawCount > 0 && finalRecommendedCount === 0 && generalCandidates.length === 0) {
+          generalCandidates = buildSafeFallbackGeneralItems(rawItems, finalSearchQuery, intentProfile, 30);
+          fallbackCount = generalCandidates.length;
+          fallbackReason = 'raw_exists_but_final_empty';
+        }
+
+        const finalGeneralCount = generalCandidates.length;
+        console.debug('[ThisOne][safe-fallback]', {
+          rawCount,
+          finalRecommendedCount,
+          finalGeneralCount,
+          fallbackCount,
+          fallbackReason
+        });
 
         GeneralSearchState.query = finalSearchQuery;
         GeneralSearchState.currentPage = 1;
@@ -599,6 +612,9 @@ async function sendMsg(forceMode) {
         GeneralSearchState.currentSort = preservedSort;
 
         SearchDropdown?.setResultsRendering?.(true);
+        if (finalRecommendedCount > 0) {
+          window.ThisOneUI?.addResultCard?.({ ...merged, cards: finalCards, aiComment }, intentProfile);
+        }
         window.ThisOneUI?.renderResults?.(
           generalCandidates,
           GeneralSearchState.total,
@@ -774,6 +790,41 @@ function normalizeGeneralSearchItem(item = {}) {
     link: pick(item.link, item.productUrl, item.url, item.mallProductUrl, item.mobileLink),
     badges: Array.isArray(item.badges) ? item.badges : []
   };
+}
+
+function shouldExcludeFromSafeFallback(item = {}, query = '', intentProfile = null) {
+  const title = String(item?.name || '').toLowerCase();
+  const q = String(query || '').toLowerCase();
+  if (!title) return false;
+
+  const weakSingleWords = ['필터', '단품', '세트', '실리콘', '패드', '리필', '교체'];
+  const accessoryIntentWords = [
+    '사이드브러시', '사이드브러쉬', '메인브러시', '메인브러쉬', '브러시', '브러쉬',
+    '먼지봉투', '더스트백', '물걸레패드', '물걸레', '배터리', '충전기', '거치대',
+    '호환', '액세서리', '악세사리', '소모품', '부품', '필터'
+  ];
+
+  const queryWantsAccessory = accessoryIntentWords.some((word) => q.includes(word));
+  if (queryWantsAccessory) return false;
+
+  const titleAccessoryHits = accessoryIntentWords.filter((word) => title.includes(word));
+  const strongAccessoryWords = titleAccessoryHits.filter((word) => !weakSingleWords.includes(word));
+  const hasAccessoryCombo =
+    strongAccessoryWords.length >= 2 ||
+    /(호환|소모품|부품).*(세트|교체|리필)|((사이드|메인)\s*브러시)|물걸레\s*패드|먼지\s*봉투/i.test(title);
+
+  const queryIsMainProduct =
+    /(로보락|다이슨|비스포크|에어랩|청소기|로봇청소기|세탁기|건조기|노트북|모니터|아이폰|갤럭시|태블릿|프린터|유모차|선풍기|공기청정기)/i.test(q) ||
+    (intentProfile?.categoryHint && /(가전|기기|디지털|스마트)/i.test(String(intentProfile.categoryHint)));
+
+  return hasAccessoryCombo && queryIsMainProduct;
+}
+
+function buildSafeFallbackGeneralItems(rawItems = [], query = '', intentProfile = null, limit = 30) {
+  const normalized = (rawItems || []).map(normalizeGeneralSearchItem).filter((item) => item?.name);
+  const filtered = normalized.filter((item) => !shouldExcludeFromSafeFallback(item, query, intentProfile));
+  const source = filtered.length > 0 ? filtered : normalized;
+  return source.slice(0, limit);
 }
 
 async function refreshGeneralResults() {

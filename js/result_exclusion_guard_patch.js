@@ -29,6 +29,7 @@
       item.maskNonRetailSuspect ||
       item.maskConsumableSuspect ||
       item.isExcluded ||
+      item.excludeFromPriceRank ||
       hasBadge(item, /소모품\s*의심|판촉\/제작\s*의심|액세서리\s*의심/) ||
       /마스크 본품 구매가 아닌 판촉|필터\/교체용 소모품/.test(String(item.rejectReason || item.reason || ''))
     );
@@ -47,7 +48,7 @@
       item && item.reason,
       item && item.review
     ].filter(Boolean).join(' '));
-    const price = Number(item && (item.totalPriceNum || item.priceNum || item.lprice || 0)) || parsePriceNumber(item && item.price);
+    const price = Number(item && (item.totalPriceNum || item.priceNum || item.lprice || 0)) || parsePriceNumber(item && (item.price || item.priceText));
 
     if (!q.includes('마스크')) return false;
     if (!text.includes('마스크')) return false;
@@ -57,7 +58,7 @@
       '기념품', '답례품', '사은품', '기프트', '기프트랜드'
     ];
     const consumableWords = [
-      '필터', '교체필터', '리필', '교체용', '호환', '부품', '소모품',
+      '필터', '교체필터', '필터교체', '리필', '교체용', '교체형', '호환', '부품', '소모품',
       '패드', '스트랩', '클립', '고리', '밸브', '케이스'
     ];
 
@@ -97,13 +98,9 @@
     const opts = options || {};
     const filtered = items.filter((item) => !shouldHide(item, query, opts));
 
-    // 전체 소거 방지:
-    // 일반 검색 결과는 빈 화면보다 원본 유지가 낫다.
-    // 단, AI 추천 카드에서는 가짜/매칭 실패 카드를 되살리지 않는다.
-    if (!opts.strict && filtered.length === 0 && items.length > 0 && isMaskQuery(query)) {
-      const mainLike = items.filter(isLikelyMaskMainProduct);
-      if (mainLike.length > 0) return mainLike.filter(hasUsableProductData);
-      return items.filter(hasUsableProductData);
+    // 판촉/제작/소모품 후보는 절대 원본 fallback에서 부활시키지 않는다.
+    if (filtered.length === 0 && items.length > 0 && isMaskQuery(query)) {
+      return items.filter((item) => isLikelyMaskMainProduct(item) && hasUsableProductData(item));
     }
 
     return filtered;

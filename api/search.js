@@ -16,6 +16,11 @@ function buildNaverShoppingSearchLink(query) {
   return `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(safeQuery)}`;
 }
 
+function buildNaverProductLink(productId) {
+  const safeProductId = String(productId || '').replace(/[^0-9]/g, '');
+  return safeProductId ? `https://search.shopping.naver.com/products/${safeProductId}` : '';
+}
+
 function getCompactShoppingQuery(name, fallbackQuery) {
   const text = normalizeSpaces(name || fallbackQuery);
   const upper = text.toUpperCase();
@@ -154,12 +159,13 @@ async function handler(req, res) {
     let items = (data.items || []).map((item, idx) => {
       const name = stripTags(item.title);
       const originalLink = item.link || '';
-      const safeLink = buildSafeShoppingLink(name, improvedQ);
+      const productLink = buildNaverProductLink(item.productId);
+      const safeLink = productLink || buildSafeShoppingLink(name, improvedQ);
 
       return {
         id: String(idx + 1),
         name,
-        link: originalLink || safeLink,
+        link: safeLink || originalLink,
         safeLink,
         originalLink,
         directLink: originalLink,

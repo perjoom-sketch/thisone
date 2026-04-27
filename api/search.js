@@ -16,11 +16,6 @@ function buildNaverShoppingSearchLink(query) {
   return `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(safeQuery)}`;
 }
 
-function buildNaverCatalogLink(productId) {
-  const safeProductId = String(productId || '').replace(/[^0-9]/g, '');
-  return safeProductId ? `https://search.shopping.naver.com/catalog/${safeProductId}` : '';
-}
-
 function getCompactShoppingQuery(name, fallbackQuery) {
   const text = normalizeSpaces(name || fallbackQuery);
   const upper = text.toUpperCase();
@@ -51,13 +46,7 @@ function getCompactShoppingQuery(name, fallbackQuery) {
     .join(' ');
 }
 
-function buildSafeShoppingLink(item, name, fallbackQuery) {
-  // 원본 판매처/네이버 경유 링크는 일부 환경에서 로그인 화면으로 빠질 수 있다.
-  // productId가 있으면 상품별 네이버 쇼핑 카탈로그로 보내고,
-  // 없을 때만 짧은 네이버 쇼핑 검색결과 링크로 보낸다.
-  const catalogLink = buildNaverCatalogLink(item?.productId);
-  if (catalogLink) return catalogLink;
-
+function buildSafeShoppingLink(name, fallbackQuery) {
   return buildNaverShoppingSearchLink(getCompactShoppingQuery(name, fallbackQuery));
 }
 
@@ -165,11 +154,13 @@ async function handler(req, res) {
     let items = (data.items || []).map((item, idx) => {
       const name = stripTags(item.title);
       const originalLink = item.link || '';
+      const safeLink = buildSafeShoppingLink(name, improvedQ);
 
       return {
         id: String(idx + 1),
         name,
-        link: buildSafeShoppingLink(item, name, improvedQ),
+        link: originalLink || safeLink,
+        safeLink,
         originalLink,
         directLink: originalLink,
         image: item.image || '',

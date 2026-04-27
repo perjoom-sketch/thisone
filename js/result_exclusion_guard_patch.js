@@ -7,6 +7,18 @@
     return Array.isArray(item && item.badges) && item.badges.some((badge) => pattern.test(String(badge || '')));
   }
 
+  function hasUsableProductData(item) {
+    if (!item) return false;
+    const name = String(item.name || '').trim();
+    const price = String(item.price || item.priceText || '').trim();
+    const link = String(item.link || item.productUrl || item.url || '').trim();
+
+    if (!name || name === '상품명 없음' || name === '상품') return false;
+    if (!price || price === '가격 정보 없음') return false;
+    if (!link || link === '#') return false;
+    return true;
+  }
+
   function isExcludedByRanking(item) {
     if (!item) return false;
     return Boolean(
@@ -65,22 +77,24 @@
     );
   }
 
-  function shouldHide(item, query) {
+  function shouldHide(item, query, options) {
+    const opts = options || {};
+    if (opts.requireUsableProductData && !hasUsableProductData(item)) return true;
     return isExcludedByRanking(item) || isMaskNonRetailByText(item, query);
   }
 
-  function filterItems(items, query) {
+  function filterItems(items, query, options) {
     if (!Array.isArray(items)) return items;
-    const filtered = items.filter((item) => !shouldHide(item, query));
+    const opts = options || {};
+    const filtered = items.filter((item) => !shouldHide(item, query, opts));
 
     // 전체 소거 방지:
-    // 김서방마스크처럼 네이버 raw 결과 자체가 판촉/제작형으로만 잡히는 경우,
-    // 렌더 단계에서 전부 지워버리면 사용자는 '검색 실패'로 보게 된다.
-    // 본품 후보가 하나도 없을 때는 원본을 유지하고, 본품 후보가 있을 때만 의심 후보를 숨긴다.
-    if (filtered.length === 0 && items.length > 0 && isMaskQuery(query)) {
+    // 일반 검색 결과는 빈 화면보다 원본 유지가 낫다.
+    // 단, AI 추천 카드에서는 가짜/매칭 실패 카드를 되살리지 않는다.
+    if (!opts.strict && filtered.length === 0 && items.length > 0 && isMaskQuery(query)) {
       const mainLike = items.filter(isLikelyMaskMainProduct);
       if (mainLike.length > 0) return mainLike;
-      return items;
+      return items.filter(hasUsableProductData);
     }
 
     return filtered;
@@ -95,7 +109,10 @@
 
     if (typeof originalRenderResults === 'function') {
       ui.renderResults = function guardedRenderResults(items, total, currentPage, currentSort, resultMode) {
-        const filtered = filterItems(items, global.GeneralSearchState?.query || global.currentQuery || '');
+        const filtered = filterItems(items, global.GeneralSearchState?.query || global.currentQuery || '', {
+          strict: false,
+          requireUsableProductData: true
+        });
         return originalRenderResults.call(this, filtered, total, currentPage, currentSort, resultMode);
       };
     }
@@ -106,7 +123,10 @@
           const query = global.GeneralSearchState?.query || global.currentQuery || '';
           result = {
             ...result,
-            cards: filterItems(result.cards, query)
+            cards: filterItems(result.cards, query, {
+              strict: true,
+              requireUsableProductData: true
+            })
           };
         }
         return originalAddResultCard.call(this, result, intentProfile);
@@ -128,6 +148,7 @@
 
   global.ThisOneResultExclusionGuard = {
     shouldHide,
-    filterItems
+    filterItems,
+    hasUsableProductData
   };
 })(window);

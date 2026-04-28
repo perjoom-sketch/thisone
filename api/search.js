@@ -1,5 +1,6 @@
 // api/search.js - 유모차 같은 자연어 검색 개선 버전
 
+const { applyUniversalAIFilter } = require('../lib/universalFilter');
 
 function stripTags(text) {
   return String(text || '')
@@ -119,14 +120,24 @@ async function handler(req, res) {
       productId: item.productId || ''
     }));
 
-    // 검색 결과 반환
-    const finalItems = items;
+    // UniversalFilter는 최종 출력 전 반드시 통과한다.
+    // Anthropic 호출 실패 시 lib/universalFilter.js 내부 fallback이 동작한다.
+    const universalResult = await applyUniversalAIFilter({
+      query: q,
+      items
+    });
+
+    const finalItems = Array.isArray(universalResult.filteredItems)
+      ? universalResult.filteredItems
+      : items;
 
     return res.status(200).json({
       query: q,
       improvedQuery: improvedQ,
       total: data.total || 0,
-      items: finalItems
+      items: finalItems,
+      rejectedItems: universalResult.rejectedItems || [],
+      universalFilterDebug: universalResult.debug || null
     });
 
   } catch (err) {

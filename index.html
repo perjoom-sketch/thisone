@@ -9,9 +9,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   
   <script>
-    console.log("%c [ThisOne] v3.1.0 Loaded (Structure Refactor) - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
+    console.log("%c [ThisOne] v3.4.0 Loaded (Cache Refresh) - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
+    window.THISONE_ASSET_VERSION = '3.4.0';
     
-    // [Global] 전역 변수 정의
     window.MODEL = window.MODEL || 'gemini-2.5-flash';
     window.NOEL = window.NOEL || window.MODEL;
     window.MINI_SCOPE = window.MINI_SCOPE || '✦';
@@ -19,7 +19,6 @@
     
     var currentQuery = '';
     
-    // 검색 상태 관리
     const SearchState = {
       isSearching: false,
       start() {
@@ -32,21 +31,16 @@
       }
     };
     
-    // 설정창 토글
     window.toggleFilterModal = function() {
       const target = document.getElementById('commonFilterContent');
       const modal = document.getElementById('filterModal');
       const template = document.getElementById('filterTemplateV2');
       if (!target || !modal || !template) return;
-      
       const isHidden = !modal.classList.contains('show');
-      
       if (isHidden) {
         target.innerHTML = '';
         target.appendChild(template.content.cloneNode(true));
         modal.classList.add('show');
-        
-        // 슬라이더 값 초기화
         const range = target.querySelector('#patienceTime');
         const val = target.querySelector('#patienceVal');
         if (range && val) val.textContent = range.value + '초';
@@ -56,12 +50,9 @@
       }
     };
     
-    // 문의게시판 아코디언 토글
     window.toggleInquiry = function(id) {
       const content = document.getElementById('inqContent_' + id);
-      if (content) {
-        content.classList.toggle('show');
-      }
+      if (content) content.classList.toggle('show');
     };
   </script>
   
@@ -72,7 +63,7 @@
   <meta name="theme-color" content="#ffffff" />
   <title>쇼핑검색 디스원</title>
   
-  <link rel="stylesheet" href="styles/main.css?v=3.3.6" />
+  <link rel="stylesheet" href="styles/main.css?v=3.4.0" />
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap" rel="stylesheet">
 </head>
 
@@ -81,7 +72,6 @@
     <div class="header-content">
       <a href="/" class="logo" onclick="event.preventDefault(); goHome();">
         <img src="assets/thisone-logo-rough.png" alt="ThisOne" class="logo-img" />
-        
       </a>
     </div>
   </header>
@@ -103,7 +93,6 @@
 
           <div class="input-row">
             <textarea class="msg-input" id="msgInput" placeholder="검색어 입력 또는 이미지 붙여넣기(Ctrl+V)..." rows="1" oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
-            
             <div class="footer-right">
               <button class="icon-btn img-btn" type="button" onclick="document.getElementById('fileInput').click()" title="이미지 업로드">
                 <span class="new-badge">NEW</span>
@@ -127,8 +116,7 @@
 
       <div class="trending-section">
         <div class="trending-label">추천 검색어</div>
-        <div id="trendingList" class="trending-list">
-          </div>
+        <div id="trendingList" class="trending-list"></div>
       </div>
     </section>
 
@@ -160,27 +148,16 @@
         <h3>📋 고객지원 센터</h3>
         <button class="close-btn" onclick="window.ThisOneUI.closeInquiryBoard()">✕</button>
       </div>
-      
       <div id="inquiryListArea" class="modal-body">
         <div class="action-row right">
           <button class="btn btn-primary" onclick="window.ThisOneUI.showInquiryForm()">✍️ 문의하기</button>
         </div>
         <div id="inquiryList" class="empty-state">목록을 불러오는 중...</div>
       </div>
-
       <div id="inquiryFormArea" class="modal-body">
-        <div class="form-group">
-          <label>제목</label>
-          <input type="text" id="inqTitle" class="form-input" placeholder="제목을 입력하세요">
-        </div>
-        <div class="form-group">
-          <label>비밀번호</label>
-          <input type="password" id="inqPassword" class="form-input" placeholder="4자리 이상 입력">
-        </div>
-        <div class="form-group">
-          <label>내용</label>
-          <textarea id="inqContent" class="form-input" rows="5" placeholder="궁금하신 내용을 남겨주세요"></textarea>
-        </div>
+        <div class="form-group"><label>제목</label><input type="text" id="inqTitle" class="form-input" placeholder="제목을 입력하세요"></div>
+        <div class="form-group"><label>비밀번호</label><input type="password" id="inqPassword" class="form-input" placeholder="4자리 이상 입력"></div>
+        <div class="form-group"><label>내용</label><textarea id="inqContent" class="form-input" rows="5" placeholder="궁금하신 내용을 남겨주세요"></textarea></div>
         <div class="action-row right">
           <button class="btn btn-secondary" onclick="window.ThisOneUI.hideInquiryForm()">취소</button>
           <button id="inqSubmitBtn" class="btn btn-primary" onclick="window.ThisOneUI.submitInquiry()">등록하기</button>
@@ -201,26 +178,17 @@
           <input type="number" id="maxPrice" class="form-input sm" placeholder="최대">
         </div>
       </div>
-
       <div class="filter-grid">
-        <select id="resultCount" class="form-select">
-          <option value="3">3개 이하</option>
-          <option value="5" selected>5개 이하</option>
-          <option value="10">10개 이하</option>
-        </select>
+        <select id="resultCount" class="form-select"><option value="3">3개 이하</option><option value="5" selected>5개 이하</option><option value="10">10개 이하</option></select>
         <label class="check-btn"><input type="checkbox" id="freeShipping" checked> 무료배송</label>
         <label class="check-btn"><input type="checkbox" id="excludeOverseas"> 직구제외</label>
         <label class="check-btn"><input type="checkbox" id="excludeAgent"> 대행제외</label>
         <label class="check-btn"><input type="checkbox" id="excludeUsed"> 중고/리퍼제외</label>
         <label class="check-btn"><input type="checkbox" id="excludeRental" checked> 렌탈제외</label>
       </div>
-
       <div class="filter-footer">
         <div class="slider-group">
-          <div class="slider-header">
-            <label class="sub-label">검색시간</label>
-            <span id="patienceVal" class="point-text">20초</span>
-          </div>
+          <div class="slider-header"><label class="sub-label">검색시간</label><span id="patienceVal" class="point-text">20초</span></div>
           <input type="range" id="patienceTime" class="form-range" min="5" max="60" value="20" oninput="document.getElementById('patienceVal').textContent=this.value+'초'">
           <div class="slider-labels"><span>빠른검색</span><span>심층검색</span></div>
         </div>
@@ -229,15 +197,15 @@
     </div>
   </template>
 
-  <script src="js/trajectoryLogger.js?v=3.3.5" defer></script>
-  <script src="js/api.js?v=3.3.5"></script>
-  <script src="js/productFamilies.js?v=3.3.5"></script>
-  <script src="js/ranking.js?v=3.3.5"></script>
-  <script src="js/model_dedupe_patch.js?v=3.3.6"></script>
-  <script src="js/mobile_search_safety_patch.js?v=3.3.8"></script>
-  <script src="js/result_cards.js?v=3.3.5"></script>
-  <script src="js/thisone_ui_v3.js?v=3.3.5"></script>
-  <script src="js/search_dropdown.js?v=3.3.5"></script>
-  <script src="js/thisone_app_v3_final.js?v=3.3.5"></script>
+  <script src="js/trajectoryLogger.js?v=3.4.0" defer></script>
+  <script src="js/api.js?v=3.4.0"></script>
+  <script src="js/productFamilies.js?v=3.4.0"></script>
+  <script src="js/ranking.js?v=3.4.0"></script>
+  <script src="js/model_dedupe_patch.js?v=3.4.0"></script>
+  <script src="js/mobile_search_safety_patch.js?v=3.4.0"></script>
+  <script src="js/result_cards.js?v=3.4.0"></script>
+  <script src="js/thisone_ui_v3.js?v=3.4.0"></script>
+  <script src="js/search_dropdown.js?v=3.4.0"></script>
+  <script src="js/thisone_app_v3_final.js?v=3.4.0"></script>
 </body>
 </html>

@@ -8,93 +8,25 @@ function stripTags(text) {
     .trim();
 }
 
-function normalizeSpaces(text) {
-  return String(text || '').replace(/\s+/g, ' ').trim();
-}
-
-function normalizeUnits(text) {
-  return normalizeSpaces(text)
-    .replace(/[\u200B-\u200D\uFEFF]/g, '')
-    .replace(/\u00A0/g, ' ')
-    .replace(/[㎏]/g, 'kg')
-    .replace(/[Ｋｋ][Ｇｇ]/g, 'kg')
-    .replace(/(\d+)\s*(kg|g|ml|l|m)\b/gi, '$1$2')
-    .replace(/(\d+)\s*겹/g, '$1겹')
-    .replace(/(\d+)\s*롤/g, '$1롤')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function normalizeHouseholdQuery(query) {
-  let q = normalizeUnits(query);
-
-  q = q.replace(/김\s*서방\s*마스크/g, '김서방 마스크');
-  q = q.replace(/김서방마스크/g, '김서방 마스크');
-
-  if (/(화장지|휴지|두루마리)/.test(q)) {
-    q = q.replace(/두루마리\s*휴지|두루마리휴지|휴지/g, '화장지');
-
-    const hasThreePly = /3겹/.test(q);
-    const hasThirtyMeter = /30m/i.test(q);
-    const hasThirtyRoll = /30롤/.test(q);
-
-    if (hasThreePly && hasThirtyMeter && hasThirtyRoll) {
-      q = '3겹 화장지 30m 30롤';
-    }
-  }
-
-  if (/로얄\s*캐닌|로얄캐닌|royal\s*canin/i.test(q)) {
-    q = q
-      .replace(/로얄\s*캐닌/gi, '로얄캐닌')
-      .replace(/하이포\s*알러제닉/gi, '하이포알러제닉')
-      .replace(/hypoallergenic/gi, '하이포알러제닉');
-
-    if (/로얄캐닌/.test(q) && /하이포알러제닉/.test(q) && /2kg/i.test(q)) {
-      q = '로얄캐닌 하이포알러제닉 2kg';
-    }
-  }
-
-  return normalizeSpaces(q);
-}
-
-function shouldUseUniversalFilter(query) {
-  const q = String(query || '').toLowerCase();
-
-  // UniversalFilter는 본품/액세서리/렌탈/소모품이 섞이기 쉬운 검색어에만 사용한다.
-  // 안전화, 화장지, 사료처럼 기본 키워드 검색까지 AI 필터를 태우면 결과가 과하게 사라질 수 있다.
-  const ambiguousMainProductWords = [
-    '마스크', '김서방', 'kf94', 'kf80', '비말',
-    '유모차', '카시트',
-    '로보락', '로봇청소기', '청소기',
-    '공기청정기', '정수기', '프린터', '복합기',
-    '에어랩', '다이슨', '면도기', '밥솥'
-  ];
-
-  const explicitRiskWords = [
-    '필터', '토너', '잉크', '리필', '교체', '교체용', '호환',
-    '부품', '부속', '소모품', '렌탈', '대여', '약정', '가입',
-    '판촉', '주문제작', '인쇄'
-  ];
-
-  return ambiguousMainProductWords.some(word => q.includes(word)) ||
-    explicitRiskWords.some(word => q.includes(word));
-}
-
 // 자연어 쿼리를 네이버 쇼핑에 잘 맞는 키워드로 변환
 function improveQuery(originalQuery) {
-  let q = normalizeHouseholdQuery(String(originalQuery || '').trim());
+  let q = String(originalQuery || '').trim();
 
   // 유모차 관련 키워드 보강
   if (q.includes('유모차') || q.includes('맘카페') || q.includes('유아차')) {
     q = q.replace(/맘카페 반응 좋은|맘카페 추천|인기|좋은/g, '');
     q = '유모차 ' + q.trim();
-
+    
     // 맘카페 추천 의도가 강할 때 추가 키워드
     if (originalQuery.includes('맘카페')) {
       q = '유모차 추천 ' + q.replace('유모차 ', '');
     }
   }
 
+  // 제외 키워드(-) 추출 (예: -삼성)
+  const excludeMatch = originalQuery.match(/-[^\s]+/g);
+  const excludes = excludeMatch ? excludeMatch.map(s => s.substring(1)) : [];
+  
   // 검색어에서 제외 기호 제거 (API 검색용)
   q = q.replace(/-[^\s]+/g, '');
 
@@ -108,7 +40,7 @@ function improveQuery(originalQuery) {
   // 기타 흔한 자연어 정리
   q = q.replace(/유지비 포함|배송비 포함|가장 나은|가장 좋은/g, '');
 
-  return normalizeSpaces(q);
+  return q.trim();
 }
 
 async function handler(req, res) {
@@ -188,44 +120,24 @@ async function handler(req, res) {
       productId: item.productId || ''
     }));
 
-    let finalItems = items;
-    let rejectedItems = [];
-    let universalFilterDebug = {
-      mode: 'skipped',
-      reason: 'basic_keyword_search'
-    };
+    // UniversalFilter는 최종 출력 전 반드시 통과한다.
+    // Anthropic 호출 실패 시 lib/universalFilter.js 내부 fallback이 동작한다.
+    const universalResult = await applyUniversalAIFilter({
+      query: q,
+      items
+    });
 
-    if (shouldUseUniversalFilter(q)) {
-      const universalResult = await applyUniversalAIFilter({
-        query: q,
-        items
-      });
-
-      if (Array.isArray(universalResult.filteredItems) && universalResult.filteredItems.length > 0) {
-        finalItems = universalResult.filteredItems;
-      }
-
-      rejectedItems = universalResult.rejectedItems || [];
-      universalFilterDebug = universalResult.debug || null;
-
-      // 필터가 전부 날려버리면 검색 실패로 보이므로 원본 결과를 살린다.
-      if ((!finalItems || finalItems.length === 0) && items.length > 0) {
-        finalItems = items;
-        universalFilterDebug = {
-          ...(universalFilterDebug || {}),
-          mode: `${universalFilterDebug?.mode || 'unknown'}_fail_open`,
-          reason: 'filter_returned_empty_restore_raw_items'
-        };
-      }
-    }
+    const finalItems = Array.isArray(universalResult.filteredItems)
+      ? universalResult.filteredItems
+      : items;
 
     return res.status(200).json({
       query: q,
       improvedQuery: improvedQ,
       total: data.total || 0,
       items: finalItems,
-      rejectedItems,
-      universalFilterDebug
+      rejectedItems: universalResult.rejectedItems || [],
+      universalFilterDebug: universalResult.debug || null
     });
 
   } catch (err) {

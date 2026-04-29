@@ -1,4 +1,15 @@
 {
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    }
+  ],
   "functions": {
     "api/chat.js": {
       "memory": 1024,
@@ -18,4 +29,3 @@
     }
   }
 }
-

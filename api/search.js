@@ -1,6 +1,104 @@
 // api/search.js
 const { applyUniversalAIFilter } = require('../lib/universalFilter');
 const { improveQuery } = require('../lib/queryNormalizer');
+const { shouldUseCanonicalIntent, canonicalizeQuery } = require('../lib/canonicalIntent');
+
 function stripTags(text){return String(text||'').replace(/<[^>]*>/g,'').trim();}
-async function handler(req,res){res.setHeader('Access-Control-Allow-Origin','*');res.setHeader('Access-Control-Allow-Methods','GET, OPTIONS');res.setHeader('Access-Control-Allow-Headers','Content-Type');if(req.method==='OPTIONS')return res.status(200).end();if(req.method!=='GET')return res.status(405).json({error:'Method Not Allowed'});try{let q=String(req.query.q||req.query.query||'').trim();if(!q){return res.status(400).json({error:'검색어가 없습니다.'});}const improvedQ=improveQuery(q);const start=parseInt(req.query.start||'1');const display=parseInt(req.query.display||'30');const sort=req.query.sort||'sim';const url=`https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(improvedQ)}&display=${display}&start=${start}&sort=${sort}`;const controller=new AbortController();const timeoutId=setTimeout(()=>controller.abort(),15000);let response;try{response=await fetch(url,{method:'GET',headers:{'X-Naver-Client-Id':process.env.NAVER_CLIENT_ID,'X-Naver-Client-Secret':process.env.NAVER_CLIENT_SECRET},signal:controller.signal});}catch(fetchErr){clearTimeout(timeoutId);if(fetchErr.name==='AbortError'){throw new Error('Naver Shopping API timeout');}throw fetchErr;}clearTimeout(timeoutId);const text=await response.text();if(!response.ok){return res.status(response.status).json({error:'Naver Shopping API error',detail:text});}let data;try{data=JSON.parse(text);}catch(e){return res.status(500).json({error:'네이버 응답 JSON 파싱 실패'});}let items=(data.items||[]).map((item,idx)=>({id:String(idx+1),name:stripTags(item.title),link:item.link||'',image:item.image||'',lprice:Number(item.lprice||0),priceText:item.lprice?`${Number(item.lprice).toLocaleString('ko-KR')}원`:'',store:stripTags(item.mallName||''),productId:item.productId||''}));const universalResult=await applyUniversalAIFilter({query:q,items});const finalItems=Array.isArray(universalResult.filteredItems)?universalResult.filteredItems:items;return res.status(200).json({query:q,improvedQuery:improvedQ,total:data.total||0,items:finalItems,rejectedItems:universalResult.rejectedItems||[],universalFilterDebug:universalResult.debug||null});}catch(err){return res.status(500).json({error:err.message||'Server error'});}}
-module.exports=handler;module.exports.config={maxDuration:30};
+
+async function handler(req,res){
+  res.setHeader('Access-Control-Allow-Origin','*');
+  res.setHeader('Access-Control-Allow-Methods','GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers','Content-Type');
+  if(req.method==='OPTIONS')return res.status(200).end();
+  if(req.method!=='GET')return res.status(405).json({error:'Method Not Allowed'});
+
+  try{
+    let q=String(req.query.q||req.query.query||'').trim();
+    if(!q){
+      return res.status(400).json({error:'검색어가 없습니다.'});
+    }
+
+    let improvedQ = improveQuery(q);
+    let canonicalDebug = null;
+
+    if (process.env.USE_CANONICAL_QUERY === 'true' && shouldUseCanonicalIntent(q)) {
+      try {
+        const canonical = await canonicalizeQuery(q);
+        if (canonical && canonical.query) {
+          improvedQ = canonical.query;
+          canonicalDebug = canonical;
+        }
+      } catch (e) {
+        // fail-open: ignore and keep improveQuery result
+      }
+    }
+
+    const start=parseInt(req.query.start||'1');
+    const display=parseInt(req.query.display||'30');
+    const sort=req.query.sort||'sim';
+
+    const url=`https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(improvedQ)}&display=${display}&start=${start}&sort=${sort}`;
+
+    const controller=new AbortController();
+    const timeoutId=setTimeout(()=>controller.abort(),15000);
+
+    let response;
+    try{
+      response=await fetch(url,{
+        method:'GET',
+        headers:{
+          'X-Naver-Client-Id':process.env.NAVER_CLIENT_ID,
+          'X-Naver-Client-Secret':process.env.NAVER_CLIENT_SECRET
+        },
+        signal:controller.signal
+      });
+    }catch(fetchErr){
+      clearTimeout(timeoutId);
+      if(fetchErr.name==='AbortError'){
+        throw new Error('Naver Shopping API timeout');
+      }
+      throw fetchErr;
+    }
+    clearTimeout(timeoutId);
+
+    const text=await response.text();
+    if(!response.ok){
+      return res.status(response.status).json({error:'Naver Shopping API error',detail:text});
+    }
+
+    let data;
+    try{data=JSON.parse(text);}catch(e){
+      return res.status(500).json({error:'네이버 응답 JSON 파싱 실패'});
+    }
+
+    let items=(data.items||[]).map((item,idx)=>({
+      id:String(idx+1),
+      name:stripTags(item.title),
+      link:item.link||'',
+      image:item.image||'',
+      lprice:Number(item.lprice||0),
+      priceText:item.lprice?`${Number(item.lprice).toLocaleString('ko-KR')}원`:'',
+      store:stripTags(item.mallName||''),
+      productId:item.productId||''
+    }));
+
+    const universalResult=await applyUniversalAIFilter({query:q,items});
+    const finalItems=Array.isArray(universalResult.filteredItems)?universalResult.filteredItems:items;
+
+    return res.status(200).json({
+      query:q,
+      improvedQuery:improvedQ,
+      canonicalDebug,
+      total:data.total||0,
+      items:finalItems,
+      rejectedItems:universalResult.rejectedItems||[],
+      universalFilterDebug:universalResult.debug||null
+    });
+
+  }catch(err){
+    return res.status(500).json({error:err.message||'Server error'});
+  }
+}
+
+module.exports=handler;
+module.exports.config={maxDuration:30};

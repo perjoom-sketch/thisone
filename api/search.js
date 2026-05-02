@@ -9,6 +9,18 @@ function parsePositiveNumber(value){
   const n = Number(value || 0);
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
+function isRentalLikeItem(item){
+  const text = `${item?.name || ''} ${item?.store || ''}`;
+  return /렌탈|대여|구독|약정|월납/i.test(text);
+}
+function restoreRentalItemsIfAllowed(filteredItems, sourceItems, settings){
+  if (settings?.excludeRental) return filteredItems;
+  const base = Array.isArray(filteredItems) ? filteredItems : [];
+  const source = Array.isArray(sourceItems) ? sourceItems : [];
+  const existingIds = new Set(base.map(item => String(item?.id || '')));
+  const restored = source.filter(item => isRentalLikeItem(item) && !existingIds.has(String(item?.id || '')));
+  return restored.length ? [...base, ...restored] : base;
+}
 
 function applySearchSettings(items, query) {
   const excludeRental = isTrue(query.excludeRental);
@@ -31,7 +43,7 @@ function applySearchSettings(items, query) {
     const price = Number(item.lprice || 0);
 
     let reason = '';
-    if (excludeRental && /렌탈|대여|구독|약정|월납/i.test(`${name} ${store}`)) reason = '설정: 렌탈 제외';
+    if (excludeRental && isRentalLikeItem(item)) reason = '설정: 렌탈 제외';
     else if (excludeUsed && /중고|리퍼|반품|전시|개봉/i.test(name)) reason = '설정: 중고/리퍼 제외';
     else if (excludeOverseas && /해외|직구|구매대행/i.test(combined)) reason = '설정: 직구 제외';
     else if (excludeAgent && /구매대행|대행/i.test(`${name} ${store}`)) reason = '설정: 대행 제외';
@@ -140,9 +152,11 @@ async function handler(req,res){
 
     const settingsResult = applySearchSettings(items, req.query);
     items = settingsResult.items;
+    const itemsBeforeUniversalFilter = items;
 
     const universalResult=await applyUniversalAIFilter({query:q,items});
-    const finalItems=Array.isArray(universalResult.filteredItems)?universalResult.filteredItems:items;
+    const universalItems=Array.isArray(universalResult.filteredItems)?universalResult.filteredItems:items;
+    const finalItems=restoreRentalItemsIfAllowed(universalItems, itemsBeforeUniversalFilter, settingsResult.settings);
 
     return res.status(200).json({
       query:q,
@@ -152,11 +166,12 @@ async function handler(req,res){
       items:finalItems,
       rejectedItems:[
         ...(settingsResult.rejected||[]),
-        ...(universalResult.rejectedItems||[])
+        ...(universalResult.rejectedItems||[]).filter(item => settingsResult.settings.excludeRental || !isRentalLikeItem(item))
       ],
       searchSettingsDebug:{
         applied: settingsResult.settings,
         rejectedCount: settingsResult.rejected.length,
+        restoredRentalCount: Math.max(0, finalItems.length - universalItems.length),
         note: 'freeShipping only applies when upstream delivery text is available'
       },
       universalFilterDebug:universalResult.debug||null

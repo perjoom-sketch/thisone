@@ -97,7 +97,7 @@
 })(window);
 
 // 렌탈 상품을 구매가처럼 오해하지 않도록 표시 데이터만 보정한다.
-// 월 n원 패턴이 있을 때만 월 렌탈료로 표시한다.
+// 명시 월납 또는 저가 약정 렌탈만 월 렌탈료로 해석한다.
 (function patchRentalDisplay(global) {
   function parseNumber(text) {
     return Number(String(text || '').replace(/[^\d]/g, '')) || 0;
@@ -111,17 +111,24 @@
     return item?.isRental === true || /렌탈|대여|구독|약정|월납/i.test(rentalText(item));
   }
 
-  function rentalMonthlyFee(item) {
-    const m = rentalText(item).match(/월\s*([0-9,]+)\s*원/i);
-    return m ? parseNumber(m[1]) : 0;
-  }
-
   function rentalMonths(item) {
     const t = rentalText(item);
     const months = t.match(/(\d+)\s*개월/i);
     if (months) return parseInt(months[1], 10) || 0;
     const years = t.match(/(\d+)\s*년\s*약정/i);
     return years ? (parseInt(years[1], 10) || 0) * 12 : 0;
+  }
+
+  function rentalMonthlyFee(item) {
+    const text = rentalText(item);
+    const explicit = text.match(/월\s*([0-9,]+)\s*원/i);
+    if (explicit) return parseNumber(explicit[1]);
+
+    const price = Number(item?.priceNum || item?.lprice || parseNumber(item?.price) || 0);
+    const hasContract = rentalMonths(item) > 0 || /약정/i.test(text);
+    if (isRental(item) && hasContract && price > 0 && price < 200000) return price;
+
+    return 0;
   }
 
   function enrichRental(item) {

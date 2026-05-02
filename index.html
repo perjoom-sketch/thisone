@@ -9,8 +9,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   
   <script>
-    console.log("%c [ThisOne] v3.4.3 Loaded (Rental Exclude Default Off) - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
-    window.THISONE_ASSET_VERSION = '3.4.3';
+    console.log("%c [ThisOne] v3.4.4 Loaded (Settings Live Sync) - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
+    window.THISONE_ASSET_VERSION = '3.4.4';
     
     window.MODEL = window.MODEL || 'gemini-2.5-flash';
     window.NOEL = window.NOEL || window.MODEL;
@@ -64,13 +64,11 @@
       if (range && val) val.textContent = range.value + '초';
     }
 
-    window.saveExpertSettings = function() {
-      const root = document.getElementById('commonFilterContent');
-      if (!root) return;
+    function readExpertSettingsFromForm(root) {
+      if (!root) return window.ThisOneExpertSettings || DEFAULT_EXPERT_SETTINGS;
       const getValue = (id) => root.querySelector('#' + id)?.value || '';
       const getChecked = (id) => !!root.querySelector('#' + id)?.checked;
-
-      window.ThisOneExpertSettings = {
+      return {
         minPrice: getValue('minPrice'),
         maxPrice: getValue('maxPrice'),
         resultCount: getValue('resultCount') || '5',
@@ -81,8 +79,25 @@
         excludeRental: getChecked('excludeRental'),
         patienceTime: getValue('patienceTime') || '20'
       };
+    }
 
+    function syncExpertSettingsFromForm(root) {
+      if (!root) return;
+      window.ThisOneExpertSettings = readExpertSettingsFromForm(root);
       try { localStorage.removeItem('thisone_expert_settings'); } catch (e) {}
+    }
+
+    function bindExpertSettingsLiveSync(root) {
+      if (!root || root.dataset.liveSyncBound === 'true') return;
+      root.dataset.liveSyncBound = 'true';
+      root.addEventListener('input', () => syncExpertSettingsFromForm(root));
+      root.addEventListener('change', () => syncExpertSettingsFromForm(root));
+    }
+
+    window.saveExpertSettings = function() {
+      const root = document.getElementById('commonFilterContent');
+      if (!root) return;
+      syncExpertSettingsFromForm(root);
 
       const modal = document.getElementById('filterModal');
       if (modal) modal.classList.remove('show');
@@ -110,10 +125,12 @@
       if (isHidden) {
         if (!target.children.length) {
           target.appendChild(template.content.cloneNode(true));
+          applyExpertSettingsToForm(target);
+          bindExpertSettingsLiveSync(target);
         }
-        applyExpertSettingsToForm(target);
         modal.classList.add('show');
       } else {
+        syncExpertSettingsFromForm(target);
         modal.classList.remove('show');
         // 새로고침 초기화 원칙을 위해 localStorage는 사용하지 않고, 세션 DOM만 유지한다.
       }
@@ -132,7 +149,7 @@
   <meta name="theme-color" content="#ffffff" />
   <title>쇼핑검색 디스원</title>
   
-  <link rel="stylesheet" href="styles/main.css?v=3.4.3" />
+  <link rel="stylesheet" href="styles/main.css?v=3.4.4" />
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap" rel="stylesheet">
 </head>
 
@@ -266,15 +283,15 @@
     </div>
   </template>
 
-  <script src="js/trajectoryLogger.js?v=3.4.3" defer></script>
-  <script src="js/api.js?v=3.4.3"></script>
-  <script src="js/productFamilies.js?v=3.4.3"></script>
-  <script src="js/ranking.js?v=3.4.3"></script>
-  <script src="js/model_dedupe_patch.js?v=3.4.3"></script>
-  <script src="js/mobile_search_safety_patch.js?v=3.4.3"></script>
-  <script src="js/result_cards.js?v=3.4.3"></script>
-  <script src="js/thisone_ui_v3.js?v=3.4.3"></script>
-  <script src="js/search_dropdown.js?v=3.4.3"></script>
-  <script src="js/thisone_app_v3_final.js?v=3.4.3"></script>
+  <script src="js/trajectoryLogger.js?v=3.4.4" defer></script>
+  <script src="js/api.js?v=3.4.4"></script>
+  <script src="js/productFamilies.js?v=3.4.4"></script>
+  <script src="js/ranking.js?v=3.4.4"></script>
+  <script src="js/model_dedupe_patch.js?v=3.4.4"></script>
+  <script src="js/mobile_search_safety_patch.js?v=3.4.4"></script>
+  <script src="js/result_cards.js?v=3.4.4"></script>
+  <script src="js/thisone_ui_v3.js?v=3.4.4"></script>
+  <script src="js/search_dropdown.js?v=3.4.4"></script>
+  <script src="js/thisone_app_v3_final.js?v=3.4.4"></script>
 </body>
 </html>

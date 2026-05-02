@@ -8,8 +8,8 @@ function generateSign(params, appSecret) {
     str += key + params[key];
   }
   str += appSecret;
-  return crypto.createHmac('sha256', appSecret)
-    .update(str)
+  return crypto.createHash('md5')
+    .update(str, 'utf8')
     .digest('hex')
     .toUpperCase();
 }
@@ -38,7 +38,7 @@ async function handler(req, res) {
       method: 'aliexpress.affiliate.product.query',
       app_key: appKey,
       timestamp,
-      sign_method: 'hmac-sha256',
+      sign_method: 'md5',
       format: 'json',
       v: '2.0',
       keywords: q,
@@ -78,7 +78,6 @@ async function handler(req, res) {
       return res.status(500).json({ error: 'AliExpress 응답 JSON 파싱 실패' });
     }
 
-    // 응답 구조 파싱
     const result = data?.aliexpress_affiliate_product_query_response?.resp_result;
     if (!result || result.resp_code !== 200) {
       return res.status(500).json({ error: result?.resp_msg || 'AliExpress API 오류', raw: data });

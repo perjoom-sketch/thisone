@@ -97,7 +97,7 @@
 })(window);
 
 // 렌탈 상품을 구매가처럼 오해하지 않도록 표시 데이터만 보정한다.
-// 정렬은 강제하지 않고 AI가 월 납입액/약정/총액을 이해해 판단하게 한다.
+// 월 n원 패턴이 있을 때만 월 렌탈료로 표시한다.
 (function patchRentalDisplay(global) {
   function parseNumber(text) {
     return Number(String(text || '').replace(/[^\d]/g, '')) || 0;
@@ -113,8 +113,7 @@
 
   function rentalMonthlyFee(item) {
     const m = rentalText(item).match(/월\s*([0-9,]+)\s*원/i);
-    if (m) return parseNumber(m[1]);
-    return isRental(item) ? Number(item?.priceNum || item?.lprice || parseNumber(item?.price) || 0) : 0;
+    return m ? parseNumber(m[1]) : 0;
   }
 
   function rentalMonths(item) {
@@ -150,7 +149,7 @@
       return `월 ${fmt(c.rentalMonthlyFee)}원 / ${c.rentalMonths}개월 / 총 ${fmt(c.rentalTotalFee)}원`;
     }
     if (c.rentalMonthlyFee > 0) return `월 ${fmt(c.rentalMonthlyFee)}원`;
-    return `렌탈 ${c.price || c.priceText || '가격 확인'}`;
+    return c.price || c.priceText || '가격 확인';
   }
 
   function patchRankingData() {

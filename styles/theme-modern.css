@@ -1,0 +1,125 @@
+/* Search result typography and color overrides only.
+   Do not alter landing copy, home search box, or quick-chip copy styling. */
+
+.results-view,
+#msgContainer,
+.ai-result,
+.pick-list,
+.pick-row,
+.row-info,
+.general-results,
+.result-card,
+.product-card {
+  font-family: 'Noto Sans KR', 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #111827;
+  letter-spacing: -0.015em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.results-view .ai-label,
+.results-view .point-text,
+#msgContainer .ai-label,
+#msgContainer .point-text {
+  color: #2563eb;
+}
+
+.results-view .ai-label .dot,
+#msgContainer .ai-label .dot,
+.results-view .sort-btn.active,
+#msgContainer .sort-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.results-view .pick-row,
+#msgContainer .pick-row,
+.results-view .result-card,
+#msgContainer .result-card,
+.results-view .product-card,
+#msgContainer .product-card {
+  border-color: #dbe3ef;
+}
+
+.results-view .pick-row:hover,
+#msgContainer .pick-row:hover,
+.results-view .result-card:hover,
+#msgContainer .result-card:hover,
+.results-view .product-card:hover,
+#msgContainer .product-card:hover {
+  border-color: #2563eb;
+  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.06);
+}
+
+/* 검색결과의 핵심 텍스트: 상품명 */
+.results-view .row-title,
+#msgContainer .row-title,
+.results-view .product-title,
+#msgContainer .product-title,
+.results-view .card-title,
+#msgContainer .card-title {
+  color: #1d4ed8 !important;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.35;
+}
+
+.results-view .row-store-name,
+#msgContainer .row-store-name,
+.results-view .row-delivery,
+#msgContainer .row-delivery,
+.results-view .row-review,
+#msgContainer .row-review,
+.results-view .row-store,
+#msgContainer .row-store,
+.results-view .store,
+#msgContainer .store,
+.results-view .product-meta,
+#msgContainer .product-meta,
+.results-view .row-reason,
+#msgContainer .row-reason,
+.results-view .row-reason-text,
+#msgContainer .row-reason-text {
+  color: #64748b;
+  letter-spacing: -0.01em;
+}
+
+/* 검색결과의 핵심 텍스트: 가격 */
+.results-view .row-price,
+#msgContainer .row-price,
+.results-view .price,
+#msgContainer .price,
+.results-view .product-price,
+#msgContainer .product-price {
+  color: #111827 !important;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.results-view .row-label-badge,
+#msgContainer .row-label-badge,
+.results-view .badge-value,
+#msgContainer .badge-value {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.results-view .row-cta,
+#msgContainer .row-cta {
+  background: #2563eb;
+  color: #fff;
+}
+
+.results-view .sort-btn,
+#msgContainer .sort-btn,
+.results-view .page-btn,
+#msgContainer .page-btn {
+  font-family: inherit;
+  letter-spacing: -0.02em;
+}
+
+.results-view .page-btn:hover:not(:disabled),
+#msgContainer .page-btn:hover:not(:disabled) {
+  border-color: #2563eb;
+  color: #2563eb;
+}

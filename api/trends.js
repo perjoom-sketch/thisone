@@ -19,9 +19,9 @@ export default async function handler(req, res) {
       { id: "t1", label: "🤖 AI 로봇청소기", query: "로봇청소기 구매 비교 추천" },
       { id: "t2", label: "🌀 30인치 산업용 선풍기", query: "스탠드식 30인치 산업용 선풍기" },
       { id: "t3", label: "💆 효도용 안마의자", query: "부모님 선물용 안마의자 추천" },
-      { id: "t4", label: "🗑️ 음식물처리기", query: "음식물처리기 설치형 vs 프리스탠딩 비교" },
+      { id: "t4", label: "🗑️ 음식물처리기", query: "음식물처리기 미생물분해형 설치형 비교" },
       { id: "t5", label: "📺 2026년형 AI TV", query: "2026년 신제품 AI TV 추천" },
-      { id: "t6", label: "❄️ 에어컨 사전점검", query: "2in1 에어컨 신제품 가격 비교" }
+      { id: "t6", label: "❄️ 창문형 에어컨", query: "창문형 에어컨 추천" }
     ];
 
     return res.status(200).json({

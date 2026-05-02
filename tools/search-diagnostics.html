@@ -11,9 +11,10 @@
     p { color: #6b7280; line-height: 1.55; }
     textarea { width: 100%; min-height: 150px; box-sizing: border-box; padding: 14px; border: 1px solid #d1d5db; border-radius: 14px; font-size: 15px; line-height: 1.5; resize: vertical; background: white; }
     button { border: 0; border-radius: 999px; padding: 11px 18px; font-weight: 700; cursor: pointer; background: #111827; color: white; }
+    button.secondary { background: white; color: #111827; border: 1px solid #d1d5db; }
     button:disabled { opacity: 0.5; cursor: wait; }
     .panel { background: white; border: 1px solid #e5e7eb; border-radius: 20px; padding: 18px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05); margin-top: 18px; }
-    .actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
+    .actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
     .muted { color: #6b7280; font-size: 13px; }
     .result { margin-top: 14px; border: 1px solid #e5e7eb; border-radius: 16px; background: white; overflow: hidden; }
     .result-head { padding: 14px 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
@@ -30,15 +31,35 @@
     li { margin: 7px 0; }
     code { background: #f3f4f6; border-radius: 6px; padding: 2px 5px; }
     pre { white-space: pre-wrap; word-break: break-word; background: #0f172a; color: #e5e7eb; padding: 14px; border-radius: 14px; overflow: auto; }
-    @media (max-width: 720px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+    /* 배치 테스트 */
+    .batch-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0; }
+    .stat-card { background: #f9fafb; border-radius: 12px; padding: 12px; text-align: center; }
+    .stat-card b { display: block; font-size: 22px; margin-bottom: 2px; }
+    .stat-card span { font-size: 12px; color: #6b7280; }
+    .progress-bar { height: 6px; background: #e5e7eb; border-radius: 999px; overflow: hidden; margin: 8px 0; }
+    .progress-fill { height: 100%; background: #111827; border-radius: 999px; transition: width 0.3s; }
+    .batch-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+    .batch-table th { text-align: left; padding: 8px 6px; border-bottom: 2px solid #e5e7eb; font-weight: 700; background: #f9fafb; }
+    .batch-table td { padding: 7px 6px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+    .batch-table tr:hover td { background: #f9fafb; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .pill-ok { background: #dcfce7; color: #166534; }
+    .pill-warn { background: #fff7ed; color: #9a3412; }
+    .pill-err { background: #fef2f2; color: #991b1b; }
+    .filter-bar { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; align-items: center; }
+    .filter-bar select { border: 1px solid #d1d5db; border-radius: 8px; padding: 6px 10px; font-size: 13px; background: white; }
+    @media (max-width: 720px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .batch-stats { grid-template-columns: repeat(2, 1fr); } }
   </style>
 </head>
 <body>
   <main>
     <h1>ThisOne 검색 진단기</h1>
-    <p>검색어별로 네이버 raw 결과, 디스원 검색어 보정, 제목 샘플, 의심 플래그를 확인한다. 검색 안 되는 키워드가 어느 단계에서 죽는지 찾기 위한 도구다.</p>
+    <p>검색어별로 네이버 raw 결과, 디스원 검색어 보정, 제목 샘플, 의심 플래그를 확인한다.</p>
 
+    <!-- 개별 진단 -->
     <section class="panel">
+      <h2 style="font-size:16px;margin:0 0 10px;">개별 진단</h2>
       <textarea id="queries">김서방마스크
 화장지 3겹 30m 30롤
 로보락 S8 MaxV Ultra
@@ -50,25 +71,67 @@
     </section>
 
     <section id="results"></section>
+
+    <!-- 배치 테스트 -->
+    <section class="panel" style="margin-top:28px;">
+      <h2 style="font-size:16px;margin:0 0 6px;">배치 테스트 (300개 키워드)</h2>
+      <p style="margin:0 0 10px;font-size:13px;">전체 키워드를 자동으로 순차 진단한다. 문제 키워드를 한눈에 파악할 수 있다.</p>
+      <div class="batch-stats">
+        <div class="stat-card"><b id="b-total">-</b><span>전체</span></div>
+        <div class="stat-card"><b id="b-ok" style="color:#166534;">0</b><span>정상</span></div>
+        <div class="stat-card"><b id="b-warn" style="color:#9a3412;">0</b><span>문제 의심</span></div>
+        <div class="stat-card"><b id="b-err" style="color:#991b1b;">0</b><span>오류</span></div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="b-progress" style="width:0%"></div></div>
+      <div class="actions" style="margin-top:8px;">
+        <button id="batchBtn" type="button">배치 시작</button>
+        <button id="batchStop" type="button" class="secondary" style="display:none;">중지</button>
+        <button id="batchCSV" type="button" class="secondary">CSV 다운로드</button>
+        <span class="muted" id="b-progress-text">0 / 0</span>
+      </div>
+      <div class="filter-bar">
+        <select id="b-filter">
+          <option value="all">전체 보기</option>
+          <option value="warn">문제 의심만</option>
+          <option value="error">오류만</option>
+          <option value="ok">정상만</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="batch-table" id="b-table">
+          <thead>
+            <tr>
+              <th style="width:130px;">키워드</th>
+              <th style="width:130px;">개선 쿼리</th>
+              <th style="width:70px;">네이버</th>
+              <th style="width:55px;">반환</th>
+              <th style="width:55px;">의심수</th>
+              <th style="width:60px;">상태</th>
+              <th>의심 유형</th>
+            </tr>
+          </thead>
+          <tbody id="b-body">
+            <tr><td colspan="7" style="text-align:center;padding:2rem;color:#9ca3af;">배치 시작을 눌러주세요</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </main>
 
   <script>
+    /* ===== 개별 진단 ===== */
     const runBtn = document.getElementById('runBtn');
     const queriesEl = document.getElementById('queries');
     const resultsEl = document.getElementById('results');
 
     function esc(value) {
-      return String(value || '').replace(/[&<>"']/g, (ch) => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      }[ch]));
+      return String(value || '').replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
     }
-
     function badgeClass(data) {
       if (!data.ok || data.diagnosis?.status === 'no_raw_results') return 'bad';
       if ((data.diagnosis?.suspects || []).length) return 'warn';
       return '';
     }
-
     function renderResult(data) {
       const suspects = data.diagnosis?.suspects || [];
       const sample = data.sample || [];
@@ -88,27 +151,19 @@
               <div class="metric"><b>${esc(suspects.length)}</b><span>suspects</span></div>
               <div class="metric"><b>${esc(Object.keys(data.flagCounts || {}).length)}</b><span>flag types</span></div>
             </div>
-            ${suspects.length ? `<p>의심: ${suspects.map((s) => `<code>${esc(s)}</code>`).join(' ')}</p>` : '<p>큰 의심 플래그 없음</p>'}
+            ${suspects.length ? `<p>의심: ${suspects.map(s => `<code>${esc(s)}</code>`).join(' ')}</p>` : '<p>큰 의심 플래그 없음</p>'}
             ${data.error ? `<p>오류: <code>${esc(data.error)}</code></p>` : ''}
-            <ol>
-              ${sample.map((item) => `<li><b>${esc(item.title)}</b><br><span class="muted">${esc(item.mallName)} · ${Number(item.lprice || 0).toLocaleString('ko-KR')}원 · type ${esc(item.productType)} · ${esc((item.flags || []).join(', ') || 'flag 없음')}</span></li>`).join('')}
-            </ol>
-            <details>
-              <summary>JSON 보기</summary>
-              <pre>${esc(JSON.stringify(data, null, 2))}</pre>
-            </details>
+            <ol>${sample.map(item => `<li><b>${esc(item.title)}</b><br><span class="muted">${esc(item.mallName)} · ${Number(item.lprice||0).toLocaleString('ko-KR')}원 · type ${esc(item.productType)} · ${esc((item.flags||[]).join(', ')||'flag 없음')}</span></li>`).join('')}</ol>
+            <details><summary>JSON 보기</summary><pre>${esc(JSON.stringify(data, null, 2))}</pre></details>
           </div>
-        </article>
-      `;
+        </article>`;
     }
-
     async function diagnose(query) {
-      const response = await fetch(`/api/diagnose-search?q=${encodeURIComponent(query)}`);
-      return response.json();
+      const res = await fetch(`/api/diagnose-search?q=${encodeURIComponent(query)}`);
+      return res.json();
     }
-
     runBtn.addEventListener('click', async () => {
-      const queries = queriesEl.value.split('\n').map((q) => q.trim()).filter(Boolean);
+      const queries = queriesEl.value.split('\n').map(q => q.trim()).filter(Boolean);
       resultsEl.innerHTML = '';
       runBtn.disabled = true;
       runBtn.textContent = '진단 중...';
@@ -124,6 +179,123 @@
         runBtn.disabled = false;
         runBtn.textContent = '진단 실행';
       }
+    });
+
+    /* ===== 배치 테스트 ===== */
+    const KEYWORDS = ["핸드폰","휴대폰","스마트폰","자급제폰","아이폰","갤럭시","갤럭시폰","중고폰","공기계","폴더폰","효도폰","키즈폰","휴대폰 케이스","폰케이스","아이폰 케이스","갤럭시 케이스","휴대폰 필름","강화유리","액정보호필름","맥세이프","맥세이프 충전기","보조배터리","무선충전기","충전기","고속충전기","C타입 충전기","아이폰 충전기","갤럭시 충전기","충전 케이블","C타입 케이블","8핀 케이블","멀티탭","USB허브","도킹스테이션","노트북","게이밍 노트북","사무용 노트북","대학생 노트북","가벼운 노트북","LG그램","그램","맥북","맥북에어","맥북프로","맥미니","아이맥","태블릿","아이패드","갤럭시탭","레노버탭","모니터","게이밍 모니터","4K 모니터","27인치 모니터","32인치 모니터","키보드","무선키보드","기계식 키보드","마우스","무선마우스","게이밍 마우스","버티컬 마우스","마우스패드","프린터","복합기","잉크젯 프린터","레이저 프린터","토너","잉크","외장하드","SSD","외장 SSD","USB","메모리카드","공유기","와이파이 공유기","랜선","웹캠","마이크","스피커","PC스피커","이어폰","무선이어폰","블루투스 이어폰","노이즈캔슬링 이어폰","에어팟","에어팟 프로","버즈","갤럭시 버즈","헤드폰","무선헤드폰","블루투스 헤드폰","노캔 헤드폰","블루투스 스피커","사운드바","USB 마이크","방송용 마이크","노래방 마이크","차량용 블루투스","카팩","헤어드라이기","드라이기","고데기","매직기","봉고데기","에어랩","다이슨 에어랩","다이슨 드라이기","전기면도기","면도기","필립스 면도기","브라운 면도기","가습기","초음파 가습기","가열식 가습기","복합식 가습기","제습기","공기청정기","선풍기","써큘레이터","에어컨","이동식 에어컨","창문형 에어컨","전기히터","온풍기","전기장판","온수매트","전기요","청소기","무선청소기","로봇청소기","물걸레청소기","침구청소기","스팀청소기","로보락","에코백스","다이슨 청소기","삼성 청소기","LG 청소기","전자레인지","에어프라이어","전기밥솥","밥솥","쿠쿠","쿠첸","인덕션","전기포트","커피머신","캡슐커피머신","네스프레소","정수기","냉장고","김치냉장고","식기세척기","믹서기","블렌더","핸드블렌더","토스터기","멀티쿠커","음식물처리기","후라이팬","프라이팬","냄비","도마","칼","수저세트","그릇","텀블러","보온병","도시락통","밀폐용기","반찬통","수납함","샴푸","바디워시","치약","전동칫솔","구강세정기","수건","샤워헤드","필터샤워기","마스크","KF94","비말마스크","손소독제","티셔츠","맨투맨","후드티","니트","가디건","자켓","코트","패딩","롱패딩","바람막이","청바지","슬랙스","레깅스","원피스","가방","백팩","크로스백","토트백","지갑","운동화","스니커즈","구두","슬리퍼","부츠","등산화","화장품","토너","로션","세럼","크림","선크림","클렌징폼","마스크팩","쿠션","파운데이션","립스틱","틴트","향수","탈모샴푸","라면","즉석밥","생수","커피","원두","과자","초콜릿","우유","참치캔","김치","고추장","된장","간장","올리브유","냉동만두","닭가슴살","계란","기저귀","분유","젖병","유모차","카시트","아기띠","놀이매트","이유식","강아지사료","고양이사료","배변패드","고양이모래","캣타워","펫드라이룸","자동급식기","강아지샴푸","차량용 충전기","차량용 거치대","블랙박스","하이패스","세차용품","점프스타터","전동드릴","공구세트","드라이버","줄자","글루건","안전화","작업복","보안경","침대","매트리스","베개","이불","소파","책상","의자","게이밍의자","식탁","수납장","옷장","행거","커튼","블라인드","러그","조명","무드등","텐트","침낭","캠핑의자","아이스박스","낚싯대","골프공","요가매트","덤벨","자전거","헬멧","가성비 노트북","가성비 이어폰","가성비 청소기","저렴한 핸드폰","추천 노트북","추천 이어폰","부모님 선물","집들이 선물","생일선물","자취 필수템","로보락 S8","다이슨 에어랩","갤럭시 S24","갤럭시 S25","아이폰 15","아이폰 16","맥북에어","에어팟 프로","갤럭시 버즈","삼성 공기청정기","LG 공기청정기","쿠쿠 밥솥","김서방마스크","KF94 마스크","전자렌지","후라이팬","쇼파","낚시대","썬크림","공청기","식세기","음쓰처리기"];
+
+    let bResults = [];
+    let bRunning = false;
+    let bStop = false;
+
+    const batchBtn = document.getElementById('batchBtn');
+    const batchStop = document.getElementById('batchStop');
+    const bFilter = document.getElementById('b-filter');
+
+    function bStatusPill(s) {
+      if (s === 'ok') return '<span class="pill pill-ok">정상</span>';
+      if (s === 'warn') return '<span class="pill pill-warn">의심</span>';
+      return '<span class="pill pill-err">오류</span>';
+    }
+
+    function analyzeRow(data) {
+      if (data.fetchError) return { status: 'error', flags: ['fetch 오류'] };
+      if (!data.ok && data.error) return { status: 'error', flags: [String(data.error).slice(0,30)] };
+      const flags = [];
+      const naverTotal = data.naver?.total || 0;
+      const returned = data.naver?.returnedItems || 0;
+      const suspects = data.diagnosis?.suspects || [];
+      if (naverTotal === 0) flags.push('네이버 0건');
+      if (returned === 0 && naverTotal > 0) flags.push('반환 0건');
+      if (suspects.length > 0) flags.push(...suspects.slice(0,2));
+      if (data.diagnosis?.status === 'no_raw_results') flags.push('no_raw_results');
+      return { status: flags.length > 0 ? 'warn' : 'ok', flags };
+    }
+
+    function renderBatchTable() {
+      const filter = bFilter.value;
+      const list = filter === 'all' ? bResults : bResults.filter(r => r.status === filter || (filter === 'warn' && r.status === 'warn'));
+      const tbody = document.getElementById('b-body');
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:#9ca3af;">${bResults.length===0?'배치 시작을 눌러주세요':'해당 항목 없음'}</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = list.map(r => `
+        <tr>
+          <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.keyword)}">${esc(r.keyword)}</td>
+          <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#6b7280;" title="${esc(r.improvedQuery||'')}">${esc(r.improvedQuery||'-')}</td>
+          <td>${r.naverTotal != null ? Number(r.naverTotal).toLocaleString() : '-'}</td>
+          <td>${r.returned != null ? r.returned : '-'}</td>
+          <td>${r.suspectCount != null ? r.suspectCount : '-'}</td>
+          <td>${bStatusPill(r.status)}</td>
+          <td style="color:#9a3412;font-size:12px;">${esc((r.flags||[]).join(', '))}</td>
+        </tr>`).join('');
+    }
+
+    function updateBatchStats() {
+      document.getElementById('b-total').textContent = KEYWORDS.length + '개';
+      document.getElementById('b-ok').textContent = bResults.filter(r=>r.status==='ok').length;
+      document.getElementById('b-warn').textContent = bResults.filter(r=>r.status==='warn').length;
+      document.getElementById('b-err').textContent = bResults.filter(r=>r.status==='error').length;
+      const pct = Math.round(bResults.length / KEYWORDS.length * 100);
+      document.getElementById('b-progress').style.width = pct + '%';
+      document.getElementById('b-progress-text').textContent = `${bResults.length} / ${KEYWORDS.length}`;
+    }
+
+    async function batchDiagnose(kw) {
+      try {
+        const res = await fetch(`/api/diagnose-search?q=${encodeURIComponent(kw)}`, { signal: AbortSignal.timeout(25000) });
+        const data = await res.json();
+        return data;
+      } catch(e) {
+        return { fetchError: true, error: e.message };
+      }
+    }
+
+    batchBtn.addEventListener('click', async () => {
+      if (bRunning) return;
+      bRunning = true; bStop = false; bResults = [];
+      batchBtn.style.display = 'none';
+      batchStop.style.display = '';
+      for (let i = 0; i < KEYWORDS.length; i += 5) {
+        if (bStop) break;
+        const batch = KEYWORDS.slice(i, i + 5);
+        const rows = await Promise.all(batch.map(async kw => {
+          const data = await batchDiagnose(kw);
+          const { status, flags } = analyzeRow(data);
+          return {
+            keyword: kw,
+            improvedQuery: data.improvedQuery || kw,
+            naverTotal: data.naver?.total ?? null,
+            returned: data.naver?.returnedItems ?? null,
+            suspectCount: (data.diagnosis?.suspects || []).length,
+            status, flags
+          };
+        }));
+        bResults.push(...rows);
+        updateBatchStats();
+        renderBatchTable();
+        await new Promise(r => setTimeout(r, 400));
+      }
+      bRunning = false;
+      batchBtn.style.display = '';
+      batchStop.style.display = 'none';
+    });
+
+    batchStop.addEventListener('click', () => { bStop = true; });
+
+    bFilter.addEventListener('change', renderBatchTable);
+
+    document.getElementById('batchCSV').addEventListener('click', () => {
+      if (!bResults.length) return;
+      const rows = [['키워드','개선쿼리','네이버총','반환','의심수','상태','의심유형']];
+      bResults.forEach(r => rows.push([r.keyword, r.improvedQuery||'', r.naverTotal||0, r.returned||0, r.suspectCount||0, r.status, (r.flags||[]).join('|')]));
+      const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'thisone_batch.csv';
+      a.click();
     });
   </script>
 </body>

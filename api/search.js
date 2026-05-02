@@ -4,6 +4,61 @@ const { improveQuery } = require('../lib/queryNormalizer');
 const { shouldUseCanonicalIntent, canonicalizeQuery } = require('../lib/canonicalIntent');
 
 function stripTags(text){return String(text||'').replace(/<[^>]*>/g,'').trim();}
+function isTrue(value){return value === true || String(value).toLowerCase() === 'true';}
+function parsePositiveNumber(value){
+  const n = Number(value || 0);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function applySearchSettings(items, query) {
+  const excludeRental = isTrue(query.excludeRental);
+  const excludeUsed = isTrue(query.excludeUsed);
+  const excludeOverseas = isTrue(query.excludeOverseas);
+  const excludeAgent = isTrue(query.excludeAgent);
+  const freeShipping = isTrue(query.freeShipping);
+  const minPrice = parsePositiveNumber(query.minPrice);
+  const maxPrice = parsePositiveNumber(query.maxPrice);
+
+  const filtersActive = excludeRental || excludeUsed || excludeOverseas || excludeAgent || freeShipping || minPrice > 0 || maxPrice > 0;
+  if (!filtersActive) return { items, rejected: [], settings: { excludeRental, excludeUsed, excludeOverseas, excludeAgent, freeShipping, minPrice, maxPrice } };
+
+  const rejected = [];
+  const filtered = items.filter(item => {
+    const name = String(item.name || '').toLowerCase();
+    const store = String(item.store || '').toLowerCase();
+    const delivery = String(item.delivery || '').toLowerCase();
+    const combined = `${name} ${store} ${delivery}`;
+    const price = Number(item.lprice || 0);
+
+    let reason = '';
+    if (excludeRental && /렌탈|대여|구독|약정|월납/i.test(`${name} ${store}`)) reason = '설정: 렌탈 제외';
+    else if (excludeUsed && /중고|리퍼|반품|전시|개봉/i.test(name)) reason = '설정: 중고/리퍼 제외';
+    else if (excludeOverseas && /해외|직구|구매대행/i.test(combined)) reason = '설정: 직구 제외';
+    else if (excludeAgent && /구매대행|대행/i.test(`${name} ${store}`)) reason = '설정: 대행 제외';
+    else if (freeShipping && delivery && !/무료/i.test(delivery)) reason = '설정: 무료배송만 표시';
+    else if (minPrice > 0 && price > 0 && price < minPrice) reason = '설정: 최소가격 미만';
+    else if (maxPrice > 0 && price > 0 && price > maxPrice) reason = '설정: 최대가격 초과';
+
+    if (reason) {
+      rejected.push({
+        id: item.id,
+        name: item.name,
+        reason,
+        lprice: item.lprice,
+        store: item.store
+      });
+      return false;
+    }
+
+    return true;
+  });
+
+  return {
+    items: filtered,
+    rejected,
+    settings: { excludeRental, excludeUsed, excludeOverseas, excludeAgent, freeShipping, minPrice, maxPrice }
+  };
+}
 
 async function handler(req,res){
   res.setHeader('Access-Control-Allow-Origin','*');
@@ -79,8 +134,12 @@ async function handler(req,res){
       lprice:Number(item.lprice||0),
       priceText:item.lprice?`${Number(item.lprice).toLocaleString('ko-KR')}원`:'',
       store:stripTags(item.mallName||''),
-      productId:item.productId||''
+      productId:item.productId||'',
+      delivery:stripTags(item.delivery||item.deliveryInfo||'')
     }));
+
+    const settingsResult = applySearchSettings(items, req.query);
+    items = settingsResult.items;
 
     const universalResult=await applyUniversalAIFilter({query:q,items});
     const finalItems=Array.isArray(universalResult.filteredItems)?universalResult.filteredItems:items;
@@ -91,7 +150,15 @@ async function handler(req,res){
       canonicalDebug,
       total:data.total||0,
       items:finalItems,
-      rejectedItems:universalResult.rejectedItems||[],
+      rejectedItems:[
+        ...(settingsResult.rejected||[]),
+        ...(universalResult.rejectedItems||[])
+      ],
+      searchSettingsDebug:{
+        applied: settingsResult.settings,
+        rejectedCount: settingsResult.rejected.length,
+        note: 'freeShipping only applies when upstream delivery text is available'
+      },
       universalFilterDebug:universalResult.debug||null
     });
 

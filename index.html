@@ -9,8 +9,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   
   <script>
-    console.log("%c [ThisOne] v3.4.0 Loaded (Cache Refresh) - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
-    window.THISONE_ASSET_VERSION = '3.4.0';
+    console.log("%c [ThisOne] v3.4.1 Loaded (Expert Settings Session Only) - " + new Date().toLocaleString(), "color: #3b82f6; font-weight: bold;");
+    window.THISONE_ASSET_VERSION = '3.4.1';
     
     window.MODEL = window.MODEL || 'gemini-2.5-flash';
     window.NOEL = window.NOEL || window.MODEL;
@@ -18,6 +18,76 @@
     window.MINI_SCOPE_AI = window.MINI_SCOPE_AI || '✧';
     
     var currentQuery = '';
+
+    // ThisOne 원칙: 검색설정은 새로고침 시 초기화한다.
+    // 과거 반쪽 구현으로 남은 localStorage 값은 모바일 검색을 막을 수 있으므로 즉시 제거한다.
+    try { localStorage.removeItem('thisone_expert_settings'); } catch (e) {}
+
+    const DEFAULT_EXPERT_SETTINGS = {
+      minPrice: '',
+      maxPrice: '',
+      resultCount: '5',
+      freeShipping: true,
+      excludeOverseas: false,
+      excludeAgent: false,
+      excludeUsed: false,
+      excludeRental: true,
+      patienceTime: '20'
+    };
+
+    window.ThisOneExpertSettings = { ...DEFAULT_EXPERT_SETTINGS };
+
+    function applyExpertSettingsToForm(root) {
+      if (!root) return;
+      const settings = window.ThisOneExpertSettings || DEFAULT_EXPERT_SETTINGS;
+      const setValue = (id, value) => {
+        const el = root.querySelector('#' + id);
+        if (el) el.value = value;
+      };
+      const setChecked = (id, value) => {
+        const el = root.querySelector('#' + id);
+        if (el) el.checked = !!value;
+      };
+
+      setValue('minPrice', settings.minPrice || '');
+      setValue('maxPrice', settings.maxPrice || '');
+      setValue('resultCount', settings.resultCount || '5');
+      setChecked('freeShipping', settings.freeShipping);
+      setChecked('excludeOverseas', settings.excludeOverseas);
+      setChecked('excludeAgent', settings.excludeAgent);
+      setChecked('excludeUsed', settings.excludeUsed);
+      setChecked('excludeRental', settings.excludeRental);
+      setValue('patienceTime', settings.patienceTime || '20');
+
+      const range = root.querySelector('#patienceTime');
+      const val = root.querySelector('#patienceVal');
+      if (range && val) val.textContent = range.value + '초';
+    }
+
+    window.saveExpertSettings = function() {
+      const root = document.getElementById('commonFilterContent');
+      if (!root) return;
+      const getValue = (id) => root.querySelector('#' + id)?.value || '';
+      const getChecked = (id) => !!root.querySelector('#' + id)?.checked;
+
+      window.ThisOneExpertSettings = {
+        minPrice: getValue('minPrice'),
+        maxPrice: getValue('maxPrice'),
+        resultCount: getValue('resultCount') || '5',
+        freeShipping: getChecked('freeShipping'),
+        excludeOverseas: getChecked('excludeOverseas'),
+        excludeAgent: getChecked('excludeAgent'),
+        excludeUsed: getChecked('excludeUsed'),
+        excludeRental: getChecked('excludeRental'),
+        patienceTime: getValue('patienceTime') || '20'
+      };
+
+      try { localStorage.removeItem('thisone_expert_settings'); } catch (e) {}
+
+      const modal = document.getElementById('filterModal');
+      if (modal) modal.classList.remove('show');
+      // form DOM은 지우지 않는다. 검색 로직이 현재 DOM 값을 읽는 구조이므로 hidden 상태로 유지한다.
+    };
     
     const SearchState = {
       isSearching: false,
@@ -38,15 +108,14 @@
       if (!target || !modal || !template) return;
       const isHidden = !modal.classList.contains('show');
       if (isHidden) {
-        target.innerHTML = '';
-        target.appendChild(template.content.cloneNode(true));
+        if (!target.children.length) {
+          target.appendChild(template.content.cloneNode(true));
+        }
+        applyExpertSettingsToForm(target);
         modal.classList.add('show');
-        const range = target.querySelector('#patienceTime');
-        const val = target.querySelector('#patienceVal');
-        if (range && val) val.textContent = range.value + '초';
       } else {
         modal.classList.remove('show');
-        target.innerHTML = '';
+        // 새로고침 초기화 원칙을 위해 localStorage는 사용하지 않고, 세션 DOM만 유지한다.
       }
     };
     
@@ -63,7 +132,7 @@
   <meta name="theme-color" content="#ffffff" />
   <title>쇼핑검색 디스원</title>
   
-  <link rel="stylesheet" href="styles/main.css?v=3.4.0" />
+  <link rel="stylesheet" href="styles/main.css?v=3.4.1" />
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap" rel="stylesheet">
 </head>
 
@@ -192,20 +261,20 @@
           <input type="range" id="patienceTime" class="form-range" min="5" max="60" value="20" oninput="document.getElementById('patienceVal').textContent=this.value+'초'">
           <div class="slider-labels"><span>빠른검색</span><span>심층검색</span></div>
         </div>
-        <button type="button" class="btn btn-dark" onclick="saveExpertSettings()">저장</button>
+        <button type="button" class="btn btn-dark" onclick="saveExpertSettings()">적용</button>
       </div>
     </div>
   </template>
 
-  <script src="js/trajectoryLogger.js?v=3.4.0" defer></script>
-  <script src="js/api.js?v=3.4.0"></script>
-  <script src="js/productFamilies.js?v=3.4.0"></script>
-  <script src="js/ranking.js?v=3.4.0"></script>
-  <script src="js/model_dedupe_patch.js?v=3.4.0"></script>
-  <script src="js/mobile_search_safety_patch.js?v=3.4.0"></script>
-  <script src="js/result_cards.js?v=3.4.0"></script>
-  <script src="js/thisone_ui_v3.js?v=3.4.0"></script>
-  <script src="js/search_dropdown.js?v=3.4.0"></script>
-  <script src="js/thisone_app_v3_final.js?v=3.4.0"></script>
+  <script src="js/trajectoryLogger.js?v=3.4.1" defer></script>
+  <script src="js/api.js?v=3.4.1"></script>
+  <script src="js/productFamilies.js?v=3.4.1"></script>
+  <script src="js/ranking.js?v=3.4.1"></script>
+  <script src="js/model_dedupe_patch.js?v=3.4.1"></script>
+  <script src="js/mobile_search_safety_patch.js?v=3.4.1"></script>
+  <script src="js/result_cards.js?v=3.4.1"></script>
+  <script src="js/thisone_ui_v3.js?v=3.4.1"></script>
+  <script src="js/search_dropdown.js?v=3.4.1"></script>
+  <script src="js/thisone_app_v3_final.js?v=3.4.1"></script>
 </body>
 </html>

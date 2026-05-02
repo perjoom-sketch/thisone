@@ -47,8 +47,7 @@ async function handler(req, res) {
       sort: 'SALE_PRICE_ASC',
       target_currency: 'KRW',
       target_language: 'KO',
-      tracking_id: 'thisone',
-    };
+     };
 
     params.sign = generateSign(params, appSecret);
 

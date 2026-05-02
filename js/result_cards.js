@@ -29,7 +29,6 @@
   function renderPickCard(card, isFirst, options) {
     const opts = options || {};
     const hideRecommendationUi = !!opts.hideRecommendationUi;
-    const priceClass = card.isRental ? 'row-price row-price-rental' : 'row-price';
     const imageHtml = card.image
       ? `<img class="row-img" src="${escAttr(card.image)}" alt="${escAttr(card.name || '상품')}" onerror="this.onerror=null;this.alt='';this.style.visibility='hidden';">`
       : `<div class="row-img-placeholder">상품</div>`;
@@ -70,7 +69,7 @@
         </div>
 
         <div class="row-price-area">
-          <div class="${priceClass}">${esc(card.price || '가격 정보 없음')}</div>
+          <div class="row-price">${esc(card.price || '가격 정보 없음')}</div>
           <div class="row-cta">최종가 확인</div>
         </div>
       </article>

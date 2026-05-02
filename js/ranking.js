@@ -390,7 +390,73 @@ function getCandidateBonus(candidate, profile) {
       bonusReasons.push('입문용 가성비 우수');
     }
   }
+// ── 범용 가점 기준 ────────────────────────────────────────────
+  
+  // 1. 브랜드 공식몰 가점
+  const officialBrands = [
+    '삼성', 'samsung', 'lg전자', 'lg공식', '애플', 'apple', '다이슨', 'dyson',
+    '소니', 'sony', '필립스', 'philips', '브라운', 'braun', '보쉬', 'bosch',
+    '쿠쿠', '쿠첸', '위닉스', '청호나이스', '코웨이', '로보락', 'roborak',
+    '에코백스', 'ecovacs', '샤오미', 'xiaomi', '나이키', 'nike', '아디다스',
+    'adidas', '뉴발란스', '데카트론'
+  ];
+  const storeLower = String(candidate.store || '').toLowerCase();
+  const nameLower = String(candidate.name || '').toLowerCase();
+  const isOfficialStore = officialBrands.some(b => storeLower.includes(b)) ||
+    /공식|official|직영|본사|제조사직판/i.test(storeLower);
+  if (isOfficialStore) {
+    bonusScore += 3;
+    bonusReasons.push('공식몰');
+  }
 
+  // 2. 리뷰 수 가점
+  const reviewText = String(candidate.review || '');
+  const reviewMatch = reviewText.match(/[\d,]+/);
+  if (reviewMatch) {
+    const reviewCount = parseInt(reviewText.replace(/,/g, ''), 10);
+    if (reviewCount >= 10000) {
+      bonusScore += 4;
+      bonusReasons.push('리뷰 1만+');
+    } else if (reviewCount >= 3000) {
+      bonusScore += 3;
+      bonusReasons.push('리뷰 3천+');
+    } else if (reviewCount >= 1000) {
+      bonusScore += 2;
+      bonusReasons.push('리뷰 1천+');
+    } else if (reviewCount >= 100) {
+      bonusScore += 1;
+      bonusReasons.push('리뷰 100+');
+    }
+  }
+
+  // 3. 네이버 랭킹 가점 (id 기반 — 앞 순위일수록 가점)
+  const rankId = parseInt(String(candidate.id || '0'), 10);
+  if (rankId > 0 && rankId <= 5) {
+    bonusScore += 3;
+    bonusReasons.push(`네이버 ${rankId}위`);
+  } else if (rankId <= 10) {
+    bonusScore += 2;
+    bonusReasons.push(`네이버 ${rankId}위`);
+  } else if (rankId <= 20) {
+    bonusScore += 1;
+    bonusReasons.push(`네이버 ${rankId}위`);
+  }
+
+  // 4. 무료배송 가점
+  if (candidate.shippingKnown && candidate.shippingCost === 0) {
+    bonusScore += 2;
+    bonusReasons.push('무료배송');
+  }
+
+  // 5. 해외직구 / 중고 감점
+  if (candidate.isOverseas) {
+    bonusScore -= 2;
+    bonusReasons.push('해외직구 감점');
+  }
+  if (candidate.isUsed) {
+    bonusScore -= 3;
+    bonusReasons.push('중고/리퍼 감점');
+  }
   return {
     bonusScore,
     bonusReasons: bonusReasons.join(', ')

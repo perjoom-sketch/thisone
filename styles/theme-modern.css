@@ -96,6 +96,16 @@
   letter-spacing: -0.03em;
 }
 
+/* 렌탈 가격은 월납/약정/총액 정보가 길기 때문에 구매가보다 작게 표시 */
+.results-view .row-price-rental,
+#msgContainer .row-price-rental {
+  font-size: 17px !important;
+  line-height: 1.28;
+  letter-spacing: -0.025em;
+  max-width: 150px;
+  word-break: keep-all;
+}
+
 .results-view .row-label-badge,
 #msgContainer .row-label-badge,
 .results-view .badge-value,

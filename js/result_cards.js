@@ -95,8 +95,9 @@
   };
 })(window);
 
-// 렌탈 상품을 구매 상품처럼 오해하지 않도록 랭킹/표시 보정
-(function patchRentalHandling(global) {
+// 렌탈 상품을 구매가처럼 오해하지 않도록 표시 데이터만 보정한다.
+// 정렬은 강제하지 않고 AI가 월 납입액/약정/총액을 이해해 판단하게 한다.
+(function patchRentalDisplay(global) {
   function parseNumber(text) {
     return Number(String(text || '').replace(/[^\d]/g, '')) || 0;
   }
@@ -135,8 +136,6 @@
       const badges = Array.isArray(next.badges) ? [...next.badges] : [];
       if (!badges.some((b) => String(b).includes('렌탈'))) badges.unshift('렌탈');
       next.badges = badges;
-      next.rentalPenalty = Number(next.rentalPenalty || 0) || 5;
-      next.finalScore = Number(next.finalScore || 0) - next.rentalPenalty;
     }
 
     return next;
@@ -153,25 +152,14 @@
     return `렌탈 ${c.price || c.priceText || '가격 확인'}`;
   }
 
-  function sortRentalAfterPurchase(items) {
-    return [...(items || [])].sort((a, b) => {
-      if (!!a.isRental !== !!b.isRental) return a.isRental ? 1 : -1;
-      const scoreDiff = Number(b.finalScore || 0) - Number(a.finalScore || 0);
-      if (scoreDiff) return scoreDiff;
-      const ap = Number(a.totalPriceNum || a.priceNum || 0);
-      const bp = Number(b.totalPriceNum || b.priceNum || 0);
-      return ap - bp;
-    });
-  }
-
-  function patchRanking() {
+  function patchRankingData() {
     const ranking = global.ThisOneRanking;
-    if (!ranking || ranking.__rentalHandlingPatched) return;
+    if (!ranking || ranking.__rentalDisplayPatched) return;
 
     if (typeof ranking.buildCandidates === 'function') {
       const originalBuild = ranking.buildCandidates.bind(ranking);
       ranking.buildCandidates = function patchedBuildCandidates(...args) {
-        return sortRentalAfterPurchase((originalBuild(...args) || []).map(enrichRental));
+        return (originalBuild(...args) || []).map(enrichRental);
       };
     }
 
@@ -184,12 +172,12 @@
       };
     }
 
-    ranking.__rentalHandlingPatched = true;
+    ranking.__rentalDisplayPatched = true;
   }
 
   function patchCards() {
     const cards = global.ThisOneResultCards;
-    if (!cards || cards.__rentalHandlingPatched) return;
+    if (!cards || cards.__rentalDisplayPatched) return;
 
     if (typeof cards.renderPickCard === 'function') {
       const originalRender = cards.renderPickCard.bind(cards);
@@ -200,19 +188,18 @@
       };
     }
 
-    cards.__rentalHandlingPatched = true;
+    cards.__rentalDisplayPatched = true;
   }
 
-  patchRanking();
+  patchRankingData();
   patchCards();
   global.addEventListener?.('load', () => {
-    patchRanking();
+    patchRankingData();
     patchCards();
   });
 
   global.ThisOneRentalHandling = {
     enrichRental,
-    rentalPriceText,
-    sortRentalAfterPurchase
+    rentalPriceText
   };
 })(window);

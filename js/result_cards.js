@@ -135,7 +135,7 @@
       const badges = Array.isArray(next.badges) ? [...next.badges] : [];
       if (!badges.some((b) => String(b).includes('렌탈'))) badges.unshift('렌탈');
       next.badges = badges;
-      next.rentalPenalty = Number(next.rentalPenalty || 0) || 20;
+      next.rentalPenalty = Number(next.rentalPenalty || 0) || 5;
       next.finalScore = Number(next.finalScore || 0) - next.rentalPenalty;
     }
 

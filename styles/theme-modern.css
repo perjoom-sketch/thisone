@@ -96,6 +96,26 @@
   letter-spacing: -0.03em;
 }
 
+/* 렌탈 월납입/약정/총액이 너무 커 보이지 않도록 가격 영역만 축소 */
+.results-view .row-price,
+#msgContainer .row-price {
+  font-size: 17px !important;
+  line-height: 1.28;
+}
+
+.results-view .row-price-area,
+#msgContainer .row-price-area {
+  min-width: 132px;
+}
+
+.results-view .price,
+#msgContainer .price,
+.results-view .product-price,
+#msgContainer .product-price {
+  font-size: 17px !important;
+  line-height: 1.28;
+}
+
 .results-view .row-label-badge,
 #msgContainer .row-label-badge,
 .results-view .badge-value,

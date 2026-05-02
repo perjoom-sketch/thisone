@@ -35,7 +35,7 @@ async function handler(req, res) {
     const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
     const params = {
-      method: 'aliexpress.affiliate.hotproduct.query',
+      method: 'aliexpress.affiliate.product.query',
       app_key: appKey,
       timestamp,
       sign_method: 'md5',

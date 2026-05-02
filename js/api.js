@@ -39,9 +39,7 @@ function enrichRentalCandidate(candidate) {
   const monthlyMatch = text.match(/월\s*([0-9,]+)\s*원/i);
   const monthsMatch = text.match(/(\d+)\s*개월/i);
   const yearsMatch = text.match(/(\d+)\s*년\s*약정/i);
-  const rentalMonthlyFee = monthlyMatch
-    ? parseRentalNumber(monthlyMatch[1])
-    : (isRental ? parseRentalNumber(candidate.price) : 0);
+  const rentalMonthlyFee = monthlyMatch ? parseRentalNumber(monthlyMatch[1]) : 0;
   const rentalMonths = monthsMatch
     ? parseInt(monthsMatch[1], 10)
     : (yearsMatch ? parseInt(yearsMatch[1], 10) * 12 : 0);
@@ -108,7 +106,9 @@ function applyRentalReasoningInstruction(payload) {
 - 렌탈 상품을 무조건 제외하거나 무조건 뒤로 보내지 마세요.
 - 렌탈 상품의 가격은 구매가가 아니라 월 납입액일 수 있습니다.
 - 후보에 isRental, rentalMonthlyFee, rentalMonths, rentalTotalFee가 있으면 반드시 이를 읽고 판단하세요.
-- rentalMonthlyFee는 월 납입액, rentalMonths는 약정 개월, rentalTotalFee는 전체 납부 예상액입니다.
+- rentalMonthlyFee는 월 납입액입니다. 0이면 월 납입액을 알 수 없다는 뜻입니다.
+- 월 n원 패턴이 없으면 후보의 기존 price를 월 납입액으로 추정하지 마세요.
+- rentalMonths는 약정 개월, rentalTotalFee는 전체 납부 예상액입니다.
 - 월 납입액만 보고 저렴하다고 판단하지 말고, 총 납부액과 약정기간을 함께 보세요.
 - 관리/AS/방문관리/초기비용 부담 감소가 중요한 품목은 렌탈도 합리적인 선택일 수 있습니다.
 - 반대로 총 납부액이 구매가보다 지나치게 높거나 약정 부담이 크면 감점하세요.

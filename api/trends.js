@@ -12,17 +12,15 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    // [알고리즘] 현재는 리서치 기반의 트렌드 데이터를 반환하며,
-    // 향후 외부 API 연동 시 자동으로 업데이트되는 구조입니다.
-    // 퀵칩은 사용자가 클릭했을 때 입력되는 검색어를 자연스럽게 유지하고,
-    // 렌탈 가능 품목의 렌탈 결과 보강은 api/search.js에서 처리합니다.
+    // 퀵칩은 사용자가 클릭했을 때 검색창에 들어가는 값이므로 임의 확장하지 않는다.
+    // 세부 비교/렌탈/보정은 검색엔진과 랭킹 로직에서 처리한다.
     const trendingChips = [
-      { id: "t1", label: "🤖 AI 로봇청소기", query: "로봇청소기 구매 비교 추천" },
-      { id: "t2", label: "🌀 30인치 산업용 선풍기", query: "스탠드식 30인치 산업용 선풍기" },
-      { id: "t3", label: "💆 효도용 안마의자", query: "부모님 선물용 안마의자 추천" },
-      { id: "t4", label: "🗑️ 음식물처리기", query: "음식물처리기 미생물분해형 설치형 비교" },
-      { id: "t5", label: "📺 2026년형 AI TV", query: "2026년 신제품 AI TV 추천" },
-      { id: "t6", label: "❄️ 창문형 에어컨", query: "창문형 에어컨 추천" }
+      { id: "t1", label: "🤖 AI 로봇청소기", query: "로봇청소기" },
+      { id: "t2", label: "🌀 산업용 선풍기", query: "산업용 선풍기" },
+      { id: "t3", label: "💆 안마의자", query: "안마의자" },
+      { id: "t4", label: "🗑️ 음식물처리기", query: "음식물처리기" },
+      { id: "t5", label: "📺 AI TV", query: "AI TV" },
+      { id: "t6", label: "❄️ 창문형 에어컨", query: "창문형 에어컨" }
     ];
 
     return res.status(200).json({

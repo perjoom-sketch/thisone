@@ -28,11 +28,107 @@ async function requestSearch(query, settings = {}, start = 1, display = 30, sort
   });
 }
 
+function parseRentalNumber(text) {
+  return Number(String(text || '').replace(/[^\d]/g, '')) || 0;
+}
+
+function enrichRentalCandidate(candidate) {
+  if (!candidate || typeof candidate !== 'object') return candidate;
+  const text = `${candidate.name || ''} ${candidate.store || ''} ${candidate.price || ''}`;
+  const isRental = /렌탈|대여|구독|약정|월납/i.test(text);
+  const monthlyMatch = text.match(/월\s*([0-9,]+)\s*원/i);
+  const monthsMatch = text.match(/(\d+)\s*개월/i);
+  const yearsMatch = text.match(/(\d+)\s*년\s*약정/i);
+  const rentalMonthlyFee = monthlyMatch
+    ? parseRentalNumber(monthlyMatch[1])
+    : (isRental ? parseRentalNumber(candidate.price) : 0);
+  const rentalMonths = monthsMatch
+    ? parseInt(monthsMatch[1], 10)
+    : (yearsMatch ? parseInt(yearsMatch[1], 10) * 12 : 0);
+  const rentalTotalFee = rentalMonthlyFee > 0 && rentalMonths > 0
+    ? rentalMonthlyFee * rentalMonths
+    : 0;
+
+  return {
+    ...candidate,
+    isRental,
+    rentalMonthlyFee,
+    rentalMonths,
+    rentalTotalFee
+  };
+}
+
+function enrichRentalCandidatesInPayload(payload) {
+  try {
+    const messages = Array.isArray(payload?.messages) ? payload.messages : [];
+    const clonedMessages = messages.map((message) => {
+      const content = Array.isArray(message?.content) ? message.content : [];
+      const nextContent = content.map((part) => {
+        if (part?.type !== 'text' || typeof part.text !== 'string') return part;
+
+        const marker = '후보 상품 목록(JSON):';
+        const start = part.text.indexOf(marker);
+        if (start === -1) return part;
+
+        const jsonStart = part.text.indexOf('[', start);
+        const jsonEndMarker = '\n\n의도분석:';
+        const jsonEnd = part.text.indexOf(jsonEndMarker, jsonStart);
+        if (jsonStart === -1 || jsonEnd === -1) return part;
+
+        const before = part.text.slice(0, jsonStart);
+        const jsonText = part.text.slice(jsonStart, jsonEnd);
+        const after = part.text.slice(jsonEnd);
+        let parsed;
+        try {
+          parsed = JSON.parse(jsonText);
+        } catch (e) {
+          return part;
+        }
+
+        if (!Array.isArray(parsed)) return part;
+        const enriched = parsed.map(enrichRentalCandidate);
+        return {
+          ...part,
+          text: `${before}${JSON.stringify(enriched, null, 2)}${after}`
+        };
+      });
+      return { ...message, content: nextContent };
+    });
+    return { ...payload, messages: clonedMessages };
+  } catch (e) {
+    console.warn('[api] rental candidate enrichment skipped:', e.message);
+    return payload;
+  }
+}
+
+function applyRentalReasoningInstruction(payload) {
+  const rentalInstruction = `
+
+[렌탈 상품 판단 원칙]
+- 렌탈 상품을 무조건 제외하거나 무조건 뒤로 보내지 마세요.
+- 렌탈 상품의 가격은 구매가가 아니라 월 납입액일 수 있습니다.
+- 후보에 isRental, rentalMonthlyFee, rentalMonths, rentalTotalFee가 있으면 반드시 이를 읽고 판단하세요.
+- rentalMonthlyFee는 월 납입액, rentalMonths는 약정 개월, rentalTotalFee는 전체 납부 예상액입니다.
+- 월 납입액만 보고 저렴하다고 판단하지 말고, 총 납부액과 약정기간을 함께 보세요.
+- 관리/AS/방문관리/초기비용 부담 감소가 중요한 품목은 렌탈도 합리적인 선택일 수 있습니다.
+- 반대로 총 납부액이 구매가보다 지나치게 높거나 약정 부담이 크면 감점하세요.
+- 사용자가 렌탈제외를 켰다면 서버에서 이미 제거됩니다. 남아 있는 렌탈 후보는 비교 가능한 후보로 다루세요.
+- 추천 이유에는 렌탈이면 월 납입액과 총 납부액 관점을 명확히 설명하세요.`;
+
+  return {
+    ...payload,
+    system: `${payload.system || ''}${rentalInstruction}`
+  };
+}
+
 async function requestChat(payload, onChunk) {
   // [보안/방어] 모델명이 누락된 경우 기본값 강제 할당 (503 에러 방지)
   if (!payload.model || payload.model === 'undefined') {
     payload.model = 'gemini-2.5-flash';
   }
+
+  payload = enrichRentalCandidatesInPayload(payload);
+  payload = applyRentalReasoningInstruction(payload);
 
   const res = await fetch('/api/chat', {
     method: 'POST',

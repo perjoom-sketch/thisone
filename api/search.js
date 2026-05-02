@@ -13,6 +13,93 @@ function isRentalLikeItem(item){
   const text = `${item?.name || ''} ${item?.store || ''}`;
   return /렌탈|대여|구독|약정|월납/i.test(text);
 }
+function isRentalCapableQuery(query){
+  const q = String(query || '').toLowerCase();
+  return /음식물처리기|음쓰처리기|정수기|비데|안마의자|공기청정기|공청기/i.test(q);
+}
+function buildNaverShopUrl(query, { display = 10, start = 1, sort = 'sim' } = {}){
+  return `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(query)}&display=${display}&start=${start}&sort=${sort}`;
+}
+async function fetchNaverShopItems(query, { display = 10, start = 1, sort = 'sim' } = {}){
+  const url = buildNaverShopUrl(query, { display, start, sort });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'X-Naver-Client-Id': process.env.NAVER_CLIENT_ID,
+        'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET
+      },
+      signal: controller.signal
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+      const err = new Error('Naver Shopping API error');
+      err.status = response.status;
+      err.detail = text;
+      throw err;
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      throw new Error('네이버 응답 JSON 파싱 실패');
+    }
+  } catch (fetchErr) {
+    if (fetchErr.name === 'AbortError') {
+      throw new Error('Naver Shopping API timeout');
+    }
+    throw fetchErr;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+function mapNaverItems(rawItems){
+  return (rawItems || []).map((item,idx)=>({
+    id:String(idx+1),
+    name:stripTags(item.title),
+    link:item.link||'',
+    image:item.image||'',
+    lprice:Number(item.lprice||0),
+    priceText:item.lprice?`${Number(item.lprice).toLocaleString('ko-KR')}원`:'',
+    store:stripTags(item.mallName||''),
+    productId:item.productId||'',
+    delivery:stripTags(item.delivery||item.deliveryInfo||'')
+  }));
+}
+function appendUniqueItems(baseItems, extraItems){
+  const base = Array.isArray(baseItems) ? baseItems : [];
+  const extra = Array.isArray(extraItems) ? extraItems : [];
+  const seen = new Set(base.map(item => String(item?.productId || item?.link || item?.name || '')));
+  const merged = [...base];
+
+  extra.forEach((item) => {
+    const key = String(item?.productId || item?.link || item?.name || '');
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    merged.push({ ...item, id: String(merged.length + 1), rentalEnriched: true });
+  });
+
+  return merged;
+}
+async function enrichRentalCapableItems(query, items, settings){
+  if (settings?.excludeRental) return { items, addedCount: 0, query: null };
+  if (!isRentalCapableQuery(query)) return { items, addedCount: 0, query: null };
+  if ((items || []).some(isRentalLikeItem)) return { items, addedCount: 0, query: null };
+
+  const rentalQuery = `${query} 렌탈`;
+  try {
+    const data = await fetchNaverShopItems(rentalQuery, { display: 10, start: 1, sort: 'sim' });
+    const rentalItems = mapNaverItems(data.items).filter(isRentalLikeItem);
+    const merged = appendUniqueItems(items, rentalItems);
+    return { items: merged, addedCount: merged.length - items.length, query: rentalQuery };
+  } catch (e) {
+    return { items, addedCount: 0, query: rentalQuery, error: e.message };
+  }
+}
 function restoreRentalItemsIfAllowed(filteredItems, sourceItems, settings){
   if (settings?.excludeRental) return filteredItems;
   const base = Array.isArray(filteredItems) ? filteredItems : [];
@@ -104,54 +191,24 @@ async function handler(req,res){
     const display=parseInt(req.query.display||'30');
     const sort=req.query.sort||'sim';
 
-    const url=`https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(improvedQ)}&display=${display}&start=${start}&sort=${sort}`;
-
-    const controller=new AbortController();
-    const timeoutId=setTimeout(()=>controller.abort(),15000);
-
-    let response;
-    try{
-      response=await fetch(url,{
-        method:'GET',
-        headers:{
-          'X-Naver-Client-Id':process.env.NAVER_CLIENT_ID,
-          'X-Naver-Client-Secret':process.env.NAVER_CLIENT_SECRET
-        },
-        signal:controller.signal
-      });
-    }catch(fetchErr){
-      clearTimeout(timeoutId);
-      if(fetchErr.name==='AbortError'){
-        throw new Error('Naver Shopping API timeout');
-      }
-      throw fetchErr;
-    }
-    clearTimeout(timeoutId);
-
-    const text=await response.text();
-    if(!response.ok){
-      return res.status(response.status).json({error:'Naver Shopping API error',detail:text});
-    }
-
     let data;
-    try{data=JSON.parse(text);}catch(e){
-      return res.status(500).json({error:'네이버 응답 JSON 파싱 실패'});
+    try {
+      data = await fetchNaverShopItems(improvedQ, { display, start, sort });
+    } catch (err) {
+      if (err.status) {
+        return res.status(err.status).json({error:'Naver Shopping API error',detail:err.detail});
+      }
+      throw err;
     }
 
-    let items=(data.items||[]).map((item,idx)=>({
-      id:String(idx+1),
-      name:stripTags(item.title),
-      link:item.link||'',
-      image:item.image||'',
-      lprice:Number(item.lprice||0),
-      priceText:item.lprice?`${Number(item.lprice).toLocaleString('ko-KR')}원`:'',
-      store:stripTags(item.mallName||''),
-      productId:item.productId||'',
-      delivery:stripTags(item.delivery||item.deliveryInfo||'')
-    }));
+    let items=mapNaverItems(data.items);
 
     const settingsResult = applySearchSettings(items, req.query);
     items = settingsResult.items;
+
+    const rentalEnrichment = await enrichRentalCapableItems(improvedQ, items, settingsResult.settings);
+    items = rentalEnrichment.items;
+
     const itemsBeforeUniversalFilter = items;
 
     const universalResult=await applyUniversalAIFilter({query:q,items});
@@ -172,6 +229,7 @@ async function handler(req,res){
         applied: settingsResult.settings,
         rejectedCount: settingsResult.rejected.length,
         restoredRentalCount: Math.max(0, finalItems.length - universalItems.length),
+        rentalEnrichment,
         note: 'freeShipping only applies when upstream delivery text is available'
       },
       universalFilterDebug:universalResult.debug||null

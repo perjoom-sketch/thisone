@@ -659,16 +659,31 @@ async function sendMsg(forceMode) {
   }
 }
 
-function loadTrendingChips() {
+async function loadTrendingChips() {
   const container = document.getElementById('trendingList');
   if (!container) return;
-  const chips = [
+
+  // fallback 하드코딩
+  const fallback = [
     { text: '로보락 S8 MaxV Ultra', query: '로보락 S8 MaxV Ultra' },
     { text: '비스포크 AI 콤보', query: '비스포크 AI 콤보' },
     { text: '다이슨 에어랩 멀티 스타일러', query: '다이슨 에어랩 멀티 스타일러' },
     { text: '스탠바이미 Go', query: '스탠바이미 Go' },
     { text: '아이패드 프로 M4', query: '아이패드 프로 M4' }
   ];
+
+  let chips = fallback;
+
+  try {
+    const res = await fetch('/api/trends');
+    const data = await res.json();
+    if (Array.isArray(data.chips) && data.chips.length > 0) {
+      chips = data.chips.map(c => ({ text: c.label, query: c.query }));
+    }
+  } catch (e) {
+    // fallback 유지
+  }
+
   container.innerHTML = chips.map((c, i) => `
     <button class="chip" onclick="quick('${c.query}')" style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(226, 232, 240, 0.8); padding: 8px 16px; border-radius: 20px; font-size: 14px; color: #475569; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; font-weight: 500;">
       <span style="font-weight: 800; color: #3b82f6; font-size: 12px; opacity: 0.8;">${i + 1}</span>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThisOne 자동완성 KV 시드</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; background: #f6f7f9; color: #111827; }
+    main { max-width: 860px; margin: 0 auto; padding: 28px 16px 60px; }
+    h1 { font-size: 24px; margin: 0 0 8px; }
+    p { color: #6b7280; }
+    button { border: 0; border-radius: 999px; padding: 11px 20px; font-weight: 700; cursor: pointer; background: #111827; color: white; }
+    button.secondary { background: white; color: #111827; border: 1px solid #d1d5db; }
+    button:disabled { opacity: 0.5; cursor: wait; }
+    .panel { background: white; border: 1px solid #e5e7eb; border-radius: 20px; padding: 20px; margin-top: 18px; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
+    .stat { background: #f9fafb; border-radius: 12px; padding: 12px; text-align: center; }
+    .stat b { display: block; font-size: 22px; margin-bottom: 2px; }
+    .stat span { font-size: 12px; color: #6b7280; }
+    .progress-bar { height: 8px; background: #e5e7eb; border-radius: 999px; overflow: hidden; margin: 10px 0; }
+    .progress-fill { height: 100%; background: #111827; border-radius: 999px; transition: width 0.3s; }
+    .actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
+    .log { margin-top: 16px; max-height: 400px; overflow-y: auto; font-size: 13px; }
+    .log-row { display: flex; gap: 8px; padding: 5px 0; border-bottom: 1px solid #f3f4f6; align-items: center; }
+    .log-kw { flex: 1; color: #111827; }
+    .log-items { color: #6b7280; min-width: 60px; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .pill-ok { background: #dcfce7; color: #166534; }
+    .pill-skip { background: #f3f4f6; color: #6b7280; }
+    .pill-err { background: #fef2f2; color: #991b1b; }
+    .muted { color: #6b7280; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>자동완성 KV 시드</h1>
+    <p>330개 키워드를 네이버 자동완성 API에 순차 호출하고 결과를 KV에 저장한다. 이미 KV에 캐시된 키워드는 건너뛴다.</p>
+
+    <section class="panel">
+      <div class="stats">
+        <div class="stat"><b id="s-total">330</b><span>전체</span></div>
+        <div class="stat"><b id="s-done" style="color:#166534;">0</b><span>저장완료</span></div>
+        <div class="stat"><b id="s-skip" style="color:#6b7280;">0</b><span>캐시 스킵</span></div>
+        <div class="stat"><b id="s-err" style="color:#991b1b;">0</b><span>오류</span></div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+      <div class="actions">
+        <button id="btn-start">시드 시작</button>
+        <button id="btn-stop" class="secondary" style="display:none;">중지</button>
+        <span class="muted" id="progress-text">0 / 330</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <strong style="font-size:14px;">실행 로그</strong>
+        <button class="secondary" style="padding:6px 14px;font-size:13px;" onclick="clearLog()">로그 지우기</button>
+      </div>
+      <div class="log" id="log">
+        <div style="text-align:center;padding:2rem;color:#9ca3af;">시드 시작을 눌러주세요</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const KEYWORDS = ["핸드폰","휴대폰","스마트폰","자급제폰","아이폰","갤럭시","갤럭시폰","중고폰","공기계","폴더폰","효도폰","키즈폰","휴대폰 케이스","폰케이스","아이폰 케이스","갤럭시 케이스","휴대폰 필름","강화유리","액정보호필름","맥세이프","맥세이프 충전기","보조배터리","무선충전기","충전기","고속충전기","C타입 충전기","아이폰 충전기","갤럭시 충전기","충전 케이블","C타입 케이블","8핀 케이블","멀티탭","USB허브","도킹스테이션","노트북","게이밍 노트북","사무용 노트북","대학생 노트북","가벼운 노트북","LG그램","그램","맥북","맥북에어","맥북프로","맥미니","아이맥","태블릿","아이패드","갤럭시탭","레노버탭","모니터","게이밍 모니터","4K 모니터","27인치 모니터","32인치 모니터","키보드","무선키보드","기계식 키보드","마우스","무선마우스","게이밍 마우스","버티컬 마우스","마우스패드","프린터","복합기","잉크젯 프린터","레이저 프린터","토너","잉크","외장하드","SSD","외장 SSD","USB","메모리카드","공유기","와이파이 공유기","랜선","웹캠","마이크","스피커","PC스피커","이어폰","무선이어폰","블루투스 이어폰","노이즈캔슬링 이어폰","에어팟","에어팟 프로","버즈","갤럭시 버즈","헤드폰","무선헤드폰","블루투스 헤드폰","노캔 헤드폰","블루투스 스피커","사운드바","USB 마이크","방송용 마이크","노래방 마이크","차량용 블루투스","카팩","헤어드라이기","드라이기","고데기","매직기","봉고데기","에어랩","다이슨 에어랩","다이슨 드라이기","전기면도기","면도기","필립스 면도기","브라운 면도기","가습기","초음파 가습기","가열식 가습기","복합식 가습기","제습기","공기청정기","선풍기","써큘레이터","에어컨","이동식 에어컨","창문형 에어컨","전기히터","온풍기","전기장판","온수매트","전기요","청소기","무선청소기","로봇청소기","물걸레청소기","침구청소기","스팀청소기","로보락","에코백스","다이슨 청소기","삼성 청소기","LG 청소기","전자레인지","에어프라이어","전기밥솥","밥솥","쿠쿠","쿠첸","인덕션","전기포트","커피머신","캡슐커피머신","네스프레소","정수기","냉장고","김치냉장고","식기세척기","믹서기","블렌더","핸드블렌더","토스터기","멀티쿠커","음식물처리기","후라이팬","프라이팬","냄비","도마","칼","수저세트","그릇","텀블러","보온병","도시락통","밀폐용기","반찬통","수납함","샴푸","바디워시","치약","전동칫솔","구강세정기","수건","샤워헤드","필터샤워기","마스크","KF94","비말마스크","손소독제","티셔츠","맨투맨","후드티","니트","가디건","자켓","코트","패딩","롱패딩","바람막이","청바지","슬랙스","레깅스","원피스","가방","백팩","크로스백","토트백","지갑","운동화","스니커즈","구두","슬리퍼","부츠","등산화","화장품","토너","로션","세럼","크림","선크림","클렌징폼","마스크팩","쿠션","파운데이션","립스틱","틴트","향수","탈모샴푸","라면","즉석밥","생수","커피","원두","과자","초콜릿","우유","참치캔","김치","고추장","된장","간장","올리브유","냉동만두","닭가슴살","계란","기저귀","분유","젖병","유모차","카시트","아기띠","놀이매트","이유식","강아지사료","고양이사료","배변패드","고양이모래","캣타워","펫드라이룸","자동급식기","강아지샴푸","차량용 충전기","차량용 거치대","블랙박스","하이패스","세차용품","점프스타터","전동드릴","공구세트","드라이버","줄자","글루건","안전화","작업복","보안경","침대","매트리스","베개","이불","소파","책상","의자","게이밍의자","식탁","수납장","옷장","행거","커튼","블라인드","러그","조명","무드등","텐트","침낭","캠핑의자","아이스박스","낚싯대","골프공","요가매트","덤벨","자전거","헬멧","가성비 노트북","가성비 이어폰","가성비 청소기","저렴한 핸드폰","추천 노트북","추천 이어폰","부모님 선물","집들이 선물","생일선물","자취 필수템","로보락 S8","다이슨 에어랩","갤럭시 S24","갤럭시 S25","아이폰 15","아이폰 16","맥북에어","에어팟 프로","갤럭시 버즈","삼성 공기청정기","LG 공기청정기","쿠쿠 밥솥","김서방마스크","KF94 마스크","전자렌지","후라이팬","쇼파","낚시대","썬크림","공청기","식세기","음쓰처리기"];
+
+    let running = false;
+    let stopFlag = false;
+    let doneCount = 0;
+    let skipCount = 0;
+    let errCount = 0;
+
+    const btnStart = document.getElementById('btn-start');
+    const btnStop = document.getElementById('btn-stop');
+    const logEl = document.getElementById('log');
+
+    function addLog(kw, status, items, note) {
+      const row = document.createElement('div');
+      row.className = 'log-row';
+      const pill = status === 'ok'
+        ? '<span class="pill pill-ok">저장</span>'
+        : status === 'skip'
+        ? '<span class="pill pill-skip">스킵</span>'
+        : '<span class="pill pill-err">오류</span>';
+      row.innerHTML = `
+        ${pill}
+        <span class="log-kw">${kw}</span>
+        <span class="log-items">${items != null ? items + '개' : ''}</span>
+        <span class="muted">${note || ''}</span>
+      `;
+      if (logEl.querySelector('div[style]')) logEl.innerHTML = '';
+      logEl.appendChild(row);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function updateStats(processed) {
+      document.getElementById('s-done').textContent = doneCount;
+      document.getElementById('s-skip').textContent = skipCount;
+      document.getElementById('s-err').textContent = errCount;
+      const pct = Math.round(processed / KEYWORDS.length * 100);
+      document.getElementById('progress').style.width = pct + '%';
+      document.getElementById('progress-text').textContent = `${processed} / ${KEYWORDS.length}`;
+    }
+
+    async function seedKeyword(kw) {
+      try {
+        const res = await fetch(`/api/autocomplete?q=${encodeURIComponent(kw)}`, {
+          signal: AbortSignal.timeout(15000)
+        });
+        const data = await res.json();
+        const items = data.items || [];
+        const source = data.source || '';
+        if (source === 'cache') {
+          skipCount++;
+          addLog(kw, 'skip', items.length, '캐시 히트');
+        } else {
+          doneCount++;
+          addLog(kw, 'ok', items.length, source || 'naver');
+        }
+      } catch(e) {
+        errCount++;
+        addLog(kw, 'err', null, e.message.slice(0, 30));
+      }
+    }
+
+    btnStart.addEventListener('click', async () => {
+      if (running) return;
+      running = true;
+      stopFlag = false;
+      doneCount = 0; skipCount = 0; errCount = 0;
+      logEl.innerHTML = '';
+      btnStart.style.display = 'none';
+      btnStop.style.display = '';
+
+      for (let i = 0; i < KEYWORDS.length; i++) {
+        if (stopFlag) break;
+        await seedKeyword(KEYWORDS[i]);
+        updateStats(i + 1);
+        await new Promise(r => setTimeout(r, 200)); // 네이버 부하 방지
+      }
+
+      running = false;
+      btnStart.style.display = '';
+      btnStop.style.display = 'none';
+    });
+
+    btnStop.addEventListener('click', () => { stopFlag = true; });
+
+    function clearLog() { logEl.innerHTML = ''; }
+  </script>
+</body>
+</html>

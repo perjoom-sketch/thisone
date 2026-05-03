@@ -47,6 +47,46 @@
     global.toggleFilterModal=patchedToggle;
   }
 
+  function isSupportedVisionType(type){
+    return /image\/(jpeg|jpg|png|webp)/i.test(String(type||''));
+  }
+
+  function normalizeImageForVision(image){
+    return new Promise(resolve=>{
+      if(!image||!image.data) return resolve(image||null);
+      const src=image.src||('data:'+(image.type||'image/jpeg')+';base64,'+image.data);
+      const shouldTryCanvas=!isSupportedVisionType(image.type)||String(src).length>2200000;
+      if(!shouldTryCanvas) return resolve(image);
+
+      const img=new Image();
+      img.onload=function(){
+        try{
+          const maxSide=1600;
+          const w=img.naturalWidth||img.width;
+          const h=img.naturalHeight||img.height;
+          const scale=Math.min(1,maxSide/Math.max(w,h));
+          const canvas=document.createElement('canvas');
+          canvas.width=Math.max(1,Math.round(w*scale));
+          canvas.height=Math.max(1,Math.round(h*scale));
+          const ctx=canvas.getContext('2d');
+          ctx.drawImage(img,0,0,canvas.width,canvas.height);
+          const dataUrl=canvas.toDataURL('image/jpeg',0.88);
+          const out={data:dataUrl.split(',')[1],src:dataUrl,type:'image/jpeg'};
+          console.debug('[ThisOne][vision-image-normalize]',{from:image.type||'',to:out.type,reason:!isSupportedVisionType(image.type)?'unsupported-type':'large-image'});
+          resolve(out);
+        }catch(e){
+          console.warn('[ThisOne][vision-image-normalize] failed, using original image:',e.message);
+          resolve(image);
+        }
+      };
+      img.onerror=function(){
+        console.warn('[ThisOne][vision-image-normalize] browser decode failed, using original image',{type:image.type||'',bytes:String(src).length});
+        resolve(image);
+      };
+      img.src=src;
+    });
+  }
+
   function installProcessFilePolicy(){
     if(typeof processFile!=='function'||processFile.__imageTextPolicyApplied) return;
     const originalProcessFile=processFile;
@@ -67,15 +107,17 @@
     const api=global.ThisOneAPI||{};
     if(typeof api.requestIntentInfer!=='function'||api.requestIntentInfer.__imageTextPolicyApplied) return;
     const originalRequestIntentInfer=api.requestIntentInfer;
-    const patchedRequestIntentInfer=function(query,trajectory,image){
-      if(image&&(!query||!String(query).trim())&&hasVisibleImagePreview()){
+    const patchedRequestIntentInfer=async function(query,trajectory,image){
+      let nextImage=image||null;
+      if(nextImage) nextImage=await normalizeImageForVision(nextImage);
+      if(nextImage&&(!query||!String(query).trim())&&hasVisibleImagePreview()){
         const hint=getPrimaryInputValue();
         if(hint){
           console.debug('[ThisOne][image-text-policy]','text used as image search hint',{hint});
-          return originalRequestIntentInfer.call(this,hint,trajectory,image);
+          return originalRequestIntentInfer.call(this,hint,trajectory,nextImage);
         }
       }
-      return originalRequestIntentInfer.call(this,query,trajectory,image||null);
+      return originalRequestIntentInfer.call(this,query,trajectory,nextImage);
     };
     patchedRequestIntentInfer.__imageTextPolicyApplied=true;
     global.ThisOneAPI={...api,requestIntentInfer:patchedRequestIntentInfer};

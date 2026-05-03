@@ -92,11 +92,11 @@
 .results-view .product-price,
 #msgContainer .product-price {
   color: #111827 !important;
-  font-size: 17px !important;
-  font-weight: 900;
-  line-height: 1.28;
-  letter-spacing: -0.025em;
-  max-width: 150px;
+  font-size: 15px !important;
+  font-weight: 800;
+  line-height: 1.24;
+  letter-spacing: -0.02em;
+  max-width: 145px;
   word-break: keep-all;
 }
 

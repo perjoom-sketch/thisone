@@ -59,6 +59,82 @@
     global.toggleFilterModal = patchedToggle;
   }
 
+  function updatePreviewAndPending(dataUrl, sourceMeta) {
+    try {
+      pendingImg = {
+        data: dataUrl.split(',')[1],
+        src: dataUrl,
+        type: 'image/jpeg'
+      };
+    } catch (e) {
+      console.warn('[ThisOne][camera-image-normalize] pending image set failed:', e.message);
+      return;
+    }
+
+    const pv = document.getElementById('imgPreview');
+    const el = document.getElementById('previewImg');
+    if (el) el.src = dataUrl;
+    if (pv) pv.classList.add('show');
+
+    console.debug('[ThisOne][camera-image-normalize]', {
+      status: 'ready',
+      originalType: sourceMeta?.type || '',
+      originalSize: sourceMeta?.size || 0,
+      outputType: 'image/jpeg',
+      outputBytesApprox: Math.round((dataUrl.length * 3) / 4)
+    });
+  }
+
+  function normalizeImageFileToJpeg(file, fallbackProcessFile) {
+    const reader = new FileReader();
+
+    reader.onload = (ev) => {
+      const originalDataUrl = ev.target.result;
+      const img = new Image();
+
+      img.onload = () => {
+        try {
+          const maxSide = 1600;
+          const width = img.naturalWidth || img.width;
+          const height = img.naturalHeight || img.height;
+          const scale = Math.min(1, maxSide / Math.max(width, height));
+          const targetWidth = Math.max(1, Math.round(width * scale));
+          const targetHeight = Math.max(1, Math.round(height * scale));
+
+          const canvas = document.createElement('canvas');
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+          const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          updatePreviewAndPending(jpegDataUrl, file);
+        } catch (e) {
+          console.warn('[ThisOne][camera-image-normalize] canvas conversion failed, using original flow:', e.message);
+          fallbackProcessFile.call(global, file);
+        }
+      };
+
+      img.onerror = () => {
+        // 일부 브라우저는 HEIC 미리보기 디코딩이 안 될 수 있다. 이때는 기존 흐름으로 fallback한다.
+        console.warn('[ThisOne][camera-image-normalize] browser could not decode image, using original flow', {
+          type: file?.type || '',
+          size: file?.size || 0
+        });
+        fallbackProcessFile.call(global, file);
+      };
+
+      img.src = originalDataUrl;
+    };
+
+    reader.onerror = () => {
+      console.warn('[ThisOne][camera-image-normalize] file read failed, using original flow');
+      fallbackProcessFile.call(global, file);
+    };
+
+    reader.readAsDataURL(file);
+  }
+
   function installProcessFilePolicy() {
     if (typeof processFile !== 'function' || processFile.__imageTextPolicyApplied) return;
 
@@ -72,6 +148,11 @@
         console.debug('[ThisOne][image-text-policy]', 'text cleared because image was attached after text input', {
           clearedText: textBeforeImage
         });
+      }
+
+      if (file && /^image\//i.test(file.type || '')) {
+        normalizeImageFileToJpeg(file, originalProcessFile);
+        return;
       }
 
       return originalProcessFile.call(this, file);

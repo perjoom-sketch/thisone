@@ -90,6 +90,11 @@ function enrichRentalCandidatesInPayload(payload) {
 
         if (!Array.isArray(parsed)) return part;
         const enriched = parsed.map(enrichRentalCandidate);
+        console.debug('[ThisOne][rental-enrich]', {
+          before: parsed.length,
+          rentalCount: enriched.filter(x => x.isRental).length,
+          samples: enriched.filter(x => x.isRental).slice(0, 3)
+        });
         return {
           ...part,
           text: `${before}${JSON.stringify(enriched, null, 2)}${after}`

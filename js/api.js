@@ -202,6 +202,95 @@ async function requestIntentInfer(query, trajectory, image = null) {
   }
 }
 
+function installManagedRentalRankingPatch() {
+  const ranking = window.ThisOneRanking || {};
+  const originalBuildCandidates = ranking.buildCandidates || window.buildCandidates;
+  if (typeof originalBuildCandidates !== 'function' || originalBuildCandidates.__rentalPatchApplied) return;
+
+  const isManagedQuery = (query) => /(정수기|공기청정기|공청기|비데|안마의자|음식물처리기|음쓰처리기)/i.test(String(query || ''));
+  const isRentalLike = (item) => /렌탈|대여|구독|약정|월납|의무사용|방문관리|코디관리|관리형|월\s*[0-9,]+\s*원|\d+\s*개월/i.test(`${item?.name || ''} ${item?.store || ''} ${item?.price || ''} ${item?.priceText || ''} ${item?.delivery || ''}`);
+  const addBadge = (item, badge) => {
+    const badges = Array.isArray(item?.badges) ? item.badges.slice() : [];
+    if (!badges.includes(badge)) badges.push(badge);
+    return badges;
+  };
+  const rentalFields = (item) => {
+    const text = `${item?.name || ''} ${item?.price || ''} ${item?.priceText || ''}`;
+    const monthlyMatch = text.match(/월\s*([0-9,]+)\s*원/i);
+    const monthsMatch = text.match(/(\d+)\s*개월/i);
+    const yearsMatch = text.match(/(\d+)\s*년\s*약정/i);
+    const monthly = monthlyMatch ? parseRentalNumber(monthlyMatch[1]) : parseRentalNumber(item?.price || item?.priceText || item?.lprice || item?.priceNum || 0);
+    const months = monthsMatch ? parseInt(monthsMatch[1], 10) : (yearsMatch ? parseInt(yearsMatch[1], 10) * 12 : 0);
+    return {
+      isRental: true,
+      rentalMonthlyFee: monthly || 0,
+      rentalMonths: months || 0,
+      rentalTotalFee: monthly > 0 && months > 0 ? monthly * months : 0
+    };
+  };
+  const protectRental = (item) => ({
+    ...item,
+    ...rentalFields(item),
+    excludeFromPriceRank: false,
+    isExcluded: false,
+    badges: addBadge(item, '관리형 렌탈'),
+    bonusScore: Number(item?.bonusScore || 0) + 2,
+    finalScore: Math.max(Number(item?.finalScore || 0), 1)
+  });
+  const rawToCandidate = (item, index) => {
+    const priceNum = Number(item?.priceNum || item?.totalPriceNum || item?.lprice || parseRentalNumber(item?.price || item?.priceText));
+    const price = item?.price || item?.priceText || (priceNum ? `${priceNum.toLocaleString('ko-KR')}원` : '');
+    return protectRental({
+      ...item,
+      id: String(item?.id || item?.productId || `rental-${index + 1}`),
+      sourceId: String(item?.id || item?.productId || `rental-${index + 1}`),
+      price,
+      priceNum,
+      totalPriceNum: priceNum,
+      specPenalty: Number(item?.specPenalty || 0),
+      rentalProtected: true
+    });
+  };
+
+  const patchedBuildCandidates = function(...args) {
+    const rawItems = Array.isArray(args[0]) ? args[0] : [];
+    const query = args[1] || '';
+    const built = originalBuildCandidates(...args);
+    if (!Array.isArray(built) || !isManagedQuery(query)) return built;
+
+    const protectedBuilt = built.map(item => isRentalLike(item) ? protectRental(item) : item);
+    const seen = new Set(protectedBuilt.map(item => String(item?.productId || item?.link || item?.id || item?.name || '')));
+    const restored = rawItems
+      .filter(isRentalLike)
+      .filter(item => {
+        const key = String(item?.productId || item?.link || item?.id || item?.name || '');
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, 10)
+      .map(rawToCandidate);
+
+    if (restored.length) {
+      console.debug('[ThisOne][rental-ranking-protect]', {
+        builtCount: protectedBuilt.length,
+        restoredCount: restored.length,
+        samples: restored.slice(0, 3)
+      });
+    }
+    return [...protectedBuilt, ...restored];
+  };
+  patchedBuildCandidates.__rentalPatchApplied = true;
+
+  window.buildCandidates = patchedBuildCandidates;
+  window.ThisOneRanking = {
+    ...ranking,
+    buildCandidates: patchedBuildCandidates
+  };
+}
+
+window.addEventListener('load', installManagedRentalRankingPatch);
+
 window.ThisOneAPI = {
   safeFetchJson,
   requestSearch,

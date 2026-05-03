@@ -66,11 +66,7 @@
   }
 
   function applyFilterLabelText(){
-    const replacements=[
-      ['직구제외','해외직구 제외'],
-      ['대행제외','구매대행 제외'],
-      ['렌탈제외','렌탈/구독 제외']
-    ];
+    const replacements=[['직구제외','해외직구 제외'],['대행제외','구매대행 제외'],['렌탈제외','렌탈/구독 제외']];
     document.querySelectorAll('label.check-btn').forEach(label=>{
       replacements.forEach(([from,to])=>{
         if((label.textContent||'').includes(from)){
@@ -82,6 +78,55 @@
     });
   }
 
+  function mapSortModeToApi(mode){
+    if(mode==='value') return 'asc';
+    return 'sim';
+  }
+
+  function setSortActive(mode){
+    global.ThisOneSortMode=mode||'total';
+    document.querySelectorAll('.sort-options .sort-btn').forEach(btn=>{
+      btn.classList.toggle('active',btn.dataset.sortMode===global.ThisOneSortMode);
+    });
+  }
+
+  function getCurrentGeneralQuery(){
+    try{ if(global.GeneralSearchState&&global.GeneralSearchState.query) return global.GeneralSearchState.query; }catch(e){}
+    try{ if(currentQuery) return currentQuery; }catch(e){}
+    return getPrimaryInputValue();
+  }
+
+  function installSortExecutionPatch(){
+    global.changeSort=async function(sortOrMode){
+      const mode=['total','value','popular','sales'].includes(sortOrMode)?sortOrMode:(global.ThisOneSortMode||'total');
+      const apiSort=mapSortModeToApi(mode);
+      setSortActive(mode);
+      try{
+        if(global.GeneralSearchState){
+          global.GeneralSearchState.currentSort=apiSort;
+          global.GeneralSearchState.currentPage=1;
+        }
+        const q=getCurrentGeneralQuery();
+        if(!q||!global.ThisOneAPI||!global.ThisOneAPI.requestSearch||!global.ThisOneUI||!global.ThisOneUI.renderResults){
+          console.warn('[ThisOne][sort]', 'sort click ignored: missing query or API', {q, apiSort, mode});
+          return;
+        }
+        console.debug('[ThisOne][sort]', 'reload general results', {q, apiSort, mode});
+        const data=await global.ThisOneAPI.requestSearch(q, {}, 1, 30, apiSort);
+        const items=data&&data.items||[];
+        if(global.GeneralSearchState){
+          global.GeneralSearchState.query=q;
+          global.GeneralSearchState.total=data&&data.total||items.length;
+          global.GeneralSearchState.resultMode=global.GeneralSearchState.resultMode||'fallback_general';
+        }
+        global.ThisOneUI.renderResults(items, data&&data.total||items.length, 1, apiSort, global.GeneralSearchState&&global.GeneralSearchState.resultMode||'fallback_general');
+        setTimeout(()=>setSortActive(mode),0);
+      }catch(e){
+        console.error('[ThisOne][sort] failed:', e);
+      }
+    };
+  }
+
   function installSortButtonsPatch(){
     const activeKeyFromText=(text)=>{
       if(/가성비|최저/.test(text||'')) return 'value';
@@ -90,13 +135,8 @@
       return global.ThisOneSortMode || 'total';
     };
     const buttons=(activeKey)=>{
-      const btn=(key,label,sort)=>`<button class="sort-btn ${activeKey===key?'active':''}" onclick="window.ThisOneSortMode='${key}'; window.changeSort && window.changeSort('${sort}')">${label}</button>`;
-      return [
-        btn('total','종합추천','sim'),
-        btn('value','가성비','asc'),
-        btn('popular','인기순','sim'),
-        btn('sales','판매순','sim')
-      ].join('');
+      const btn=(key,label)=>`<button class="sort-btn ${activeKey===key?'active':''}" data-sort-mode="${key}" onclick="window.ThisOneSortMode='${key}'; window.changeSort('${key}')">${label}</button>`;
+      return [btn('total','종합추천'),btn('value','가성비'),btn('popular','인기순'),btn('sales','판매순')].join('');
     };
     const apply=()=>{
       document.querySelectorAll('.sort-options').forEach(wrap=>{
@@ -113,18 +153,17 @@
         if(!text.includes('지능형 추천 리포트')) return;
         const parent=label.parentElement;
         if(!parent||parent.querySelector('.thisone-rec-sort')) return;
-
         const row=document.createElement('div');
         row.className='ai-label-row thisone-rec-label-row';
         const sort=document.createElement('div');
         sort.className='sort-options thisone-rec-sort';
         sort.dataset.thisoneSortPatchApplied='true';
         sort.innerHTML=buttons(global.ThisOneSortMode||'total');
-
         parent.insertBefore(row,label);
         row.appendChild(label);
         row.appendChild(sort);
       });
+      setSortActive(global.ThisOneSortMode||'total');
     };
     apply();
     const observer=new MutationObserver(apply);
@@ -132,9 +171,7 @@
     global.__thisOneApplySortButtonLabels=apply;
   }
 
-  function isSupportedVisionType(type){
-    return /image\/(jpeg|jpg|png|webp)/i.test(String(type||''));
-  }
+  function isSupportedVisionType(type){return /image\/(jpeg|jpg|png|webp)/i.test(String(type||''));}
 
   function normalizeImageForVision(image){
     return new Promise(resolve=>{
@@ -143,19 +180,14 @@
       const shouldTryCanvas=!isSupportedVisionType(image.type)||String(src).length>2200000;
       showMobileVisionDebug('사진 진단',[[ '원본 타입', image.type||'(없음)' ],[ '원본 크기', Math.round(String(src).length/1024)+'KB' ],[ 'JPEG 변환시도', shouldTryCanvas?'예':'아니오' ]]);
       if(!shouldTryCanvas) return resolve(image);
-
       const img=new Image();
       img.onload=function(){
         try{
-          const maxSide=1600;
-          const w=img.naturalWidth||img.width;
-          const h=img.naturalHeight||img.height;
-          const scale=Math.min(1,maxSide/Math.max(w,h));
+          const maxSide=1600,w=img.naturalWidth||img.width,h=img.naturalHeight||img.height,scale=Math.min(1,maxSide/Math.max(w,h));
           const canvas=document.createElement('canvas');
           canvas.width=Math.max(1,Math.round(w*scale));
           canvas.height=Math.max(1,Math.round(h*scale));
-          const ctx=canvas.getContext('2d');
-          ctx.drawImage(img,0,0,canvas.width,canvas.height);
+          canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
           const dataUrl=canvas.toDataURL('image/jpeg',0.88);
           const out={data:dataUrl.split(',')[1],src:dataUrl,type:'image/jpeg'};
           showMobileVisionDebug('사진 진단',[[ '원본 타입', image.type||'(없음)' ],[ '변환 결과','image/jpeg' ],[ '전송 크기', Math.round(dataUrl.length/1024)+'KB' ]]);
@@ -240,6 +272,7 @@
     ensureDefaultSearchSettings();
     installFilterModalCleanup();
     applyFilterLabelText();
+    installSortExecutionPatch();
     installSortButtonsPatch();
     installProcessFilePolicy();
     installIntentHintPolicy();

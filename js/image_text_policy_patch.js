@@ -99,7 +99,6 @@
       ].join('');
     };
     const apply=()=>{
-      // 일반 검색 결과 헤드
       document.querySelectorAll('.sort-options').forEach(wrap=>{
         if(wrap.classList.contains('thisone-rec-sort')) return;
         if(wrap.dataset.thisoneSortPatchApplied==='true') return;
@@ -109,17 +108,22 @@
         wrap.innerHTML=buttons(activeKeyFromText(text));
       });
 
-      // 지능형 추천 리포트 헤드
       document.querySelectorAll('.ai-result > .ai-label').forEach(label=>{
         const text=label.textContent||'';
         if(!text.includes('지능형 추천 리포트')) return;
         const parent=label.parentElement;
         if(!parent||parent.querySelector('.thisone-rec-sort')) return;
+
+        const row=document.createElement('div');
+        row.className='ai-label-row thisone-rec-label-row';
         const sort=document.createElement('div');
         sort.className='sort-options thisone-rec-sort';
         sort.dataset.thisoneSortPatchApplied='true';
         sort.innerHTML=buttons(global.ThisOneSortMode||'total');
-        label.insertAdjacentElement('afterend',sort);
+
+        parent.insertBefore(row,label);
+        row.appendChild(label);
+        row.appendChild(sort);
       });
     };
     apply();

@@ -75,6 +75,28 @@ function localInfer(query, trajectory) {
   };
 }
 
+function buildVisionAccuracyRules() {
+  return `
+이미지 상품명 인식 정확도 원칙:
+- refinedSearchTerm은 네이버 쇼핑 검색에 바로 넣을 실제 검색어입니다. 틀린 구체 상품명보다 맞는 넓은 검색어가 훨씬 낫습니다.
+- 라벨의 브랜드명/제품명/맛/용량을 확실히 읽은 경우에만 구체 상품명으로 단정하세요.
+- 라벨 글자가 흐리거나 일부만 보이면 브랜드명과 제품명을 추측하지 마세요.
+- 과일, 맛, 색상, 향처럼 비슷하게 보이는 요소는 확실하지 않으면 단정하지 마세요. 특히 사과/배/복숭아/오렌지처럼 비슷한 과일 이미지는 오인식 위험이 큽니다.
+- 식품/음료 사진에서는 "브랜드 + 맛 + 제품종류"가 확실할 때만 구체명으로 쓰고, 애매하면 "배 음료", "과일주스", "사과 주스", "페트병 음료"처럼 넓은 검색어를 사용하세요.
+- 상품 포장에 큰 글씨가 명확히 보이면 그 글씨를 우선하세요. 단, 읽은 글자가 확실하지 않으면 쓰지 마세요.
+- 모양만 보고 임의 브랜드를 만들지 마세요.
+- "가야농장 사과주스"처럼 틀린 구체명으로 단정하기보다, 애매하면 "과일주스" 또는 "배 음료"처럼 안전한 검색어를 반환하세요.
+- 확신도 confidence가 0.70 미만이면 refinedSearchTerm은 넓은 카테고리명으로 작성하세요.
+
+예시:
+- 배 그림이 있는 음료병, 라벨이 흐림 -> "배 음료"
+- 갈아만든 배 글자가 명확히 보임 -> "갈아만든 배"
+- 사과인지 배인지 헷갈리는 과일음료 -> "과일주스"
+- 브랜드/모델명이 또렷한 전자제품 -> "브랜드 모델명 제품종류"
+- 로고만 보이고 모델명 불명확한 전자제품 -> "브랜드 제품종류"
+`;
+}
+
 // ─── Gemini AI 추론 (전문가급 분석) ────────────────────────────────
 async function aiInfer(query, trajectory, image = null) {
   const apiKey = process.env.GOOGLE_API_KEY;
@@ -96,15 +118,20 @@ async function aiInfer(query, trajectory, image = null) {
 - 현재 검색어: "${query}"
 
 이미지 분석 지침:
-1. 다음 이미지 속 제품을 네이버 쇼핑에서 검색할 수 있는 가장 적합한 한국어 키워드 3~5단어로만 refinedSearchTerm에 담으세요.
+1. 다음 이미지 속 제품을 네이버 쇼핑에서 검색할 수 있는 가장 적합한 한국어 키워드 2~5단어로 refinedSearchTerm에 담으세요.
 2. 브랜드명 + 제품 종류 형식을 우선하되, 명확한 시리즈가 있다면 포함하세요.
 3. 설명이나 서술("이미지 속 제품은...", "이 제품은...")은 절대 금지합니다.
+4. 정확한 상품명 확신이 낮으면 구체 상품명으로 단정하지 말고 넓은 검색어를 쓰세요.
+
+${buildVisionAccuracyRules()}
 
 키워드 생성 예시:
 - 다이슨 헤어드라이어 이미지 -> 출력: "다이슨 헤어드라이어"
 - 삼성 갤럭시 S24 이미지 -> 출력: "삼성 갤럭시 S24"
 - 바비온 전기면도기 이미지 -> 출력: "바비온 전기면도기"
 - 로보락 S8 로봇청소기 이미지 -> 출력: "로보락 S8"
+- 배 음료병인데 라벨이 불명확함 -> 출력: "배 음료"
+- 과일 그림은 보이지만 사과/배가 불확실함 -> 출력: "과일주스"
 
 분석 지침:
 1. 사용자가 숨기고 있는 '진짜 니즈'를 파악하세요. (예: "프린터" -> 단순 구매 vs "회사 프린터 유지비" -> 운영 효율성 중시)
@@ -156,7 +183,7 @@ async function aiInfer(query, trajectory, image = null) {
       try {
         const model = genAI.getGenerativeModel({
           model: m,
-          systemInstruction: "당신은 쇼핑 의도 분석 전문가입니다. 반드시 JSON만 출력하세요.",
+          systemInstruction: "당신은 쇼핑 의도 분석 전문가입니다. 반드시 JSON만 출력하세요. 이미지가 애매하면 상품명을 단정하지 말고 넓은 검색어를 반환하세요.",
           generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
         }, { apiVersion: 'v1' });
 
@@ -210,13 +237,16 @@ async function openaiInfer(query, trajectory, image = null) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY 미설정');
 
-  const systemPrompt = "당신은 쇼핑 의도 분석 전문가입니다. 반드시 JSON으로만 응답하세요.";
+  const systemPrompt = "당신은 쇼핑 의도 분석 전문가입니다. 반드시 JSON으로만 응답하세요. 이미지가 애매하면 상품명을 단정하지 말고 넓은 검색어를 반환하세요.";
   const userPrompt = `다음 검색 정보를 바탕으로 전문가급 쇼핑 의도를 분석하세요.
 ${query ? `현재 검색어: "${query}"` : ""}
 검색 히스토리: ${JSON.stringify(trajectory?.queries || [])}
 
-이미지 분석이 포함되어 있다면 가장 적합한 한국어 검색 키워드(브랜드+모델)를 refinedSearchTerm에 담으세요.
-반드시 { "intentTag": ..., "refinedSearchTerm": ..., "suggestedWeights": { "price": ..., "review": ..., "trust": ... } } 형식을 지키세요.`;
+이미지 분석이 포함되어 있다면 refinedSearchTerm에 네이버 쇼핑 검색용 한국어 키워드를 담으세요.
+
+${buildVisionAccuracyRules()}
+
+반드시 { "intentTag": ..., "confidence": ..., "categoryHint": ..., "refinedSearchTerm": ..., "suggestedWeights": { "price": ..., "review": ..., "trust": ... } } 형식을 지키세요.`;
 
   const content = [{ type: "text", text: userPrompt }];
   if (image && image.data) {

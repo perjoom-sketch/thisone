@@ -68,6 +68,7 @@ function clearStalePendingImage(reason = 'unknown') {
 
 function normalizeIntentImage(image) {
   if (!image) return null;
+  if (image.data) return image;
   if (!hasLiveImagePreview()) {
     console.debug('[ThisOne][image-state-reset]', 'image payload ignored because no live image preview exists');
     return null;

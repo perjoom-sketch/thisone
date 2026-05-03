@@ -25,7 +25,7 @@ async function requestSearch(query, settings = {}, start = 1, display = 30, sort
   const params = new URLSearchParams({ q: query, ...settings, start, display, sort });
   return await safeFetchJson(`/api/search?${params.toString()}`, {
     method: 'GET'
-  }, 25000);
+  }, 35000);
 }
 
 function parseRentalNumber(text) {

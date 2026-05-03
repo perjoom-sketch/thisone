@@ -32,6 +32,34 @@ function parseRentalNumber(text) {
   return Number(String(text || '').replace(/[^\d]/g, '')) || 0;
 }
 
+function hasLiveImagePreview() {
+  const selectors = [
+    '.image-preview',
+    '.upload-preview',
+    '.search-image-preview',
+    '.attached-image',
+    '.image-chip',
+    '.preview-image',
+    '[data-image-preview]',
+    '[data-has-image="true"]'
+  ];
+  return selectors.some((selector) => {
+    const el = document.querySelector(selector);
+    if (!el) return false;
+    const style = window.getComputedStyle(el);
+    return style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
+  });
+}
+
+function normalizeIntentImage(image) {
+  if (!image) return null;
+  if (!hasLiveImagePreview()) {
+    console.debug('[ThisOne][image-state-reset]', 'image payload ignored because no live image preview exists');
+    return null;
+  }
+  return image;
+}
+
 function enrichRentalCandidate(candidate) {
   if (!candidate || typeof candidate !== 'object') return candidate;
   const text = `${candidate.name || ''} ${candidate.store || ''} ${candidate.price || ''}`;
@@ -190,11 +218,12 @@ async function requestChat(payload, onChunk) {
  */
 async function requestIntentInfer(query, trajectory, image = null) {
   try {
-    const timeout = image ? 30000 : 12000; // 이미지가 있으면 30초, 없으면 12초
+    const cleanImage = normalizeIntentImage(image);
+    const timeout = cleanImage ? 30000 : 12000; // 이미지가 있으면 30초, 없으면 12초
     return await safeFetchJson('/api/intentInfer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, trajectory, image }),
+      body: JSON.stringify({ query, trajectory, image: cleanImage }),
     }, timeout);
   } catch (err) {
     console.warn('[api] intentInfer 실패 (무시):', err.message);

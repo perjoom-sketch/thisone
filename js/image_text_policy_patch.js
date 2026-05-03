@@ -83,21 +83,43 @@
   }
 
   function installSortButtonsPatch(){
+    const activeKeyFromText=(text)=>{
+      if(/가성비|최저/.test(text||'')) return 'value';
+      if(/인기/.test(text||'')) return 'popular';
+      if(/판매/.test(text||'')) return 'sales';
+      return global.ThisOneSortMode || 'total';
+    };
+    const buttons=(activeKey)=>{
+      const btn=(key,label,sort)=>`<button class="sort-btn ${activeKey===key?'active':''}" onclick="window.ThisOneSortMode='${key}'; window.changeSort && window.changeSort('${sort}')">${label}</button>`;
+      return [
+        btn('total','종합추천','sim'),
+        btn('value','가성비','asc'),
+        btn('popular','인기순','sim'),
+        btn('sales','판매순','sim')
+      ].join('');
+    };
     const apply=()=>{
+      // 일반 검색 결과 헤드
       document.querySelectorAll('.sort-options').forEach(wrap=>{
+        if(wrap.classList.contains('thisone-rec-sort')) return;
         if(wrap.dataset.thisoneSortPatchApplied==='true') return;
         const text=wrap.textContent||'';
         if(!text.includes('관련도순')&&!text.includes('최저가순')&&!text.includes('종합추천')) return;
         wrap.dataset.thisoneSortPatchApplied='true';
-        const active=wrap.querySelector('.active')?.textContent?.trim()||'종합추천';
-        const activeKey=active.includes('최저')||active.includes('가성비')?'value':'total';
-        const btn=(key,label,sort)=>`<button class="sort-btn ${activeKey===key?'active':''}" onclick="window.ThisOneSortMode='${key}'; window.changeSort('${sort}')">${label}</button>`;
-        wrap.innerHTML=[
-          btn('total','종합추천','sim'),
-          btn('value','가성비','asc'),
-          btn('popular','인기순','sim'),
-          btn('sales','판매순','sim')
-        ].join('');
+        wrap.innerHTML=buttons(activeKeyFromText(text));
+      });
+
+      // 지능형 추천 리포트 헤드
+      document.querySelectorAll('.ai-result > .ai-label').forEach(label=>{
+        const text=label.textContent||'';
+        if(!text.includes('지능형 추천 리포트')) return;
+        const parent=label.parentElement;
+        if(!parent||parent.querySelector('.thisone-rec-sort')) return;
+        const sort=document.createElement('div');
+        sort.className='sort-options thisone-rec-sort';
+        sort.dataset.thisoneSortPatchApplied='true';
+        sort.innerHTML=buttons(global.ThisOneSortMode||'total');
+        label.insertAdjacentElement('afterend',sort);
       });
     };
     apply();

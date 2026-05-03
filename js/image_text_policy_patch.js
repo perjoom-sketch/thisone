@@ -24,6 +24,42 @@
     return !!(preview && preview.classList.contains('show'));
   }
 
+  function hasPendingImage() {
+    try {
+      return !!(typeof pendingImg !== 'undefined' && pendingImg && pendingImg.data);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function scheduleImageSearchAfterAttach(reason) {
+    const maxAttempts = 20;
+    let attempts = 0;
+
+    const tick = () => {
+      attempts += 1;
+      if (hasPendingImage() && hasVisibleImagePreview()) {
+        console.debug('[ThisOne][image-text-policy]', 'auto image search triggered after image attach', {
+          reason,
+          attempts
+        });
+        if (typeof sendMsg === 'function') sendMsg('thisone');
+        return;
+      }
+
+      if (attempts < maxAttempts) {
+        setTimeout(tick, 100);
+      } else {
+        console.warn('[ThisOne][image-text-policy] auto image search skipped: pending image was not ready', {
+          reason,
+          attempts
+        });
+      }
+    };
+
+    setTimeout(tick, 80);
+  }
+
   function installProcessFilePolicy() {
     if (typeof processFile !== 'function' || processFile.__imageTextPolicyApplied) return;
 
@@ -31,7 +67,7 @@
     const patchedProcessFile = function(file) {
       const textBeforeImage = getPrimaryInputValue();
 
-      // 정책 2: 텍스트가 먼저 입력된 상태에서 이미지를 첨부하면 이미지가 주 검색이므로 텍스트 초기화
+      // 정책 2: 텍스트가 먼저 입력된 상태에서 이미지를 첨부하면 이미지가 주 검색이므로 텍스트 초기화 후 자동 이미지 검색
       if (textBeforeImage) {
         clearQueryInputs();
         console.debug('[ThisOne][image-text-policy]', 'text cleared because image was attached after text input', {
@@ -39,7 +75,13 @@
         });
       }
 
-      return originalProcessFile.call(this, file);
+      const result = originalProcessFile.call(this, file);
+
+      if (textBeforeImage) {
+        scheduleImageSearchAfterAttach('text-before-image');
+      }
+
+      return result;
     };
 
     patchedProcessFile.__imageTextPolicyApplied = true;

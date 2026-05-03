@@ -34,20 +34,21 @@ function parseRentalNumber(text) {
 
 function hasLiveImagePreview() {
   const selectors = [
-    '.image-preview',
-    '.upload-preview',
-    '.search-image-preview',
-    '.attached-image',
-    '.image-chip',
-    '.preview-image',
-    '[data-image-preview]',
+    '#imgPreview.show',
+    '.image-preview.show',
+    '.upload-preview.show',
+    '.search-image-preview.show',
+    '.attached-image.show',
+    '.image-chip.show',
+    '.preview-image.show',
+    '[data-image-preview].show',
     '[data-has-image="true"]'
   ];
   return selectors.some((selector) => {
     const el = document.querySelector(selector);
     if (!el) return false;
     const style = window.getComputedStyle(el);
-    return style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
+    return style.display !== 'none' && style.visibility !== 'hidden';
   });
 }
 
@@ -318,7 +319,30 @@ function installManagedRentalRankingPatch() {
   };
 }
 
-window.addEventListener('load', installManagedRentalRankingPatch);
+function installStaleImageStatePatch() {
+  if (typeof sendMsg !== 'function' || sendMsg.__imageStatePatchApplied) return;
+
+  const originalSendMsg = sendMsg;
+  const patchedSendMsg = function(...args) {
+    if (!hasLiveImagePreview()) {
+      try {
+        pendingImg = null;
+        console.debug('[ThisOne][image-state-reset]', 'pendingImg cleared before sendMsg because no live image preview exists');
+      } catch (e) {
+        console.warn('[ThisOne][image-state-reset] pendingImg clear failed:', e.message);
+      }
+    }
+    return originalSendMsg.apply(this, args);
+  };
+  patchedSendMsg.__imageStatePatchApplied = true;
+  sendMsg = patchedSendMsg;
+  window.sendMsg = patchedSendMsg;
+}
+
+window.addEventListener('load', () => {
+  installManagedRentalRankingPatch();
+  installStaleImageStatePatch();
+});
 
 window.ThisOneAPI = {
   safeFetchJson,

@@ -52,6 +52,20 @@ function hasLiveImagePreview() {
   });
 }
 
+function clearStalePendingImage(reason = 'unknown') {
+  if (hasLiveImagePreview()) return false;
+  try {
+    if (typeof pendingImg !== 'undefined' && pendingImg) {
+      pendingImg = null;
+      console.debug('[ThisOne][image-state-reset]', `pendingImg cleared before Vision (${reason})`);
+      return true;
+    }
+  } catch (e) {
+    console.warn('[ThisOne][image-state-reset] pendingImg clear failed:', e.message);
+  }
+  return false;
+}
+
 function normalizeIntentImage(image) {
   if (!image) return null;
   if (!hasLiveImagePreview()) {
@@ -319,19 +333,36 @@ function installManagedRentalRankingPatch() {
   };
 }
 
+function installPreSendImageStateCapture() {
+  if (window.__thisOneImageCapturePatchApplied) return;
+  window.__thisOneImageCapturePatchApplied = true;
+
+  const isSearchSubmitEvent = (event) => {
+    if (event.type === 'keydown') {
+      return event.key === 'Enter' && !event.shiftKey && !event.isComposing && event.keyCode !== 229 && event.which !== 229;
+    }
+
+    const target = event.target;
+    if (!target || typeof target.closest !== 'function') return false;
+    return !!target.closest('#sendBtn, .send-btn, .search-btn, .search-icon, button[aria-label*="검색"], [data-search-submit]');
+  };
+
+  const capture = (event) => {
+    if (!isSearchSubmitEvent(event)) return;
+    clearStalePendingImage(`capture:${event.type}`);
+  };
+
+  document.addEventListener('keydown', capture, true);
+  document.addEventListener('click', capture, true);
+  document.addEventListener('touchstart', capture, true);
+}
+
 function installStaleImageStatePatch() {
   if (typeof sendMsg !== 'function' || sendMsg.__imageStatePatchApplied) return;
 
   const originalSendMsg = sendMsg;
   const patchedSendMsg = function(...args) {
-    if (!hasLiveImagePreview()) {
-      try {
-        pendingImg = null;
-        console.debug('[ThisOne][image-state-reset]', 'pendingImg cleared before sendMsg because no live image preview exists');
-      } catch (e) {
-        console.warn('[ThisOne][image-state-reset] pendingImg clear failed:', e.message);
-      }
-    }
+    clearStalePendingImage('sendMsg-wrapper');
     return originalSendMsg.apply(this, args);
   };
   patchedSendMsg.__imageStatePatchApplied = true;
@@ -341,6 +372,7 @@ function installStaleImageStatePatch() {
 
 window.addEventListener('load', () => {
   installManagedRentalRankingPatch();
+  installPreSendImageStateCapture();
   installStaleImageStatePatch();
 });
 

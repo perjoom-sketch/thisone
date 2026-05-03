@@ -1,43 +1,66 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const AI_CONFIG = { MODEL_NAME: process.env.MODEL_NAME || 'gemini-2.5-flash' };
+const OPENAI_MODEL = 'gpt-5.4-mini';
+const OPENAI_CHAT_COMPLETIONS_URL = 'https://api.openai.com/v1/chat/completions';
+const GEMINI_FIRST_RESPONSE_TIMEOUT_MS = 15000;
 
 // ─── OpenAI GPT 리포트 생성 (폴백) ──────────────────────────────
-async function openaiChatFallback(messages, system) {
+async function openaiChatFallback(messages, system, timeoutMs = 30000) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY 미설정');
 
   const formattedMessages = [
-    { role: "system", content: system },
+    { role: "system", content: system || '' },
     ...messages.map(m => ({
       role: m.role === 'user' ? 'user' : 'assistant',
       content: Array.isArray(m.content) ? m.content.map(c => {
         if (c.type === 'text') return { type: 'text', text: c.text };
         if (c.type === 'image_url') return { type: 'image_url', image_url: { url: c.image_url.url } };
         return null;
-      }).filter(Boolean) : m.content
+      }).filter(Boolean) : String(m.content || '')
     }))
   ];
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: "gpt-5.4-mini",
-      messages: formattedMessages,
-      temperature: 0.1
-    })
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(`OpenAI Error: ${errorData.error?.message || response.statusText}`);
+  try {
+    const response = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: OPENAI_MODEL,
+        messages: formattedMessages,
+        temperature: 0.1
+      }),
+      signal: controller.signal
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+      let detail = text;
+      try {
+        const errorData = JSON.parse(text);
+        detail = errorData.error?.message || response.statusText;
+      } catch (e) {}
+      throw new Error(`OpenAI Error: ${detail}`);
+    }
+
+    const data = JSON.parse(text);
+    const content = data?.choices?.[0]?.message?.content || '';
+    if (!content) throw new Error('OpenAI returned empty content');
+    return content;
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error(`OpenAI fallback timeout (${timeoutMs / 1000}s)`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
 }
 
 async function handler(req, res) {
@@ -55,9 +78,9 @@ async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  try {
-    const { messages = [], system = "" } = req.body;
+  const { messages = [], system = "" } = req.body;
 
+  try {
     // API 키 확인 및 로깅 (디버깅용)
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
@@ -77,14 +100,6 @@ async function handler(req, res) {
 
     const targetModel = req.body.model || AI_CONFIG.MODEL_NAME;
     console.log(`Gemini API 스트리밍 호출 시작 (Model: ${targetModel})`);
-    const model = genAI.getGenerativeModel({
-      model: targetModel,
-      systemInstruction: system,
-      safetySettings,
-      generationConfig: {
-        temperature: 0.1,
-      }
-    });
 
     const lastMessage = messages[messages.length - 1];
     if (!lastMessage) throw new Error("메시지가 없습니다.");
@@ -109,11 +124,7 @@ async function handler(req, res) {
       userParts = [{ text: String(lastMessage.content) }];
     }
 
-    // 55초 타임아웃 설정 (Vercel 60초 제한 대비), 최소 10초 보장
-    const startTime = Date.now();
-    const getRemainingTime = () => Math.max(10000, 55000 - (Date.now() - startTime));
-
-    // AI 실행 (스트리밍 방식 도입) 및 타임아웃/폴백 처리
+    // AI 실행 및 15초 타임아웃/폴백 처리
     let result;
     const modelsToTry = [...new Set([targetModel, 'gemini-2.5-flash'])];
     let lastError;
@@ -127,19 +138,29 @@ async function handler(req, res) {
           generationConfig: { temperature: 0.1 }
         });
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(Object.assign(new Error("AI 분석 시간 초과"), { code: 'TIMEOUT' })), getRemainingTime())
+          setTimeout(() => reject(Object.assign(new Error(`Gemini first response timeout (${GEMINI_FIRST_RESPONSE_TIMEOUT_MS / 1000}s)`), { code: 'TIMEOUT' })), GEMINI_FIRST_RESPONSE_TIMEOUT_MS)
         );
         
         result = await Promise.race([model.generateContentStream(userParts), timeoutPromise]);
-        console.log(`Success with model: ${m}`);
+        console.log(`[api/chat] Gemini success with model: ${m}`);
         break;
       } catch (e) {
         lastError = e;
-        console.warn(`Fallback failed for model ${m}: ${e.message}`);
+        console.warn(`[api/chat] Gemini failed for model ${m}: ${e.message}`);
+        break;
       }
     }
 
-    if (!result) throw lastError;
+    if (!result) {
+      console.log(`[api/chat] Gemini failed or timed out, OpenAI fallback start: ${lastError?.message || 'unknown error'}`);
+      const gptText = await openaiChatFallback(messages, system);
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.write(gptText);
+      res.end();
+      return;
+    }
     
     // 스트리밍 응답 헤더 설정
     res.setHeader('Content-Type', 'text/event-stream');
@@ -159,34 +180,30 @@ async function handler(req, res) {
 
   } catch (err) {
     const msg = err.message || '';
-    console.error("Gemini Error:", msg);
+    console.error("[api/chat] AI Error:", msg);
 
-    // [OpenAI 폴백] Gemini 실패 시 즉시 GPT 시도
-    if (msg.includes('503') || /overloaded|Service Unavailable|high demand/i.test(msg)) {
-      console.log("[api/chat] Gemini 혼잡 감지, OpenAI 폴백 시작...");
+    // Gemini 또는 기타 오류 발생 시 OpenAI를 한 번 더 시도한다.
+    if (!res.headersSent) {
       try {
-        const { messages = [], system = "" } = req.body;
+        console.log("[api/chat] OpenAI fallback retry after catch...");
         const gptText = await openaiChatFallback(messages, system);
-        
-        // SSE 포맷으로 결과 전송 (호환성 유지)
         res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
         res.write(gptText);
         res.end();
         return;
       } catch (gptErr) {
-        console.error("[api/chat] OpenAI 폴백마저 실패:", gptErr.message);
+        console.error("[api/chat] OpenAI fallback failed:", gptErr.message);
         return res.status(503).json({
           error: 'AI_SERVER_BUSY',
-          detail: '모든 AI 서버가 일시적으로 혼잡합니다.'
+          detail: `Gemini failed: ${msg}; OpenAI failed: ${gptErr.message}`
         });
       }
     }
 
-    // 그 외 일반 오류 처리...
-    return res.status(500).json({
-      error: 'AI_ERROR',
-      detail: msg || '서버에서 문제가 발생했습니다.'
-    });
+    try { res.end(); } catch (e) {}
+    return;
   }
 }
 

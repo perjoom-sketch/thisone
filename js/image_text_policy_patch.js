@@ -24,6 +24,41 @@
     return !!(preview && preview.classList.contains('show'));
   }
 
+  function ensureDefaultSearchSettings() {
+    // thisone_app_v3_final.js는 검색설정 모달을 열지 않으면 DOM에서 값을 못 읽어 20초로 fallback된다.
+    // 모달 미오픈 상태에서도 기본 45초/5개 값이 읽히도록 hidden input을 공급한다.
+    const defaults = [
+      ['patienceTime', global.ThisOneExpertSettings?.patienceTime || '45'],
+      ['resultCount', global.ThisOneExpertSettings?.resultCount || '5']
+    ];
+
+    defaults.forEach(([id, value]) => {
+      if (document.getElementById(id)) return;
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.id = id;
+      input.value = value;
+      input.dataset.thisoneDefaultSetting = 'true';
+      document.body.appendChild(input);
+    });
+
+    console.debug('[ThisOne][default-patience]', {
+      patienceTime: document.getElementById('patienceTime')?.value,
+      resultCount: document.getElementById('resultCount')?.value
+    });
+  }
+
+  function installFilterModalCleanup() {
+    if (typeof global.toggleFilterModal !== 'function' || global.toggleFilterModal.__defaultSettingPatchApplied) return;
+    const originalToggle = global.toggleFilterModal;
+    const patchedToggle = function(...args) {
+      document.querySelectorAll('[data-thisone-default-setting="true"]').forEach((el) => el.remove());
+      return originalToggle.apply(this, args);
+    };
+    patchedToggle.__defaultSettingPatchApplied = true;
+    global.toggleFilterModal = patchedToggle;
+  }
+
   function installProcessFilePolicy() {
     if (typeof processFile !== 'function' || processFile.__imageTextPolicyApplied) return;
 
@@ -89,6 +124,8 @@
   }
 
   function installAll() {
+    ensureDefaultSearchSettings();
+    installFilterModalCleanup();
     installProcessFilePolicy();
     installIntentHintPolicy();
     installRemoveImagePolicy();

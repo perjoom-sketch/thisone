@@ -57,10 +57,53 @@
     const originalToggle=global.toggleFilterModal;
     const patchedToggle=function(){
       document.querySelectorAll('[data-thisone-default-setting="true"]').forEach(el=>el.remove());
-      return originalToggle.apply(this,arguments);
+      const result=originalToggle.apply(this,arguments);
+      setTimeout(applyFilterLabelText,0);
+      return result;
     };
     patchedToggle.__defaultSettingPatchApplied=true;
     global.toggleFilterModal=patchedToggle;
+  }
+
+  function applyFilterLabelText(){
+    const replacements=[
+      ['직구제외','해외직구 제외'],
+      ['대행제외','구매대행 제외'],
+      ['렌탈제외','렌탈/구독 제외']
+    ];
+    document.querySelectorAll('label.check-btn').forEach(label=>{
+      replacements.forEach(([from,to])=>{
+        if((label.textContent||'').includes(from)){
+          const input=label.querySelector('input');
+          label.textContent=' ' + to;
+          if(input) label.prepend(input);
+        }
+      });
+    });
+  }
+
+  function installSortButtonsPatch(){
+    const apply=()=>{
+      document.querySelectorAll('.sort-options').forEach(wrap=>{
+        if(wrap.dataset.thisoneSortPatchApplied==='true') return;
+        const text=wrap.textContent||'';
+        if(!text.includes('관련도순')&&!text.includes('최저가순')&&!text.includes('종합추천')) return;
+        wrap.dataset.thisoneSortPatchApplied='true';
+        const active=wrap.querySelector('.active')?.textContent?.trim()||'종합추천';
+        const activeKey=active.includes('최저')||active.includes('가성비')?'value':'total';
+        const btn=(key,label,sort)=>`<button class="sort-btn ${activeKey===key?'active':''}" onclick="window.ThisOneSortMode='${key}'; window.changeSort('${sort}')">${label}</button>`;
+        wrap.innerHTML=[
+          btn('total','종합추천','sim'),
+          btn('value','가성비','asc'),
+          btn('popular','인기순','sim'),
+          btn('sales','판매순','sim')
+        ].join('');
+      });
+    };
+    apply();
+    const observer=new MutationObserver(apply);
+    observer.observe(document.body,{childList:true,subtree:true});
+    global.__thisOneApplySortButtonLabels=apply;
   }
 
   function isSupportedVisionType(type){
@@ -170,6 +213,8 @@
   function installAll(){
     ensureDefaultSearchSettings();
     installFilterModalCleanup();
+    applyFilterLabelText();
+    installSortButtonsPatch();
     installProcessFilePolicy();
     installIntentHintPolicy();
     installRemoveImagePolicy();

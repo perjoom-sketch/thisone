@@ -10,8 +10,8 @@ function parsePositiveNumber(value){
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 function isRentalLikeItem(item){
-  const text = `${item?.name || ''} ${item?.store || ''}`;
-  return /렌탈|대여|구독|약정|월납/i.test(text);
+  const text = `${item?.name || ''} ${item?.store || ''} ${item?.priceText || ''} ${item?.delivery || ''}`;
+  return /렌탈|대여|구독|약정|월납|의무사용|방문관리|코디관리|관리형|월\s*[0-9,]+\s*원|\d+\s*개월/i.test(text);
 }
 function isRentalCapableQuery(query){
   const q = String(query || '').toLowerCase();
@@ -88,16 +88,26 @@ function appendUniqueItems(baseItems, extraItems){
 async function enrichRentalCapableItems(query, items, settings){
   if (settings?.excludeRental) return { items, addedCount: 0, query: null };
   if (!isRentalCapableQuery(query)) return { items, addedCount: 0, query: null };
-  if ((items || []).some(isRentalLikeItem)) return { items, addedCount: 0, query: null };
+
+  const existingRentalCount = (items || []).filter(isRentalLikeItem).length;
+  if (existingRentalCount >= 3) {
+    return { items, addedCount: 0, query: null, existingRentalCount };
+  }
 
   const rentalQuery = `${query} 렌탈`;
   try {
     const data = await fetchNaverShopItems(rentalQuery, { display: 10, start: 1, sort: 'sim' });
     const rentalItems = mapNaverItems(data.items).filter(isRentalLikeItem);
     const merged = appendUniqueItems(items, rentalItems);
-    return { items: merged, addedCount: merged.length - items.length, query: rentalQuery };
+    return {
+      items: merged,
+      addedCount: merged.length - items.length,
+      query: rentalQuery,
+      existingRentalCount,
+      fetchedRentalCount: rentalItems.length
+    };
   } catch (e) {
-    return { items, addedCount: 0, query: rentalQuery, error: e.message };
+    return { items, addedCount: 0, query: rentalQuery, existingRentalCount, error: e.message };
   }
 }
 function restoreRentalItemsIfAllowed(filteredItems, sourceItems, settings){

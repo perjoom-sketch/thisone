@@ -35,10 +35,13 @@ function parseRentalNumber(text) {
 function enrichRentalCandidate(candidate) {
   if (!candidate || typeof candidate !== 'object') return candidate;
   const text = `${candidate.name || ''} ${candidate.store || ''} ${candidate.price || ''}`;
-  const isRental = /렌탈|대여|구독|약정|월납/i.test(text);
   const monthlyMatch = text.match(/월\s*([0-9,]+)\s*원/i);
   const monthsMatch = text.match(/(\d+)\s*개월/i);
   const yearsMatch = text.match(/(\d+)\s*년\s*약정/i);
+  const isRental = /렌탈|대여|구독|약정|월납|의무사용|방문관리|코디관리|관리형/i.test(text)
+    || !!monthlyMatch
+    || !!monthsMatch
+    || !!yearsMatch;
   const rentalMonthlyFee = monthlyMatch
     ? parseRentalNumber(monthlyMatch[1])
     : (isRental ? parseRentalNumber(candidate.price) : 0);
@@ -123,6 +126,7 @@ function applyRentalReasoningInstruction(payload) {
 - “자가관리”, “셀프관리”, “자가설치”, “필터 직접 교체” 상품은 저렴하더라도 기본 정수기 추천에서 1순위로 올리지 마세요.
 - 단, 사용자가 직접 “자가관리 정수기”, “셀프관리 정수기”, “무전원 정수기”, “저렴한 정수기”처럼 명시했다면 자가관리 상품도 우선 후보가 될 수 있습니다.
 - “렌탈”, “방문관리”, “관리형”, “필터교체”, “AS포함”, “코디관리” 문구가 있는 후보는 관리 편의성 관점에서 적극 비교하세요.
+- 정수기, 공기청정기, 안마의자, 비데, 음식물처리기처럼 관리/방문관리/필터교체가 중요한 품목에서는 렌탈 후보를 단순 저가 상품으로 보지 말고, isRental·rentalMonthlyFee·rentalMonths·rentalTotalFee 필드를 읽어 약정개월·총납부액·관리편의성을 구매 후보와 함께 비교하세요.
 - 정수기 추천 이유에는 가격뿐 아니라 필터 교체 방식과 관리 부담을 반드시 언급하세요.`;
 
   return {

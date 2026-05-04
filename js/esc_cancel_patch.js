@@ -153,9 +153,6 @@
       return;
     }
 
-    const password = prompt('글 작성 시 설정한 비밀번호를 입력해주세요.');
-    if (!password) return;
-
     const title = String(item.title || '이 글');
     if (!confirm('정말 삭제할까요?\n\n' + title)) return;
 
@@ -163,7 +160,7 @@
       const res = await fetch('/api/inquiry', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, password })
+        body: JSON.stringify({ id })
       });
       const result = await res.json().catch(() => ({}));
 

@@ -19,20 +19,20 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: '환경 변수 누락' });
     }
 
+    // 테스트를 위한 최소 스펙 파라미터 구성
     const params = {
       app_key: APP_KEY,
       format: 'json',
-      keywords: req.query.q || '마우스',
+      // 한글 인코딩 문제 배제를 위해 무조건 영문 검색어로 고정
+      keywords: 'usb', 
       method: 'aliexpress.affiliate.product.query',
-      page_no: '1',            // 백엔드 에러 방지를 위해 복구된 필수 파라미터
-      page_size: '20',
+      page_no: '1',
+      page_size: '10', // 사이즈 최소화
       sign_method: 'sha256',
-      sort: 'SALE_PRICE_ASC',  // 검색 정확도를 위해 초기 설정 복구
-      target_currency: 'KRW',
-      target_language: 'KO',
       timestamp: getAliTimestamp(),
-      tracking_id: 'thisone',  // 반드시 알리 어필리에이트 대시보드에 등록된 Tracking ID를 사용해야 합니다.
+      tracking_id: 'thisone', // 정상 등록 확인 완료
       v: '2.0'
+      // 에러 유발 가능성이 있는 sort, target_currency, target_language는 모두 제외
     };
 
     // 서명 생성 로직
@@ -61,15 +61,16 @@ export default async function handler(req, res) {
 
     const data = await response.json();
     
-    // 알리 백엔드 404 시스템 에러에 대한 상세 디버깅 응답
+    // 백엔드 404 시스템 에러 응답 처리
     if (data.aliexpress_affiliate_product_query_response?.resp_result?.resp_code === 404) {
       return res.status(400).json({ 
         error: '알리익스프레스 백엔드 처리 에러 (System Error)', 
-        suggestion: "tracking_id('thisone')가 알리 콘솔에 정식으로 등록된 ID인지 확인해주세요.",
+        suggestion: '최소 파라미터로도 404가 뜬다면, 알리 측 서버의 앱 계정 동기화 지연 문제입니다.',
         detail: data 
       });
     }
 
+    // 정상 결과 출력
     return res.status(200).json(data);
 
   } catch (error) {

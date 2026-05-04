@@ -82,7 +82,7 @@ export default async function handler(req, res) {
         title: String(title).substring(0, 100),
         content: String(content).substring(0, 2000),
         password,
-        author: String(author).substring(0, 20),
+        author: String(author || '익명').substring(0, 20),
         createdAt: new Date().toISOString()
       };
 
@@ -98,7 +98,7 @@ export default async function handler(req, res) {
 
     // 3. 문의 수정 / 관리자 비밀번호 재설정 (PUT)
     if (req.method === 'PUT') {
-      const { mode, id, title, content, password, newPassword } = req.body || {};
+      const { mode, id, title, content, password, author, newPassword } = req.body || {};
 
       if (mode === 'manager_check') {
         if (!password) return res.status(400).json({ message: '관리자 키를 입력해주세요.' });
@@ -140,6 +140,7 @@ export default async function handler(req, res) {
 
       target.title = String(title).substring(0, 100);
       target.content = String(content).substring(0, 2000);
+      if (author !== undefined) target.author = String(author || '익명').substring(0, 20);
       target.updatedAt = new Date().toISOString();
       parsed[foundIdx] = target;
 

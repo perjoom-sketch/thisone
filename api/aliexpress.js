@@ -1,17 +1,24 @@
 const crypto = require('crypto');
 
+function getTimestamp() {
+  const now = new Date();
+  const offset = 8 * 60 * 60 * 1000;
+  const beijingTime = new Date(now.getTime() + now.getTimezoneOffset() * 60000 + offset);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${beijingTime.getFullYear()}-${pad(beijingTime.getMonth() + 1)}-${pad(beijingTime.getDate())} ${pad(beijingTime.getHours())}:${pad(beijingTime.getMinutes())}:${pad(beijingTime.getSeconds())}`;
+}
+
 function generateSign(params, appSecret) {
-  // null/undefined 제외, localeCompare 정렬 (SDK 방식 그대로)
-  let basestring = '';
-  Object.entries(params)
-    .filter(([_, v]) => v != null)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .forEach(([key, value]) => {
-      basestring += key + String(value);
-    });
+  const keys = Object.keys(params).filter(
+    (key) => key !== 'sign' && params[key] !== undefined && params[key] !== null && params[key] !== ''
+  );
+  keys.sort(); // ASCII 기준 정렬 (localeCompare 아님!)
+
+  let baseString = '';
+  keys.forEach((key) => { baseString += key + String(params[key]); });
 
   return crypto.createHmac('sha256', appSecret)
-    .update(basestring)
+    .update(baseString, 'utf8')
     .digest('hex')
     .toUpperCase();
 }
@@ -33,58 +40,36 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const now = new Date();
-    const timestamp = now.toISOString().replace('T', ' ').substring(0, 19);
-
-    const signParams = {
+    const params = {
       method: 'aliexpress.affiliate.product.query',
       app_key: appKey,
-      timestamp,
+      sign_method: 'sha256',
+      timestamp: getTimestamp(),
       format: 'json',
       v: '2.0',
       keywords: q,
+      target_currency: 'KRW',
+      target_language: 'KO',
       page_no: '1',
       page_size: '20',
       sort: 'SALE_PRICE_ASC',
-      target_currency: 'KRW',
-      target_language: 'KO',
       tracking_id: trackingId,
-      sign_method: 'sha256',
     };
 
-    signParams.sign = generateSign(signParams, appSecret);
+    params.sign = generateSign(params, appSecret);
 
-    // SDK assemble 방식 그대로: localeCompare 정렬, encodeURIComponent
-    const queryParams = Object.entries(signParams)
-      .filter(([_, v]) => v != null)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, value], index) => {
-        const prefix = index === 0 ? '?' : '&';
-        return `${prefix}${key}=${encodeURIComponent(String(value))}`;
-      })
-      .join('');
+    console.log('[AliExpress] timestamp:', params.timestamp);
+    console.log('[AliExpress] sign:', params.sign);
 
-    const apiUrl = `https://api-sg.aliexpress.com/sync${queryParams}`;
-    console.log('[AliExpress] URL:', apiUrl);
+    // POST 방식 (GET보다 안정적)
+    const response = await fetch('https://api-sg.aliexpress.com/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' },
+      body: new URLSearchParams(params).toString(),
+    });
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
-    let response;
-    try {
-      response = await fetch(apiUrl, { signal: controller.signal });
-    } catch (fetchErr) {
-      clearTimeout(timeoutId);
-      if (fetchErr.name === 'AbortError') throw new Error('AliExpress API timeout');
-      throw fetchErr;
-    }
-    clearTimeout(timeoutId);
-
-    const text = await response.text();
-    console.log('[AliExpress] raw:', text.substring(0, 500));
-
-    let data;
-    try { data = JSON.parse(text); }
-    catch (e) { return res.status(500).json({ error: '파싱 실패', raw: text.substring(0, 300) }); }
+    const data = await response.json();
+    console.log('[AliExpress] raw:', JSON.stringify(data).substring(0, 300));
 
     if (data.error_response) {
       return res.status(500).json({

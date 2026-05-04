@@ -1,55 +1,75 @@
 const crypto = require('crypto');
 
-// 알리익스프레스 기준 시간(GMT+8) 타임스탬프 생성 함수
+// AliExpress 기준 시간(GMT+8) 타임스탬프 생성
 function getAliTimestamp() {
   const now = new Date();
-  // 현재 시간의 UTC 기준 밀리초 도출
   const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  // 베이징 시간(GMT+8)으로 강제 변환
   const aliTime = new Date(utc + (8 * 60 * 60 * 1000));
-  
   const pad = (n) => String(n).padStart(2, '0');
   return `${aliTime.getFullYear()}-${pad(aliTime.getMonth() + 1)}-${pad(aliTime.getDate())} ${pad(aliTime.getHours())}:${pad(aliTime.getMinutes())}:${pad(aliTime.getSeconds())}`;
 }
 
+function buildSign(params, appSecret) {
+  const keys = Object.keys(params).filter(
+    (key) => key !== 'sign' && params[key] !== undefined && params[key] !== null && params[key] !== ''
+  );
+  keys.sort(); // ASCII 기준 정렬
+
+  let baseString = '';
+  keys.forEach((key) => {
+    baseString += key + String(params[key]);
+  });
+
+  const sign = crypto.createHmac('sha256', appSecret)
+    .update(baseString, 'utf8')
+    .digest('hex')
+    .toUpperCase();
+
+  return { sign, baseString };
+}
+
 export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
+
   try {
     const APP_KEY = (process.env.ALIEXPRESS_APP_KEY || '').trim();
     const APP_SECRET = (process.env.ALIEXPRESS_APP_SECRET || '').trim();
+    const TRACKING_ID = (process.env.ALIEXPRESS_TRACKING_ID || 'thisone').trim();
 
     if (!APP_KEY || !APP_SECRET) {
-      return res.status(500).json({ error: '환경 변수 오류' });
+      return res.status(500).json({ error: '환경 변수 오류: ALIEXPRESS_APP_KEY 또는 ALIEXPRESS_APP_SECRET 누락' });
     }
+
+    const q = String(req.query.q || req.query.query || '마우스').trim();
 
     const params = {
       app_key: APP_KEY,
       format: 'json',
-      keywords: req.query.q || '마우스',
+      keywords: q,
       method: 'aliexpress.affiliate.product.query',
       page_size: '20',
       sign_method: 'sha256',
       target_currency: 'KRW',
       target_language: 'KO',
-      // 🚨 백엔드가 정상적으로 읽을 수 있는 포맷으로 복구
-      timestamp: getAliTimestamp(), 
-      // 🚨 주의: 알리 어필리에이트 콘솔에 등록된 실제 Tracking ID여야 합니다.
-      tracking_id: 'thisone', 
+      timestamp: getAliTimestamp(),
+      tracking_id: TRACKING_ID,
       v: '2.0'
     };
 
-    // 서명 로직 (검증 완료된 완벽한 로직)
-    const keys = Object.keys(params).sort();
-    let baseString = ''; 
-    keys.forEach(key => {
-      baseString += key + String(params[key]);
-    });
-
-    const sign = crypto.createHmac('sha256', APP_SECRET)
-      .update(baseString, 'utf8')
-      .digest('hex')
-      .toUpperCase();
-
+    const { sign, baseString } = buildSign(params, APP_SECRET);
     params.sign = sign;
+
+    console.log('[AliExpress] debug:', {
+      timestamp: params.timestamp,
+      appKey: APP_KEY,
+      trackingId: TRACKING_ID,
+      baseString,
+      sign,
+    });
 
     const response = await fetch('https://api-sg.aliexpress.com/sync', {
       method: 'POST',
@@ -59,55 +79,29 @@ export default async function handler(req, res) {
       body: new URLSearchParams(params).toString()
     });
 
-    const data = await response.json();
-    return res.status(200).json(data);
-
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
-}
-
-    // 2. 🚨 '/sync' 완전 제거. 파라미터 키를 ASCII 오름차순으로 정렬 후 결합만 수행
-    const keys = Object.keys(params).sort();
-    let baseString = ''; 
-    
-    keys.forEach(key => {
-      baseString += key + String(params[key]);
-    });
-
-    // 3. 서명 생성 (HMAC-SHA256)
-    const sign = crypto.createHmac('sha256', APP_SECRET)
-      .update(baseString, 'utf8')
-      .digest('hex')
-      .toUpperCase();
-
-    params.sign = sign;
-
-    // 4. API 호출
-    const response = await fetch('https://api-sg.aliexpress.com/sync', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
-      },
-      // URLSearchParams가 한글('마우스')을 안전하게 인코딩하여 Body로 전송
-      body: new URLSearchParams(params).toString()
-    });
-
-    const data = await response.json();
-    
-    // 에러 발생 시 Vercel 콘솔이나 브라우저에서 Base String을 바로 확인할 수 있도록 유지
-    if (data.error_response) {
-      return res.status(400).json({ 
-        error: "AliExpress API 에러", 
-        detail: data.error_response,
-        debug_baseString: baseString 
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (error) {
+      return res.status(500).json({
+        error: 'AliExpress 응답 파싱 실패',
+        raw: text.substring(0, 500),
+        debug_baseString: baseString
       });
     }
 
-    // 성공
-    return res.status(200).json(data);
+    if (data.error_response) {
+      return res.status(400).json({
+        error: 'AliExpress API 에러',
+        detail: data.error_response,
+        debug_baseString: baseString
+      });
+    }
 
+    return res.status(200).json(data);
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    console.error('[AliExpress] server error:', error);
+    return res.status(500).json({ error: error.message || 'Server error' });
   }
 }

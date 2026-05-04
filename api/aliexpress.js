@@ -15,6 +15,8 @@ export default async function handler(req, res) {
       method: 'aliexpress.affiliate.product.query',
       app_key: APP_KEY,
       sign_method: 'sha256',
+      format: 'json',
+      v: '2.0',
       timestamp: Date.now().toString(), // 타임존 인코딩 에러를 막는 밀리초 타임스탬프
       keywords: req.query.q || '마우스',
       target_currency: 'KRW',

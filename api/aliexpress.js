@@ -14,7 +14,7 @@ function generateSign(params, appSecret) {
   );
   keys.sort(); // ASCII 기준 정렬 (localeCompare 아님!)
 
-  let baseString = '/sync';
+  let baseString = '';
   keys.forEach((key) => { baseString += key + String(params[key]); });
 
   return crypto.createHmac('sha256', appSecret)
@@ -44,7 +44,7 @@ module.exports = async function handler(req, res) {
       method: 'aliexpress.affiliate.product.query',
       app_key: appKey,
       sign_method: 'sha256',
-      timestamp: getTimestamp(),
+      timestamp: Date.now().toString(),
       format: 'json',
       v: '2.0',
       keywords: q,

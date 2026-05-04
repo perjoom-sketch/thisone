@@ -138,6 +138,19 @@
     return prompt('글 작성 시 설정한 비밀번호를 입력해주세요.');
   }
 
+  async function verifyManagerKey(key) {
+    const res = await fetch('/api/inquiry', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'manager_check', password: key })
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok || result.status !== 'success') {
+      throw new Error(result.message || '관리자 키가 일치하지 않습니다.');
+    }
+    return true;
+  }
+
   function addManagerButton() {
     const modal = document.getElementById('inquiryModal');
     const header = modal && modal.querySelector('.modal-header');
@@ -156,7 +169,7 @@
       btn.style.color = on ? '#fff' : '#334155';
     }
 
-    btn.onclick = (event) => {
+    btn.onclick = async (event) => {
       event.preventDefault();
       event.stopPropagation();
       if (getManagerKey()) {
@@ -166,9 +179,20 @@
       }
       const key = prompt('관리자 키를 입력해주세요.');
       if (!key) return;
-      setManagerKey(key);
-      render();
-      alert('관리자 모드가 켜졌습니다.');
+      btn.disabled = true;
+      btn.textContent = '확인 중...';
+      try {
+        await verifyManagerKey(key);
+        setManagerKey(key);
+        render();
+        alert('관리자 모드가 켜졌습니다.');
+      } catch (err) {
+        clearManagerKey();
+        render();
+        alert('관리자 모드 실패: ' + (err.message || '관리자 키를 확인해주세요.'));
+      } finally {
+        btn.disabled = false;
+      }
     };
 
     const closeBtn = header.querySelector('.close-btn');
@@ -270,6 +294,7 @@
         setManagerKey(managerKey);
         alert('글 비밀번호가 새로 설정되었습니다.');
       } else {
+        if (result.message && result.message.includes('관리자')) clearManagerKey();
         alert('비밀번호 재설정 실패: ' + (result.message || '관리자 키를 확인해주세요.'));
       }
     } catch (err) {

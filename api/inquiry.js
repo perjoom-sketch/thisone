@@ -1,30 +1,25 @@
 import { kv } from '@vercel/kv';
 
+function getManagerKey() {
+  return String(process.env.INQUIRY_MANAGER_KEY || '').trim();
+}
+
+function normalizeKey(value) {
+  return String(value || '').trim();
+}
+
+function isWriterKey(target, inputValue) {
+  return String(target?.password || '') === normalizeKey(inputValue);
+}
+
+function isManagerKey(inputValue) {
+  const managerKey = getManagerKey();
+  const inputKey = normalizeKey(inputValue);
+  return !!managerKey && inputKey === managerKey;
+}
+
 function canManageInquiry(target, inputValue) {
-  const managerKey = String(process.env.INQUIRY_MANAGER_KEY || '').trim();
-  const inputKey = String(inputValue || '').trim();
-  const isWriter = String(target?.password || '') === inputKey;
-  const isManager = !!managerKey && inputKey === managerKey;
-  return isWriter || isManager;
-}
-
-async function loadInquiries() {
-  const inquiries = await kv.lrange('thisone_inquiries', 0, 99);
-  let foundIdx = -1;
-  let target = null;
-  const parsed = (inquiries || []).map((inq, i) => {
-    const p = typeof inq === 'string' ? JSON.parse(inq) : inq;
-    return { ...p, _listIndex: i };
-  });
-  return { parsed, foundIdx, target };
-}
-
-async function saveInquiries(items) {
-  await kv.del('thisone_inquiries');
-  for (const item of items) {
-    const { _listIndex, ...cleanItem } = item;
-    await kv.rpush('thisone_inquiries', JSON.stringify(cleanItem));
-  }
+  return isWriterKey(target, inputValue) || isManagerKey(inputValue);
 }
 
 export default async function handler(req, res) {
@@ -77,9 +72,9 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3. 문의 수정 (PUT)
+    // 3. 문의 수정 / 비밀번호 재설정 (PUT)
     if (req.method === 'PUT') {
-      const { id, title, content, password } = req.body || {};
+      const { id, title, content, password, newPassword } = req.body || {};
       if (!id || !password) return res.status(400).json({ message: '필수 정보 누락' });
 
       const inquiries = await kv.lrange('thisone_inquiries', 0, 99);
@@ -95,6 +90,25 @@ export default async function handler(req, res) {
 
       if (!canManageInquiry(target, password)) {
         return res.status(403).json({ message: '비밀번호가 틀립니다.' });
+      }
+
+      if (newPassword !== undefined) {
+        if (!isManagerKey(password)) {
+          return res.status(403).json({ message: '관리자 권한이 필요합니다.' });
+        }
+        const nextPassword = normalizeKey(newPassword);
+        if (nextPassword.length < 4) {
+          return res.status(400).json({ message: '새 비밀번호는 4자리 이상 입력해주세요.' });
+        }
+        target.password = nextPassword;
+        target.updatedAt = new Date().toISOString();
+        parsed[foundIdx] = target;
+
+        await kv.del('thisone_inquiries');
+        for (const item of parsed) {
+          await kv.rpush('thisone_inquiries', JSON.stringify(item));
+        }
+        return res.status(200).json({ status: 'success', mode: 'password_reset' });
       }
 
       target.title = String(title).substring(0, 100);

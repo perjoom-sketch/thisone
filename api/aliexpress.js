@@ -30,9 +30,9 @@ export default async function handler(req, res) {
       sign_method: 'sha256',
       target_currency: 'KRW',
       target_language: 'KO',
-      // 백엔드가 정상적으로 읽을 수 있는 포맷으로 복구
+      // 🚨 백엔드가 정상적으로 읽을 수 있는 포맷으로 복구
       timestamp: getAliTimestamp(), 
-      // 주의: 알리 어필리에이트 콘솔에 등록된 실제 Tracking ID여야 합니다.
+      // 🚨 주의: 알리 어필리에이트 콘솔에 등록된 실제 Tracking ID여야 합니다.
       tracking_id: 'thisone', 
       v: '2.0'
     };

@@ -1,124 +1,75 @@
 const crypto = require('crypto');
 
-function getTimestamp() {
-  const now = new Date();
-  const offset = 8 * 60 * 60 * 1000;
-  const beijingTime = new Date(now.getTime() + now.getTimezoneOffset() * 60000 + offset);
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${beijingTime.getFullYear()}-${pad(beijingTime.getMonth() + 1)}-${pad(beijingTime.getDate())} ${pad(beijingTime.getHours())}:${pad(beijingTime.getMinutes())}:${pad(beijingTime.getSeconds())}`;
-}
-
-function generateSign(params, appSecret) {
-  const keys = Object.keys(params).filter(
-    (key) => key !== 'sign' && params[key] !== undefined && params[key] !== null && params[key] !== ''
-  );
-  keys.sort(); // ASCII 기준 정렬 (localeCompare 아님!)
-
-  let baseString = '';
-  keys.forEach((key) => { baseString += key + String(params[key]); });
-
-  return crypto.createHmac('sha256', appSecret)
-    .update(baseString, 'utf8')
-    .digest('hex')
-    .toUpperCase();
-}
-
-module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-
-  const q = req.query.q;
-  if (!q) return res.status(400).json({ error: '검색어를 입력하세요.' });
-
-  const appKey = process.env.ALIEXPRESS_APP_KEY;
-  const appSecret = process.env.ALIEXPRESS_APP_SECRET;
-  const trackingId = process.env.ALIEXPRESS_TRACKING_ID || 'thisone';
-
-  if (!appKey || !appSecret) {
-    return res.status(500).json({ error: 'AliExpress API 키가 설정되지 않았습니다.' });
-  }
-
+export default async function handler(req, res) {
   try {
+    // 1. 치명적 원인 차단: Vercel 환경 변수 복사 시 흔히 들어가는 앞뒤 공백/줄바꿈 완벽 제거
+    const APP_KEY = (process.env.ALIEXPRESS_APP_KEY || '').trim();
+    const APP_SECRET = (process.env.ALIEXPRESS_APP_SECRET || '').trim();
+
+    if (!APP_KEY || !APP_SECRET) {
+      return res.status(500).json({ error: '환경 변수(APP_KEY 또는 APP_SECRET)가 설정되지 않았습니다.' });
+    }
+
+    // 2. 파라미터 정의 (불필요한 레거시 파라미터 v, format 제거하여 변수 최소화)
     const params = {
       method: 'aliexpress.affiliate.product.query',
-      app_key: appKey,
+      app_key: APP_KEY,
       sign_method: 'sha256',
-      timestamp: Date.now().toString(),
-      format: 'json',
-      v: '2.0',
-      keywords: q,
+      timestamp: Date.now().toString(), // 타임존 인코딩 에러를 막는 밀리초 타임스탬프
+      keywords: req.query.q || '마우스',
       target_currency: 'KRW',
       target_language: 'KO',
-      page_no: '1',
       page_size: '20',
-      sort: 'SALE_PRICE_ASC',
-      tracking_id: trackingId,
+      tracking_id: 'thisone'
     };
 
-    params.sign = generateSign(params, appSecret);
+    // 3. 서명 대상 문자열(Base String) 생성
+    // IOP API 규격: 무조건 알파벳 오름차순 정렬 후, 맨 앞에 '/sync'를 붙여야 함
+    const keys = Object.keys(params).sort();
+    let baseString = '/sync';
+    
+    keys.forEach(key => {
+      baseString += key + String(params[key]);
+    });
 
-    console.log('[AliExpress] timestamp:', params.timestamp);
-    console.log('[AliExpress] sign:', params.sign);
+    // 4. 서명(Sign) 생성 (HMAC-SHA256)
+    const sign = crypto.createHmac('sha256', APP_SECRET)
+      .update(baseString, 'utf8')
+      .digest('hex')
+      .toUpperCase();
 
-    // POST 방식 (GET보다 안정적)
+    params.sign = sign;
+
+    // 강력한 디버깅: Vercel 대시보드(Logs)에서 정확한 서명 문자열을 확인할 수 있습니다.
+    console.log('=== Ali API 디버깅 ===');
+    console.log('Base String:', baseString);
+    console.log('Generated Sign:', sign);
+
+    // 5. 알리익스프레스 API 호출
     const response = await fetch('https://api-sg.aliexpress.com/sync', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' },
-      body: new URLSearchParams(params).toString(),
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
+      },
+      body: new URLSearchParams(params).toString()
     });
 
     const data = await response.json();
-    console.log('[AliExpress] raw:', JSON.stringify(data).substring(0, 300));
-
+    
+    // 알리 측 에러일 경우 응답을 500이 아닌 400으로 내려 화면에서 디버깅 정보 노출
     if (data.error_response) {
-      return res.status(500).json({
-        error: `AliExpress 오류: ${data.error_response.code}`,
-        message: data.error_response.msg,
-        raw: data,
+      return res.status(400).json({ 
+        error: 'AliExpress API 에러', 
+        detail: data.error_response,
+        debug_baseString: baseString // 브라우저 화면에서 바로 Base String 확인 가능
       });
     }
 
-    const result = data?.aliexpress_affiliate_product_query_response?.resp_result;
-    if (!result) return res.status(500).json({ error: '응답 구조 오류', raw: data });
+    // 성공 시 데이터 반환
+    return res.status(200).json(data);
 
-    if (String(result.resp_code) !== '200') {
-      return res.status(500).json({
-        error: `AliExpress API 오류 (code: ${result.resp_code})`,
-        message: result.resp_msg,
-        raw: data,
-      });
-    }
-
-    const products = result.result?.products?.product || [];
-    const items = products.map((p, idx) => {
-      const salePrice = Number(p.target_sale_price || p.sale_price || 0);
-      const origPrice = Number(p.target_original_price || 0);
-      const discount = origPrice > salePrice ? Math.round(((origPrice - salePrice) / origPrice) * 100) : 0;
-      return {
-        id: String(idx + 1),
-        productId: String(p.product_id || ''),
-        name: p.product_title || '',
-        link: p.product_detail_url || '',
-        image: p.product_main_image_url || '',
-        lprice: Math.round(salePrice),
-        priceText: salePrice > 0 ? `${Math.round(salePrice).toLocaleString('ko-KR')}원` : '가격 미정',
-        originalPrice: origPrice > 0 ? Math.round(origPrice) : null,
-        discount,
-        store: 'AliExpress',
-        source: 'aliexpress',
-        rating: p.evaluate_rate ? parseFloat(p.evaluate_rate) : null,
-        orders: p.lastest_volume || null,
-        commissionRate: p.commission_rate || null,
-      };
-    });
-
-    return res.status(200).json({ query: q, total: items.length, items });
-
-  } catch (err) {
-    console.error('[AliExpress] error:', err);
-    return res.status(500).json({ error: err.message || 'Server error' });
+  } catch (error) {
+    console.error('서버 내부 에러:', error);
+    return res.status(500).json({ error: error.message });
   }
-};
-
-module.exports.config = { maxDuration: 30 };
+}

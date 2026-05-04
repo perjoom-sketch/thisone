@@ -96,7 +96,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3. 문의 수정 / 비밀번호 재설정 (PUT)
+    // 3. 문의 수정 / 관리자 비밀번호 재설정 (PUT)
     if (req.method === 'PUT') {
       const { id, title, content, password, newPassword } = req.body || {};
       if (!id || !password) return res.status(400).json({ message: '필수 정보 누락' });
@@ -106,10 +106,8 @@ export default async function handler(req, res) {
 
       if (foundIdx === -1) return res.status(404).json({ message: '글을 찾을 수 없습니다.' });
 
-      if (!canManageInquiry(target, password)) {
-        return res.status(403).json({ message: '비밀번호가 틀립니다.' });
-      }
-
+      // 글 비밀번호 재설정은 작성자 비밀번호와 완전히 분리한다.
+      // 오직 관리자키(INQUIRY_MANAGER_KEY)로만 허용한다.
       if (newPassword !== undefined) {
         if (!isManagerKey(password)) {
           return res.status(403).json({ message: '관리자 권한이 필요합니다.' });
@@ -123,6 +121,10 @@ export default async function handler(req, res) {
         parsed[foundIdx] = target;
         await writeInquiryList(parsed);
         return res.status(200).json({ status: 'success', mode: 'password_reset' });
+      }
+
+      if (!canManageInquiry(target, password)) {
+        return res.status(403).json({ message: '비밀번호가 틀립니다.' });
       }
 
       target.title = String(title).substring(0, 100);

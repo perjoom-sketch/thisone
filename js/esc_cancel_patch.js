@@ -326,9 +326,11 @@
       if (!password) return;
       global._editModeId = id;
       const titleEl = document.getElementById('inqTitle');
+      const authorEl = document.getElementById('inqAuthor');
       const contentEl = document.getElementById('inqContent');
       const passwordEl = document.getElementById('inqPassword');
       if (titleEl) titleEl.value = item.title || '';
+      if (authorEl) authorEl.value = item.author || '익명';
       if (contentEl) contentEl.value = item.content || '';
       if (passwordEl) passwordEl.value = password;
       global.ThisOneUI.showInquiryForm?.();

@@ -1,4 +1,3 @@
-// api/aliexpress.js
 const crypto = require('crypto');
 
 function generateSign(params, appSecret) {
@@ -9,20 +8,15 @@ function generateSign(params, appSecret) {
     str += key + params[key];
   }
   str += appSecret;
-  return crypto.createHash('md5')
-    .update(str, 'utf8')
-    .digest('hex')
-    .toUpperCase();
+  return crypto.createHash('md5').update(str).digest('hex').toUpperCase();
 }
 
-async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
 
-  const q = String(req.query.q || req.query.query || '').trim();
+  const q = req.query.q;
   if (!q) return res.status(400).json({ error: '검색어를 입력하세요.' });
 
   const appKey = process.env.ALIEXPRESS_APP_KEY;
@@ -34,7 +28,9 @@ async function handler(req, res) {
   }
 
   try {
-    const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    // timestamp: "2026-05-04 08:00:00" 형식
+    const now = new Date();
+    const timestamp = now.toISOString().replace('T', ' ').substring(0, 19);
 
     const params = {
       method: 'aliexpress.affiliate.product.query',
@@ -54,10 +50,14 @@ async function handler(req, res) {
 
     params.sign = generateSign(params, appSecret);
 
-    const urlParams = new URLSearchParams(params);
-    const apiUrl = `https://api-sg.aliexpress.com/sync?${urlParams.toString()}`;
+    // URLSearchParams는 공백을 '+'로 인코딩 → AliExpress 오류 원인
+    // 수동으로 %20으로 인코딩
+    const queryString = Object.keys(params)
+      .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
+      .join('&');
+    const apiUrl = `https://api-sg.aliexpress.com/sync?${queryString}`;
 
-    console.log('[AliExpress] query:', q, 'tracking_id:', trackingId);
+    console.log('[AliExpress] URL:', apiUrl);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000);
@@ -75,21 +75,11 @@ async function handler(req, res) {
     const text = await response.text();
     console.log('[AliExpress] raw response:', text.substring(0, 500));
 
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: 'AliExpress API error',
-        detail: text.substring(0, 500),
-      });
-    }
-
     let data;
     try {
       data = JSON.parse(text);
     } catch (e) {
-      return res.status(500).json({
-        error: 'AliExpress 응답 파싱 실패',
-        raw: text.substring(0, 300),
-      });
+      return res.status(500).json({ error: 'AliExpress 응답 파싱 실패', raw: text.substring(0, 300) });
     }
 
     const result = data?.aliexpress_affiliate_product_query_response?.resp_result;
@@ -98,7 +88,7 @@ async function handler(req, res) {
       return res.status(500).json({ error: 'AliExpress 응답 구조 오류', raw: data });
     }
 
-    if (String(result.resp_code) !== '200') {
+    if (result.resp_code !== 200) {
       return res.status(500).json({
         error: `AliExpress API 오류 (code: ${result.resp_code})`,
         message: result.resp_msg,
@@ -149,7 +139,6 @@ async function handler(req, res) {
     console.error('[AliExpress] error:', err);
     return res.status(500).json({ error: err.message || 'Server error' });
   }
-}
+};
 
-module.exports = handler;
 module.exports.config = { maxDuration: 30 };

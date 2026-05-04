@@ -1,5 +1,65 @@
 import { kv } from '@vercel/kv';
 
+const MANAGER_KV_KEY = 'thisone_inquiry_manager_key';
+
+function getEnvManagerKey() {
+  return String(process.env.INQUIRY_MANAGER_KEY || '').trim();
+}
+
+function normalizeKey(value) {
+  return String(value || '').trim();
+}
+
+async function getStoredManagerKey() {
+  const value = await kv.get(MANAGER_KV_KEY);
+  return normalizeKey(value);
+}
+
+async function getManagerKeys() {
+  const envKey = getEnvManagerKey();
+  const storedKey = await getStoredManagerKey();
+  return [envKey, storedKey].filter(Boolean);
+}
+
+async function isManagerKey(inputValue) {
+  const inputKey = normalizeKey(inputValue);
+  if (!inputKey) return false;
+  const keys = await getManagerKeys();
+  return keys.includes(inputKey);
+}
+
+function isWriterKey(target, inputValue) {
+  return String(target?.password || '') === normalizeKey(inputValue);
+}
+
+async function canManageInquiry(target, inputValue) {
+  return isWriterKey(target, inputValue) || await isManagerKey(inputValue);
+}
+
+async function readInquiryList() {
+  const inquiries = await kv.lrange('thisone_inquiries', 0, 99);
+  return (inquiries || []).map((inq) => (typeof inq === 'string' ? JSON.parse(inq) : inq));
+}
+
+async function writeInquiryList(items) {
+  await kv.del('thisone_inquiries');
+  for (const item of items) {
+    await kv.rpush('thisone_inquiries', JSON.stringify(item));
+  }
+}
+
+function findInquiry(parsed, id) {
+  let foundIdx = -1;
+  let target = null;
+  parsed.forEach((item, i) => {
+    if (item.id == id) {
+      foundIdx = i;
+      target = item;
+    }
+  });
+  return { foundIdx, target };
+}
+
 export default async function handler(req, res) {
   // Upstash 연동 시 변수명이 다를 수 있어 자동 매핑 시도
   if (!process.env.KV_REST_API_URL && process.env.UPSTASH_REDIS_REST_URL) {
@@ -36,7 +96,7 @@ export default async function handler(req, res) {
         title: String(title).substring(0, 100),
         content: String(content).substring(0, 2000),
         password,
-        author: String(author).substring(0, 20),
+        author: String(author || '익명').substring(0, 20),
         createdAt: new Date().toISOString()
       };
 
@@ -50,32 +110,90 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3. 문의 수정 (PUT)
+    // 3. 문의 수정 / 관리자 비밀번호 설정·검증·글 비밀번호 재설정 (PUT)
     if (req.method === 'PUT') {
-      const { id, title, content, password } = req.body || {};
+      const { mode, id, title, content, password, author, newPassword } = req.body || {};
+
+      if (mode === 'manager_setup') {
+        const nextKey = normalizeKey(newPassword || password);
+        if (nextKey.length < 4) return res.status(400).json({ message: '관리자 비밀번호는 4자리 이상 입력해주세요.' });
+
+        const storedKey = await getStoredManagerKey();
+        const envKey = getEnvManagerKey();
+        if (storedKey || envKey) {
+          return res.status(409).json({ message: '관리자 비밀번호가 이미 설정되어 있습니다.' });
+        }
+
+        await kv.set(MANAGER_KV_KEY, nextKey);
+        return res.status(200).json({ status: 'success', mode: 'manager_setup' });
+      }
+
+      if (mode === 'manager_check') {
+        if (!password) return res.status(400).json({ message: '관리자 키를 입력해주세요.' });
+        if (!await isManagerKey(password)) {
+          const hasKey = (await getManagerKeys()).length > 0;
+          const hint = hasKey ? '관리자 키가 일치하지 않습니다.' : '관리자 비밀번호가 아직 설정되어 있지 않습니다.';
+          return res.status(403).json({ message: hint, needsSetup: !hasKey });
+        }
+        return res.status(200).json({ status: 'success', mode: 'manager_check' });
+      }
+
       if (!id || !password) return res.status(400).json({ message: '필수 정보 누락' });
 
-      const inquiries = await kv.lrange('thisone_inquiries', 0, 99);
-      let foundIdx = -1;
-      let target = null;
-      const parsed = inquiries.map((inq, i) => {
-        const p = typeof inq === 'string' ? JSON.parse(inq) : inq;
-        if (p.id == id) { foundIdx = i; target = p; }
-        return p;
-      });
+      const parsed = await readInquiryList();
+      const { foundIdx, target } = findInquiry(parsed, id);
 
       if (foundIdx === -1) return res.status(404).json({ message: '글을 찾을 수 없습니다.' });
-      if (target.password !== password) return res.status(403).json({ message: '비밀번호가 틀립니다.' });
+
+      // 글 비밀번호 재설정은 작성자 비밀번호와 완전히 분리한다.
+      // 오직 관리자키로만 허용한다.
+      if (newPassword !== undefined) {
+        if (!await isManagerKey(password)) {
+          const hasKey = (await getManagerKeys()).length > 0;
+          const hint = hasKey ? '관리자 권한이 필요합니다.' : '관리자 비밀번호가 아직 설정되어 있지 않습니다.';
+          return res.status(403).json({ message: hint, needsSetup: !hasKey });
+        }
+        const nextPassword = normalizeKey(newPassword);
+        if (nextPassword.length < 4) {
+          return res.status(400).json({ message: '새 비밀번호는 4자리 이상 입력해주세요.' });
+        }
+        target.password = nextPassword;
+        target.updatedAt = new Date().toISOString();
+        parsed[foundIdx] = target;
+        await writeInquiryList(parsed);
+        return res.status(200).json({ status: 'success', mode: 'password_reset' });
+      }
+
+      if (!await canManageInquiry(target, password)) {
+        return res.status(403).json({ message: '비밀번호가 틀립니다.' });
+      }
 
       target.title = String(title).substring(0, 100);
       target.content = String(content).substring(0, 2000);
+      if (author !== undefined) target.author = String(author || '익명').substring(0, 20);
       target.updatedAt = new Date().toISOString();
       parsed[foundIdx] = target;
 
-      await kv.del('thisone_inquiries');
-      for (const item of parsed) {
-        await kv.rpush('thisone_inquiries', JSON.stringify(item));
+      await writeInquiryList(parsed);
+      return res.status(200).json({ status: 'success' });
+    }
+
+    // 4. 문의 삭제 (DELETE)
+    if (req.method === 'DELETE') {
+      const { id, password } = req.body || {};
+      if (!id || !password) return res.status(400).json({ message: '필수 정보 누락' });
+
+      const parsed = await readInquiryList();
+      const { foundIdx, target } = findInquiry(parsed, id);
+
+      if (foundIdx === -1) return res.status(404).json({ message: '글을 찾을 수 없습니다.' });
+
+      if (!await canManageInquiry(target, password)) {
+        return res.status(403).json({ message: '비밀번호가 틀립니다.' });
       }
+
+      parsed.splice(foundIdx, 1);
+      await writeInquiryList(parsed);
       return res.status(200).json({ status: 'success' });
     }
 

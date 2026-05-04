@@ -441,7 +441,7 @@ async function fetchInquiries() {
               <div class="inq-badge">Q</div>
               <div class="inq-info">
                 <div class="inq-title">${esc(inq.title)}</div>
-                <div class="inq-meta">${inq.author} • ${new Date(inq.createdAt).toLocaleDateString()}</div>
+                <div class="inq-meta">${esc(inq.author || '익명')} • ${new Date(inq.createdAt).toLocaleDateString()}</div>
               </div>
             </div>
             <div class="inq-arrow">▼</div>
@@ -473,10 +473,12 @@ function prepareEdit(id) {
 
   window._editModeId = id;
   const titleEl = document.getElementById('inqTitle');
+  const authorEl = document.getElementById('inqAuthor');
   const contentEl = document.getElementById('inqContent');
   const passwordEl = document.getElementById('inqPassword');
 
   if (titleEl) titleEl.value = item.title;
+  if (authorEl) authorEl.value = item.author || '익명';
   if (contentEl) contentEl.value = item.content;
   if (passwordEl) passwordEl.value = pw;
   
@@ -496,6 +498,7 @@ async function submitInquiry() {
   }
 
   const title = document.getElementById('inqTitle')?.value.trim();
+  const author = document.getElementById('inqAuthor')?.value.trim() || '익명';
   const password = document.getElementById('inqPassword')?.value.trim();
   const content = document.getElementById('inqContent')?.value.trim();
 
@@ -511,6 +514,11 @@ async function submitInquiry() {
     return;
   }
 
+  if (author.length > 20) {
+    alert('닉네임은 20자 이하로 입력해주세요.');
+    return;
+  }
+
   const btn = document.getElementById('inqSubmitBtn');
   if (btn) {
     btn.disabled = true;
@@ -522,7 +530,7 @@ async function submitInquiry() {
     const isEdit = !!window._editModeId;
     const url = '/api/inquiry';
     const method = isEdit ? 'PUT' : 'POST';
-    const body = { title, password, content };
+    const body = { title, author, password, content };
     if (isEdit) body.id = window._editModeId;
 
     const res = await fetch(url, {
@@ -539,6 +547,7 @@ async function submitInquiry() {
       alert(isEdit ? '문의가 수정되었습니다.' : '문의가 성공적으로 등록되었습니다.');
       lastSubmitTime = Date.now(); 
       if (document.getElementById('inqTitle')) document.getElementById('inqTitle').value = '';
+      if (document.getElementById('inqAuthor')) document.getElementById('inqAuthor').value = '';
       if (document.getElementById('inqPassword')) document.getElementById('inqPassword').value = '';
       if (document.getElementById('inqContent')) document.getElementById('inqContent').value = '';
       hideInquiryForm();

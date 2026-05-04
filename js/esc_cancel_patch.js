@@ -114,6 +114,20 @@
   global.ThisOneCancelSearch = cancelSearch;
 })(window);
 
+(function applyInquiryTextAlignPatch() {
+  if (document.getElementById('thisoneInquiryTextAlignPatch')) return;
+  const style = document.createElement('style');
+  style.id = 'thisoneInquiryTextAlignPatch';
+  style.textContent = `
+    #inquiryModal .inq-body {
+      text-align: left !important;
+      white-space: pre-line;
+      word-break: keep-all;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
 (function applyInquiryManagerPatch(global) {
   if (global.__thisOneInquiryManagerPatchApplied) return;
   global.__thisOneInquiryManagerPatchApplied = true;

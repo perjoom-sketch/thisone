@@ -98,7 +98,16 @@ export default async function handler(req, res) {
 
     // 3. 문의 수정 / 관리자 비밀번호 재설정 (PUT)
     if (req.method === 'PUT') {
-      const { id, title, content, password, newPassword } = req.body || {};
+      const { mode, id, title, content, password, newPassword } = req.body || {};
+
+      if (mode === 'manager_check') {
+        if (!password) return res.status(400).json({ message: '관리자 키를 입력해주세요.' });
+        if (!isManagerKey(password)) {
+          return res.status(403).json({ message: '관리자 키가 일치하지 않습니다.' });
+        }
+        return res.status(200).json({ status: 'success', mode: 'manager_check' });
+      }
+
       if (!id || !password) return res.status(400).json({ message: '필수 정보 누락' });
 
       const parsed = await readInquiryList();

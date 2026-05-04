@@ -1,5 +1,32 @@
 import { kv } from '@vercel/kv';
 
+function canManageInquiry(target, inputValue) {
+  const managerKey = String(process.env.INQUIRY_MANAGER_KEY || '').trim();
+  const inputKey = String(inputValue || '').trim();
+  const isWriter = String(target?.password || '') === inputKey;
+  const isManager = !!managerKey && inputKey === managerKey;
+  return isWriter || isManager;
+}
+
+async function loadInquiries() {
+  const inquiries = await kv.lrange('thisone_inquiries', 0, 99);
+  let foundIdx = -1;
+  let target = null;
+  const parsed = (inquiries || []).map((inq, i) => {
+    const p = typeof inq === 'string' ? JSON.parse(inq) : inq;
+    return { ...p, _listIndex: i };
+  });
+  return { parsed, foundIdx, target };
+}
+
+async function saveInquiries(items) {
+  await kv.del('thisone_inquiries');
+  for (const item of items) {
+    const { _listIndex, ...cleanItem } = item;
+    await kv.rpush('thisone_inquiries', JSON.stringify(cleanItem));
+  }
+}
+
 export default async function handler(req, res) {
   // Upstash 연동 시 변수명이 다를 수 있어 자동 매핑 시도
   if (!process.env.KV_REST_API_URL && process.env.UPSTASH_REDIS_REST_URL) {
@@ -66,12 +93,7 @@ export default async function handler(req, res) {
 
       if (foundIdx === -1) return res.status(404).json({ message: '글을 찾을 수 없습니다.' });
 
-      const managerKey = String(process.env.INQUIRY_MANAGER_KEY || '').trim();
-      const inputKey = String(password || '').trim();
-      const isWriter = String(target.password || '') === inputKey;
-      const isManager = !!managerKey && inputKey === managerKey;
-
-      if (!isWriter && !isManager) {
+      if (!canManageInquiry(target, password)) {
         return res.status(403).json({ message: '비밀번호가 틀립니다.' });
       }
 
@@ -79,6 +101,35 @@ export default async function handler(req, res) {
       target.content = String(content).substring(0, 2000);
       target.updatedAt = new Date().toISOString();
       parsed[foundIdx] = target;
+
+      await kv.del('thisone_inquiries');
+      for (const item of parsed) {
+        await kv.rpush('thisone_inquiries', JSON.stringify(item));
+      }
+      return res.status(200).json({ status: 'success' });
+    }
+
+    // 4. 문의 삭제 (DELETE)
+    if (req.method === 'DELETE') {
+      const { id, password } = req.body || {};
+      if (!id || !password) return res.status(400).json({ message: '필수 정보 누락' });
+
+      const inquiries = await kv.lrange('thisone_inquiries', 0, 99);
+      let foundIdx = -1;
+      let target = null;
+      const parsed = inquiries.map((inq, i) => {
+        const p = typeof inq === 'string' ? JSON.parse(inq) : inq;
+        if (p.id == id) { foundIdx = i; target = p; }
+        return p;
+      });
+
+      if (foundIdx === -1) return res.status(404).json({ message: '글을 찾을 수 없습니다.' });
+
+      if (!canManageInquiry(target, password)) {
+        return res.status(403).json({ message: '비밀번호가 틀립니다.' });
+      }
+
+      parsed.splice(foundIdx, 1);
 
       await kv.del('thisone_inquiries');
       for (const item of parsed) {

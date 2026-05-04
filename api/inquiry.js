@@ -65,7 +65,15 @@ export default async function handler(req, res) {
       });
 
       if (foundIdx === -1) return res.status(404).json({ message: '글을 찾을 수 없습니다.' });
-      if (target.password !== password) return res.status(403).json({ message: '비밀번호가 틀립니다.' });
+
+      const managerKey = String(process.env.INQUIRY_MANAGER_KEY || '').trim();
+      const inputKey = String(password || '').trim();
+      const isWriter = String(target.password || '') === inputKey;
+      const isManager = !!managerKey && inputKey === managerKey;
+
+      if (!isWriter && !isManager) {
+        return res.status(403).json({ message: '비밀번호가 틀립니다.' });
+      }
 
       target.title = String(title).substring(0, 100);
       target.content = String(content).substring(0, 2000);

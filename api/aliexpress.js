@@ -14,7 +14,7 @@ function generateSign(params, appSecret) {
   );
   keys.sort(); // ASCII 기준 정렬 (localeCompare 아님!)
 
-  let baseString = '';
+  let baseString = '/sync';
   keys.forEach((key) => { baseString += key + String(params[key]); });
 
   return crypto.createHmac('sha256', appSecret)

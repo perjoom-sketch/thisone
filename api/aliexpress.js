@@ -1,33 +1,34 @@
 const crypto = require('crypto');
 
 function generateSign(params, appSecret) {
-  // AliExpress TOP 서명: sign만 제외하고 sign_method 포함
+  const excludeKeys = new Set(['sign', 'sign_method']);
   const sortedKeys = Object.keys(params)
-    .filter(k => k !== 'sign')
+    .filter(k => !excludeKeys.has(k))
     .sort();
 
-  let str = appSecret;
+  let str = '';
   for (const key of sortedKeys) {
     str += key + params[key];
   }
-  str += appSecret;
 
-  return crypto.createHash('md5').update(str, 'utf8').digest('hex').toUpperCase();
+  // SHA256 HMAC (MD5 아님!)
+  return crypto.createHmac('sha256', appSecret)
+    .update(str, 'utf8')
+    .digest('hex')
+    .toUpperCase();
 }
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
 
-  const q = String(req.query.q || req.query.query || '').trim();
+  const q = req.query.q;
   if (!q) return res.status(400).json({ error: '검색어를 입력하세요.' });
 
-  const appKey = String(process.env.ALIEXPRESS_APP_KEY || '').trim();
-  const appSecret = String(process.env.ALIEXPRESS_APP_SECRET || '').trim();
-  const trackingId = String(process.env.ALIEXPRESS_TRACKING_ID || 'thisone').trim();
+  const appKey = process.env.ALIEXPRESS_APP_KEY;
+  const appSecret = process.env.ALIEXPRESS_APP_SECRET;
+  const trackingId = process.env.ALIEXPRESS_TRACKING_ID || 'thisone';
 
   if (!appKey || !appSecret) {
     return res.status(500).json({ error: 'AliExpress API 키가 설정되지 않았습니다.' });
@@ -37,11 +38,10 @@ module.exports = async function handler(req, res) {
     const now = new Date();
     const timestamp = now.toISOString().replace('T', ' ').substring(0, 19);
 
-    const params = {
+    const signParams = {
       method: 'aliexpress.affiliate.product.query',
       app_key: appKey,
       timestamp,
-      sign_method: 'md5',
       format: 'json',
       v: '2.0',
       keywords: q,
@@ -53,20 +53,20 @@ module.exports = async function handler(req, res) {
       tracking_id: trackingId,
     };
 
-    params.sign = generateSign(params, appSecret);
+    const sign = generateSign(signParams, appSecret);
+
+    const params = {
+      ...signParams,
+      sign_method: 'sha256',
+      sign,
+    };
 
     const queryString = Object.keys(params)
       .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
       .join('&');
 
     const apiUrl = `https://api-sg.aliexpress.com/sync?${queryString}`;
-    console.log('[AliExpress] request:', {
-      q,
-      appKey,
-      hasSecret: !!appSecret,
-      trackingId,
-      signedKeys: Object.keys(params).filter(k => k !== 'sign').sort(),
-    });
+    console.log('[AliExpress] URL:', apiUrl);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000);

@@ -1,6 +1,8 @@
 import { kv } from '@vercel/kv';
 
-function getManagerKey() {
+const MANAGER_KV_KEY = 'thisone_inquiry_manager_key';
+
+function getEnvManagerKey() {
   return String(process.env.INQUIRY_MANAGER_KEY || '').trim();
 }
 
@@ -8,18 +10,30 @@ function normalizeKey(value) {
   return String(value || '').trim();
 }
 
+async function getStoredManagerKey() {
+  const value = await kv.get(MANAGER_KV_KEY);
+  return normalizeKey(value);
+}
+
+async function getManagerKeys() {
+  const envKey = getEnvManagerKey();
+  const storedKey = await getStoredManagerKey();
+  return [envKey, storedKey].filter(Boolean);
+}
+
+async function isManagerKey(inputValue) {
+  const inputKey = normalizeKey(inputValue);
+  if (!inputKey) return false;
+  const keys = await getManagerKeys();
+  return keys.includes(inputKey);
+}
+
 function isWriterKey(target, inputValue) {
   return String(target?.password || '') === normalizeKey(inputValue);
 }
 
-function isManagerKey(inputValue) {
-  const managerKey = getManagerKey();
-  const inputKey = normalizeKey(inputValue);
-  return !!managerKey && inputKey === managerKey;
-}
-
-function canManageInquiry(target, inputValue) {
-  return isWriterKey(target, inputValue) || isManagerKey(inputValue);
+async function canManageInquiry(target, inputValue) {
+  return isWriterKey(target, inputValue) || await isManagerKey(inputValue);
 }
 
 async function readInquiryList() {
@@ -96,15 +110,30 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3. 문의 수정 / 관리자 비밀번호 재설정 (PUT)
+    // 3. 문의 수정 / 관리자 비밀번호 설정·검증·글 비밀번호 재설정 (PUT)
     if (req.method === 'PUT') {
       const { mode, id, title, content, password, author, newPassword } = req.body || {};
 
+      if (mode === 'manager_setup') {
+        const nextKey = normalizeKey(newPassword || password);
+        if (nextKey.length < 4) return res.status(400).json({ message: '관리자 비밀번호는 4자리 이상 입력해주세요.' });
+
+        const storedKey = await getStoredManagerKey();
+        const envKey = getEnvManagerKey();
+        if (storedKey || envKey) {
+          return res.status(409).json({ message: '관리자 비밀번호가 이미 설정되어 있습니다.' });
+        }
+
+        await kv.set(MANAGER_KV_KEY, nextKey);
+        return res.status(200).json({ status: 'success', mode: 'manager_setup' });
+      }
+
       if (mode === 'manager_check') {
         if (!password) return res.status(400).json({ message: '관리자 키를 입력해주세요.' });
-        if (!isManagerKey(password)) {
-          const hint = getManagerKey() ? '관리자 키가 일치하지 않습니다.' : '서버에 INQUIRY_MANAGER_KEY가 설정되어 있지 않습니다.';
-          return res.status(403).json({ message: hint });
+        if (!await isManagerKey(password)) {
+          const hasKey = (await getManagerKeys()).length > 0;
+          const hint = hasKey ? '관리자 키가 일치하지 않습니다.' : '관리자 비밀번호가 아직 설정되어 있지 않습니다.';
+          return res.status(403).json({ message: hint, needsSetup: !hasKey });
         }
         return res.status(200).json({ status: 'success', mode: 'manager_check' });
       }
@@ -117,11 +146,12 @@ export default async function handler(req, res) {
       if (foundIdx === -1) return res.status(404).json({ message: '글을 찾을 수 없습니다.' });
 
       // 글 비밀번호 재설정은 작성자 비밀번호와 완전히 분리한다.
-      // 오직 관리자키(INQUIRY_MANAGER_KEY)로만 허용한다.
+      // 오직 관리자키로만 허용한다.
       if (newPassword !== undefined) {
-        if (!isManagerKey(password)) {
-          const hint = getManagerKey() ? '관리자 권한이 필요합니다.' : '서버에 INQUIRY_MANAGER_KEY가 설정되어 있지 않습니다.';
-          return res.status(403).json({ message: hint });
+        if (!await isManagerKey(password)) {
+          const hasKey = (await getManagerKeys()).length > 0;
+          const hint = hasKey ? '관리자 권한이 필요합니다.' : '관리자 비밀번호가 아직 설정되어 있지 않습니다.';
+          return res.status(403).json({ message: hint, needsSetup: !hasKey });
         }
         const nextPassword = normalizeKey(newPassword);
         if (nextPassword.length < 4) {
@@ -134,7 +164,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ status: 'success', mode: 'password_reset' });
       }
 
-      if (!canManageInquiry(target, password)) {
+      if (!await canManageInquiry(target, password)) {
         return res.status(403).json({ message: '비밀번호가 틀립니다.' });
       }
 
@@ -158,7 +188,7 @@ export default async function handler(req, res) {
 
       if (foundIdx === -1) return res.status(404).json({ message: '글을 찾을 수 없습니다.' });
 
-      if (!canManageInquiry(target, password)) {
+      if (!await canManageInquiry(target, password)) {
         return res.status(403).json({ message: '비밀번호가 틀립니다.' });
       }
 

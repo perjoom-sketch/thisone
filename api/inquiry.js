@@ -22,8 +22,28 @@ function canManageInquiry(target, inputValue) {
   return isWriterKey(target, inputValue) || isManagerKey(inputValue);
 }
 
-function isOpenDeleteEnabled() {
-  return String(process.env.INQUIRY_OPEN_DELETE || '').toLowerCase() === 'true';
+async function readInquiryList() {
+  const inquiries = await kv.lrange('thisone_inquiries', 0, 99);
+  return (inquiries || []).map((inq) => (typeof inq === 'string' ? JSON.parse(inq) : inq));
+}
+
+async function writeInquiryList(items) {
+  await kv.del('thisone_inquiries');
+  for (const item of items) {
+    await kv.rpush('thisone_inquiries', JSON.stringify(item));
+  }
+}
+
+function findInquiry(parsed, id) {
+  let foundIdx = -1;
+  let target = null;
+  parsed.forEach((item, i) => {
+    if (item.id == id) {
+      foundIdx = i;
+      target = item;
+    }
+  });
+  return { foundIdx, target };
 }
 
 export default async function handler(req, res) {
@@ -81,14 +101,8 @@ export default async function handler(req, res) {
       const { id, title, content, password, newPassword } = req.body || {};
       if (!id || !password) return res.status(400).json({ message: '필수 정보 누락' });
 
-      const inquiries = await kv.lrange('thisone_inquiries', 0, 99);
-      let foundIdx = -1;
-      let target = null;
-      const parsed = inquiries.map((inq, i) => {
-        const p = typeof inq === 'string' ? JSON.parse(inq) : inq;
-        if (p.id == id) { foundIdx = i; target = p; }
-        return p;
-      });
+      const parsed = await readInquiryList();
+      const { foundIdx, target } = findInquiry(parsed, id);
 
       if (foundIdx === -1) return res.status(404).json({ message: '글을 찾을 수 없습니다.' });
 
@@ -107,11 +121,7 @@ export default async function handler(req, res) {
         target.password = nextPassword;
         target.updatedAt = new Date().toISOString();
         parsed[foundIdx] = target;
-
-        await kv.del('thisone_inquiries');
-        for (const item of parsed) {
-          await kv.rpush('thisone_inquiries', JSON.stringify(item));
-        }
+        await writeInquiryList(parsed);
         return res.status(200).json({ status: 'success', mode: 'password_reset' });
       }
 
@@ -120,39 +130,26 @@ export default async function handler(req, res) {
       target.updatedAt = new Date().toISOString();
       parsed[foundIdx] = target;
 
-      await kv.del('thisone_inquiries');
-      for (const item of parsed) {
-        await kv.rpush('thisone_inquiries', JSON.stringify(item));
-      }
+      await writeInquiryList(parsed);
       return res.status(200).json({ status: 'success' });
     }
 
     // 4. 문의 삭제 (DELETE)
     if (req.method === 'DELETE') {
       const { id, password } = req.body || {};
-      if (!id) return res.status(400).json({ message: '필수 정보 누락' });
+      if (!id || !password) return res.status(400).json({ message: '필수 정보 누락' });
 
-      const inquiries = await kv.lrange('thisone_inquiries', 0, 99);
-      let foundIdx = -1;
-      let target = null;
-      const parsed = inquiries.map((inq, i) => {
-        const p = typeof inq === 'string' ? JSON.parse(inq) : inq;
-        if (p.id == id) { foundIdx = i; target = p; }
-        return p;
-      });
+      const parsed = await readInquiryList();
+      const { foundIdx, target } = findInquiry(parsed, id);
 
       if (foundIdx === -1) return res.status(404).json({ message: '글을 찾을 수 없습니다.' });
 
-      if (!isOpenDeleteEnabled() && !canManageInquiry(target, password)) {
+      if (!canManageInquiry(target, password)) {
         return res.status(403).json({ message: '비밀번호가 틀립니다.' });
       }
 
       parsed.splice(foundIdx, 1);
-
-      await kv.del('thisone_inquiries');
-      for (const item of parsed) {
-        await kv.rpush('thisone_inquiries', JSON.stringify(item));
-      }
+      await writeInquiryList(parsed);
       return res.status(200).json({ status: 'success' });
     }
 

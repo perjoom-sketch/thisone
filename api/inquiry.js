@@ -22,12 +22,6 @@ function canManageInquiry(target, inputValue) {
   return isWriterKey(target, inputValue) || isManagerKey(inputValue);
 }
 
-function isLegacyWelcomeInquiry(target) {
-  const title = String(target?.title || '');
-  const author = String(target?.author || '');
-  return title.includes('지능형 가격비교 에이전트') && author === '익명';
-}
-
 async function readInquiryList() {
   const inquiries = await kv.lrange('thisone_inquiries', 0, 99);
   return (inquiries || []).map((inq) => (typeof inq === 'string' ? JSON.parse(inq) : inq));
@@ -156,18 +150,15 @@ export default async function handler(req, res) {
     // 4. 문의 삭제 (DELETE)
     if (req.method === 'DELETE') {
       const { id, password } = req.body || {};
-      if (!id) return res.status(400).json({ message: '필수 정보 누락' });
+      if (!id || !password) return res.status(400).json({ message: '필수 정보 누락' });
 
       const parsed = await readInquiryList();
       const { foundIdx, target } = findInquiry(parsed, id);
 
       if (foundIdx === -1) return res.status(404).json({ message: '글을 찾을 수 없습니다.' });
 
-      if (!isLegacyWelcomeInquiry(target)) {
-        if (!password) return res.status(400).json({ message: '비밀번호가 필요합니다.' });
-        if (!canManageInquiry(target, password)) {
-          return res.status(403).json({ message: '비밀번호가 틀립니다.' });
-        }
+      if (!canManageInquiry(target, password)) {
+        return res.status(403).json({ message: '비밀번호가 틀립니다.' });
       }
 
       parsed.splice(foundIdx, 1);

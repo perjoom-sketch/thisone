@@ -160,7 +160,22 @@
     });
     const result = await res.json().catch(() => ({}));
     if (!res.ok || result.status !== 'success') {
-      throw new Error(result.message || '관리자 키가 일치하지 않습니다.');
+      const err = new Error(result.message || '관리자 키가 일치하지 않습니다.');
+      err.needsSetup = !!result.needsSetup;
+      throw err;
+    }
+    return true;
+  }
+
+  async function setupManagerKey(key) {
+    const res = await fetch('/api/inquiry', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'manager_setup', newPassword: key })
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok || result.status !== 'success') {
+      throw new Error(result.message || '관리자 비밀번호 설정에 실패했습니다.');
     }
     return true;
   }
@@ -191,8 +206,11 @@
         render();
         return;
       }
-      const key = prompt('관리자 키를 입력해주세요.');
+
+      const key = prompt('관리자 비밀번호를 입력해주세요.\n아직 설정 전이면 이 값으로 새 관리자 비밀번호를 설정합니다.');
       if (!key) return;
+      if (String(key).trim().length < 4) return alert('관리자 비밀번호는 4자리 이상 입력해주세요.');
+
       btn.disabled = true;
       btn.textContent = '확인 중...';
       try {
@@ -201,9 +219,27 @@
         render();
         alert('관리자 모드가 켜졌습니다.');
       } catch (err) {
-        clearManagerKey();
-        render();
-        alert('관리자 모드 실패: ' + (err.message || '관리자 키를 확인해주세요.'));
+        if (err.needsSetup || String(err.message || '').includes('아직 설정')) {
+          if (!confirm('관리자 비밀번호가 아직 없습니다.\n방금 입력한 값으로 새 관리자 비밀번호를 설정할까요?')) {
+            clearManagerKey();
+            render();
+            return;
+          }
+          try {
+            await setupManagerKey(key);
+            setManagerKey(key);
+            render();
+            alert('관리자 비밀번호가 설정되었고 관리자 모드가 켜졌습니다.');
+          } catch (setupErr) {
+            clearManagerKey();
+            render();
+            alert('관리자 비밀번호 설정 실패: ' + (setupErr.message || '다시 시도해주세요.'));
+          }
+        } else {
+          clearManagerKey();
+          render();
+          alert('관리자 모드 실패: ' + (err.message || '관리자 키를 확인해주세요.'));
+        }
       } finally {
         btn.disabled = false;
       }

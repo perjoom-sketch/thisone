@@ -114,9 +114,86 @@
   global.ThisOneCancelSearch = cancelSearch;
 })(window);
 
-(function applyInquiryDeletePatch(global) {
-  if (global.__thisOneInquiryDeletePatchApplied) return;
-  global.__thisOneInquiryDeletePatchApplied = true;
+(function applyInquiryAdminPatch(global) {
+  if (global.__thisOneInquiryAdminPatchApplied) return;
+  global.__thisOneInquiryAdminPatchApplied = true;
+
+  const STORAGE_KEY = 'thisone_inquiry_manager_key';
+
+  function getManagerKey() {
+    try { return String(sessionStorage.getItem(STORAGE_KEY) || '').trim(); } catch (e) { return ''; }
+  }
+
+  function setManagerKey(value) {
+    try { sessionStorage.setItem(STORAGE_KEY, String(value || '').trim()); } catch (e) {}
+  }
+
+  function clearManagerKey() {
+    try { sessionStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  }
+
+  function isManagerMode() {
+    return !!getManagerKey();
+  }
+
+  function getWriteKeyPrompt() {
+    const managerKey = getManagerKey();
+    if (managerKey) return managerKey;
+    return prompt('글 작성 시 설정한 비밀번호를 입력해주세요.');
+  }
+
+  function updateManagerButtonState() {
+    const btn = document.getElementById('thisoneInquiryManagerBtn');
+    if (!btn) return;
+    if (isManagerMode()) {
+      btn.textContent = '관리자 ON';
+      btn.style.background = '#0f172a';
+      btn.style.color = '#fff';
+      btn.style.borderColor = '#0f172a';
+    } else {
+      btn.textContent = '관리자';
+      btn.style.background = '#f8fafc';
+      btn.style.color = '#334155';
+      btn.style.borderColor = '#cbd5e1';
+    }
+  }
+
+  function addManagerButton() {
+    const modal = document.getElementById('inquiryModal');
+    if (!modal) return;
+    const header = modal.querySelector('.modal-header');
+    if (!header || header.querySelector('#thisoneInquiryManagerBtn')) return;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'thisoneInquiryManagerBtn';
+    btn.className = 'btn btn-secondary';
+    btn.style.cssText = 'margin-left:auto; margin-right:10px; padding:7px 12px; font-size:12px; border:1px solid #cbd5e1; border-radius:999px; cursor:pointer;';
+    btn.onclick = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (isManagerMode()) {
+        if (confirm('관리자 모드를 해제할까요?')) {
+          clearManagerKey();
+          updateManagerButtonState();
+          alert('관리자 모드가 해제되었습니다.');
+        }
+        return;
+      }
+
+      const key = prompt('관리자 키를 입력해주세요.');
+      if (!key) return;
+      setManagerKey(key);
+      updateManagerButtonState();
+      alert('관리자 모드가 켜졌습니다. 이 브라우저 탭에서 수정/삭제 시 관리자 키를 자동 사용합니다.');
+    };
+
+    const closeBtn = header.querySelector('.close-btn');
+    if (closeBtn) header.insertBefore(btn, closeBtn);
+    else header.appendChild(btn);
+    updateManagerButtonState();
+  }
 
   function addDeleteButtons() {
     const inquiries = Array.isArray(global._inquiryCache) ? global._inquiryCache : [];
@@ -145,6 +222,30 @@
     });
   }
 
+  function prepareEditWithManagerKey(id) {
+    const item = (global._inquiryCache || []).find((inq) => String(inq.id) === String(id));
+    if (!item) {
+      alert('데이터를 찾을 수 없습니다.');
+      return;
+    }
+
+    const key = getWriteKeyPrompt();
+    if (!key) return;
+
+    global._editModeId = id;
+    const titleEl = document.getElementById('inqTitle');
+    const contentEl = document.getElementById('inqContent');
+    const passwordEl = document.getElementById('inqPassword');
+
+    if (titleEl) titleEl.value = item.title || '';
+    if (contentEl) contentEl.value = item.content || '';
+    if (passwordEl) passwordEl.value = key;
+
+    global.ThisOneUI?.showInquiryForm?.();
+    const submitBtn = document.getElementById('inqSubmitBtn');
+    if (submitBtn) submitBtn.textContent = '수정 완료';
+  }
+
   async function deleteInquiry(id) {
     const item = (global._inquiryCache || []).find((inq) => String(inq.id) === String(id));
     if (!item) {
@@ -152,7 +253,7 @@
       return;
     }
 
-    const key = prompt('글 작성 시 설정한 비밀번호를 입력해주세요.');
+    const key = getWriteKeyPrompt();
     if (!key) return;
 
     const title = String(item.title || '이 글');
@@ -182,33 +283,51 @@
     }
   }
 
-  function installDeletePatch() {
+  function installInquiryAdminPatch() {
     if (!global.ThisOneUI) return;
-    global.ThisOneUI.deleteInquiry = deleteInquiry;
 
-    if (typeof global.ThisOneUI.openInquiryBoard === 'function' && !global.ThisOneUI.openInquiryBoard.__deletePatchApplied) {
+    global.ThisOneUI.deleteInquiry = deleteInquiry;
+    global.ThisOneUI.prepareEdit = prepareEditWithManagerKey;
+    global.ThisOneUI.enableInquiryManager = function enableInquiryManager() {
+      const key = prompt('관리자 키를 입력해주세요.');
+      if (!key) return;
+      setManagerKey(key);
+      updateManagerButtonState();
+      alert('관리자 모드가 켜졌습니다.');
+    };
+    global.ThisOneUI.disableInquiryManager = function disableInquiryManager() {
+      clearManagerKey();
+      updateManagerButtonState();
+    };
+
+    if (typeof global.ThisOneUI.openInquiryBoard === 'function' && !global.ThisOneUI.openInquiryBoard.__adminPatchApplied) {
       const originalOpenInquiryBoard = global.ThisOneUI.openInquiryBoard;
       const patchedOpenInquiryBoard = function patchedOpenInquiryBoard() {
         const result = originalOpenInquiryBoard.apply(this, arguments);
+        setTimeout(addManagerButton, 0);
         setTimeout(addDeleteButtons, 0);
+        setTimeout(addManagerButton, 300);
         setTimeout(addDeleteButtons, 300);
         setTimeout(addDeleteButtons, 900);
         return result;
       };
-      patchedOpenInquiryBoard.__deletePatchApplied = true;
+      patchedOpenInquiryBoard.__adminPatchApplied = true;
       global.ThisOneUI.openInquiryBoard = patchedOpenInquiryBoard;
     }
 
+    addManagerButton();
     addDeleteButtons();
+    updateManagerButtonState();
   }
 
   const observer = new MutationObserver(() => {
-    installDeletePatch();
+    installInquiryAdminPatch();
+    addManagerButton();
     addDeleteButtons();
   });
 
   function start() {
-    installDeletePatch();
+    installInquiryAdminPatch();
     if (document.body) observer.observe(document.body, { childList: true, subtree: true });
   }
 

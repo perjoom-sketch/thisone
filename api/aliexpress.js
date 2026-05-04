@@ -1,19 +1,17 @@
 const crypto = require('crypto');
 
 function generateSign(params, appSecret) {
-  const excludeKeys = new Set(['sign', 'sign_method']);
-  const sortedKeys = Object.keys(params)
-    .filter(k => !excludeKeys.has(k))
-    .sort();
+  // null/undefined 제외, localeCompare 정렬 (SDK 방식 그대로)
+  let basestring = '';
+  Object.entries(params)
+    .filter(([_, v]) => v != null)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .forEach(([key, value]) => {
+      basestring += key + String(value);
+    });
 
-  let str = '';
-  for (const key of sortedKeys) {
-    str += key + params[key];
-  }
-
-  // SHA256 HMAC (MD5 아님!)
   return crypto.createHmac('sha256', appSecret)
-    .update(str, 'utf8')
+    .update(basestring)
     .digest('hex')
     .toUpperCase();
 }
@@ -51,21 +49,22 @@ module.exports = async function handler(req, res) {
       target_currency: 'KRW',
       target_language: 'KO',
       tracking_id: trackingId,
-    };
-
-    const sign = generateSign(signParams, appSecret);
-
-    const params = {
-      ...signParams,
       sign_method: 'sha256',
-      sign,
     };
 
-    const queryString = Object.keys(params)
-      .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
-      .join('&');
+    signParams.sign = generateSign(signParams, appSecret);
 
-    const apiUrl = `https://api-sg.aliexpress.com/sync?${queryString}`;
+    // SDK assemble 방식 그대로: localeCompare 정렬, encodeURIComponent
+    const queryParams = Object.entries(signParams)
+      .filter(([_, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value], index) => {
+        const prefix = index === 0 ? '?' : '&';
+        return `${prefix}${key}=${encodeURIComponent(String(value))}`;
+      })
+      .join('');
+
+    const apiUrl = `https://api-sg.aliexpress.com/sync${queryParams}`;
     console.log('[AliExpress] URL:', apiUrl);
 
     const controller = new AbortController();

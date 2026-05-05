@@ -8,21 +8,9 @@
     try{return String(currentQuery||'').trim();}catch(e){return '';}
   }
 
-  function showMobileVisionDebug(title, rows){
-    try{
-      let box=document.getElementById('thisoneVisionDebugBox');
-      if(!box){
-        box=document.createElement('div');
-        box.id='thisoneVisionDebugBox';
-        box.style.cssText='position:fixed;left:10px;right:10px;bottom:10px;z-index:99999;background:rgba(17,24,39,.94);color:#fff;border-radius:12px;padding:12px 14px;font-size:12px;line-height:1.45;box-shadow:0 8px 24px rgba(0,0,0,.25);white-space:pre-wrap;';
-        document.body.appendChild(box);
-      }
-      const body=(rows||[]).map(r=>Array.isArray(r)?r.join(': '):String(r)).join('\n');
-      box.textContent=title+'\n'+body;
-      clearTimeout(box.__timer);
-      box.__timer=setTimeout(()=>{try{box.remove();}catch(e){}},12000);
-    }catch(e){}
-  }
+function showMobileVisionDebug(title, rows){
+  return;
+}
 
   function clearQueryInputs(){
     ['msgInput','msgInput2'].forEach(id=>{

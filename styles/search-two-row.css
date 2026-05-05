@@ -1,0 +1,55 @@
+/* Two-row search input layout.
+   Row 1: full-width text input.
+   Row 2: plus menu on the left, voice/search buttons on the right. */
+
+.search-box .input-row {
+  position: relative;
+  display: grid !important;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 8px 14px;
+  align-items: center;
+}
+
+.search-box .msg-input,
+.search-box #msgInput {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 4px;
+}
+
+.search-box .search-tools-left {
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: start;
+}
+
+.search-box .footer-right {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-end;
+  justify-self: end;
+  gap: 18px;
+  flex-shrink: 0;
+}
+
+.search-box .footer-right .icon-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  padding: 8px;
+}
+
+.search-box .search-plus-btn {
+  width: 44px;
+  height: 44px;
+}
+
+.search-box .search-tools-menu {
+  top: 52px;
+  bottom: auto;
+}

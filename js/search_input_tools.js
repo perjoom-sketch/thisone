@@ -49,11 +49,14 @@
   }
 
   function openImageInput(event) {
-    event.preventDefault();
-    event.stopPropagation();
-    closeMenu();
-    document.getElementById('fileInput')?.click();
-  }
+  event.preventDefault();
+  event.stopPropagation();
+  closeMenu();
+  const input = document.getElementById('fileInput');
+  if (!input) return;
+  input.value = '';
+  input.click();
+}
 
   function openSearchSettings(event) {
     event.preventDefault();

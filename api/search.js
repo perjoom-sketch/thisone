@@ -64,9 +64,17 @@ function mapNaverItems(rawItems){
     link:item.link||'',
     image:item.image||'',
     lprice:Number(item.lprice||0),
+    hprice:Number(item.hprice||0),
     priceText:item.lprice?`${Number(item.lprice).toLocaleString('ko-KR')}원`:'',
     store:stripTags(item.mallName||''),
     productId:item.productId||'',
+    productType:item.productType||'',
+    brand:stripTags(item.brand||''),
+    maker:stripTags(item.maker||''),
+    category1:stripTags(item.category1||''),
+    category2:stripTags(item.category2||''),
+    category3:stripTags(item.category3||''),
+    category4:stripTags(item.category4||''),
     delivery:stripTags(item.delivery||item.deliveryInfo||'')
   }));
 }

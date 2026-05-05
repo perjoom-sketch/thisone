@@ -1,13 +1,69 @@
 // api/search.js
+const crypto = require('crypto');
 const { applyUniversalAIFilter } = require('../lib/universalFilter');
 const { improveQuery } = require('../lib/queryNormalizer');
 const { shouldUseCanonicalIntent, canonicalizeQuery } = require('../lib/canonicalIntent');
+
+let kv = null;
+try {
+  ({ kv } = require('@vercel/kv'));
+} catch (e) {
+  kv = null;
+}
+
+const SEARCH_CACHE_TTL_SECONDS = 3600;
 
 function stripTags(text){return String(text||'').replace(/<[^>]*>/g,'').trim();}
 function isTrue(value){return value === true || String(value).toLowerCase() === 'true';}
 function parsePositiveNumber(value){
   const n = Number(value || 0);
   return Number.isFinite(n) && n > 0 ? n : 0;
+}
+function stableStringify(value){
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+function sha1Short(value){
+  return crypto.createHash('sha1').update(String(value)).digest('hex').slice(0, 8);
+}
+function normalizeSearchCacheQuery(query){
+  return String(improveQuery(query) || '').trim().toLowerCase();
+}
+function buildExpertSettingsHashSource(query, { start, display, sort }){
+  return {
+    excludeRental: isTrue(query.excludeRental),
+    excludeUsed: isTrue(query.excludeUsed),
+    excludeOverseas: isTrue(query.excludeOverseas),
+    excludeAgent: isTrue(query.excludeAgent),
+    freeShipping: isTrue(query.freeShipping),
+    minPrice: parsePositiveNumber(query.minPrice),
+    maxPrice: parsePositiveNumber(query.maxPrice),
+    start,
+    display,
+    sort: String(sort || 'sim')
+  };
+}
+function buildSearchCacheKey(normalizedQuery, settingsHashSource){
+  return `search:v1:${encodeURIComponent(normalizedQuery)}:${sha1Short(stableStringify(settingsHashSource))}`;
+}
+async function readSearchCache(key){
+  if (!kv || !key) return null;
+  try {
+    return await kv.get(key);
+  } catch (e) {
+    return null;
+  }
+}
+async function writeSearchCache(key, value){
+  if (!kv || !key || !value) return;
+  try {
+    await kv.set(key, value, { ex: SEARCH_CACHE_TTL_SECONDS });
+  } catch (e) {
+    // fail-open: 캐시 저장 실패는 검색 응답에 영향 주지 않는다.
+  }
 }
 function isRentalLikeItem(item){
   const text = `${item?.name || ''} ${item?.store || ''} ${item?.priceText || ''} ${item?.delivery || ''}`;
@@ -190,6 +246,27 @@ async function handler(req,res){
       return res.status(400).json({error:'검색어가 없습니다.'});
     }
 
+    const start=parseInt(req.query.start||'1');
+    const display=parseInt(req.query.display||'30');
+    const sort=req.query.sort||'sim';
+    const normalizedCacheQuery = normalizeSearchCacheQuery(q);
+    const settingsHashSource = buildExpertSettingsHashSource(req.query, { start, display, sort });
+    const searchCacheKey = buildSearchCacheKey(normalizedCacheQuery, settingsHashSource);
+    const cachedResponse = await readSearchCache(searchCacheKey);
+
+    if (cachedResponse && typeof cachedResponse === 'object') {
+      return res.status(200).json({
+        ...cachedResponse,
+        _cached: true,
+        searchCacheDebug: {
+          ...(cachedResponse.searchCacheDebug || {}),
+          key: searchCacheKey,
+          hit: true,
+          ttlSeconds: SEARCH_CACHE_TTL_SECONDS
+        }
+      });
+    }
+
     let improvedQ = improveQuery(q);
     let canonicalDebug = null;
 
@@ -204,10 +281,6 @@ async function handler(req,res){
         // fail-open: ignore and keep improveQuery result
       }
     }
-
-    const start=parseInt(req.query.start||'1');
-    const display=parseInt(req.query.display||'30');
-    const sort=req.query.sort||'sim';
 
     let data;
     try {
@@ -232,8 +305,8 @@ async function handler(req,res){
     const universalResult=await applyUniversalAIFilter({query:q,items});
     const universalItems=Array.isArray(universalResult.filteredItems)?universalResult.filteredItems:items;
     const finalItems=restoreRentalItemsIfAllowed(universalItems, itemsBeforeUniversalFilter, settingsResult.settings);
-    
-    return res.status(200).json({
+
+    const responseBody = {
       query:q,
       improvedQuery:improvedQ,
       canonicalDebug,
@@ -250,8 +323,19 @@ async function handler(req,res){
         rentalEnrichment,
         note: 'freeShipping only applies when upstream delivery text is available'
       },
-      universalFilterDebug:universalResult.debug||null
-    });
+      universalFilterDebug:universalResult.debug||null,
+      _cached: false,
+      searchCacheDebug: {
+        key: searchCacheKey,
+        normalizedQuery: normalizedCacheQuery,
+        settingsHash: sha1Short(stableStringify(settingsHashSource)),
+        hit: false,
+        ttlSeconds: SEARCH_CACHE_TTL_SECONDS
+      }
+    };
+
+    await writeSearchCache(searchCacheKey, responseBody);
+    return res.status(200).json(responseBody);
 
   }catch(err){
     return res.status(500).json({error:err.message||'Server error'});

@@ -40,47 +40,75 @@ function extractModelName(name) {
 
   return '';
 }
-
 function renderProductFacts(card) {
-  const facts = [];
   const name = compactText(card.name);
-  const category = [card.category1, card.category2, card.category3, card.category4]
-    .map(compactText)
-    .filter(Boolean)
-    .slice(0, 3)
-    .join(' › ');
+  const facts = [];
 
-  const brand = compactText(card.brand);
-  const maker = compactText(card.maker);
-  const model = compactText(card.modelKey || card.model || extractModelName(name));
-  const productType = compactText(card.productType);
-  const productId = compactText(card.productId);
+  const unique = (values) => {
+    const seen = new Set();
+    return values
+      .map(compactText)
+      .filter(Boolean)
+      .filter((value) => {
+        const key = value.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  };
 
-  const text = `${name} ${card.price || ''} ${card.priceText || ''}`;
-  const rental = card.isRental === true || /렌탈|대여|구독|약정|월납/i.test(text);
-  const monthlyMatch = text.match(/월\s*([0-9,]+)\s*원/i);
-  const monthsMatch = text.match(/(\d+)\s*개월/i);
+  const extractSpecs = (text) => {
+    const matches = String(text || '').match(/\d+(?:\.\d+)?\s*(?:cm|mm|인치|inch|kg|g|ml|l|리터|w|kw|평|㎡|m²)/gi) || [];
+    return unique(matches).slice(0, 3);
+  };
 
-  if (brand) facts.push(`브랜드 ${brand}`);
-  if (maker && maker !== brand) facts.push(`제조사 ${maker}`);
-  if (model) facts.push(`모델 ${model}`);
-  if (category) facts.push(category);
-  if (rental) facts.push('렌탈');
-  if (monthlyMatch) facts.push(`월 ${monthlyMatch[1]}원`);
-  if (monthsMatch) facts.push(`${monthsMatch[1]}개월`);
-  if (productType) facts.push(`상품타입 ${productType}`);
-  if (!facts.length && productId) facts.push(`상품ID ${productId}`);
+  const extractQuantities = (text) => {
+    const matches = String(text || '').match(/\d+\s*(?:롤|개|매|팩|장|캡슐|봉|세트|박스|개입|입|p|P)/g) || [];
+    return unique(matches).slice(0, 2);
+  };
 
-  if (!facts.length) return '';
+  const extractPurpose = (text) => {
+    const purposes = [
+      '업소용', '산업용', '공업용', '현장용', '축사용', '가정용', '사무실용',
+      '캠핑용', '차량용', '휴대용', '영업용', '매장용', '주방용', '욕실용'
+    ];
+    return unique(purposes.filter((word) => String(text || '').includes(word))).slice(0, 3).join('/');
+  };
+
+  const extractForm = (text) => {
+    const forms = [
+      '스탠드', '벽걸이', '좌식', '앉은뱅이', '무선', '유선', '접이식',
+      '올인원', '일체형', '휴대형', '핸디형', '로봇형', '써큘레이터'
+    ];
+    return unique(forms.filter((word) => String(text || '').includes(word))).slice(0, 3).join('/');
+  };
+
+  const brand = compactText(card.brand || card.maker);
+  const modelCode = extractModelName(`${card.modelCode || ''} ${card.model || ''} ${card.modelKey || ''} ${name}`);
+  const specs = extractSpecs(name);
+  const quantities = extractQuantities(name);
+  const purpose = extractPurpose(`${name} ${card.store || ''} ${card.delivery || ''}`);
+  const form = extractForm(`${name} ${card.store || ''} ${card.delivery || ''}`);
+
+  if (brand) facts.push(brand);
+  if (modelCode) facts.push(modelCode);
+  facts.push(...specs);
+  facts.push(...quantities);
+  if (purpose) facts.push(purpose);
+  if (form) facts.push(form);
+
+  const cleanFacts = unique(facts).slice(0, 6);
+  if (!cleanFacts.length) return '';
 
   return `
     <div class="row-product-facts">
       <span class="row-product-facts-label">제품정보</span>
-      <span>${esc(facts.slice(0, 6).join(' · '))}</span>
+      <span>${esc(cleanFacts.join(' · '))}</span>
     </div>
   `;
 }
-  function getBadgeClass(text) {
+  
+function getBadgeClass(text) {
     if (text.includes('가성비')) return 'badge-value';
     if (text.includes('신뢰')) return 'badge-trust';
     if (text.includes('추천')) return 'badge-thisone';

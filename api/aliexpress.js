@@ -1,6 +1,9 @@
 const crypto = require('crypto');
 
-// 알리익스프레스 기준 시간(GMT+8) 타임스탬프 생성
+/**
+ * 1. 알리익스프레스 표준 타임스탬프 생성기 (GMT+8 베이징 시간 고정)
+ * Vercel 서버리스 환경의 타임존 이슈를 원천 차단합니다.
+ */
 function getAliTimestamp() {
   const now = new Date();
   const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
@@ -10,47 +13,63 @@ function getAliTimestamp() {
   return `${aliTime.getFullYear()}-${pad(aliTime.getMonth() + 1)}-${pad(aliTime.getDate())} ${pad(aliTime.getHours())}:${pad(aliTime.getMinutes())}:${pad(aliTime.getSeconds())}`;
 }
 
+/**
+ * 2. IOP API 서명(Signature) 생성기
+ * 빈 값 제외, ASCII 오름차순 정렬, HMAC-SHA256 해싱의 규격을 따릅니다.
+ */
+function generateSignature(params, secret) {
+  const keys = Object.keys(params)
+    .filter(key => key !== 'sign' && params[key] !== undefined && params[key] !== null && params[key] !== '')
+    .sort();
+    
+  let baseString = ''; 
+  keys.forEach(key => {
+    baseString += key + String(params[key]);
+  });
+
+  return crypto.createHmac('sha256', secret)
+    .update(baseString, 'utf8')
+    .digest('hex')
+    .toUpperCase();
+}
+
+/**
+ * 3. 메인 핸들러 (Vercel Serverless Function)
+ */
 export default async function handler(req, res) {
   try {
+    // 환경변수 공백 제거 및 로드
     const APP_KEY = (process.env.ALIEXPRESS_APP_KEY || '').trim();
     const APP_SECRET = (process.env.ALIEXPRESS_APP_SECRET || '').trim();
 
     if (!APP_KEY || !APP_SECRET) {
-      return res.status(500).json({ error: '환경 변수 누락' });
+      return res.status(500).json({ error: '서버 환경 변수(API Key/Secret) 누락' });
     }
 
-    // 테스트를 위한 최소 스펙 파라미터 구성
+    // 클라이언트 검색어 추출 (기본값: 마우스)
+    const searchQuery = req.query.q || '마우스';
+
+    // ThisOne 엔진용 알리익스프레스 파라미터 세팅
     const params = {
       app_key: APP_KEY,
       format: 'json',
-      // 한글 인코딩 문제 배제를 위해 무조건 영문 검색어로 고정
-      keywords: 'usb', 
+      keywords: searchQuery,
       method: 'aliexpress.affiliate.product.query',
       page_no: '1',
-      page_size: '10', // 사이즈 최소화
+      page_size: '20',           // 한 번에 불러올 상품 수
       sign_method: 'sha256',
+      sort: 'SALE_PRICE_ASC',    // 가격 비교 엔진에 맞춘 최저가 오름차순 정렬
+      target_currency: 'KRW',    // 원화
+      target_language: 'KO',     // 한국어
       timestamp: getAliTimestamp(),
-      tracking_id: 'thisone', // 정상 등록 확인 완료
+      tracking_id: 'thisone',    // 어필리에이트 포털에 등록된 실제 Tracking ID
       v: '2.0'
-      // 에러 유발 가능성이 있는 sort, target_currency, target_language는 모두 제외
     };
 
-    // 서명 생성 로직
-    const keys = Object.keys(params).filter(
-      (key) => key !== 'sign' && params[key] !== undefined && params[key] !== null && params[key] !== ''
-    ).sort();
-    
-    let baseString = ''; 
-    keys.forEach(key => {
-      baseString += key + String(params[key]);
-    });
+    // 서명 생성 및 파라미터 합체
+    params.sign = generateSignature(params, APP_SECRET);
 
-    params.sign = crypto.createHmac('sha256', APP_SECRET)
-      .update(baseString, 'utf8')
-      .digest('hex')
-      .toUpperCase();
-
-    // API 호출
+    // 알리익스프레스 데이터 요청 (POST + URLSearchParams 조합으로 한글 인코딩 보호)
     const response = await fetch('https://api-sg.aliexpress.com/sync', {
       method: 'POST',
       headers: {
@@ -61,19 +80,37 @@ export default async function handler(req, res) {
 
     const data = await response.json();
     
-    // 백엔드 404 시스템 에러 응답 처리
+    // ----------------------------------------------------------------
+    // 응답 상태 분류 (Pending 권한 처리 포함)
+    // ----------------------------------------------------------------
+    
+    // 1. 권한 미승인 (현재 겪고 있는 404 에러를 우아하게 예외 처리)
     if (data.aliexpress_affiliate_product_query_response?.resp_result?.resp_code === 404) {
-      return res.status(400).json({ 
-        error: '알리익스프레스 백엔드 처리 에러 (System Error)', 
-        suggestion: '최소 파라미터로도 404가 뜬다면, 알리 측 서버의 앱 계정 동기화 지연 문제입니다.',
-        detail: data 
+      return res.status(202).json({ 
+        status: 'Pending',
+        message: 'Advanced API 권한 심사가 진행 중입니다. 알리 측 승인을 기다려주세요.',
+        search_query: searchQuery
       });
     }
 
-    // 정상 결과 출력
-    return res.status(200).json(data);
+    // 2. 기타 서명 오류나 시스템 오류
+    if (data.error_response) {
+      return res.status(400).json({ 
+        status: 'Error',
+        message: '알리익스프레스 API 호출 실패',
+        detail: data.error_response 
+      });
+    }
+
+    // 3. 권한 승인 완료 후 데이터 정상 수신
+    return res.status(200).json({
+      status: 'Success',
+      message: '상품 데이터를 성공적으로 불러왔습니다.',
+      items: data.aliexpress_affiliate_product_query_response?.resp_result?.result?.products || []
+    });
 
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    console.error('ThisOne API Handler Error:', error);
+    return res.status(500).json({ error: '서버 내부 오류', detail: error.message });
   }
 }

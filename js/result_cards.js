@@ -129,6 +129,7 @@ function renderProductFacts(card) {
 
           ${renderProductFacts(card)}
           ${card.reason ? `<div class="row-reason-text">${esc(card.reason)}</div>` : ''}
+        </div>
 
         <div class="row-price-area">
           <div class="${priceClass}">${esc(card.price || '가격 정보 없음')}</div>

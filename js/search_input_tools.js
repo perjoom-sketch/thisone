@@ -9,8 +9,8 @@
     style.textContent = `
       .search-box .input-row{position:relative}
       .search-tools-left{position:relative;display:flex;align-items:center;flex:0 0 auto}
-      .search-plus-btn{width:36px;height:36px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-size:24px;line-height:1;font-weight:400;color:#334155;background:#f8fafc;border:1px solid #e2e8f0;cursor:pointer}
-      .search-plus-btn:hover,.search-plus-btn.is-open{background:#eef2ff;color:#2563eb;border-color:#c7d2fe}
+      .search-plus-btn{width:36px;height:36px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-size:24px;line-height:1;font-weight:400;color:#334155;background:transparent;border:1px solid #e2e8f0;cursor:pointer}
+      .search-plus-btn:hover,.search-plus-btn.is-open{background:transparent;color:#2563eb;border-color:#c7d2fe}
       .search-tools-menu{position:absolute;left:0;top:44px;min-width:168px;padding:6px;border-radius:16px;background:#fff;border:1px solid #e2e8f0;box-shadow:0 16px 40px rgba(15,23,42,.14);z-index:30;display:none}
       .search-tools-menu.show{display:block}
       .search-tool-item{width:100%;border:0;background:transparent;padding:10px 12px;border-radius:12px;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#334155;cursor:pointer;text-align:left}

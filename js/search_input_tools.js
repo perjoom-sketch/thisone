@@ -55,23 +55,6 @@
     document.getElementById('fileInput')?.click();
   }
 
-  function openCameraLikeInput(event) {
-    event.preventDefault();
-    event.stopPropagation();
-    closeMenu();
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.capture = 'environment';
-    input.style.display = 'none';
-    input.onchange = (changeEvent) => {
-      try { global.handleImg?.(changeEvent); } catch (e) {}
-      setTimeout(() => input.remove(), 0);
-    };
-    document.body.appendChild(input);
-    input.click();
-  }
-
   function openSearchSettings(event) {
     event.preventDefault();
     event.stopPropagation();
@@ -83,7 +66,6 @@
     if (isMobileLike()) {
       return `
         <button class="search-tool-item" type="button" role="menuitem" data-tool="image"><span aria-hidden="true">🖼️</span><span>사진보관함</span></button>
-        <button class="search-tool-item" type="button" role="menuitem" data-tool="camera"><span aria-hidden="true">📷</span><span>사진찍기</span></button>
         <div class="search-tool-separator" aria-hidden="true"></div>
         <button class="search-tool-item" type="button" role="menuitem" data-tool="settings"><span aria-hidden="true">⚙️</span><span>검색설정</span></button>
       `;
@@ -108,7 +90,6 @@
     `;
     wrap.querySelector('.search-plus-btn')?.addEventListener('click', toggleMenu);
     wrap.querySelector('[data-tool="image"]')?.addEventListener('click', openImageInput);
-    wrap.querySelector('[data-tool="camera"]')?.addEventListener('click', openCameraLikeInput);
     wrap.querySelector('[data-tool="settings"]')?.addEventListener('click', openSearchSettings);
     return wrap;
   }

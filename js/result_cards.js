@@ -57,6 +57,16 @@ function renderProductFacts(card) {
       });
   };
 
+  const extractKnownBrand = (text) => {
+    const brands = [
+      'LG', 'LG전자', '삼성', '삼성전자', '신일', '제스파', '코지마', '바디프랜드',
+      '다이슨', '로보락', '에코백스', '샤오미', '쿠쿠', '쿠첸', '위닉스', '브라운',
+      '필립스', '소니', '애플', '레노버', 'HP', '한성', '루메나', '듀플렉스'
+    ];
+    const source = String(text || '');
+    return brands.find((brand) => source.toLowerCase().includes(String(brand).toLowerCase())) || '';
+  };
+
   const extractSpecs = (text) => {
     const matches = String(text || '').match(/\d+(?:\.\d+)?\s*(?:cm|mm|인치|inch|kg|g|ml|l|리터|w|kw|평|㎡|m²)/gi) || [];
     return unique(matches).slice(0, 3);
@@ -65,6 +75,23 @@ function renderProductFacts(card) {
   const extractQuantities = (text) => {
     const matches = String(text || '').match(/\d+\s*(?:롤|개|매|팩|장|캡슐|봉|세트|박스|개입|입|p|P)/g) || [];
     return unique(matches).slice(0, 2);
+  };
+
+  const isDisplayLike = (text) => /tv|티비|텔레비전|모니터|디스플레이|uhd|oled|qled|스마트tv|스마트 tv/i.test(String(text || ''));
+
+  const extractDisplayFeatures = (text) => {
+    if (!isDisplayLike(text)) return [];
+    const source = String(text || '');
+    const found = [];
+    if (/4k\s*uhd/i.test(source)) found.push('4K UHD');
+    else if (/uhd/i.test(source)) found.push('UHD');
+    if (/oled/i.test(source)) found.push('OLED');
+    else if (/qled/i.test(source)) found.push('QLED');
+    else if (/(^|[^A-Z])led([^A-Z]|$)/i.test(source)) found.push('LED');
+    if (/스마트\s*tv|smart\s*tv/i.test(source)) found.push('스마트TV');
+    if (/\bai\b|인공지능/i.test(source)) found.push('AI');
+    if (/1\s*등급|1등급/i.test(source)) found.push('1등급');
+    return unique(found).slice(0, 3);
   };
 
   const extractPurpose = (text) => {
@@ -83,17 +110,21 @@ function renderProductFacts(card) {
     return unique(forms.filter((word) => String(text || '').includes(word))).slice(0, 3).join('/');
   };
 
-  const brand = compactText(card.brand || card.maker);
-  const modelCode = extractModelName(`${card.modelCode || ''} ${card.model || ''} ${card.modelKey || ''} ${name}`);
+  const combinedText = `${name} ${card.store || ''} ${card.delivery || ''}`;
+  const brand = compactText(card.brand || card.maker || extractKnownBrand(combinedText));
+  const rawModelCode = extractModelName(`${card.modelCode || ''} ${card.model || ''} ${card.modelKey || ''} ${name}`);
+  const modelCode = /^\d+(?:CM|MM|KG|G|ML|L|W|KW)$/i.test(rawModelCode) ? '' : rawModelCode;
   const specs = extractSpecs(name);
   const quantities = extractQuantities(name);
-  const purpose = extractPurpose(`${name} ${card.store || ''} ${card.delivery || ''}`);
-  const form = extractForm(`${name} ${card.store || ''} ${card.delivery || ''}`);
+  const displayFeatures = extractDisplayFeatures(combinedText);
+  const purpose = extractPurpose(combinedText);
+  const form = extractForm(combinedText);
 
   if (brand) facts.push(brand);
   if (modelCode) facts.push(modelCode);
   facts.push(...specs);
   facts.push(...quantities);
+  facts.push(...displayFeatures);
   if (purpose) facts.push(purpose);
   if (form) facts.push(form);
 

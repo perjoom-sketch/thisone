@@ -32,7 +32,7 @@
       excludeAgent: false,
       excludeUsed: false,
       excludeRental: false,
-      patienceTime: '45'
+      patienceTime: '20'
     };
 
     window.ThisOneExpertSettings = { ...DEFAULT_EXPERT_SETTINGS };
@@ -57,7 +57,7 @@
       setChecked('excludeAgent', settings.excludeAgent);
       setChecked('excludeUsed', settings.excludeUsed);
       setChecked('excludeRental', settings.excludeRental);
-      setValue('patienceTime', settings.patienceTime || '45');
+      setValue('patienceTime', settings.patienceTime || '20');
 
       const range = root.querySelector('#patienceTime');
       const val = root.querySelector('#patienceVal');
@@ -77,7 +77,7 @@
         excludeAgent: getChecked('excludeAgent'),
         excludeUsed: getChecked('excludeUsed'),
         excludeRental: getChecked('excludeRental'),
-        patienceTime: getValue('patienceTime') || '45'
+        patienceTime: getValue('patienceTime') || '20'
       };
     }
 
@@ -274,8 +274,8 @@
       </div>
       <div class="filter-footer">
         <div class="slider-group">
-          <div class="slider-header"><label class="sub-label">검색시간</label><span id="patienceVal" class="point-text">45초</span></div>
-          <input type="range" id="patienceTime" class="form-range" min="5" max="60" value="45" oninput="document.getElementById('patienceVal').textContent=this.value+'초'">
+          <div class="slider-header"><label class="sub-label">검색시간</label><span id="patienceVal" class="point-text">20초</span></div>
+          <input type="range" id="patienceTime" class="form-range" min="5" max="60" value="20" oninput="document.getElementById('patienceVal').textContent=this.value+'초'">
           <div class="slider-labels"><span>빠른검색</span><span>심층검색</span></div>
         </div>
         <button type="button" class="btn btn-dark" onclick="saveExpertSettings()">적용</button>

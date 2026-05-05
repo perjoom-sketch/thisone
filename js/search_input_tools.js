@@ -46,7 +46,7 @@
         position: absolute;
         left: 0;
         bottom: 44px;
-        min-width: 150px;
+        min-width: 168px;
         padding: 6px;
         border-radius: 16px;
         background: #fff;
@@ -79,6 +79,12 @@
       .search-tool-item:hover {
         background: #f8fafc;
         color: #2563eb;
+      }
+
+      .search-tool-separator {
+        height: 1px;
+        margin: 5px 6px;
+        background: #e2e8f0;
       }
 
       .footer-right .img-btn {
@@ -117,6 +123,49 @@
     if (fileInput) fileInput.click();
   }
 
+  function openCameraInput(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    closeMenu();
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    input.style.display = 'none';
+    input.onchange = (changeEvent) => {
+      try { global.handleImg?.(changeEvent); } catch (e) {}
+      setTimeout(() => input.remove(), 0);
+    };
+    document.body.appendChild(input);
+    input.click();
+  }
+
+  function openQrSearch(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    closeMenu();
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    input.style.display = 'none';
+    input.onchange = (changeEvent) => {
+      try { global.handleImg?.(changeEvent); } catch (e) {}
+      setTimeout(() => input.remove(), 0);
+    };
+    document.body.appendChild(input);
+    input.click();
+  }
+
+  function openSearchSettings(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    closeMenu();
+    try { global.toggleFilterModal?.(); } catch (e) {}
+  }
+
   function createToolsLeft() {
     const wrap = document.createElement('div');
     wrap.id = 'thisoneSearchToolsLeft';
@@ -125,13 +174,29 @@
       <button class="search-plus-btn" type="button" aria-label="입력 방식 선택" title="입력 방식 선택">+</button>
       <div class="search-tools-menu" role="menu">
         <button class="search-tool-item" type="button" role="menuitem" data-tool="image">
+          <span aria-hidden="true">🖼️</span>
+          <span>이미지 업로드</span>
+        </button>
+        <button class="search-tool-item" type="button" role="menuitem" data-tool="camera">
           <span aria-hidden="true">📷</span>
-          <span>이미지로 검색</span>
+          <span>사진찍기</span>
+        </button>
+        <button class="search-tool-item" type="button" role="menuitem" data-tool="qr">
+          <span aria-hidden="true">▣</span>
+          <span>QR 검색</span>
+        </button>
+        <div class="search-tool-separator" aria-hidden="true"></div>
+        <button class="search-tool-item" type="button" role="menuitem" data-tool="settings">
+          <span aria-hidden="true">⚙️</span>
+          <span>검색설정</span>
         </button>
       </div>
     `;
     wrap.querySelector('.search-plus-btn')?.addEventListener('click', toggleMenu);
     wrap.querySelector('[data-tool="image"]')?.addEventListener('click', openImageInput);
+    wrap.querySelector('[data-tool="camera"]')?.addEventListener('click', openCameraInput);
+    wrap.querySelector('[data-tool="qr"]')?.addEventListener('click', openQrSearch);
+    wrap.querySelector('[data-tool="settings"]')?.addEventListener('click', openSearchSettings);
     return wrap;
   }
 

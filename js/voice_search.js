@@ -67,6 +67,38 @@
     return document.getElementById('micBtn');
   }
 
+  function createMicButton() {
+    const btn = document.createElement('button');
+    btn.className = 'icon-btn mic-btn';
+    btn.id = 'micBtn';
+    btn.type = 'button';
+    btn.title = '음성 입력';
+    btn.setAttribute('aria-label', '음성 입력');
+    btn.innerHTML = `
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+        <line x1="12" y1="19" x2="12" y2="23"></line>
+        <line x1="8" y1="23" x2="16" y2="23"></line>
+      </svg>
+    `;
+    return btn;
+  }
+
+  function ensureMicButton() {
+    const existing = getMicBtn();
+    if (existing) return existing;
+
+    const footerRight = document.querySelector('.search-box .footer-right');
+    if (!footerRight) return null;
+
+    const sendBtn = footerRight.querySelector('#sendBtn');
+    const btn = createMicButton();
+    if (sendBtn) footerRight.insertBefore(btn, sendBtn);
+    else footerRight.appendChild(btn);
+    return btn;
+  }
+
   function setRecordingState(active) {
     isRecording = !!active;
     const btn = getMicBtn();
@@ -170,7 +202,7 @@
 
   function install() {
     ensureStyle();
-    const btn = getMicBtn();
+    const btn = ensureMicButton();
     if (!btn || btn.dataset.voiceBound === 'true') return;
     btn.dataset.voiceBound = 'true';
     btn.addEventListener('click', (event) => {

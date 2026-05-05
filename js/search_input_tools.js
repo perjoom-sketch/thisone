@@ -141,7 +141,7 @@
     input.click();
   }
 
-  function openQrSearch(event) {
+  function openBarcodeSearch(event) {
     event.preventDefault();
     event.stopPropagation();
     closeMenu();
@@ -181,9 +181,9 @@
           <span aria-hidden="true">📷</span>
           <span>사진찍기</span>
         </button>
-        <button class="search-tool-item" type="button" role="menuitem" data-tool="qr">
-          <span aria-hidden="true">▣</span>
-          <span>QR 검색</span>
+        <button class="search-tool-item" type="button" role="menuitem" data-tool="barcode">
+          <span aria-hidden="true">▥</span>
+          <span>바코드 검색</span>
         </button>
         <div class="search-tool-separator" aria-hidden="true"></div>
         <button class="search-tool-item" type="button" role="menuitem" data-tool="settings">
@@ -195,7 +195,7 @@
     wrap.querySelector('.search-plus-btn')?.addEventListener('click', toggleMenu);
     wrap.querySelector('[data-tool="image"]')?.addEventListener('click', openImageInput);
     wrap.querySelector('[data-tool="camera"]')?.addEventListener('click', openCameraInput);
-    wrap.querySelector('[data-tool="qr"]')?.addEventListener('click', openQrSearch);
+    wrap.querySelector('[data-tool="barcode"]')?.addEventListener('click', openBarcodeSearch);
     wrap.querySelector('[data-tool="settings"]')?.addEventListener('click', openSearchSettings);
     return wrap;
   }

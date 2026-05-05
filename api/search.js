@@ -1,4 +1,5 @@
 // api/search.js
+const { kv } = require('@vercel/kv');
 const { applyUniversalAIFilter } = require('../lib/universalFilter');
 const { improveQuery } = require('../lib/queryNormalizer');
 const { shouldUseCanonicalIntent, canonicalizeQuery } = require('../lib/canonicalIntent');
@@ -224,7 +225,72 @@ async function handler(req,res){
     const universalResult=await applyUniversalAIFilter({query:q,items});
     const universalItems=Array.isArray(universalResult.filteredItems)?universalResult.filteredItems:items;
     const finalItems=restoreRentalItemsIfAllowed(universalItems, itemsBeforeUniversalFilter, settingsResult.settings);
+    try {
+      if (!process.env.KV_REST_API_URL && process.env.UPSTASH_REDIS_REST_URL) {
+        process.env.KV_REST_API_URL = process.env.UPSTASH_REDIS_REST_URL;
+        process.env.KV_REST_API_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+      }
 
+      const normalizedTelemetryQuery = String(improvedQ || q || '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+
+      if (normalizedTelemetryQuery) {
+        const today = new Date().toISOString().split('T')[0];
+        const now = new Date().toISOString();
+        const queryKey = `thisone:query:${normalizedTelemetryQuery}`;
+        const dayKey = `thisone:query-log:${today}`;
+        const finalReturnedCount = Array.isArray(finalItems) ? finalItems.length : 0;
+        const rejectedCount = (settingsResult.rejected || []).length + (universalResult.rejectedItems || []).length;
+        const suspectFlags = [];
+
+        if ((data.total || 0) === 0) suspectFlags.push('zero_total');
+        if (finalReturnedCount === 0) suspectFlags.push('zero_returned');
+        if (rejectedCount > 0) suspectFlags.push('rejected_items_present');
+        if (universalResult?.debug?.mode) suspectFlags.push(`filter_${universalResult.debug.mode}`);
+
+        await kv.hincrby(queryKey, 'count', 1);
+        await kv.hset(queryKey, {
+          query: q,
+          improvedQuery: improvedQ,
+          normalizedQuery: normalizedTelemetryQuery,
+          lastSearchedAt: now,
+          lastSource: 'search',
+          lastTotal: data.total || 0,
+          lastReturnedItems: finalReturnedCount,
+          lastRejectedCount: rejectedCount
+        });
+
+        await kv.zincrby('thisone:queries:popular', 1, normalizedTelemetryQuery);
+        await kv.lpush(dayKey, {
+          query: q,
+          improvedQuery: improvedQ,
+          normalizedQuery: normalizedTelemetryQuery,
+          total: data.total || 0,
+          returnedItems: finalReturnedCount,
+          rejectedCount,
+          suspectFlags,
+          source: 'search',
+          createdAt: now
+        });
+        await kv.ltrim(dayKey, 0, 999);
+
+        if ((data.total || 0) === 0 || finalReturnedCount === 0) {
+          await kv.zincrby('thisone:queries:zero-result', 1, normalizedTelemetryQuery);
+        }
+
+        if (suspectFlags.length > 0 || rejectedCount > 0) {
+          await kv.zincrby('thisone:queries:suspect', 1, normalizedTelemetryQuery);
+          for (const flag of suspectFlags) {
+            await kv.zincrby(`thisone:queries:suspect:${flag}`, 1, normalizedTelemetryQuery);
+          }
+        }
+      }
+    } catch (telemetryErr) {
+      console.warn('[search telemetry] failed:', telemetryErr?.message || telemetryErr);
+    }
+    
     return res.status(200).json({
       query:q,
       improvedQuery:improvedQ,

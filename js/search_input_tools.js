@@ -9,7 +9,7 @@
     style.textContent = `
       .search-box .input-row{position:relative}
       .search-tools-left{position:relative;display:flex;align-items:center;flex:0 0 auto}
-      .search-plus-btn{width:36px;height:36px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-size:32px;line-height:1;font-weight:400;color:#334155;background:transparent;border:0;cursor:pointer}
+      .search-plus-btn{width:45px;height:45px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-size:41px;line-height:1;font-weight:400;color:#334155;background:transparent;border:0;cursor:pointer}
       .search-plus-btn:hover,.search-plus-btn.is-open{background:transparent;color:#2563eb;border-color:transparent}
       .search-tools-menu{position:absolute;left:0;top:44px;min-width:168px;padding:6px;border-radius:16px;background:#fff;border:1px solid #e2e8f0;box-shadow:0 16px 40px rgba(15,23,42,.14);z-index:30;display:none}
       .search-tools-menu.show{display:block}

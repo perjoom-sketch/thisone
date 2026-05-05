@@ -452,11 +452,10 @@ async function sendMsg(forceMode) {
         );
       };
 
-      // 8초 지연 타이머: 메시지 변경 및 버튼 노출
+          // 8초 지연 타이머: 추천 분석 진행 상태만 갱신
       delayTimer = setTimeout(() => {
         if (!isFallbackShown && loading) {
-          typingEl?.updateThought?.('분석이 지연되고 있습니다. 조금만 더 기다려주시거나, 일반 결과를 먼저 확인하실 수 있습니다.');
-          typingEl?.showFallbackButton?.(() => triggerFallback('manual'));
+          typingEl?.updateThought?.('디스원 추천 분석이 계속 진행 중입니다. 일반 검색 결과를 먼저 확인하실 수 있습니다.');
         }
       }, 8000);
 

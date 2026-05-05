@@ -40,7 +40,74 @@ function extractModelName(name) {
 
   return '';
 }
+function renderProductFacts(card) {
+  const name = compactText(card.name);
+  const facts = [];
 
+  const unique = (values) => {
+    const seen = new Set();
+    return values
+      .map(compactText)
+      .filter(Boolean)
+      .filter((value) => {
+        const key = value.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  };
+
+  const extractSpecs = (text) => {
+    const matches = String(text || '').match(/\d+(?:\.\d+)?\s*(?:cm|mm|인치|inch|kg|g|ml|l|리터|w|kw|평|㎡|m²)/gi) || [];
+    return unique(matches).slice(0, 3);
+  };
+
+  const extractQuantities = (text) => {
+    const matches = String(text || '').match(/\d+\s*(?:롤|개|매|팩|장|캡슐|봉|세트|박스|개입|입|p|P)/g) || [];
+    return unique(matches).slice(0, 2);
+  };
+
+  const extractPurpose = (text) => {
+    const purposes = [
+      '업소용', '산업용', '공업용', '현장용', '축사용', '가정용', '사무실용',
+      '캠핑용', '차량용', '휴대용', '영업용', '매장용', '주방용', '욕실용'
+    ];
+    return unique(purposes.filter((word) => String(text || '').includes(word))).slice(0, 3).join('/');
+  };
+
+  const extractForm = (text) => {
+    const forms = [
+      '스탠드', '벽걸이', '좌식', '앉은뱅이', '무선', '유선', '접이식',
+      '올인원', '일체형', '휴대형', '핸디형', '로봇형', '써큘레이터'
+    ];
+    return unique(forms.filter((word) => String(text || '').includes(word))).slice(0, 3).join('/');
+  };
+
+  const brand = compactText(card.brand || card.maker);
+  const modelCode = extractModelName(`${card.modelCode || ''} ${card.model || ''} ${card.modelKey || ''} ${name}`);
+  const specs = extractSpecs(name);
+  const quantities = extractQuantities(name);
+  const purpose = extractPurpose(`${name} ${card.store || ''} ${card.delivery || ''}`);
+  const form = extractForm(`${name} ${card.store || ''} ${card.delivery || ''}`);
+
+  if (brand) facts.push(brand);
+  if (modelCode) facts.push(modelCode);
+  facts.push(...specs);
+  facts.push(...quantities);
+  if (purpose) facts.push(purpose);
+  if (form) facts.push(form);
+
+  const cleanFacts = unique(facts).slice(0, 6);
+  if (!cleanFacts.length) return '';
+
+  return `
+    <div class="row-product-facts">
+      <span class="row-product-facts-label">제품정보</span>
+      <span>${esc(cleanFacts.join(' · '))}</span>
+    </div>
+  `;
+}
+  
 function getBadgeClass(text) {
     if (text.includes('가성비')) return 'badge-value';
     if (text.includes('신뢰')) return 'badge-trust';

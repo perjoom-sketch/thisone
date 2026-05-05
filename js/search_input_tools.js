@@ -80,7 +80,6 @@
       <div class="search-tools-menu" role="menu">
         <button class="search-tool-item" type="button" role="menuitem" data-tool="image"><span aria-hidden="true">🖼️</span><span>이미지 업로드</span></button>
         <button class="search-tool-item" type="button" role="menuitem" data-tool="camera"><span aria-hidden="true">📷</span><span>사진찍기</span></button>
-        <button class="search-tool-item" type="button" role="menuitem" data-tool="barcode"><span aria-hidden="true">▥</span><span>바코드 검색</span></button>
         <div class="search-tool-separator" aria-hidden="true"></div>
         <button class="search-tool-item" type="button" role="menuitem" data-tool="settings"><span aria-hidden="true">⚙️</span><span>검색설정</span></button>
       </div>
@@ -88,7 +87,6 @@
     wrap.querySelector('.search-plus-btn')?.addEventListener('click', toggleMenu);
     wrap.querySelector('[data-tool="image"]')?.addEventListener('click', openImageInput);
     wrap.querySelector('[data-tool="camera"]')?.addEventListener('click', openCameraLikeInput);
-    wrap.querySelector('[data-tool="barcode"]')?.addEventListener('click', openCameraLikeInput);
     wrap.querySelector('[data-tool="settings"]')?.addEventListener('click', openSearchSettings);
     return wrap;
   }

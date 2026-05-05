@@ -18,7 +18,68 @@
   function normalizeBadgeText(text) {
     return text === '배송비 미확인' ? '배송비 상세확인' : text;
   }
+function compactText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
 
+function extractModelName(name) {
+  const text = compactText(name).toUpperCase();
+  if (!text) return '';
+
+  const patterns = [
+    /\b([A-Z]{1,10}-\d{2,}[A-Z0-9-]*)\b/,
+    /\b([A-Z]{1,10}\d{3,}[A-Z0-9-]*)\b/,
+    /\b([A-Z]{2,}\d{2,}[A-Z0-9-]*)\b/,
+    /\b(\d{3,}[A-Z]{1,10})\b/
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) return match[1];
+  }
+
+  return '';
+}
+
+function renderProductFacts(card) {
+  const facts = [];
+  const name = compactText(card.name);
+  const category = [card.category1, card.category2, card.category3, card.category4]
+    .map(compactText)
+    .filter(Boolean)
+    .slice(0, 3)
+    .join(' › ');
+
+  const brand = compactText(card.brand);
+  const maker = compactText(card.maker);
+  const model = compactText(card.modelKey || card.model || extractModelName(name));
+  const productType = compactText(card.productType);
+  const productId = compactText(card.productId);
+
+  const text = `${name} ${card.price || ''} ${card.priceText || ''}`;
+  const rental = card.isRental === true || /렌탈|대여|구독|약정|월납/i.test(text);
+  const monthlyMatch = text.match(/월\s*([0-9,]+)\s*원/i);
+  const monthsMatch = text.match(/(\d+)\s*개월/i);
+
+  if (brand) facts.push(`브랜드 ${brand}`);
+  if (maker && maker !== brand) facts.push(`제조사 ${maker}`);
+  if (model) facts.push(`모델 ${model}`);
+  if (category) facts.push(category);
+  if (rental) facts.push('렌탈');
+  if (monthlyMatch) facts.push(`월 ${monthlyMatch[1]}원`);
+  if (monthsMatch) facts.push(`${monthsMatch[1]}개월`);
+  if (productType) facts.push(`상품타입 ${productType}`);
+  if (!facts.length && productId) facts.push(`상품ID ${productId}`);
+
+  if (!facts.length) return '';
+
+  return `
+    <div class="row-product-facts">
+      <span class="row-product-facts-label">제품정보</span>
+      <span>${esc(facts.slice(0, 6).join(' · '))}</span>
+    </div>
+  `;
+}
   function getBadgeClass(text) {
     if (text.includes('가성비')) return 'badge-value';
     if (text.includes('신뢰')) return 'badge-trust';
@@ -66,8 +127,8 @@
             ${card.review ? `<span class="row-review">${esc(card.review)}</span>` : ''}
           </div>
 
+          ${renderProductFacts(card)}
           ${card.reason ? `<div class="row-reason-text">${esc(card.reason)}</div>` : ''}
-        </div>
 
         <div class="row-price-area">
           <div class="${priceClass}">${esc(card.price || '가격 정보 없음')}</div>

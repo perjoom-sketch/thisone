@@ -136,3 +136,12 @@
   script.defer = true;
   document.head.appendChild(script);
 })();
+
+(function loadVoiceSearchScript() {
+  if (document.getElementById('thisoneVoiceSearchScript')) return;
+  const script = document.createElement('script');
+  script.id = 'thisoneVoiceSearchScript';
+  script.src = 'js/voice_search.js?v=3.4.5';
+  script.defer = true;
+  document.head.appendChild(script);
+})();

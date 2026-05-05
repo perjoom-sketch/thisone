@@ -353,7 +353,24 @@ async function sendMsg(forceMode) {
       //   window.ThisOneUI?.renderRawResults?.(candidates);
       //   return;
       // }
+      // 일반 검색 결과를 먼저 보여줘 체감 로딩 시간을 줄인다.
+      if (!queryImage && candidates && candidates.length > 0) {
+        GeneralSearchState.query = finalSearchQuery;
+        GeneralSearchState.currentPage = 1;
+        GeneralSearchState.total = searchData?.total || 0;
+        GeneralSearchState.resultMode = 'fallback_general';
 
+        SearchDropdown?.setResultsRendering?.(true);
+        window.ThisOneUI?.renderResults?.(
+          candidates,
+          GeneralSearchState.total,
+          GeneralSearchState.currentPage,
+          GeneralSearchState.currentSort,
+          GeneralSearchState.resultMode
+        );
+
+        typingEl?.updateThought?.('일반 검색 결과를 먼저 보여드리고, 디스원 추천을 계속 분석 중입니다...');
+      }
       const prunedCandidates = candidates.map(c => ({
         id: c.id, name: c.name, price: c.price, store: c.store, review: c.review,
         badges: c.badges, bonusScore: c.bonusScore, specPenalty: c.specPenalty,

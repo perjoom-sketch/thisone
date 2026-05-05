@@ -1,7 +1,21 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ThisOne Batch Diagnostics</title><style>
-body{margin:0;background:#f6f7f9;color:#111827;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1200px;margin:auto;padding:28px 16px 60px}h1{font-size:26px;margin:0 0 8px}p,.muted{color:#6b7280}.panel{background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:18px;margin-top:18px;box-shadow:0 10px 28px rgba(15,23,42,.05)}textarea{width:100%;min-height:250px;box-sizing:border-box;border:1px solid #d1d5db;border-radius:14px;padding:14px;font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}button{border:0;border-radius:999px;background:#111827;color:#fff;font-weight:800;padding:11px 17px;cursor:pointer}button.secondary{background:#fff;color:#111827;border:1px solid #d1d5db}button.danger{background:#991b1b}button:disabled{opacity:.5;cursor:wait}.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}.bar{height:9px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:8px}.fill{height:100%;width:0;background:#111827;transition:.25s}.status{display:flex;justify-content:space-between;gap:12px;margin-top:12px;font-size:13px}.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:14px}.stat{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:12px}.stat b{display:block;font-size:22px}.scroll{overflow-x:auto;border:1px solid #e5e7eb;border-radius:16px;background:#fff}table{width:100%;min-width:1120px;border-collapse:collapse;font-size:13px}th,td{padding:9px 8px;border-bottom:1px solid #f1f3f5;text-align:left;vertical-align:middle}th{background:#f9fafb;color:#374151;position:sticky;top:0}.row{cursor:pointer}.row:hover td{background:#fafafa}.detail td{background:#fcfcfd;padding:0}.box{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:12px}.pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:900}.a{background:#dcfce7;color:#166534}.b{background:#f3f4f6;color:#374151}.bad{background:#fee2e2;color:#991b1b}.q{background:#ffedd5;color:#9a3412}.info{background:#eef2ff;color:#3730a3}.cut{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.small{font-size:12px;color:#6b7280}.empty{text-align:center;color:#9ca3af;padding:32px 8px}li{margin:7px 0}.title{font-weight:750;overflow-wrap:anywhere}code{background:#f3f4f6;border-radius:6px;padding:2px 5px}@media(max-width:820px){.stats{grid-template-columns:repeat(2,1fr)}.box{grid-template-columns:1fr}}
-</style></head><body><main><h1>ThisOne 배치 진단 자동화</h1><p>50개 검색어를 <code>/api/search</code>만 사용해 순차 진단한다. 각 검색어 사이에는 1초 딜레이를 둔다.</p><section class="panel"><h2>검색어 입력</h2><textarea id="q"></textarea><div class="actions"><button id="start">진단 시작</button><button id="stop" class="danger" hidden>중지</button><button id="md" class="secondary" disabled>마크다운 복사</button><button id="csv" class="secondary" disabled>CSV 다운로드</button><button id="json" class="secondary" disabled>JSON 다운로드</button><span class="muted">한 줄에 하나씩 입력</span></div><div class="status"><strong id="status">대기 중</strong><span id="count">0/0</span></div><div class="bar"><div id="fill" class="fill"></div></div><p id="msg" class="muted"></p></section><section class="stats"><div class="stat"><b id="sAll">0</b><span class="small">완료</span></div><div class="stat"><b id="sA" style="color:#166534">0</b><span class="small">A 정상</span></div><div class="stat"><b id="sB" style="color:#374151">0</b><span class="small">B 결과 없음</span></div><div class="stat"><b id="sBad" style="color:#991b1b">0</b><span class="small">C~F 문제</span></div><div class="stat"><b id="sQ" style="color:#9a3412">0</b><span class="small">A? 수동 검토</span></div><div class="stat"><b id="sErr" style="color:#991b1b">0</b><span class="small">요청 오류</span></div></section><section class="panel"><h2>진단 결과</h2><div class="scroll"><table><thead><tr><th>검색어</th><th>일반결과수</th><th>일반1위</th><th>AI추천1위</th><th>자동분류</th><th>액세서리비율</th><th>렌탈비율</th><th>가격이상치 여부</th><th>상세보기</th></tr></thead><tbody id="body"><tr><td colspan="9" class="empty">진단 시작을 누르면 결과가 표시된다.</td></tr></tbody></table></div></section></main><script>
-const DEFAULT=`정수기
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ThisOne Batch Diagnostics</title>
+  <style>
+    body{margin:0;background:#f6f7f9;color:#111827;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1200px;margin:auto;padding:28px 16px 60px}h1{font-size:26px;margin:0 0 8px}p,.muted{color:#6b7280}.panel{background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:18px;margin-top:18px;box-shadow:0 10px 28px rgba(15,23,42,.05)}textarea{width:100%;min-height:250px;box-sizing:border-box;border:1px solid #d1d5db;border-radius:14px;padding:14px;font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}button{border:0;border-radius:999px;background:#111827;color:#fff;font-weight:800;padding:11px 17px;cursor:pointer}button.secondary{background:#fff;color:#111827;border:1px solid #d1d5db}button.danger{background:#991b1b}button:disabled{opacity:.5;cursor:wait}.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}.bar{height:9px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:8px}.fill{height:100%;width:0;background:#111827;transition:.25s}.status{display:flex;justify-content:space-between;gap:12px;margin-top:12px;font-size:13px}.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:14px}.stat{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:12px}.stat b{display:block;font-size:22px}.scroll{overflow-x:auto;border:1px solid #e5e7eb;border-radius:16px;background:#fff}table{width:100%;min-width:1120px;border-collapse:collapse;font-size:13px}th,td{padding:9px 8px;border-bottom:1px solid #f1f3f5;text-align:left;vertical-align:middle}th{background:#f9fafb;color:#374151;position:sticky;top:0}.row{cursor:pointer}.row:hover td{background:#fafafa}.detail td{background:#fcfcfd;padding:0}.box{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:12px}.pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:900}.a{background:#dcfce7;color:#166534}.b{background:#f3f4f6;color:#374151}.bad{background:#fee2e2;color:#991b1b}.q{background:#ffedd5;color:#9a3412}.info{background:#eef2ff;color:#3730a3}.cut{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.small{font-size:12px;color:#6b7280}.empty{text-align:center;color:#9ca3af;padding:32px 8px}li{margin:7px 0}.title{font-weight:750;overflow-wrap:anywhere}code{background:#f3f4f6;border-radius:6px;padding:2px 5px}@media(max-width:820px){.stats{grid-template-columns:repeat(2,1fr)}.box{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>ThisOne 배치 진단 자동화</h1>
+    <p>50개 검색어를 <code>/api/search</code>로 일반 결과를 받은 뒤 <code>/api/chat</code>으로 AI 추천 결과까지 받아 순차 진단한다. 각 검색어 사이에는 1초 딜레이를 둔다.</p>
+
+    <section class="panel">
+      <h2>검색어 입력</h2>
+      <textarea id="q">정수기
 공기청정기
 비스포크 AI 콤보
 다이슨 에어랩
@@ -50,18 +64,296 @@ USB-C 허브
 라면 박스
 김치
 홍삼
-영양제`;
-const ACC=['케이스','필름','커버','거치대','충전기','리필','필터','소모품','부품','브러시','패드','노즐','호환','교체용','악세사리','악세서리'],MAN=['정수기','공기청정기','비데','안마의자','음식물처리기'],RENT=/렌탈|대여|구독|약정|월납/,MODEL=/[A-Z]{2,}[\-\s]?\d{2,}/,DELAY=1000,TIMEOUT=45000;
-const $=id=>document.getElementById(id),el={q:$('q'),start:$('start'),stop:$('stop'),md:$('md'),csv:$('csv'),json:$('json'),status:$('status'),count:$('count'),fill:$('fill'),msg:$('msg'),body:$('body'),sAll:$('sAll'),sA:$('sA'),sB:$('sB'),sBad:$('sBad'),sQ:$('sQ'),sErr:$('sErr')};
-el.q.value=DEFAULT;let rows=[],running=false,halt=false;
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function sleep(ms){return new Promise(r=>setTimeout(r,ms))}function price(v){if(typeof v==='number'&&isFinite(v))return v;let n=Number(String(v||'').replace(/[^0-9]/g,''));return isFinite(n)?n:0}function won(v){let n=price(v);return n?n.toLocaleString('ko-KR')+'원':'-'}function title(i){return String(i?.name||i?.title||i?.productName||i?.productTitle||'').replace(/<[^>]*>/g,'').trim()}function store(i){return String(i?.store||i?.mallName||i?.seller||i?.shop||'').replace(/<[^>]*>/g,'').trim()}function iprice(i){return price(i?.lprice||i?.priceNum||i?.totalPriceNum||i?.price||i?.priceText)}function text(i){return `${title(i)} ${store(i)} ${i?.delivery||''} ${i?.priceText||''} ${i?.price||''}`}function list(v){return Array.isArray(v)?v.filter(Boolean):[]}function uniq(a){let s=new Set;return a.filter(i=>{let k=`${title(i)}|${store(i)}|${iprice(i)}`;if(s.has(k))return false;s.add(k);return true})}
-function general(d){return uniq([...list(d?.rawItems),...list(d?.naver?.items),...list(d?.originalItems),...list(d?.items)])}function ai(d){for(const v of [d?.recommendations,d?.recommendedItems,d?.aiRecommendations,d?.aiItems,d?.picks,d?.items]){let x=list(v);if(x.length)return x}return []}function hasAny(t,arr){return arr.some(w=>t.includes(w))}function managed(q){return MAN.some(w=>String(q).includes(w))}function model(i){let m=text(i).toUpperCase().match(MODEL);return m?m[0].replace(/[\s-]/g,''):''}
-function classify(q,d,err){if(err||!d||typeof d!=='object')return{code:'A?',label:'A? 수동검토',why:[err||'응답 파싱 불가'],ar:0,rr:0,ac:0,rc:0,out:false};let g=general(d),total=Number(d.total??d.naver?.total??g.length??0)||0,t5=g.slice(0,5),t10=g.slice(0,10),ac=t5.filter(i=>hasAny(text(i),ACC)).length,rc=t5.filter(i=>RENT.test(text(i))).length,ar=t5.length?ac/t5.length:0,rr=t5.length?rc/t5.length:0,fp=iprice(g[0]),ps=t10.map(iprice).filter(Boolean),avg=ps.length?ps.reduce((a,b)=>a+b,0)/ps.length:0,out=fp>0&&avg>0&&fp<avg*.3,mc={};t5.forEach(i=>{let m=model(i);if(m)mc[m]=(mc[m]||0)+1});let rep=Object.entries(mc).find(x=>x[1]>=3)?.[0]||'',code='A',label='A 정상',why=['자동 문제 룰 미감지'];if(total===0){code='B';label='B 결과 없음';why=['total === 0']}else if(ac>=3){code='C';label='C 액세서리 과다';why=[`상위 5개 중 액세서리 ${ac}개`]}else if(!managed(q)&&rc>=3){code='D';label='D 렌탈 과다';why=[`상위 5개 중 렌탈 ${rc}개`]}else if(out){code='E';label='E 가격 이상치';why=[`1위 ${won(fp)} / 상위10 평균 ${won(Math.round(avg))}`]}else if(rep){code='F';label='F 모델 중복';why=[`모델코드 ${rep} 3개 이상`]}return{code,label,why,ar,rr,ac,rc,out,fp,avg,rep}}
-function pill(c){return c==='A'?'a':c==='B'?'b':c==='A?'?'q':'bad'}function top(i){return title(i)||'-'}function items(arr){return arr.length?`<ol>${arr.slice(0,5).map(i=>`<li><div class="title">${esc(top(i))}</div><div class="small">${esc(won(iprice(i)))} · ${esc(store(i)||'-')}</div></li>`).join('')}</ol>`:'<p class="small">표시할 상품 없음</p>'}
-function render(){if(!rows.length){el.body.innerHTML='<tr><td colspan="9" class="empty">진단 시작을 누르면 결과가 표시된다.</td></tr>';return}el.body.innerHTML=rows.map((r,i)=>`<tr class="row" data-d="d${i}"><td class="cut"><b>${esc(r.q)}</b></td><td>${Number(r.total).toLocaleString('ko-KR')}</td><td class="cut" title="${esc(r.gTop)}">${esc(r.gTop)}</td><td class="cut" title="${esc(r.aTop)}">${esc(r.aTop)}</td><td><span class="pill ${pill(r.c.code)}">${esc(r.c.code)}</span> <span class="small">${esc(r.c.label.replace(/^(A\?|[A-F])\s/,''))}</span></td><td>${Math.round(r.c.ar*100)}% <span class="small">(${r.c.ac}/5)</span></td><td>${Math.round(r.c.rr*100)}% <span class="small">(${r.c.rc}/5)</span></td><td>${r.c.out?'<span class="pill bad">예</span>':'<span class="pill a">아니오</span>'}</td><td><span class="pill info">열기</span></td></tr><tr id="d${i}" class="detail" hidden><td colspan="9"><div class="box"><div class="card"><h3>일반 상위 5개</h3>${items(r.g)}</div><div class="card"><h3>AI 추천 상위 5개</h3>${items(r.a)}</div><div class="card" style="grid-column:1/-1"><h3>분류 근거</h3><p class="small">${esc(r.c.why.join(' / '))}</p>${r.err?`<p class="bad" style="font-weight:800">오류: ${esc(r.err)}</p>`:''}</div></div></td></tr>`).join('');document.querySelectorAll('.row').forEach(tr=>tr.onclick=()=>{let d=$(tr.dataset.d);if(d)d.hidden=!d.hidden})}
-function stat(n=getQueries().length){el.sAll.textContent=rows.length;el.sA.textContent=rows.filter(r=>r.c.code==='A').length;el.sB.textContent=rows.filter(r=>r.c.code==='B').length;el.sBad.textContent=rows.filter(r=>['C','D','E','F'].includes(r.c.code)).length;el.sQ.textContent=rows.filter(r=>r.c.code==='A?').length;el.sErr.textContent=rows.filter(r=>r.err).length;el.count.textContent=`${rows.length}/${n}`;el.fill.style.width=n?Math.round(rows.length/n*100)+'%':'0%';let ok=rows.length>0;el.md.disabled=el.csv.disabled=el.json.disabled=!ok}function getQueries(){return el.q.value.split('\n').map(x=>x.trim()).filter(Boolean)}
-async function callSearch(q){let c=new AbortController,t=setTimeout(()=>c.abort(),TIMEOUT),p=new URLSearchParams({q,display:'30',start:'1',sort:'sim'});try{let res=await fetch('/api/search?'+p,{method:'GET',signal:c.signal}),txt=await res.text(),d=null;try{d=txt?JSON.parse(txt):null}catch(e){throw new Error('JSON 파싱 실패: '+e.message)}if(!res.ok)throw new Error(d?.error||txt||'HTTP '+res.status);return d}finally{clearTimeout(t)}}function make(q,d,err){let g=d?general(d):[],a=d?ai(d):[],c=classify(q,d,err);return{q,total:Number(d?.total??d?.naver?.total??g.length??0)||0,gTop:top(g[0]),aTop:top(a[0]),c,g,a,err:err||'',raw:d||null,checkedAt:new Date().toISOString()}}
-async function run(){let qs=getQueries();if(!qs.length||running)return;running=true;halt=false;rows=[];el.start.disabled=true;el.stop.hidden=false;el.msg.textContent='';render();stat(qs.length);try{for(let i=0;i<qs.length;i++){if(halt)break;let q=qs[i],d=null,err='';el.status.textContent=`진단 중: ${i+1}/${qs.length} (${q})`;try{d=await callSearch(q)}catch(e){err=e.name==='AbortError'?`요청 시간 초과 (${TIMEOUT/1000}초)`:e.message}rows.push(make(q,d,err));render();stat(qs.length);if(i<qs.length-1&&!halt)await sleep(DELAY)}}finally{running=false;el.start.disabled=false;el.stop.hidden=true;el.status.textContent=halt?`중지됨: ${rows.length}/${qs.length}`:`완료: ${rows.length}/${qs.length}`}}
-function md(){let h=['검색어','일반결과수','일반1위','AI추천1위','자동분류','액세서리비율','렌탈비율','가격이상치 여부'],out=['# ThisOne 배치 진단 결과','',`- 생성시각: ${new Date().toLocaleString('ko-KR')}`,`- 진단수: ${rows.length}`,'',`| ${h.join(' | ')} |`,`| ${h.map(()=>'-').join(' | ')} |`];rows.forEach(r=>out.push(`| ${[r.q,r.total,r.gTop,r.aTop,r.c.label,Math.round(r.c.ar*100)+'%',Math.round(r.c.rr*100)+'%',r.c.out?'예':'아니오'].map(v=>String(v??'').replace(/\|/g,'/')).join(' | ')} |`));return out.join('\n')}function csv(){let out=[['검색어','일반결과수','일반1위','AI추천1위','자동분류','액세서리비율','렌탈비율','가격이상치 여부','오류','분류근거']];rows.forEach(r=>out.push([r.q,r.total,r.gTop,r.aTop,r.c.label,Math.round(r.c.ar*100)+'%',Math.round(r.c.rr*100)+'%',r.c.out?'예':'아니오',r.err,r.c.why.join(' / ')]));return out.map(a=>a.map(x=>`"${String(x??'').replace(/"/g,'""')}"`).join(',')).join('\n')}function dl(name,content,type){let b=new Blob([content],{type}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),3000)}async function copyMd(){try{await navigator.clipboard.writeText(md())}catch(e){let t=document.createElement('textarea');t.value=md();document.body.appendChild(t);t.select();document.execCommand('copy');t.remove()}el.msg.textContent='마크다운 복사 완료'}
-el.start.onclick=run;el.stop.onclick=()=>{halt=true;el.status.textContent='중지 요청됨'};el.md.onclick=copyMd;el.csv.onclick=()=>dl('thisone-batch-diagnostics-'+Date.now()+'.csv','\uFEFF'+csv(),'text/csv;charset=utf-8');el.json.onclick=()=>dl('thisone-batch-diagnostics-'+Date.now()+'.json',JSON.stringify(rows,null,2),'application/json;charset=utf-8');stat(50);
-</script></body></html>
+영양제</textarea>
+      <div class="actions">
+        <button id="start">진단 시작</button>
+        <button id="stop" class="danger" hidden>중지</button>
+        <button id="md" class="secondary" disabled>마크다운 복사</button>
+        <button id="csv" class="secondary" disabled>CSV 다운로드</button>
+        <button id="json" class="secondary" disabled>JSON 다운로드</button>
+        <span class="muted">한 줄에 하나씩 입력</span>
+      </div>
+      <div class="status"><strong id="status">대기 중</strong><span id="count">0/0</span></div>
+      <div class="bar"><div id="fill" class="fill"></div></div>
+      <p id="msg" class="muted"></p>
+    </section>
+
+    <section class="stats">
+      <div class="stat"><b id="sAll">0</b><span class="small">완료</span></div>
+      <div class="stat"><b id="sA" style="color:#166534">0</b><span class="small">A 정상</span></div>
+      <div class="stat"><b id="sB" style="color:#374151">0</b><span class="small">B 결과 없음</span></div>
+      <div class="stat"><b id="sBad" style="color:#991b1b">0</b><span class="small">C~F 문제</span></div>
+      <div class="stat"><b id="sQ" style="color:#9a3412">0</b><span class="small">A? 수동 검토</span></div>
+      <div class="stat"><b id="sErr" style="color:#991b1b">0</b><span class="small">요청 오류</span></div>
+    </section>
+
+    <section class="panel">
+      <h2>진단 결과</h2>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>검색어</th><th>일반결과수</th><th>일반1위</th><th>AI추천1위</th><th>자동분류</th><th>액세서리비율</th><th>렌탈비율</th><th>가격이상치 여부</th><th>상세보기</th></tr></thead>
+          <tbody id="body"><tr><td colspan="9" class="empty">진단 시작을 누르면 결과가 표시된다.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const ACCESSORY_WORDS = ['케이스','필름','커버','거치대','충전기','리필','필터','소모품','부품','브러시','패드','노즐','호환','교체용','악세사리','악세서리'];
+    const MANAGED_CATEGORIES = ['정수기','공기청정기','비데','안마의자','음식물처리기'];
+    const RENTAL_RE = /렌탈|대여|구독|약정|월납/;
+    const MODEL_RE = /[A-Z]{2,}[\-\s]?\d{2,}/;
+    const SEARCH_TIMEOUT = 45000;
+    const CHAT_TIMEOUT = 70000;
+    const DELAY = 1000;
+
+    const $ = (id) => document.getElementById(id);
+    const el = {
+      q: $('q'), start: $('start'), stop: $('stop'), md: $('md'), csv: $('csv'), json: $('json'),
+      status: $('status'), count: $('count'), fill: $('fill'), msg: $('msg'), body: $('body'),
+      sAll: $('sAll'), sA: $('sA'), sB: $('sB'), sBad: $('sBad'), sQ: $('sQ'), sErr: $('sErr')
+    };
+    let rows = [];
+    let running = false;
+    let halt = false;
+
+    function esc(value) { return String(value ?? '').replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+    function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+    function price(value) { if (typeof value === 'number' && Number.isFinite(value)) return value; const n = Number(String(value || '').replace(/[^0-9]/g, '')); return Number.isFinite(n) ? n : 0; }
+    function won(value) { const n = price(value); return n ? `${n.toLocaleString('ko-KR')}원` : '-'; }
+    function title(item) { return String(item?.name || item?.title || item?.productName || item?.productTitle || '').replace(/<[^>]*>/g, '').trim(); }
+    function store(item) { return String(item?.store || item?.mallName || item?.seller || item?.shop || '').replace(/<[^>]*>/g, '').trim(); }
+    function iprice(item) { return price(item?.lprice || item?.priceNum || item?.totalPriceNum || item?.price || item?.priceText); }
+    function text(item) { return `${title(item)} ${store(item)} ${item?.delivery || ''} ${item?.priceText || ''} ${item?.price || ''}`; }
+    function list(value) { return Array.isArray(value) ? value.filter(Boolean) : []; }
+    function uniq(items) { const seen = new Set(); return items.filter((item) => { const key = `${title(item)}|${store(item)}|${iprice(item)}`; if (seen.has(key)) return false; seen.add(key); return true; }); }
+    function getQueries() { return el.q.value.split('\n').map((value) => value.trim()).filter(Boolean); }
+
+    function general(data) { return uniq([...list(data?.rawItems), ...list(data?.naver?.items), ...list(data?.originalItems), ...list(data?.items)]); }
+    function hasAny(source, words) { return words.some((word) => source.includes(word)); }
+    function managed(query) { return MANAGED_CATEGORIES.some((word) => String(query).includes(word)); }
+    function model(item) { const matched = text(item).toUpperCase().match(MODEL_RE); return matched ? matched[0].replace(/[\s-]/g, '') : ''; }
+    function top(item) { return title(item) || '-'; }
+
+    function classify(query, data, error) {
+      if (error || !data || typeof data !== 'object') return { code:'A?', label:'A? 수동검토', why:[error || '응답 파싱 불가'], ar:0, rr:0, ac:0, rc:0, out:false };
+      const g = general(data);
+      const total = Number(data.total ?? data.naver?.total ?? g.length ?? 0) || 0;
+      const top5 = g.slice(0, 5);
+      const top10 = g.slice(0, 10);
+      const ac = top5.filter((item) => hasAny(text(item), ACCESSORY_WORDS)).length;
+      const rc = top5.filter((item) => RENTAL_RE.test(text(item))).length;
+      const ar = top5.length ? ac / top5.length : 0;
+      const rr = top5.length ? rc / top5.length : 0;
+      const firstPrice = iprice(g[0]);
+      const prices = top10.map(iprice).filter(Boolean);
+      const avg = prices.length ? prices.reduce((sum, value) => sum + value, 0) / prices.length : 0;
+      const out = firstPrice > 0 && avg > 0 && firstPrice < avg * 0.3;
+      const modelCounts = {};
+      top5.forEach((item) => { const code = model(item); if (code) modelCounts[code] = (modelCounts[code] || 0) + 1; });
+      const repeated = Object.entries(modelCounts).find(([, count]) => count >= 3)?.[0] || '';
+      if (total === 0) return { code:'B', label:'B 결과 없음', why:['total === 0'], ar, rr, ac, rc, out, firstPrice, avg };
+      if (ac >= 3) return { code:'C', label:'C 액세서리 과다', why:[`상위 5개 중 액세서리 ${ac}개`], ar, rr, ac, rc, out, firstPrice, avg };
+      if (!managed(query) && rc >= 3) return { code:'D', label:'D 렌탈 과다', why:[`상위 5개 중 렌탈 ${rc}개`], ar, rr, ac, rc, out, firstPrice, avg };
+      if (out) return { code:'E', label:'E 가격 이상치', why:[`1위 ${won(firstPrice)} / 상위10 평균 ${won(Math.round(avg))}`], ar, rr, ac, rc, out, firstPrice, avg };
+      if (repeated) return { code:'F', label:'F 모델 중복', why:[`모델코드 ${repeated} 3개 이상`], ar, rr, ac, rc, out, firstPrice, avg, repeated };
+      return { code:'A', label:'A 정상', why:['자동 문제 룰 미감지'], ar, rr, ac, rc, out, firstPrice, avg };
+    }
+
+    async function fetchText(url, options, timeoutMs) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        const output = await response.text();
+        if (!response.ok) throw new Error(output || `HTTP ${response.status}`);
+        return output;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function callSearch(query) {
+      const params = new URLSearchParams({ q: query, display: '30', start: '1', sort: 'sim' });
+      const output = await fetchText(`/api/search?${params.toString()}`, { method: 'GET' }, SEARCH_TIMEOUT);
+      try { return JSON.parse(output); } catch (error) { throw new Error(`검색 JSON 파싱 실패: ${error.message}`); }
+    }
+
+    function slimCandidate(item, index) {
+      return {
+        rank: index + 1,
+        name: title(item),
+        price: iprice(item),
+        priceText: won(iprice(item)),
+        store: store(item),
+        delivery: String(item?.delivery || ''),
+        brand: String(item?.brand || item?.maker || ''),
+        category: [item?.category1, item?.category2, item?.category3, item?.category4].filter(Boolean).join('>')
+      };
+    }
+
+    function extractJsonArray(rawText) {
+      const cleaned = String(rawText || '').replace(/```json|```/gi, '').trim();
+      try {
+        const parsed = JSON.parse(cleaned);
+        return Array.isArray(parsed) ? parsed : list(parsed.items || parsed.recommendations || parsed.picks);
+      } catch (_) {}
+      const start = cleaned.indexOf('[');
+      const end = cleaned.lastIndexOf(']');
+      if (start >= 0 && end > start) {
+        const parsed = JSON.parse(cleaned.slice(start, end + 1));
+        return Array.isArray(parsed) ? parsed : [];
+      }
+      return [];
+    }
+
+    async function callAi(query, candidates) {
+      if (!candidates.length) return { items: [], raw: '', error: '' };
+      const slim = candidates.slice(0, 20).map(slimCandidate);
+      const payload = {
+        model: 'gemini-2.5-flash',
+        system: '너는 ThisOne 배치 진단용 쇼핑 추천기다. 후보 상품 중 실구매 기준으로 가장 적합한 상품 5개를 고른다. 반드시 JSON 배열만 응답한다. 마크다운, 설명문, 코드펜스는 쓰지 않는다.',
+        messages: [{
+          role: 'user',
+          content: [{
+            type: 'text',
+            text: `검색어: ${query}\n후보 상품 목록(JSON):\n${JSON.stringify(slim, null, 2)}\n\n위 후보 중 실구매 기준으로 좋은 상품 5개를 골라 JSON 배열만 반환해라. 각 항목 형식: {"name":"상품명","price":숫자,"store":"스토어","reason":"짧은 추천 이유"}`
+          }]
+        }]
+      };
+      try {
+        const raw = await fetchText('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }, CHAT_TIMEOUT);
+        return { items: extractJsonArray(raw), raw, error: '' };
+      } catch (error) {
+        return { items: [], raw: '', error: error.name === 'AbortError' ? `AI 추천 시간 초과 (${CHAT_TIMEOUT / 1000}초)` : error.message };
+      }
+    }
+
+    function className(code) { return code === 'A' ? 'a' : code === 'B' ? 'b' : code === 'A?' ? 'q' : 'bad'; }
+    function renderItems(items) {
+      return items.length ? `<ol>${items.slice(0, 5).map((item) => `<li><div class="title">${esc(top(item))}</div><div class="small">${esc(won(iprice(item)))} · ${esc(store(item) || '-')}</div></li>`).join('')}</ol>` : '<p class="small">표시할 상품 없음</p>';
+    }
+
+    function render() {
+      if (!rows.length) { el.body.innerHTML = '<tr><td colspan="9" class="empty">진단 시작을 누르면 결과가 표시된다.</td></tr>'; return; }
+      el.body.innerHTML = rows.map((row, index) => `
+        <tr class="row" data-detail="d${index}">
+          <td class="cut"><b>${esc(row.query)}</b></td>
+          <td>${Number(row.total).toLocaleString('ko-KR')}</td>
+          <td class="cut" title="${esc(row.generalTop)}">${esc(row.generalTop)}</td>
+          <td class="cut" title="${esc(row.aiTop)}">${esc(row.aiTop)}</td>
+          <td><span class="pill ${className(row.auto.code)}">${esc(row.auto.code)}</span> <span class="small">${esc(row.auto.label.replace(/^(A\?|[A-F])\s/, ''))}</span></td>
+          <td>${Math.round(row.auto.ar * 100)}% <span class="small">(${row.auto.ac || 0}/5)</span></td>
+          <td>${Math.round(row.auto.rr * 100)}% <span class="small">(${row.auto.rc || 0}/5)</span></td>
+          <td>${row.auto.out ? '<span class="pill bad">예</span>' : '<span class="pill a">아니오</span>'}</td>
+          <td><span class="pill info">열기</span></td>
+        </tr>
+        <tr id="d${index}" class="detail" hidden><td colspan="9"><div class="box">
+          <div class="card"><h3>일반 상위 5개</h3>${renderItems(row.generalItems)}</div>
+          <div class="card"><h3>AI 추천 상위 5개</h3>${renderItems(row.aiItems)}${row.aiError ? `<p class="small" style="color:#991b1b">AI 오류: ${esc(row.aiError)}</p>` : ''}</div>
+          <div class="card" style="grid-column:1/-1"><h3>분류 근거</h3><p class="small">${esc(row.auto.why.join(' / '))}</p>${row.searchError ? `<p class="bad" style="font-weight:800">검색 오류: ${esc(row.searchError)}</p>` : ''}</div>
+        </div></td></tr>`).join('');
+      document.querySelectorAll('.row').forEach((tr) => tr.onclick = () => { const detail = $(tr.dataset.detail); if (detail) detail.hidden = !detail.hidden; });
+    }
+
+    function updateStats(totalCount = getQueries().length) {
+      el.sAll.textContent = rows.length;
+      el.sA.textContent = rows.filter((row) => row.auto.code === 'A').length;
+      el.sB.textContent = rows.filter((row) => row.auto.code === 'B').length;
+      el.sBad.textContent = rows.filter((row) => ['C','D','E','F'].includes(row.auto.code)).length;
+      el.sQ.textContent = rows.filter((row) => row.auto.code === 'A?').length;
+      el.sErr.textContent = rows.filter((row) => row.searchError || row.aiError).length;
+      el.count.textContent = `${rows.length}/${totalCount}`;
+      el.fill.style.width = totalCount ? `${Math.round(rows.length / totalCount * 100)}%` : '0%';
+      const hasRows = rows.length > 0;
+      el.md.disabled = el.csv.disabled = el.json.disabled = !hasRows;
+    }
+
+    function makeRow(query, searchData, aiResult, searchError) {
+      const generalItems = searchData ? general(searchData) : [];
+      const aiItems = list(aiResult?.items);
+      const auto = classify(query, searchData, searchError);
+      return {
+        query,
+        total: Number(searchData?.total ?? searchData?.naver?.total ?? generalItems.length ?? 0) || 0,
+        generalTop: top(generalItems[0]),
+        aiTop: top(aiItems[0]),
+        auto,
+        generalItems,
+        aiItems,
+        searchError: searchError || '',
+        aiError: aiResult?.error || '',
+        rawSearch: searchData || null,
+        rawAi: aiResult?.raw || '',
+        checkedAt: new Date().toISOString()
+      };
+    }
+
+    async function run() {
+      const queries = getQueries();
+      if (!queries.length || running) return;
+      running = true; halt = false; rows = [];
+      el.start.disabled = true; el.stop.hidden = false; el.msg.textContent = '';
+      render(); updateStats(queries.length);
+      try {
+        for (let i = 0; i < queries.length; i += 1) {
+          if (halt) break;
+          const query = queries[i];
+          let searchData = null;
+          let searchError = '';
+          let aiResult = { items: [], raw: '', error: '' };
+          el.status.textContent = `진단 중: ${i + 1}/${queries.length} (${query}) - 일반 검색`;
+          try { searchData = await callSearch(query); } catch (error) { searchError = error.name === 'AbortError' ? `검색 시간 초과 (${SEARCH_TIMEOUT / 1000}초)` : error.message; }
+          if (!searchError && general(searchData).length) {
+            el.status.textContent = `진단 중: ${i + 1}/${queries.length} (${query}) - AI 추천 분석`;
+            aiResult = await callAi(query, general(searchData));
+          }
+          rows.push(makeRow(query, searchData, aiResult, searchError));
+          render(); updateStats(queries.length);
+          if (i < queries.length - 1 && !halt) await sleep(DELAY);
+        }
+      } finally {
+        running = false; el.start.disabled = false; el.stop.hidden = true;
+        el.status.textContent = halt ? `중지됨: ${rows.length}/${queries.length}` : `완료: ${rows.length}/${queries.length}`;
+      }
+    }
+
+    function markdown() {
+      const headers = ['검색어','일반결과수','일반1위','AI추천1위','자동분류','액세서리비율','렌탈비율','가격이상치 여부'];
+      const output = ['# ThisOne 배치 진단 결과','',`- 생성시각: ${new Date().toLocaleString('ko-KR')}`,`- 진단수: ${rows.length}`,'',`| ${headers.join(' | ')} |`,`| ${headers.map(() => '-').join(' | ')} |`];
+      rows.forEach((row) => output.push(`| ${[row.query,row.total,row.generalTop,row.aiTop,row.auto.label,Math.round(row.auto.ar*100)+'%',Math.round(row.auto.rr*100)+'%',row.auto.out?'예':'아니오'].map((value) => String(value ?? '').replace(/\|/g, '/')).join(' | ')} |`));
+      return output.join('\n');
+    }
+
+    function csv() {
+      const output = [['검색어','일반결과수','일반1위','AI추천1위','자동분류','액세서리비율','렌탈비율','가격이상치 여부','검색오류','AI오류','분류근거']];
+      rows.forEach((row) => output.push([row.query,row.total,row.generalTop,row.aiTop,row.auto.label,Math.round(row.auto.ar*100)+'%',Math.round(row.auto.rr*100)+'%',row.auto.out?'예':'아니오',row.searchError,row.aiError,row.auto.why.join(' / ')]));
+      return output.map((row) => row.map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    }
+
+    function download(name, content, type) {
+      const blob = new Blob([content], { type });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+    }
+
+    async function copyMarkdown() {
+      try { await navigator.clipboard.writeText(markdown()); }
+      catch (_) { const textarea = document.createElement('textarea'); textarea.value = markdown(); document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); textarea.remove(); }
+      el.msg.textContent = '마크다운 복사 완료';
+    }
+
+    el.start.onclick = run;
+    el.stop.onclick = () => { halt = true; el.status.textContent = '중지 요청됨'; };
+    el.md.onclick = copyMarkdown;
+    el.csv.onclick = () => download(`thisone-batch-diagnostics-${Date.now()}.csv`, '\uFEFF' + csv(), 'text/csv;charset=utf-8');
+    el.json.onclick = () => download(`thisone-batch-diagnostics-${Date.now()}.json`, JSON.stringify(rows, null, 2), 'application/json;charset=utf-8');
+    updateStats(getQueries().length);
+  </script>
+</body>
+</html>

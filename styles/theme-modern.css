@@ -127,3 +127,28 @@
   border-color: #2563eb;
   color: #2563eb;
 }
+
+/* 디스원 추천 리포트와 일반 검색 결과를 시각적으로 구분한다. */
+#msgContainer .general-results-wrap .ai-label,
+.results-view .general-results-wrap .ai-label {
+  color: #475569;
+}
+
+#msgContainer .general-results-wrap .ai-label .dot,
+.results-view .general-results-wrap .ai-label .dot {
+  background: #64748b;
+  border-color: #64748b;
+}
+
+#msgContainer .general-results-wrap .sort-btn.active,
+.results-view .general-results-wrap .sort-btn.active {
+  background: #64748b;
+  border-color: #64748b;
+  color: #fff;
+}
+
+#msgContainer .general-results-wrap .sort-btn:hover,
+.results-view .general-results-wrap .sort-btn:hover {
+  border-color: #64748b;
+  color: #475569;
+}

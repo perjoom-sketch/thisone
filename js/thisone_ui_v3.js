@@ -151,9 +151,15 @@ function addThinking() {
   const state = { lastThought: '' };
   const nativeRemove = d.remove.bind(d);
 
-  d.updateThought = (msg) => {
-    state.lastThought = String(msg || '');
+   d.updateThought = (msg) => {
+    const next = String(msg || '').trim();
+    state.lastThought = next;
     removeLegacyProgressUi(d);
+
+    const status = d.querySelector('#statusTextV2');
+    if (status && next) {
+      status.textContent = next;
+    }
   };
 
   d.updateLiveResponse = () => {

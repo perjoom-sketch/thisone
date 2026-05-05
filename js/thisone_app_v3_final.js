@@ -329,11 +329,38 @@ async function sendMsg(forceMode) {
       }
 
       // [개선] intentProfile이 이미 있다면 중복 호출 방지
+           const items = searchData?.items || [];
+
+      // 네이버 검색 결과는 의도분석을 기다리지 않고 즉시 먼저 보여준다.
+      if (!queryImage && items && items.length > 0) {
+        const earlyCandidates = window.ThisOneRanking?.buildCandidates
+          ? window.ThisOneRanking.buildCandidates(items, finalSearchQuery, null)
+          : items;
+
+        if (earlyCandidates && earlyCandidates.length > 0) {
+          GeneralSearchState.query = finalSearchQuery;
+          GeneralSearchState.currentPage = 1;
+          GeneralSearchState.total = searchData?.total || 0;
+          GeneralSearchState.resultMode = 'fallback_general';
+
+          SearchDropdown?.setResultsRendering?.(true);
+          window.ThisOneUI?.renderResults?.(
+            earlyCandidates,
+            GeneralSearchState.total,
+            GeneralSearchState.currentPage,
+            GeneralSearchState.currentSort,
+            GeneralSearchState.resultMode
+          );
+
+          typingEl?.updateThought?.('일반 검색 결과를 먼저 보여드리고, 디스원 추천을 계속 분석 중입니다...');
+        }
+      }
+
+      // [개선] intentProfile이 이미 있다면 중복 호출 방지
       if (!intentProfile && !queryImage) {
         intentProfile = await window.ThisOneAPI.requestIntentInfer(queryText, trajectory, null).catch(() => null);
       }
 
-      const items = searchData?.items || [];
       _lastIntentProfile = intentProfile;
 
       typingEl?.updateThought?.('상품 데이터 및 형상 분석 선별 중...');
@@ -353,24 +380,7 @@ async function sendMsg(forceMode) {
       //   window.ThisOneUI?.renderRawResults?.(candidates);
       //   return;
       // }
-      // 일반 검색 결과를 먼저 보여줘 체감 로딩 시간을 줄인다.
-      if (!queryImage && candidates && candidates.length > 0) {
-        GeneralSearchState.query = finalSearchQuery;
-        GeneralSearchState.currentPage = 1;
-        GeneralSearchState.total = searchData?.total || 0;
-        GeneralSearchState.resultMode = 'fallback_general';
-
-        SearchDropdown?.setResultsRendering?.(true);
-        window.ThisOneUI?.renderResults?.(
-          candidates,
-          GeneralSearchState.total,
-          GeneralSearchState.currentPage,
-          GeneralSearchState.currentSort,
-          GeneralSearchState.resultMode
-        );
-
-        typingEl?.updateThought?.('일반 검색 결과를 먼저 보여드리고, 디스원 추천을 계속 분석 중입니다...');
-      }
+    
       const prunedCandidates = candidates.map(c => ({
         id: c.id, name: c.name, price: c.price, store: c.store, review: c.review,
         badges: c.badges, bonusScore: c.bonusScore, specPenalty: c.specPenalty,

@@ -140,8 +140,14 @@ function processFile(file) {
 
 function removeImg() {
   pendingImg = null;
+
   const pv = document.getElementById('imgPreview');
+  const img = document.getElementById('previewImg');
+  const fileInput = document.getElementById('fileInput');
+
   if (pv) pv.classList.remove('show');
+  if (img) img.removeAttribute('src');
+  if (fileInput) fileInput.value = '';
 }
 
 function stripCitations(text) { return String(text || '').replace(/<cite\b[^>]*>|<\/cite>|<b>|<\/b>/gi, '').trim(); }

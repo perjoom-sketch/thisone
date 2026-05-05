@@ -145,3 +145,12 @@
   script.defer = true;
   document.head.appendChild(script);
 })();
+
+(function loadSearchInputToolsScript() {
+  if (document.getElementById('thisoneSearchInputToolsScript')) return;
+  const script = document.createElement('script');
+  script.id = 'thisoneSearchInputToolsScript';
+  script.src = 'js/search_input_tools.js?v=3.4.5';
+  script.defer = true;
+  document.head.appendChild(script);
+})();

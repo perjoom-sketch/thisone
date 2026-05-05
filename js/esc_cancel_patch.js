@@ -127,3 +127,12 @@
   `;
   document.head.appendChild(style);
 })();
+
+(function loadInquiryManagerScript() {
+  if (document.getElementById('thisoneInquiryManagerScript')) return;
+  const script = document.createElement('script');
+  script.id = 'thisoneInquiryManagerScript';
+  script.src = 'js/inquiry_manager.js?v=3.4.5';
+  script.defer = true;
+  document.head.appendChild(script);
+})();

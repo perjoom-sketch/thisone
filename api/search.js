@@ -67,7 +67,7 @@ async function writeSearchCache(key, value){
 }
 function isRentalLikeItem(item){
   const text = `${item?.name || ''} ${item?.store || ''} ${item?.priceText || ''} ${item?.delivery || ''}`;
-  return /렌탈|대여|구독|약정|월납|의무사용|방문관리|코디관리|관리형|월\s*[0-9,]+\s*원|\d+\s*개월/i.test(text);
+  return /렌탈|대여|구독|약정|약정\s*\d+\s*년|월납|월\s*납입|의무사용|의무\s*\d+|방문관리|직접관리|자가관리|방문주기\s*\d*|코디관리|관리형|월\s*[0-9,]+\s*원|\d+\s*개월/i.test(text);
 }
 function isRentalCapableQuery(query){
   const q = String(query || '').toLowerCase();

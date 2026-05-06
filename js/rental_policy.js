@@ -80,6 +80,68 @@ function enrichRentalCandidatesInPayload(payload) {
   }
 }
 
+
+function getCategoryPolicy(query) {
+  const text = String(query || '');
+  const categories = [
+    {
+      category: 'water_purifier',
+      pattern: /정수기/i,
+      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0 }
+    },
+    {
+      category: 'air_purifier',
+      pattern: /공기청정기|공청기/i,
+      policy: { rentalMode: 'limited', rentalMaxRank: 3, rentalScorePenalty: 0.3 }
+    },
+    {
+      category: 'bidet',
+      pattern: /비데/i,
+      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0 }
+    },
+    {
+      category: 'massage_chair',
+      pattern: /안마의자|안마기/i,
+      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0 }
+    },
+    {
+      category: 'food_disposer',
+      pattern: /음식물처리기|음식물\s*처리|음식물쓰레기처리기/i,
+      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0 }
+    },
+    {
+      category: 'printer',
+      pattern: /프린터|복합기/i,
+      policy: { rentalMode: 'limited', rentalMaxRank: 2, rentalScorePenalty: 0.4 }
+    },
+    {
+      category: 'robot_vacuum',
+      pattern: /로봇청소기|로보락|샤오미\s*청소기/i,
+      policy: { rentalMode: 'purchase_priority', rentalMaxRank: null, rentalScorePenalty: 0.5 }
+    }
+  ];
+
+  const matched = categories.find((entry) => entry.pattern.test(text));
+  if (!matched) {
+    return {
+      category: 'general',
+      rentalMode: 'exclude',
+      rentalMaxRank: null,
+      rentalScorePenalty: 1.0
+    };
+  }
+
+  return {
+    category: matched.category,
+    ...matched.policy
+  };
+}
+
+function isManagedQuery(query) {
+  const policy = getCategoryPolicy(query);
+  return policy.rentalMode === 'aggressive' || policy.rentalMode === 'limited';
+}
+
 function applyRentalReasoningInstruction(payload) {
   const rentalInstruction = `
 
@@ -116,7 +178,6 @@ function installManagedRentalRankingPatch() {
   const originalBuildCandidates = ranking.buildCandidates || window.buildCandidates;
   if (typeof originalBuildCandidates !== 'function' || originalBuildCandidates.__rentalPatchApplied) return;
 
-  const isManagedQuery = (query) => /(정수기|공기청정기|공청기|비데|안마의자|음식물처리기|음쓰처리기)/i.test(String(query || ''));
   const isRentalLike = (item) => /렌탈|대여|구독|약정|월납|의무사용|방문관리|코디관리|관리형|월\s*[0-9,]+\s*원|\d+\s*개월/i.test(`${item?.name || ''} ${item?.store || ''} ${item?.price || ''} ${item?.priceText || ''} ${item?.delivery || ''}`);
   const addBadge = (item, badge) => {
     const badges = Array.isArray(item?.badges) ? item.badges.slice() : [];
@@ -137,16 +198,36 @@ function installManagedRentalRankingPatch() {
       rentalTotalFee: monthly > 0 && months > 0 ? monthly * months : 0
     };
   };
-  const protectRental = (item) => ({
-    ...item,
-    ...rentalFields(item),
-    excludeFromPriceRank: false,
-    isExcluded: false,
-    badges: addBadge(item, '관리형 렌탈'),
-    bonusScore: Number(item?.bonusScore || 0) + 2,
-    finalScore: Math.max(Number(item?.finalScore || 0), 1)
-  });
-  const rawToCandidate = (item, index) => {
+  const applyRentalScorePenalty = (item, policy) => {
+    const penalty = Math.min(Math.max(Number(policy?.rentalScorePenalty || 0), 0), 1);
+    if (!penalty) return item;
+
+    const scoreMultiplier = 1 - penalty;
+    const penalizeScore = (score) => score >= 0 ? score * scoreMultiplier : score * (1 + penalty);
+    const nextBonusScore = penalizeScore(Number(item?.bonusScore || 0));
+    const nextFinalScore = penalizeScore(Number(item?.finalScore || 0));
+
+    return {
+      ...item,
+      rentalScorePenalty: penalty,
+      bonusScore: nextBonusScore,
+      finalScore: nextFinalScore
+    };
+  };
+  const protectRental = (item, policy = getCategoryPolicy('')) => {
+    const protectedItem = {
+      ...item,
+      ...rentalFields(item),
+      excludeFromPriceRank: false,
+      isExcluded: false,
+      badges: addBadge(item, '관리형 렌탈'),
+      bonusScore: Number(item?.bonusScore || 0) + 2,
+      finalScore: Math.max(Number(item?.finalScore || 0), 1)
+    };
+
+    return applyRentalScorePenalty(protectedItem, policy);
+  };
+  const rawToCandidate = (item, index, policy) => {
     const priceNum = Number(item?.priceNum || item?.totalPriceNum || item?.lprice || parseRentalNumber(item?.price || item?.priceText));
     const price = item?.price || item?.priceText || (priceNum ? `${priceNum.toLocaleString('ko-KR')}원` : '');
     return protectRental({
@@ -158,16 +239,54 @@ function installManagedRentalRankingPatch() {
       totalPriceNum: priceNum,
       specPenalty: Number(item?.specPenalty || 0),
       rentalProtected: true
+    }, policy);
+  };
+  const sortByScore = (items) => items.slice().sort((a, b) => {
+    if (Number(b?.finalScore || 0) !== Number(a?.finalScore || 0)) {
+      return Number(b?.finalScore || 0) - Number(a?.finalScore || 0);
+    }
+
+    const ap = Number(a?.totalPriceNum || a?.priceNum || 0);
+    const bp = Number(b?.totalPriceNum || b?.priceNum || 0);
+    if (ap && bp) return ap - bp;
+
+    return 0;
+  });
+  const limitRentalRank = (items, policy) => {
+    const maxRank = Number(policy?.rentalMaxRank || 0);
+    if (!maxRank) return items;
+
+    const rentals = [];
+    const purchases = [];
+    items.forEach((item) => {
+      if (isRentalLike(item)) rentals.push(item);
+      else purchases.push(item);
     });
+
+    if (!rentals.length || !purchases.length) return items;
+
+    const topPurchase = purchases.shift();
+    const rentalSlots = Math.max(maxRank - 1, 0);
+    const visibleRentals = rentals.slice(0, rentalSlots);
+    const overflowRentals = rentals.slice(rentalSlots);
+
+    return [topPurchase, ...visibleRentals, ...purchases, ...overflowRentals];
   };
 
   const patchedBuildCandidates = function(...args) {
     const rawItems = Array.isArray(args[0]) ? args[0] : [];
     const query = args[1] || '';
+    const policy = getCategoryPolicy(query);
     const built = originalBuildCandidates(...args);
-    if (!Array.isArray(built) || !isManagedQuery(query)) return built;
+    if (!Array.isArray(built)) return built;
 
-    const protectedBuilt = built.map(item => isRentalLike(item) ? protectRental(item) : item);
+    if (policy.rentalMode === 'purchase_priority') {
+      return sortByScore(built.map(item => isRentalLike(item) ? applyRentalScorePenalty(item, policy) : item));
+    }
+
+    if (!isManagedQuery(query)) return built;
+
+    const protectedBuilt = built.map(item => isRentalLike(item) ? protectRental(item, policy) : item);
     const seen = new Set(protectedBuilt.map(item => String(item?.productId || item?.link || item?.id || item?.name || '')));
     const restored = rawItems
       .filter(isRentalLike)
@@ -177,17 +296,23 @@ function installManagedRentalRankingPatch() {
         seen.add(key);
         return true;
       })
-      .slice(0, 10)
-      .map(rawToCandidate);
+      .slice(0, policy.rentalMode === 'limited' ? Math.max(Number(policy.rentalMaxRank || 0) - 1, 0) : 10)
+      .map((item, index) => rawToCandidate(item, index, policy));
 
     if (restored.length) {
       console.debug('[ThisOne][rental-ranking-protect]', {
+        category: policy.category,
+        rentalMode: policy.rentalMode,
         builtCount: protectedBuilt.length,
         restoredCount: restored.length,
         samples: restored.slice(0, 3)
       });
     }
-    return [...protectedBuilt, ...restored];
+
+    const result = policy.rentalMode === 'limited'
+      ? sortByScore([...protectedBuilt, ...restored])
+      : [...protectedBuilt, ...restored];
+    return policy.rentalMode === 'limited' ? limitRentalRank(result, policy) : result;
   };
   patchedBuildCandidates.__rentalPatchApplied = true;
 
@@ -200,6 +325,8 @@ function installManagedRentalRankingPatch() {
 
   window.rentalPolicy = {
     parseRentalNumber: parseRentalNumber,
+    getCategoryPolicy: getCategoryPolicy,
+    isManagedQuery: isManagedQuery,
     enrichRentalCandidate: enrichRentalCandidate,
     enrichRentalCandidatesInPayload: enrichRentalCandidatesInPayload,
     applyRentalReasoningInstruction: applyRentalReasoningInstruction,

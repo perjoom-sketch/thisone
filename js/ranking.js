@@ -214,7 +214,7 @@ function inferIntentProfile(query) {
   };
 }
 
-function getCandidateBonus(candidate, profile) {
+function getCandidateBonus(candidate, profile, query) {
   const name = String(candidate.name || '').toLowerCase();
   const price = parsePriceNumber(candidate.price);
 
@@ -457,6 +457,19 @@ function getCandidateBonus(candidate, profile) {
     bonusScore -= 3;
     bonusReasons.push('중고/리퍼 감점');
   }
+
+  const policy = window.rentalPolicy?.getCategoryPolicy(query || '');
+  if (policy?.priceFloor && candidate.lprice) {
+    const itemPrice = Number(candidate.lprice);
+    if (itemPrice > 0 && itemPrice < policy.priceFloor) {
+      const ratio = itemPrice / policy.priceFloor;
+      if (ratio < 0.8) {
+        const penalty = Math.round((1 - ratio) * 5);
+        bonusScore -= Math.min(penalty, 5);
+      }
+    }
+  }
+
   return {
     bonusScore,
     bonusReasons: bonusReasons.join(', ')
@@ -703,6 +716,7 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
       id: String(item.id ?? (idx + 1)),
       name: String(item.name || '').trim(),
       price: String(item.priceText || item.price || item.lprice || '').trim(),
+      lprice: priceNum,
       priceNum,
       hpriceNum,
       store: String(item.store || item.mallName || '').trim(),
@@ -722,7 +736,7 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
   const medianPrice = getMedianPrice(deduped, queryText);
 
   return deduped.map((candidate) => {
-    const bonus = getCandidateBonus(candidate, profile);
+    const bonus = getCandidateBonus(candidate, profile, queryText);
     const priceRisk = shouldExcludeFromPriceRank(candidate, queryText, medianPrice, profile);
 
     let specPenalty = 0;

@@ -87,37 +87,37 @@ function getCategoryPolicy(query) {
     {
       category: 'water_purifier',
       pattern: /정수기/i,
-      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0 }
+      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0, priceFloor: null }
     },
     {
       category: 'air_purifier',
       pattern: /공기청정기|공청기/i,
-      policy: { rentalMode: 'limited', rentalMaxRank: 3, rentalScorePenalty: 0.3 }
+      policy: { rentalMode: 'limited', rentalMaxRank: 3, rentalScorePenalty: 0.3, priceFloor: null }
     },
     {
       category: 'bidet',
       pattern: /비데/i,
-      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0 }
+      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0, priceFloor: null }
     },
     {
       category: 'massage_chair',
       pattern: /안마의자|안마기/i,
-      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0 }
+      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0, priceFloor: null }
     },
     {
       category: 'food_disposer',
       pattern: /음식물처리기|음식물\s*처리|음식물쓰레기처리기/i,
-      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0 }
+      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0, priceFloor: 400000 }
     },
     {
       category: 'printer',
       pattern: /프린터|복합기/i,
-      policy: { rentalMode: 'limited', rentalMaxRank: 2, rentalScorePenalty: 0.4 }
+      policy: { rentalMode: 'limited', rentalMaxRank: 2, rentalScorePenalty: 0.4, priceFloor: 200000 }
     },
     {
       category: 'robot_vacuum',
       pattern: /로봇청소기|로보락|샤오미\s*청소기/i,
-      policy: { rentalMode: 'purchase_priority', rentalMaxRank: null, rentalScorePenalty: 0.5 }
+      policy: { rentalMode: 'purchase_priority', rentalMaxRank: null, rentalScorePenalty: 0.5, priceFloor: 800000 }
     }
   ];
 
@@ -127,7 +127,8 @@ function getCategoryPolicy(query) {
       category: 'general',
       rentalMode: 'exclude',
       rentalMaxRank: null,
-      rentalScorePenalty: 1.0
+      rentalScorePenalty: 1.0,
+      priceFloor: null
     };
   }
 

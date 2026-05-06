@@ -458,11 +458,11 @@ function getCandidateBonus(candidate, profile, query) {
     bonusReasons.push('중고/리퍼 감점');
   }
 
-  const policy = window.rentalPolicy?.getCategoryPolicy(query || '');
-  if (policy?.priceFloor && candidate.lprice) {
+  const effectiveFloor = window.rentalPolicy?.getEffectivePriceFloor(query || '', candidate);
+  if (effectiveFloor && candidate.lprice) {
     const itemPrice = Number(candidate.lprice);
-    if (itemPrice > 0 && itemPrice < policy.priceFloor) {
-      const ratio = itemPrice / policy.priceFloor;
+    if (itemPrice > 0 && itemPrice < effectiveFloor) {
+      const ratio = itemPrice / effectiveFloor;
       if (ratio < 0.8) {
         const penalty = Math.round((1 - ratio) * 5);
         bonusScore -= Math.min(penalty, 5);

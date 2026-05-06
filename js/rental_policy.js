@@ -32,6 +32,23 @@ function enrichRentalCandidate(candidate) {
   };
 }
 
+function extractAreaPyeong(text) {
+  const source = String(text || '');
+  const patterns = [
+    /(\d+)\s*평형/,
+    /(\d+)\s*평까지/,
+    /(\d+)\s*평\s*용/,
+    /(\d+)\s*평/
+  ];
+
+  for (const pattern of patterns) {
+    const match = source.match(pattern);
+    if (match) return Number(match[1]);
+  }
+
+  return null;
+}
+
 function enrichRentalCandidatesInPayload(payload) {
   try {
     const messages = Array.isArray(payload?.messages) ? payload.messages : [];
@@ -87,37 +104,47 @@ function getCategoryPolicy(query) {
     {
       category: 'water_purifier',
       pattern: /정수기/i,
-      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0, priceFloor: null }
+      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0, priceFloor: null, areaPriceFloor: null }
     },
     {
       category: 'air_purifier',
       pattern: /공기청정기|공청기/i,
-      policy: { rentalMode: 'limited', rentalMaxRank: 3, rentalScorePenalty: 0.3, priceFloor: null }
+      policy: {
+        rentalMode: 'limited',
+        rentalMaxRank: 3,
+        rentalScorePenalty: 0.3,
+        priceFloor: null,
+        areaPriceFloor: {
+          small: { maxPyeong: 13, floor: 150000 },
+          medium: { maxPyeong: 25, floor: 350000 },
+          large: { maxPyeong: null, floor: 650000 }
+        }
+      }
     },
     {
       category: 'bidet',
       pattern: /비데/i,
-      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0, priceFloor: null }
+      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0, priceFloor: null, areaPriceFloor: null }
     },
     {
       category: 'massage_chair',
       pattern: /안마의자|안마기/i,
-      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0, priceFloor: null }
+      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0, priceFloor: null, areaPriceFloor: null }
     },
     {
       category: 'food_disposer',
       pattern: /음식물처리기|음식물\s*처리|음식물쓰레기처리기/i,
-      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0, priceFloor: 400000 }
+      policy: { rentalMode: 'aggressive', rentalMaxRank: null, rentalScorePenalty: 0, priceFloor: 400000, areaPriceFloor: null }
     },
     {
       category: 'printer',
       pattern: /프린터|복합기/i,
-      policy: { rentalMode: 'limited', rentalMaxRank: 2, rentalScorePenalty: 0.4, priceFloor: 200000 }
+      policy: { rentalMode: 'limited', rentalMaxRank: 2, rentalScorePenalty: 0.4, priceFloor: 200000, areaPriceFloor: null }
     },
     {
       category: 'robot_vacuum',
       pattern: /로봇청소기|로보락|샤오미\s*청소기/i,
-      policy: { rentalMode: 'purchase_priority', rentalMaxRank: null, rentalScorePenalty: 0.5, priceFloor: 800000 }
+      policy: { rentalMode: 'purchase_priority', rentalMaxRank: null, rentalScorePenalty: 0.5, priceFloor: 800000, areaPriceFloor: null }
     }
   ];
 
@@ -128,7 +155,8 @@ function getCategoryPolicy(query) {
       rentalMode: 'exclude',
       rentalMaxRank: null,
       rentalScorePenalty: 1.0,
-      priceFloor: null
+      priceFloor: null,
+      areaPriceFloor: null
     };
   }
 
@@ -136,6 +164,24 @@ function getCategoryPolicy(query) {
     category: matched.category,
     ...matched.policy
   };
+}
+
+function getEffectivePriceFloor(query, item) {
+  const policy = getCategoryPolicy(query);
+
+  if (policy.priceFloor !== null) return policy.priceFloor;
+
+  if (policy.areaPriceFloor) {
+    const queryPyeong = extractAreaPyeong(query);
+    if (queryPyeong === null) return null;
+
+    const { small, medium, large } = policy.areaPriceFloor;
+    if (queryPyeong <= small.maxPyeong) return small.floor;
+    if (queryPyeong <= medium.maxPyeong) return medium.floor;
+    return large.floor;
+  }
+
+  return null;
 }
 
 function isManagedQuery(query) {
@@ -327,6 +373,8 @@ function installManagedRentalRankingPatch() {
   window.rentalPolicy = {
     parseRentalNumber: parseRentalNumber,
     getCategoryPolicy: getCategoryPolicy,
+    extractAreaPyeong: extractAreaPyeong,
+    getEffectivePriceFloor: getEffectivePriceFloor,
     isManagedQuery: isManagedQuery,
     enrichRentalCandidate: enrichRentalCandidate,
     enrichRentalCandidatesInPayload: enrichRentalCandidatesInPayload,

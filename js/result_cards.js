@@ -58,6 +58,69 @@ function extractModelName(name) {
 
   return '';
 }
+
+  function numberOrZero(value) {
+    const n = Number(value || 0);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }
+
+  function splitReasonList(value) {
+    if (Array.isArray(value)) return value.map(compactText).filter(Boolean);
+    return String(value || '')
+      .split(/[,\n]/g)
+      .map(compactText)
+      .filter(Boolean);
+  }
+
+  function getYoutubeVideoCount(card) {
+    const rep = card?.youtubeReputation || {};
+    return numberOrZero(
+      rep.matchedVideoCount ||
+      rep.analyzedVideoCount ||
+      rep.analyzedCount ||
+      rep.videoCount ||
+      card?.youtubeVideoCount ||
+      card?.youtubeAnalyzedVideoCount
+    );
+  }
+
+  function renderYoutubeReputationBadge(card) {
+    if (!card?.youtubeReputation) return '';
+    const count = getYoutubeVideoCount(card);
+    const label = count > 0 ? `▶ YouTube ${count}개 분석` : '▶ YouTube 분석됨';
+    return `<span class="row-badge-item badge-trust row-youtube-badge" title="YouTube 평판 데이터 반영">${esc(label)}</span>`;
+  }
+
+  function getYoutubeDetailReasons(card) {
+    const reasons = [];
+    const add = (items, youtubeOnly) => {
+      items.forEach((reason) => {
+        const text = compactText(reason);
+        if (!text) return;
+        if (youtubeOnly && !/youtube|유튜브|영상|리뷰|후기|언급|평판|반응|조회/i.test(text)) return;
+        if (!reasons.includes(text)) reasons.push(text);
+      });
+    };
+
+    add(splitReasonList(card?.bonusReasons), true);
+    add(splitReasonList(card?.youtubeReasons), false);
+    add(splitReasonList(card?.youtubeReputation?.reasons), false);
+    return reasons.slice(0, 3);
+  }
+
+  function renderYoutubeDetails(card) {
+    if (!card?.youtubeReputation) return '';
+    const reasons = getYoutubeDetailReasons(card);
+    if (!reasons.length) return '';
+
+    return `
+      <div class="row-product-facts row-youtube-details">
+        <span class="row-product-facts-label">YouTube</span>
+        <span>${esc(reasons.join(' · '))}</span>
+      </div>
+    `;
+  }
+
 function renderProductFacts(card) {
   const name = compactText(card.name);
   const facts = [];
@@ -254,6 +317,7 @@ function getBadgeClass(text) {
               <div class="row-badges">
                 ${labelBadge}
                 ${badgesHtml}
+                ${renderYoutubeReputationBadge(card)}
               </div>
             </div>
           </div>
@@ -265,6 +329,7 @@ function getBadgeClass(text) {
           </div>
 
           ${renderProductFacts(card)}
+          ${renderYoutubeDetails(card)}
         </div>
 
         <div class="row-price-area">

@@ -139,7 +139,7 @@ function getCategoryPolicy(query) {
     {
       category: 'printer',
       pattern: /프린터|복합기/i,
-      policy: { rentalMode: 'limited', rentalMaxRank: 2, rentalScorePenalty: 0.4, priceFloor: 200000, areaPriceFloor: null }
+      policy: { rentalMode: 'limited', rentalMaxRank: 2, rentalScorePenalty: 0.4, priceFloor: 100000, areaPriceFloor: null }
     },
     {
       category: 'robot_vacuum',

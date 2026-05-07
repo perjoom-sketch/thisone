@@ -14,7 +14,8 @@ const PRODUCT_FAMILIES = {
   environment: {
     key: 'environment',
     name: '환경개선형',
-    coreValues: ['performance', 'coverage', 'noise', 'energy', 'runningCost']
+    coreValues: ['performance', 'coverage', 'noise', 'energy', 'runningCost'],
+    accessoryFilterMode: 'normal'
   },
 
   mobility: {
@@ -27,6 +28,20 @@ const PRODUCT_FAMILIES = {
     key: 'office_output',
     name: '출력·사무형',
     coreValues: ['performance', 'runningCost', 'speed', 'reliability', 'convenience']
+  },
+
+  robot_vacuum: {
+    key: 'robot_vacuum',
+    name: '로봇청소기형',
+    coreValues: ['performance', 'maintenance', 'navigation', 'convenience', 'runningCost'],
+    accessoryFilterMode: 'strict'
+  },
+
+  hygiene: {
+    key: 'hygiene',
+    name: '위생관리형',
+    coreValues: ['performance', 'maintenance', 'installation', 'convenience', 'runningCost'],
+    accessoryFilterMode: 'strict'
   },
 
   wearable_usage: {
@@ -50,13 +65,17 @@ const PRODUCT_FAMILIES = {
   generic: {
     key: 'generic',
     name: '일반형',
-    coreValues: ['price', 'quality', 'convenience']
+    coreValues: ['price', 'quality', 'convenience'],
+    accessoryFilterMode: 'normal'
   }
 };
 
 const CATEGORY_TO_FAMILY = {
   stroller: 'mobility',
   air_purifier: 'environment',
+  water_purifier: 'environment',
+  robot_vacuum: 'robot_vacuum',
+  bidet: 'hygiene',
   fan: 'environment',
   printer: 'office_output',
   earphone: 'wearable_usage',

@@ -55,10 +55,13 @@ let _lastIntentProfile = null;
 const GeneralSearchState = {
   currentPage: 1,
   currentSort: 'sim',
+  sortMode: 'total',
   total: 0,
   query: '',
-  resultMode: 'normal'
+  resultMode: 'normal',
+  lastItems: []
 };
+window.GeneralSearchState = GeneralSearchState;
 
 const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI입니다.
 반드시 다음 순서로 출력하세요:
@@ -341,6 +344,7 @@ async function sendMsg(forceMode) {
           GeneralSearchState.currentPage = 1;
           GeneralSearchState.total = searchData?.total || 0;
           GeneralSearchState.resultMode = 'fallback_general';
+          GeneralSearchState.lastItems = earlyCandidates;
 
           SearchDropdown?.setResultsRendering?.(true);
           window.ThisOneUI?.renderResults?.(
@@ -361,6 +365,7 @@ async function sendMsg(forceMode) {
       }
 
       _lastIntentProfile = intentProfile;
+      window._lastIntentProfile = intentProfile;
 
       typingEl?.updateThought?.('상품 데이터 및 형상 분석 선별 중...');
       candidates = window.ThisOneRanking?.buildCandidates ? window.ThisOneRanking.buildCandidates(items, finalSearchQuery, intentProfile) : items;
@@ -434,6 +439,7 @@ async function sendMsg(forceMode) {
         GeneralSearchState.currentPage = 1;
         GeneralSearchState.total = searchData?.total || 0;
         GeneralSearchState.resultMode = 'fallback_general';
+        GeneralSearchState.lastItems = candidates;
 
         const allowedSorts = ['sim', 'asc'];
         const preservedSort = allowedSorts.includes(GeneralSearchState.currentSort)
@@ -635,6 +641,7 @@ async function sendMsg(forceMode) {
         GeneralSearchState.currentPage = 1;
         GeneralSearchState.total = searchData?.total || 0;
         GeneralSearchState.resultMode = 'fallback_general';
+        GeneralSearchState.lastItems = generalCandidates;
 
         const allowedSorts = ['sim', 'asc'];
         const preservedSort = allowedSorts.includes(GeneralSearchState.currentSort)
@@ -888,8 +895,16 @@ async function refreshGeneralResults() {
     );
     
     const rawItems = searchData?.items || [];
-    const items = rawItems.map(normalizeGeneralSearchItem);
+    const normalizedItems = rawItems.map(normalizeGeneralSearchItem);
+    const rankMode = GeneralSearchState.sortMode || (GeneralSearchState.currentSort === 'asc' ? 'value' : 'total');
+    const rankedItems = window.ThisOneRanking?.buildCandidates
+      ? window.ThisOneRanking.buildCandidates(normalizedItems, GeneralSearchState.query, window._lastIntentProfile || null)
+      : normalizedItems;
+    const items = window.ThisOneRanking?.sortCandidatesByMode
+      ? window.ThisOneRanking.sortCandidatesByMode(rankedItems, rankMode)
+      : rankedItems;
     GeneralSearchState.total = searchData?.total || 0;
+    GeneralSearchState.lastItems = items;
     
     // UI 업데이트
     window.ThisOneUI?.renderResults?.(

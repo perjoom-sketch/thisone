@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { applyUniversalAIFilter } = require('../lib/universalFilter');
 const { improveQuery } = require('../lib/queryNormalizer');
 const { shouldUseCanonicalIntent, canonicalizeQuery } = require('../lib/canonicalIntent');
+const { enrichYoutubeReputation } = require('../lib/youtubeReputation');
 
 let kv = null;
 try {
@@ -12,6 +13,7 @@ try {
 }
 
 const SEARCH_CACHE_TTL_SECONDS = 3600;
+const YOUTUBE_REPUTATION_TIMEOUT_MS = Number(process.env.YOUTUBE_REPUTATION_TIMEOUT_MS || 3500);
 
 function stripTags(text){return String(text||'').replace(/<[^>]*>/g,'').trim();}
 function isTrue(value){return value === true || String(value).toLowerCase() === 'true';}
@@ -64,6 +66,26 @@ async function writeSearchCache(key, value){
   } catch (e) {
     // fail-open: 캐시 저장 실패는 검색 응답에 영향 주지 않는다.
   }
+}
+async function readYoutubeCache(key){
+  if (!kv || !key) return null;
+  try {
+    return await kv.get(key);
+  } catch (e) {
+    return null;
+  }
+}
+async function writeYoutubeCache(key, value, ttlSeconds){
+  if (!kv || !key || !value) return;
+  try {
+    await kv.set(key, value, { ex: ttlSeconds });
+  } catch (e) {
+    // fail-open: YouTube 평판 캐시 저장 실패는 검색 응답에 영향 주지 않는다.
+  }
+}
+function isYoutubeReputationEnabled(){
+  if (!process.env.YOUTUBE_API_KEY) return false;
+  return String(process.env.YOUTUBE_REPUTATION_ENABLED || 'true').toLowerCase() !== 'false';
 }
 function isRentalLikeItem(item){
   const text = `${item?.name || ''} ${item?.store || ''} ${item?.priceText || ''} ${item?.delivery || ''}`;
@@ -316,7 +338,18 @@ async function handler(req,res){
 
     const universalResult=await applyUniversalAIFilter({query:q,items});
     const universalItems=Array.isArray(universalResult.filteredItems)?universalResult.filteredItems:items;
-    const finalItems=restoreRentalItemsIfAllowed(universalItems, itemsBeforeUniversalFilter, settingsResult.settings);
+    const restoredItems=restoreRentalItemsIfAllowed(universalItems, itemsBeforeUniversalFilter, settingsResult.settings);
+
+    const youtubeReputation = await enrichYoutubeReputation({
+      query: improvedQ,
+      items: restoredItems,
+      apiKey: process.env.YOUTUBE_API_KEY,
+      enabled: isYoutubeReputationEnabled() && start === 1,
+      timeoutMs: YOUTUBE_REPUTATION_TIMEOUT_MS,
+      readCache: readYoutubeCache,
+      writeCache: writeYoutubeCache
+    });
+    const finalItems = youtubeReputation.items;
 
     const responseBody = {
       query:q,
@@ -336,6 +369,7 @@ async function handler(req,res){
         note: 'freeShipping only applies when upstream delivery text is available'
       },
       universalFilterDebug:universalResult.debug||null,
+      youtubeReputationDebug:youtubeReputation.debug||null,
       _cached: false,
       searchCacheDebug: {
         key: searchCacheKey,

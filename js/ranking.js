@@ -54,6 +54,21 @@ const BODY_INDICATORS = [
   /렌탈|대여|구독|약정|월납|월\s*[0-9,]+\s*원/i
 ];
 
+
+const PRINTER_BODY_PROTECTION_PATTERN = /토너\s*(?:미\s*)?포함|기본\s*토너|번들\s*토너|토너\s*내장|(?:정품\s*)?잉크\s*포함|무한\s*잉크|잉크젯|레이저|복합기/i;
+const PRINTER_ACCESSORY_PATTERN = /(?:호환|재생|리필)\s*(?:토너|카트리지)|(?:clt|mlt|pg)[\s-]?[a-z0-9-]+|리필\s*잉크|토너\s*카트리지|잉크\s*카트리지|카트리지|토너/i;
+
+function isPrinterCategoryText(text) {
+  return /프린터|복합기|잉크젯|레이저/.test(String(text || '').toLowerCase());
+}
+
+function isPrinterAccessoryText(text) {
+  const t = String(text || '').toLowerCase();
+  const compact = t.replace(/\s+/g, '');
+  if (PRINTER_BODY_PROTECTION_PATTERN.test(t) || PRINTER_BODY_PROTECTION_PATTERN.test(compact)) return false;
+  return PRINTER_ACCESSORY_PATTERN.test(t) || PRINTER_ACCESSORY_PATTERN.test(compact);
+}
+
 const ACCESSORY_INTENT_WORDS = [
   '액세서리', '악세사리', '부품', '부속', '소모품', '필터', '브러시', '브러쉬',
   '사이드브러시', '사이드브러쉬', '메인브러시', '메인브러쉬', '패드', '물걸레',
@@ -93,6 +108,10 @@ function isAccessory(title, query = '', profile = null) {
   if (mode === 'off') return false;
 
   const text = String(title || '').toLowerCase();
+  if ((inferAccessoryCategoryKey(query, profile) === 'printer' || isPrinterCategoryText(query) || isPrinterCategoryText(text)) && mode === 'normal') {
+    return isPrinterAccessoryText(text);
+  }
+
   const compact = text.replace(/\s+/g, '');
   const hasAccessoryPattern = ACCESSORY_PATTERNS.some((pattern) => pattern.test(text) || pattern.test(compact));
   if (!hasAccessoryPattern) return false;

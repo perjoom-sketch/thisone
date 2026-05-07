@@ -16,7 +16,23 @@
   }
 
   function normalizeBadgeText(text) {
-    return text === '배송비 미확인' ? '배송비 상세확인' : text;
+    const raw = String(text || '').trim();
+    const mapped = {
+      '최우수 추천': '종합 1위',
+      '가성비 추천': '가성비',
+      '균형형 추천': '균형형',
+      '브랜드/완성도 추천': '브랜드 우선',
+      '최저가 추천': '최저가',
+      '프리미엄 추천': '프리미엄',
+      '합리적인 가격': '중간 가격대',
+      '관리편의 렌탈': '관리편의',
+      'AI추천': '종합 1위',
+      'AI 추천': '종합 1위',
+      '추가 후보': '추가',
+      '배송비 미확인': '배송비 상세확인'
+    };
+    if (mapped[raw]) return mapped[raw];
+    return raw.replace(/\s*추천\s*$/g, '').trim();
   }
 function compactText(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -43,12 +59,19 @@ function extractModelName(name) {
 function renderProductFacts(card) {
   const name = compactText(card.name);
   const facts = [];
+  const categoryWords = new Set([
+    '정수기', '공기청정기', '렌탈', '프린터', '복합기', '마우스', '청소기', '로봇청소기',
+    '상품', '정품', '공식', '공식판매', '국내정품', '무료배송', '당일배송'
+  ]);
 
   const unique = (values) => {
     const seen = new Set();
     return values
       .map(compactText)
       .filter(Boolean)
+      .map((value) => value.replace(/[(),]/g, '').trim())
+      .filter(Boolean)
+      .filter((value) => !categoryWords.has(value))
       .filter((value) => {
         const key = value.toLowerCase();
         if (seen.has(key)) return false;
@@ -59,22 +82,31 @@ function renderProductFacts(card) {
 
   const extractKnownBrand = (text) => {
     const brands = [
-      'LG', 'LG전자', '삼성', '삼성전자', '신일', '제스파', '코지마', '바디프랜드',
-      '다이슨', '로보락', '에코백스', '샤오미', '쿠쿠', '쿠첸', '위닉스', '브라운',
-      '필립스', '소니', '애플', '레노버', 'HP', '한성', '루메나', '듀플렉스'
+      'LG퓨리케어', 'LG전자', '삼성전자', '바디프랜드', '다이슨', '로보락', '에코백스',
+      '샤오미', '쿠쿠', '쿠첸', '위닉스', '브라운', '필립스', '소니', '애플', '로지텍',
+      '레노버', '한성', '루메나', '듀플렉스', 'LG', '삼성', '신일', '제스파', '코지마', 'HP'
     ];
     const source = String(text || '');
     return brands.find((brand) => source.toLowerCase().includes(String(brand).toLowerCase())) || '';
   };
 
-  const extractSpecs = (text) => {
-    const matches = String(text || '').match(/\d+(?:\.\d+)?\s*(?:cm|mm|인치|inch|kg|g|ml|l|리터|w|kw|평|㎡|m²)/gi) || [];
-    return unique(matches).slice(0, 3);
+  const extractFallbackBrand = (text) => {
+    const tokens = compactText(text)
+      .replace(/[|/()\[\],]/g, ' ')
+      .split(/\s+/)
+      .map((token) => token.replace(/^(공식|정품|국내정품|브랜드)[:：-]?/g, '').trim())
+      .filter(Boolean);
+    return tokens.find((token) => {
+      if (categoryWords.has(token)) return false;
+      if (/^\d/.test(token)) return false;
+      if (/무료배송|당일배송|공식|정품|렌탈/i.test(token)) return false;
+      return /[가-힣A-Za-z]/.test(token);
+    }) || '';
   };
 
-  const extractQuantities = (text) => {
-    const matches = String(text || '').match(/\d+\s*(?:롤|개|매|팩|장|캡슐|봉|세트|박스|개입|입|p|P)/g) || [];
-    return unique(matches).slice(0, 2);
+  const extractSpecs = (text) => {
+    const matches = String(text || '').match(/\d+(?:\.\d+)?\s*(?:cm|mm|인치|inch|kg|g|ml|l|리터|w|kw|평|㎡|m²)/gi) || [];
+    return unique(matches).filter((value) => !/^\d+\s*(?:개월|개|매|팩|세트)$/i.test(value)).slice(0, 2);
   };
 
   const isDisplayLike = (text) => /tv|티비|텔레비전|모니터|디스플레이|uhd|oled|qled|스마트tv|스마트 tv/i.test(String(text || ''));
@@ -99,36 +131,34 @@ function renderProductFacts(card) {
       '업소용', '산업용', '공업용', '현장용', '축사용', '가정용', '사무실용',
       '캠핑용', '차량용', '휴대용', '영업용', '매장용', '주방용', '욕실용'
     ];
-    return unique(purposes.filter((word) => String(text || '').includes(word))).slice(0, 3).join('/');
+    return unique(purposes.filter((word) => String(text || '').includes(word))).slice(0, 2).join('/');
   };
 
   const extractForm = (text) => {
     const forms = [
-      '스탠드', '벽걸이', '좌식', '앉은뱅이', '무선', '유선', '접이식',
+      '무선', '유선', '스탠드', '벽걸이', '좌식', '앉은뱅이', '접이식',
       '올인원', '일체형', '휴대형', '핸디형', '로봇형', '써큘레이터'
     ];
-    return unique(forms.filter((word) => String(text || '').includes(word))).slice(0, 3).join('/');
+    return unique(forms.filter((word) => String(text || '').includes(word))).slice(0, 2).join('/');
   };
 
-  const combinedText = `${name} ${card.store || ''} ${card.delivery || ''}`;
-  const brand = compactText(card.brand || card.maker || extractKnownBrand(combinedText));
+  const combinedText = `${name} ${card.store || ''} ${card.mallName || ''} ${card.delivery || ''}`;
+  const brand = compactText(card.brand || card.maker || extractKnownBrand(combinedText) || extractFallbackBrand(card.mallName || card.store || name));
   const rawModelCode = extractModelName(`${card.modelCode || ''} ${card.model || ''} ${card.modelKey || ''} ${name}`);
   const modelCode = /^\d+(?:CM|MM|KG|G|ML|L|W|KW)$/i.test(rawModelCode) ? '' : rawModelCode;
-  const specs = extractSpecs(name);
-  const quantities = extractQuantities(name);
+  const specs = extractSpecs(name).filter((spec) => !modelCode || spec.toUpperCase().replace(/\s+/g, '') !== modelCode.toUpperCase());
   const displayFeatures = extractDisplayFeatures(combinedText);
   const purpose = extractPurpose(combinedText);
   const form = extractForm(combinedText);
 
   if (brand) facts.push(brand);
   if (modelCode) facts.push(modelCode);
-  facts.push(...specs);
-  facts.push(...quantities);
   facts.push(...displayFeatures);
   if (purpose) facts.push(purpose);
   if (form) facts.push(form);
+  facts.push(...specs);
 
-  const cleanFacts = unique(facts).slice(0, 6);
+  const cleanFacts = unique(facts).slice(0, 4);
   if (!cleanFacts.length) return '';
 
   return `
@@ -140,10 +170,24 @@ function renderProductFacts(card) {
 }
   
 function getBadgeClass(text) {
-    if (text.includes('가성비')) return 'badge-value';
-    if (text.includes('신뢰')) return 'badge-trust';
-    if (text.includes('추천')) return 'badge-thisone';
+    if (text.includes('가성비') || text.includes('최저가')) return 'badge-value';
+    if (text.includes('신뢰') || text.includes('브랜드')) return 'badge-trust';
+    if (text.includes('종합 1위') || text.includes('프리미엄')) return 'badge-thisone';
     return 'badge-default';
+  }
+
+
+
+  function formatPriceHtml(card) {
+    if (card?.isRental && card.rentalMonthlyFee > 0) {
+      const fmt = (v) => Number(v || 0).toLocaleString('ko-KR');
+      const monthly = `월 ${fmt(card.rentalMonthlyFee)}원`;
+      if (card.rentalMonths > 0 && card.rentalTotalFee > 0) {
+        return `<span class="row-price-main">${esc(monthly)}</span><span class="row-price-sub">${esc(`${card.rentalMonths}개월 · 총 ${fmt(card.rentalTotalFee)}원`)}</span>`;
+      }
+      return `<span class="row-price-main">${esc(monthly)}</span>`;
+    }
+    return esc(card.price || '가격 정보 없음');
   }
 
   function renderPickCard(card, isFirst, options) {
@@ -159,7 +203,7 @@ function getBadgeClass(text) {
       : '';
 
     const labelBadge = !hideRecommendationUi && card.label
-      ? `<span class="row-badge-item row-label-badge">${esc(card.label)}</span>`
+      ? `<span class="row-badge-item row-label-badge">${esc(normalizeBadgeText(card.label))}</span>`
       : '';
 
     return `
@@ -187,11 +231,10 @@ function getBadgeClass(text) {
           </div>
 
           ${renderProductFacts(card)}
-          ${card.reason ? `<div class="row-reason-text">${esc(card.reason)}</div>` : ''}
         </div>
 
         <div class="row-price-area">
-          <div class="${priceClass}">${esc(card.price || '가격 정보 없음')}</div>
+          <div class="${priceClass}">${formatPriceHtml(card)}</div>
           <div class="row-cta">최종가 확인</div>
         </div>
       </article>
@@ -268,7 +311,7 @@ function getBadgeClass(text) {
     if (!c?.isRental) return c?.price || c?.priceText || '';
     const fmt = (v) => Number(v || 0).toLocaleString('ko-KR');
     if (c.rentalMonthlyFee > 0 && c.rentalMonths > 0) {
-      return `월 ${fmt(c.rentalMonthlyFee)}원 / ${c.rentalMonths}개월 / 총 ${fmt(c.rentalTotalFee)}원`;
+      return `월 ${fmt(c.rentalMonthlyFee)}원 ${c.rentalMonths}개월 총 ${fmt(c.rentalTotalFee)}원`;
     }
     if (c.rentalMonthlyFee > 0) return `월 ${fmt(c.rentalMonthlyFee)}원`;
     return `렌탈 ${c.price || c.priceText || '가격 확인'}`;

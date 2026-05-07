@@ -113,6 +113,18 @@ async function fetchNaverShopItems(query, { display = 10, start = 1, sort = 'sim
     clearTimeout(timeoutId);
   }
 }
+function formatDeliveryFromItem(item){
+  const rawDelivery = stripTags(item.delivery || item.deliveryInfo || item.shipping || item.shippingInfo || item.deliveryFeeText || item.shippingFeeText || '');
+  if (rawDelivery) return rawDelivery;
+
+  const feeValue = item.shippingFee ?? item.deliveryFee ?? item.shippingCost ?? item.deliveryCost;
+  if (feeValue === undefined || feeValue === null || feeValue === '') return '';
+
+  const fee = Number(String(feeValue).replace(/[^\d]/g, ''));
+  if (Number.isFinite(fee) && fee === 0) return '무료배송';
+  if (Number.isFinite(fee) && fee > 0) return `배송비 ${fee.toLocaleString('ko-KR')}원`;
+  return '';
+}
 function mapNaverItems(rawItems){
   return (rawItems || []).map((item,idx)=>({
     id:String(idx+1),
@@ -131,7 +143,7 @@ function mapNaverItems(rawItems){
     category2:stripTags(item.category2||''),
     category3:stripTags(item.category3||''),
     category4:stripTags(item.category4||''),
-    delivery:stripTags(item.delivery||item.deliveryInfo||'')
+    delivery:formatDeliveryFromItem(item)
   }));
 }
 function appendUniqueItems(baseItems, extraItems){

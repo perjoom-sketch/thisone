@@ -71,6 +71,15 @@ function showMobileVisionDebug(title, rows){
     return 'sim';
   }
 
+  function rankItemsForMode(items, query, mode){
+    const ranking=global.ThisOneRanking;
+    if(!ranking||typeof ranking.buildCandidates!=='function') return items||[];
+    const profile=global._lastIntentProfile||null;
+    const candidates=ranking.buildCandidates(items||[], query||'', profile);
+    if(typeof ranking.sortCandidatesByMode==='function') return ranking.sortCandidatesByMode(candidates, mode);
+    return candidates;
+  }
+
   function setSortActive(mode){
     global.ThisOneSortMode=mode||'total';
     document.querySelectorAll('.sort-options .sort-btn').forEach(btn=>{
@@ -92,6 +101,7 @@ function showMobileVisionDebug(title, rows){
       try{
         if(global.GeneralSearchState){
           global.GeneralSearchState.currentSort=apiSort;
+          global.GeneralSearchState.sortMode=mode;
           global.GeneralSearchState.currentPage=1;
         }
         const q=getCurrentGeneralQuery();
@@ -101,10 +111,12 @@ function showMobileVisionDebug(title, rows){
         }
         console.debug('[ThisOne][sort]', 'reload general results', {q, apiSort, mode});
         const data=await global.ThisOneAPI.requestSearch(q, {}, 1, 30, apiSort);
-        const items=data&&data.items||[];
+        const rawItems=data&&data.items||[];
+        const items=rankItemsForMode(rawItems, q, mode);
         if(global.GeneralSearchState){
           global.GeneralSearchState.query=q;
           global.GeneralSearchState.total=data&&data.total||items.length;
+          global.GeneralSearchState.lastItems=items;
           global.GeneralSearchState.resultMode=global.GeneralSearchState.resultMode||'fallback_general';
         }
         global.ThisOneUI.renderResults(items, data&&data.total||items.length, 1, apiSort, global.GeneralSearchState&&global.GeneralSearchState.resultMode||'fallback_general');

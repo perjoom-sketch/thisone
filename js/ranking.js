@@ -292,6 +292,25 @@ function inferIntentProfile(query) {
   };
 }
 
+
+function clampScore(value, min, max) {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(min, Math.min(max, n));
+}
+
+function getYoutubeReputationBonus(candidate) {
+  const rep = candidate?.youtubeReputation;
+  if (!rep || typeof rep !== 'object') {
+    return { bonus: 0, valueBonus: 0, reasons: '' };
+  }
+
+  const bonus = clampScore(rep.bonus ?? candidate.youtubeScore, -3, 5);
+  const valueBonus = clampScore(rep.valueBonus ?? Math.round(bonus * 0.6), -2, 3);
+  const reasons = Array.isArray(rep.reasons) ? rep.reasons.join(', ') : String(candidate.youtubeReasons || 'YouTube 평판 반영').trim();
+  return { bonus, valueBonus, reasons };
+}
+
 function getCandidateBonus(candidate, profile, query) {
   const name = String(candidate.name || '').toLowerCase();
   const price = parsePriceNumber(candidate.price);
@@ -507,6 +526,12 @@ function getCandidateBonus(candidate, profile, query) {
     }
   }
 
+  const youtube = getYoutubeReputationBonus(candidate);
+  if (youtube.bonus) {
+    bonusScore += youtube.bonus;
+    bonusReasons.push(youtube.reasons || 'YouTube 평판 반영');
+  }
+
   // 3. 네이버 랭킹 가점 (id 기반 — 앞 순위일수록 가점)
   const rankId = parseInt(String(candidate.id || '0'), 10);
   if (rankId > 0 && rankId <= 5) {
@@ -692,6 +717,62 @@ function shouldExcludeFromPriceRank(item, query, medianPrice, profile) {
   };
 }
 
+
+function getPriceValueIndex(candidate, candidates = []) {
+  const price = Number(candidate?.totalPriceNum || candidate?.priceNum || 0);
+  const prices = (candidates || [])
+    .map((item) => Number(item?.totalPriceNum || item?.priceNum || 0))
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .sort((a, b) => a - b);
+
+  if (!Number.isFinite(price) || price <= 0 || prices.length <= 1) return 0;
+  const cheaperCount = prices.filter((value) => value < price).length;
+  const percentile = cheaperCount / (prices.length - 1);
+  return Math.max(0, Math.min(1, 1 - percentile));
+}
+
+function sortCandidatesByMode(candidates = [], mode = 'total') {
+  const list = Array.isArray(candidates) ? [...candidates] : [];
+  const sortMode = String(mode || 'total');
+
+  if (sortMode === 'value' || sortMode === 'asc') {
+    return list.sort((a, b) => {
+      const av = Number(a.valueScore ?? a.finalScore ?? 0);
+      const bv = Number(b.valueScore ?? b.finalScore ?? 0);
+      if (bv !== av) return bv - av;
+      const ap = Number(a.totalPriceNum || a.priceNum || 0);
+      const bp = Number(b.totalPriceNum || b.priceNum || 0);
+      if (ap && bp && ap !== bp) return ap - bp;
+      return Number(b.popularScore ?? 0) - Number(a.popularScore ?? 0);
+    });
+  }
+
+  if (sortMode === 'popular' || sortMode === 'sales') {
+    return list.sort((a, b) => {
+      const apop = Number(a.popularScore ?? a.finalScore ?? 0);
+      const bpop = Number(b.popularScore ?? b.finalScore ?? 0);
+      if (bpop !== apop) return bpop - apop;
+      const ay = Number(a.youtubeReputation?.matchedVideoCount || 0);
+      const by = Number(b.youtubeReputation?.matchedVideoCount || 0);
+      if (by !== ay) return by - ay;
+      const ap = Number(a.totalPriceNum || a.priceNum || 0);
+      const bp = Number(b.totalPriceNum || b.priceNum || 0);
+      if (ap && bp) return ap - bp;
+      return 0;
+    });
+  }
+
+  return list.sort((a, b) => {
+    const at = Number(a.totalScore ?? a.finalScore ?? 0);
+    const bt = Number(b.totalScore ?? b.finalScore ?? 0);
+    if (bt !== at) return bt - at;
+    const ap = Number(a.totalPriceNum || a.priceNum || 0);
+    const bp = Number(b.totalPriceNum || b.priceNum || 0);
+    if (ap && bp) return ap - bp;
+    return 0;
+  });
+}
+
 function getSafePriceCandidate(candidates) {
   return (candidates || [])
     .filter((c) => !c.excludeFromPriceRank)
@@ -803,7 +884,10 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
       shippingCost: shipping.cost,
       totalPriceNum: shipping.known ? (priceNum + shipping.cost) : priceNum,
       isOverseas: /해외|직구|구매대행/i.test(`${item.name} ${item.delivery} ${item.store}`),
-      isUsed: /중고|리퍼|반품|전시/i.test(`${item.name}`)
+      isUsed: /중고|리퍼|반품|전시/i.test(`${item.name}`),
+      youtubeReputation: item.youtubeReputation || null,
+      youtubeScore: Number(item.youtubeScore || item.youtubeReputation?.bonus || 0),
+      youtubeReasons: String(item.youtubeReasons || (Array.isArray(item.youtubeReputation?.reasons) ? item.youtubeReputation.reasons.join(', ') : '')).trim()
     };
   });
 
@@ -812,12 +896,17 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
 
   return deduped.map((candidate) => {
     const bonus = getCandidateBonus(candidate, profile, queryText);
+    const youtubeBonus = getYoutubeReputationBonus(candidate);
+    const priceValueIndex = getPriceValueIndex(candidate, deduped);
     const priceRisk = shouldExcludeFromPriceRank(candidate, queryText, medianPrice, profile);
 
     let specPenalty = 0;
     let isStrictExcluded = false;
     let excludeReason = '';
     const badges = [...(priceRisk.badges || [])];
+    if (youtubeBonus.bonus > 0 && candidate.youtubeReputation?.matchedVideoCount > 0) {
+      badges.push('YouTube 평판');
+    }
 
     // ── 전문가 설정 필터링 반영 (Strict 모드 전환) ──────────────────
     if (expertSettings.minPrice && candidate.totalPriceNum < Number(expertSettings.minPrice)) {
@@ -870,14 +959,25 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
     }
 
     const finalScore = isStrictExcluded ? -999 : (bonus.bonusScore - specPenalty);
+    const baseScoreWithoutYoutube = isStrictExcluded ? -999 : (finalScore - youtubeBonus.bonus);
+    const totalScore = finalScore;
+    const popularScore = finalScore;
+    const valueScore = isStrictExcluded ? -999 : Number((baseScoreWithoutYoutube + (6 * priceValueIndex) + youtubeBonus.valueBonus).toFixed(2));
 
     return {
       ...candidate,
       modelKey: candidate.modelKey || getModelKey(candidate.name),
       bonusScore: bonus.bonusScore,
       bonusReasons: bonus.bonusReasons,
+      youtubeReputation: candidate.youtubeReputation || null,
+      youtubeBonus: youtubeBonus.bonus,
+      youtubeValueBonus: youtubeBonus.valueBonus,
+      priceValueIndex,
       specPenalty,
       finalScore,
+      totalScore,
+      popularScore,
+      valueScore,
       excludeFromPriceRank: isStrictExcluded || priceRisk.exclude || specPenalty >= 15,
       priceRiskReason: isStrictExcluded ? excludeReason : priceRisk.reason,
       badges
@@ -985,6 +1085,7 @@ window.ThisOneRanking = {
   getSafePriceCandidate,
   getModelKey,
   dedupeCandidatesByModel,
+  sortCandidatesByMode,
   buildCandidates,
   mergeAiWithCandidates
 };

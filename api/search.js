@@ -71,7 +71,7 @@ function isRentalLikeItem(item){
 }
 function isRentalCapableQuery(query){
   const q = String(query || '').toLowerCase();
-  return /음식물처리기|음쓰처리기|정수기|비데|안마의자|공기청정기|공청기/i.test(q);
+  return /음식물처리기|음쓰처리기|정수기|비데|안마의자|공기청정기|공청기|로보락|roborock|로봇청소기|로봇\s*청소기/i.test(q);
 }
 function buildNaverShopUrl(query, { display = 10, start = 1, sort = 'sim' } = {}){
   return `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(query)}&display=${display}&start=${start}&sort=${sort}`;

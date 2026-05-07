@@ -87,6 +87,27 @@ function isYoutubeReputationEnabled(){
   if (!process.env.YOUTUBE_API_KEY) return false;
   return String(process.env.YOUTUBE_REPUTATION_ENABLED || 'true').toLowerCase() !== 'false';
 }
+
+function buildYoutubeDebugInfo(youtubeResult, durationMs){
+  const debug = youtubeResult?.debug || {};
+  const enabled = debug.enabled === true;
+  const cached = debug.cached === true;
+  const error = debug.error || null;
+  return {
+    youtube_api: {
+      enabled,
+      called: enabled && !cached,
+      success: enabled ? !error : false,
+      durationMs: Number(durationMs || 0),
+      cached,
+      videoCount: Number(debug.videoCount || 0),
+      matchedCount: Number(debug.matchedCount || 0),
+      timeoutMs: Number(debug.timeoutMs || YOUTUBE_REPUTATION_TIMEOUT_MS),
+      error
+    }
+  };
+}
+
 function isRentalLikeItem(item){
   const text = `${item?.name || ''} ${item?.store || ''} ${item?.priceText || ''} ${item?.delivery || ''}`;
   return /렌탈|대여|구독|약정|약정\s*\d+\s*년|월납|월\s*납입|의무사용|의무\s*\d+|방문관리|직접관리|자가관리|방문주기\s*\d*|코디관리|관리형|월\s*[0-9,]+\s*원|\d+\s*개월/i.test(text);
@@ -291,6 +312,19 @@ async function handler(req,res){
     if (cachedResponse && typeof cachedResponse === 'object') {
       return res.status(200).json({
         ...cachedResponse,
+        debug_info: cachedResponse.debug_info || {
+          youtube_api: {
+            enabled: cachedResponse.youtubeReputationDebug?.enabled === true,
+            called: false,
+            success: cachedResponse.youtubeReputationDebug?.enabled === true ? !cachedResponse.youtubeReputationDebug?.error : false,
+            durationMs: 0,
+            cached: true,
+            videoCount: Number(cachedResponse.youtubeReputationDebug?.videoCount || 0),
+            matchedCount: Number(cachedResponse.youtubeReputationDebug?.matchedCount || 0),
+            timeoutMs: Number(cachedResponse.youtubeReputationDebug?.timeoutMs || YOUTUBE_REPUTATION_TIMEOUT_MS),
+            error: cachedResponse.youtubeReputationDebug?.error || null
+          }
+        },
         _cached: true,
         searchCacheDebug: {
           ...(cachedResponse.searchCacheDebug || {}),
@@ -340,6 +374,7 @@ async function handler(req,res){
     const universalItems=Array.isArray(universalResult.filteredItems)?universalResult.filteredItems:items;
     const restoredItems=restoreRentalItemsIfAllowed(universalItems, itemsBeforeUniversalFilter, settingsResult.settings);
 
+    const youtubeStartAt = Date.now();
     const youtubeReputation = await enrichYoutubeReputation({
       query: improvedQ,
       items: restoredItems,
@@ -349,9 +384,12 @@ async function handler(req,res){
       readCache: readYoutubeCache,
       writeCache: writeYoutubeCache
     });
+    const youtubeDurationMs = Date.now() - youtubeStartAt;
     const finalItems = youtubeReputation.items;
+    const debugInfo = buildYoutubeDebugInfo(youtubeReputation, youtubeDurationMs);
 
     const responseBody = {
+      debug_info: debugInfo,
       query:q,
       improvedQuery:improvedQ,
       canonicalDebug,

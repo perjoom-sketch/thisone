@@ -43,6 +43,8 @@ function extractModelName(name) {
   if (!text) return '';
 
   const patterns = [
+    /\b([A-Z]{1,10}-[A-Z]{0,10}\d[A-Z0-9-]*)\b/,
+    /\b([A-Z]{1,10}\d[A-Z0-9-]*\d[A-Z0-9-]*)\b/,
     /\b([A-Z]{1,10}-\d{2,}[A-Z0-9-]*)\b/,
     /\b([A-Z]{1,10}\d{3,}[A-Z0-9-]*)\b/,
     /\b([A-Z]{2,}\d{2,}[A-Z0-9-]*)\b/,
@@ -80,11 +82,43 @@ function renderProductFacts(card) {
       });
   };
 
+  function dedupeTokens(tokens) {
+    const filtered = tokens.filter((t) => t && t.trim().length > 0);
+    const result = [];
+
+    for (const token of filtered) {
+      const normalizedToken = token.toLowerCase();
+      const hasModelSignal = /\d/.test(token);
+      const isSubstring = result.some((existing) =>
+        hasModelSignal &&
+        /\d/.test(existing) &&
+        existing.length > token.length &&
+        existing.toLowerCase().includes(normalizedToken)
+      );
+      if (isSubstring) continue;
+
+      const shorterDuplicates = result.filter((existing) =>
+        hasModelSignal &&
+        /\d/.test(existing) &&
+        token.length > existing.length &&
+        normalizedToken.includes(existing.toLowerCase())
+      );
+      for (const dup of shorterDuplicates) {
+        const idx = result.indexOf(dup);
+        if (idx >= 0) result.splice(idx, 1);
+      }
+
+      result.push(token);
+    }
+
+    return result;
+  }
+
   const extractKnownBrand = (text) => {
     const brands = [
       'LG퓨리케어', 'LG전자', '삼성전자', '바디프랜드', '다이슨', '로보락', '에코백스',
       '샤오미', '쿠쿠', '쿠첸', '위닉스', '브라운', '필립스', '소니', '애플', '로지텍',
-      '레노버', '한성', '루메나', '듀플렉스', 'LG', '삼성', '신일', '제스파', '코지마', 'HP'
+      '레노버', '한성', '루메나', '듀플렉스', '캐논', '코웨이', 'LG', '삼성', '신일', '제스파', '코지마', 'HP'
     ];
     const source = String(text || '');
     return brands.find((brand) => source.toLowerCase().includes(String(brand).toLowerCase())) || '';
@@ -158,7 +192,7 @@ function renderProductFacts(card) {
   if (form) facts.push(form);
   facts.push(...specs);
 
-  const cleanFacts = unique(facts).slice(0, 4);
+  const cleanFacts = dedupeTokens(unique(facts)).slice(0, 4);
   if (!cleanFacts.length) return '';
 
   return `

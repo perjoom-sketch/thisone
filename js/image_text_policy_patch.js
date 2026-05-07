@@ -80,11 +80,41 @@ function showMobileVisionDebug(title, rows){
     return candidates;
   }
 
-  function setSortActive(mode){
-    global.ThisOneSortMode=mode||'total';
-    document.querySelectorAll('.sort-options .sort-btn').forEach(btn=>{
-      btn.classList.toggle('active',btn.dataset.sortMode===global.ThisOneSortMode);
+  function getGeneralSortMode(){
+    if(global.GeneralSearchState&&global.GeneralSearchState.sortMode) return global.GeneralSearchState.sortMode;
+    if(global.ThisOneGeneralSortMode) return global.ThisOneGeneralSortMode;
+    return global.ThisOneSortMode||'total';
+  }
+
+  function getRecSortMode(){
+    return global.ThisOneRecSortMode||'total';
+  }
+
+  function setWrapSortActive(wrap, mode){
+    if(!wrap) return;
+    const activeMode=mode||'total';
+    wrap.querySelectorAll('.sort-btn').forEach(btn=>{
+      btn.classList.toggle('active',btn.dataset.sortMode===activeMode);
     });
+  }
+
+  function setSortActive(mode, sourceBtn){
+    const activeMode=mode||'total';
+    const sourceWrap=sourceBtn&&sourceBtn.closest?sourceBtn.closest('.sort-options'):null;
+    if(sourceWrap){
+      if(sourceWrap.classList.contains('thisone-rec-sort')){
+        global.ThisOneRecSortMode=activeMode;
+      }else{
+        global.ThisOneGeneralSortMode=activeMode;
+        global.ThisOneSortMode=activeMode;
+      }
+      setWrapSortActive(sourceWrap, activeMode);
+      return;
+    }
+
+    global.ThisOneGeneralSortMode=activeMode;
+    global.ThisOneSortMode=activeMode;
+    document.querySelectorAll('.sort-options:not(.thisone-rec-sort)').forEach(wrap=>setWrapSortActive(wrap, activeMode));
   }
 
   function getCurrentGeneralQuery(){
@@ -93,11 +123,18 @@ function showMobileVisionDebug(title, rows){
     return getPrimaryInputValue();
   }
 
+  function normalizeSortMode(sortOrMode){
+    if(['total','value','popular','sales'].includes(sortOrMode)) return sortOrMode;
+    if(sortOrMode==='asc') return 'value';
+    if(sortOrMode==='sim') return 'total';
+    return getGeneralSortMode()||'total';
+  }
+
   function installSortExecutionPatch(){
-    global.changeSort=async function(sortOrMode){
-      const mode=['total','value','popular','sales'].includes(sortOrMode)?sortOrMode:(global.ThisOneSortMode||'total');
+    global.changeSort=async function(sortOrMode, sourceBtn){
+      const mode=normalizeSortMode(sortOrMode);
       const apiSort=mapSortModeToApi(mode);
-      setSortActive(mode);
+      setSortActive(mode, sourceBtn);
       try{
         if(global.GeneralSearchState){
           global.GeneralSearchState.currentSort=apiSort;
@@ -132,10 +169,10 @@ function showMobileVisionDebug(title, rows){
       if(/가성비|최저/.test(text||'')) return 'value';
       if(/인기/.test(text||'')) return 'popular';
       if(/판매/.test(text||'')) return 'sales';
-      return global.ThisOneSortMode || 'total';
+      return getGeneralSortMode();
     };
     const buttons=(activeKey)=>{
-      const btn=(key,label)=>`<button class="sort-btn ${activeKey===key?'active':''}" data-sort-mode="${key}" onclick="window.ThisOneSortMode='${key}'; window.changeSort('${key}')">${label}</button>`;
+      const btn=(key,label)=>`<button class="sort-btn ${activeKey===key?'active':''}" data-sort-mode="${key}" onclick="window.changeSort('${key}', this)">${label}</button>`;
       return [btn('total','종합 1위'),btn('value','가성비'),btn('popular','인기순'),btn('sales','판매순')].join('');
     };
     const apply=()=>{
@@ -158,12 +195,13 @@ function showMobileVisionDebug(title, rows){
         const sort=document.createElement('div');
         sort.className='sort-options thisone-rec-sort';
         sort.dataset.thisoneSortPatchApplied='true';
-        sort.innerHTML=buttons(global.ThisOneSortMode||'total');
+        sort.innerHTML=buttons(getRecSortMode());
         parent.insertBefore(row,label);
         row.appendChild(label);
         row.appendChild(sort);
       });
-      setSortActive(global.ThisOneSortMode||'total');
+      document.querySelectorAll('.sort-options:not(.thisone-rec-sort)').forEach(wrap=>setWrapSortActive(wrap,getGeneralSortMode()));
+      document.querySelectorAll('.thisone-rec-sort').forEach(wrap=>setWrapSortActive(wrap,getRecSortMode()));
     };
     apply();
     const observer=new MutationObserver(apply);

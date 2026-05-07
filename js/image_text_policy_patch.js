@@ -124,21 +124,21 @@ function showMobileVisionDebug(title, rows){
     };
     const buttons=(activeKey)=>{
       const btn=(key,label)=>`<button class="sort-btn ${activeKey===key?'active':''}" data-sort-mode="${key}" onclick="window.ThisOneSortMode='${key}'; window.changeSort('${key}')">${label}</button>`;
-      return [btn('total','종합추천'),btn('value','가성비'),btn('popular','인기순'),btn('sales','판매순')].join('');
+      return [btn('total','종합 1위'),btn('value','가성비'),btn('popular','인기순'),btn('sales','판매순')].join('');
     };
     const apply=()=>{
       document.querySelectorAll('.sort-options').forEach(wrap=>{
         if(wrap.classList.contains('thisone-rec-sort')) return;
         if(wrap.dataset.thisoneSortPatchApplied==='true') return;
         const text=wrap.textContent||'';
-        if(!text.includes('관련도순')&&!text.includes('최저가순')&&!text.includes('종합추천')) return;
+        if(!text.includes('관련도순')&&!text.includes('최저가순')&&!text.includes('종합 1위')) return;
         wrap.dataset.thisoneSortPatchApplied='true';
         wrap.innerHTML=buttons(activeKeyFromText(text));
       });
 
       document.querySelectorAll('.ai-result > .ai-label').forEach(label=>{
         const text=label.textContent||'';
-        if(!text.includes('지능형 추천 리포트')) return;
+        if(!text.includes('지능형 분석 리포트')) return;
         const parent=label.parentElement;
         if(!parent||parent.querySelector('.thisone-rec-sort')) return;
         const row=document.createElement('div');

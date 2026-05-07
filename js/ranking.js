@@ -923,8 +923,7 @@ function mergeAiWithCandidates(aiResult, candidates = []) {
       const aiCard = {
         ...picked,
         type: 'ai',
-        label: 'AI추천',
-        reason: picked.reason || '조건을 종합했을 때 가장 균형이 좋은 선택'
+        label: '종합 1위'
       };
       finalCards = [aiCard, ...mergedCards];
     }

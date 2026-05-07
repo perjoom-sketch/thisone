@@ -264,7 +264,7 @@ function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 
   }
 
   const headerTitle = isFallbackGeneral
-    ? `일반 검색 결과(디스원 AI 추천 아님) ${total > 0 ? `(총 ${total.toLocaleString()}개)` : ''}`
+    ? `일반 검색 결과(디스원 AI 분석 아님) ${total > 0 ? `(총 ${total.toLocaleString()}개)` : ''}`
     : `일반 검색 결과 ${total > 0 ? `(총 ${total.toLocaleString()}개)` : ''}`;
 
   const html = `
@@ -352,7 +352,7 @@ function addResultCard(result) {
     <div class="ai-result">
       <div class="ai-label">
         <span class="dot">✦</span>
-        <span>지능형 추천 리포트</span>
+        <span>지능형 분석 리포트</span>
       </div>
       <div class="pick-list">
         ${cardsHtml}
@@ -577,7 +577,7 @@ async function submitInquiry() {
 function purgeProgressLeak() {
   const root = document.getElementById('msgContainer');
   if (!root) return;
-  const banned = '최종 추천 리포트를 생성하고 있습니다';
+  const banned = '최종 분석 리포트를 생성하고 있습니다';
 
   root.querySelectorAll('*').forEach((el) => {
     if (el.id === 'statusTextV2') return;

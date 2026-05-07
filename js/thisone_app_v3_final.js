@@ -62,16 +62,15 @@ const GeneralSearchState = {
 
 const RANKING_PROMPT = `당신은 ThisOne 구매결정 AI입니다.
 반드시 다음 순서로 출력하세요:
-1. [Thought]: 사용자의 의도 분석 및 추천 전략 (2~3문장)
-2. [JSON]: 상품 추천 결과 (JSON 블록)
+1. [Thought]: 사용자의 의도 분석 기준 (1~2문장)
+2. [JSON]: 상품 분류 결과 (JSON 블록)
 
 JSON 스키마:
 {
   "cards": [
     { 
       "sourceId": "후보의 id", 
-      "label": "짧은 추천 태그 (예: 🏆 최우수 추천, 💰 최저가 등)", 
-      "reason": "추천 이유(1~2문장)" 
+      "label": "짧은 분류 태그 (예: 종합 1위, 가성비, 최저가, 브랜드 우선)" 
     }
   ],
   "rejects": [
@@ -352,7 +351,7 @@ async function sendMsg(forceMode) {
             GeneralSearchState.resultMode
           );
 
-          typingEl?.updateThought?.('일반 검색 결과를 먼저 보여드리고, 디스원 추천을 계속 분석 중입니다...');
+          typingEl?.updateThought?.('일반 검색 결과를 먼저 보여드리고, 디스원 분석을 계속 진행 중입니다...');
         }
       }
 
@@ -394,7 +393,7 @@ async function sendMsg(forceMode) {
         role: 'user',
         content: [{ 
           type: 'text', 
-          text: `사용자 질문: ${queryText}\n\n후보 상품 목록(JSON): ${JSON.stringify(prunedCandidates, null, 2)}\n\n의도분석: ${JSON.stringify(intentProfile)}\n\n설정: ${JSON.stringify(expertSettings)}\n\n전문가 분석을 바탕으로 cards ${count}개를 추천하세요.` 
+          text: `사용자 질문: ${queryText}\n\n후보 상품 목록(JSON): ${JSON.stringify(prunedCandidates, null, 2)}\n\n의도분석: ${JSON.stringify(intentProfile)}\n\n설정: ${JSON.stringify(expertSettings)}\n\n전문가 분석을 바탕으로 cards ${count}개를 분류하세요. 각 card에는 sourceId와 label만 포함하세요.` 
         }]
       }];
       
@@ -426,8 +425,8 @@ async function sendMsg(forceMode) {
         SearchDropdown?.setResultsRendering?.(true);
         
         const elapsed = Math.round((Date.now() - searchStartTime) / 1000);
-        let msg = `데이터 분석이 지연되고 있어(${elapsed}초), 디스원 AI 추천이 아닌 일반 검색 결과를 먼저 보여드립니다.`;
-        if (reason === 'error') msg = `AI 분석 중 오류가 발생하여(${elapsed}초), 디스원 AI 추천이 아닌 일반 검색 결과를 먼저 보여드립니다.`;
+        let msg = `데이터 분석이 지연되고 있어(${elapsed}초), 디스원 AI 분석이 아닌 일반 검색 결과를 먼저 보여드립니다.`;
+        if (reason === 'error') msg = `AI 분석 중 오류가 발생하여(${elapsed}초), 디스원 AI 분석이 아닌 일반 검색 결과를 먼저 보여드립니다.`;
         
         window.ThisOneUI?.addFallback?.(msg);
         
@@ -452,10 +451,10 @@ async function sendMsg(forceMode) {
         );
       };
 
-          // 8초 지연 타이머: 추천 분석 진행 상태만 갱신
+          // 8초 지연 타이머: 분석 진행 상태만 갱신
       delayTimer = setTimeout(() => {
         if (!isFallbackShown && loading) {
-          typingEl?.updateThought?.('디스원 추천 분석이 계속 진행 중입니다. 일반 검색 결과를 먼저 확인하실 수 있습니다.');
+          typingEl?.updateThought?.('디스원 분석이 계속 진행 중입니다. 일반 검색 결과를 먼저 확인하실 수 있습니다.');
         }
       }, 8000);
 
@@ -500,7 +499,7 @@ async function sendMsg(forceMode) {
         }
 
         const thoughtMatchFromFinal = aiDataText.match(/\[?Thought\]?:?(.*?)(?=\[?JSON\]?|$)/si);
-        const aiComment = thoughtMatchFromFinal && thoughtMatchFromFinal[1] ? thoughtMatchFromFinal[1].trim() : '';
+        const aiComment = '';
 
         const jsonMatch = aiDataText.match(/\[JSON\]:?\s*(\{[\s\S]*\})/);
         const rawJson = jsonMatch ? jsonMatch[1] : aiDataText;
@@ -541,7 +540,7 @@ async function sendMsg(forceMode) {
           supplements.push({
             ...candidate,
             sourceId: candidate?.id || '',
-            label: '추가 후보',
+            label: '추가',
             type: candidate?.type || 'extra'
           });
 
@@ -551,7 +550,7 @@ async function sendMsg(forceMode) {
 
         const finalCards = [...mergedCards, ...supplements].slice(0, targetCount);
 
-        // AI 추천 리포트 아래에 일반 검색 결과를 함께 표시
+        // AI 분석 리포트 아래에 일반 검색 결과를 함께 표시
         const normalizeName = (v) => String(v || '').trim().toLowerCase();
         const resolveModelKey = (item = {}) => {
           if (item.modelKey) return String(item.modelKey).trim().toLowerCase();

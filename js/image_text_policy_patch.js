@@ -158,7 +158,7 @@ function showMobileVisionDebug(title, rows){
         }
         const scrollY=window.scrollY;
         global.ThisOneUI.renderResults(items, data&&data.total||items.length, 1, apiSort, global.GeneralSearchState&&global.GeneralSearchState.resultMode||'fallback_general');
-        window.scrollTo({top:scrollY});
+        setTimeout(()=>window.scrollTo({top:scrollY}),100);
         setTimeout(()=>setSortActive(mode),0);
       }catch(e){
         console.error('[ThisOne][sort] failed:', e);

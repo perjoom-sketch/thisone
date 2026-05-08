@@ -484,7 +484,7 @@ function getCandidateBonus(candidate, profile, query) {
     }
     if (price > 0 && price < 40000) {
       bonusScore += 2;
-      bonusReasons.push('입문용 가성비 우수');
+      bonusReasons.push('입문용 가격 경쟁력 우수');
     }
   }
 // ── 범용 가점 기준 ────────────────────────────────────────────
@@ -731,39 +731,30 @@ function getPriceValueIndex(candidate, candidates = []) {
   return Math.max(0, Math.min(1, 1 - percentile));
 }
 
-function sortCandidatesByMode(candidates = [], mode = 'total') {
+function sortCandidatesByMode(candidates = [], mode = 'relevant') {
   const list = Array.isArray(candidates) ? [...candidates] : [];
-  const sortMode = String(mode || 'total');
+  const sortMode = String(mode || 'relevant');
 
-  if (sortMode === 'value' || sortMode === 'asc') {
+  if (sortMode === 'low') {
     return list.sort((a, b) => {
-      const av = Number(a.valueScore ?? a.finalScore ?? 0);
-      const bv = Number(b.valueScore ?? b.finalScore ?? 0);
-      if (bv !== av) return bv - av;
       const ap = Number(a.totalPriceNum || a.priceNum || 0);
       const bp = Number(b.totalPriceNum || b.priceNum || 0);
       if (ap && bp && ap !== bp) return ap - bp;
-      return Number(b.popularScore ?? 0) - Number(a.popularScore ?? 0);
+      if (ap && !bp) return -1;
+      if (!ap && bp) return 1;
+      return Number(b.finalScore ?? 0) - Number(a.finalScore ?? 0);
     });
   }
 
-  if (sortMode === 'popular') {
+  if (sortMode === 'high') {
     return list.sort((a, b) => {
-      const apop = Number(a.popularScore ?? a.finalScore ?? 0);
-      const bpop = Number(b.popularScore ?? b.finalScore ?? 0);
-      if (bpop !== apop) return bpop - apop;
-      const ay = Number(a.youtubeReputation?.matchedVideoCount || 0);
-      const by = Number(b.youtubeReputation?.matchedVideoCount || 0);
-      if (by !== ay) return by - ay;
       const ap = Number(a.totalPriceNum || a.priceNum || 0);
       const bp = Number(b.totalPriceNum || b.priceNum || 0);
-      if (ap && bp) return ap - bp;
-      return 0;
+      if (ap && bp && ap !== bp) return bp - ap;
+      if (ap && !bp) return -1;
+      if (!ap && bp) return 1;
+      return Number(b.finalScore ?? 0) - Number(a.finalScore ?? 0);
     });
-  }
-
-  if (sortMode === 'latest') {
-    return list;
   }
 
   return list.sort((a, b) => {
@@ -1046,7 +1037,7 @@ function mergeAiWithCandidates(aiResult, candidates = []) {
       const aiCard = {
         ...picked,
         type: 'ai',
-        label: '종합 1위'
+        label: '관련순'
       };
       finalCards = [aiCard, ...mergedCards];
     }

@@ -157,8 +157,8 @@ function showMobileVisionDebug(title, rows){
           global.GeneralSearchState.resultMode=global.GeneralSearchState.resultMode||'fallback_general';
         }
         const scrollY=window.scrollY;
-        global.ThisOneUI.renderResults(items, data&&data.total||items.length, 1, apiSort, global.GeneralSearchState&&global.GeneralSearchState.resultMode||'fallback_general');
-        setTimeout(()=>window.scrollTo({top:scrollY}),100);
+        await global.ThisOneUI.renderResults(items, data&&data.total||items.length, 1, apiSort, global.GeneralSearchState&&global.GeneralSearchState.resultMode||'fallback_general');
+        setTimeout(()=>window.scrollTo({top:scrollY}),150);
         setTimeout(()=>setSortActive(mode),0);
       }catch(e){
         console.error('[ThisOne][sort] failed:', e);

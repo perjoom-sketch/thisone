@@ -956,7 +956,6 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
     const finalScore = isStrictExcluded ? -999 : (bonus.bonusScore - specPenalty);
     const baseScoreWithoutYoutube = isStrictExcluded ? -999 : (finalScore - youtubeBonus.bonus);
     const totalScore = finalScore;
-    const popularScore = finalScore;
     const valueScore = isStrictExcluded ? -999 : Number((baseScoreWithoutYoutube + (6 * priceValueIndex) + youtubeBonus.valueBonus).toFixed(2));
 
     return {
@@ -971,7 +970,6 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
       specPenalty,
       finalScore,
       totalScore,
-      popularScore,
       valueScore,
       excludeFromPriceRank: isStrictExcluded || priceRisk.exclude || specPenalty >= 15,
       priceRiskReason: isStrictExcluded ? excludeReason : priceRisk.reason,

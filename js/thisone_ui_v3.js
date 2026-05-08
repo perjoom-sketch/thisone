@@ -275,8 +275,9 @@ function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 
           <span>${headerTitle}</span>
         </div>
         <div class="sort-options">
-          <button class="sort-btn ${currentSort === 'sim' ? 'active' : ''}" onclick="window.changeSort('sim')">관련도순</button>
-          <button class="sort-btn ${currentSort === 'asc' ? 'active' : ''}" onclick="window.changeSort('asc')">최저가순</button>
+          <button class="sort-btn ${currentSort === 'sim' || currentSort === 'relevant' ? 'active' : ''}" data-sort-mode="relevant" onclick="window.changeSort('relevant', this)">관련순</button>
+          <button class="sort-btn ${currentSort === 'low' ? 'active' : ''}" data-sort-mode="low" onclick="window.changeSort('low', this)">낮은가격순</button>
+          <button class="sort-btn ${currentSort === 'high' ? 'active' : ''}" data-sort-mode="high" onclick="window.changeSort('high', this)">높은가격순</button>
         </div>
       </div>
       <div class="pick-list">

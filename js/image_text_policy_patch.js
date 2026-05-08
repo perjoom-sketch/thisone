@@ -68,6 +68,7 @@ function showMobileVisionDebug(title, rows){
 
   function mapSortModeToApi(mode){
     if(mode==='value') return 'asc';
+    if(mode==='latest') return 'date';
     return 'sim';
   }
 
@@ -124,7 +125,7 @@ function showMobileVisionDebug(title, rows){
   }
 
   function normalizeSortMode(sortOrMode){
-    if(['total','value','popular','sales'].includes(sortOrMode)) return sortOrMode;
+    if(['total','value','popular','latest'].includes(sortOrMode)) return sortOrMode;
     if(sortOrMode==='asc') return 'value';
     if(sortOrMode==='sim') return 'total';
     return getGeneralSortMode()||'total';
@@ -168,12 +169,12 @@ function showMobileVisionDebug(title, rows){
     const activeKeyFromText=(text)=>{
       if(/가성비|최저/.test(text||'')) return 'value';
       if(/인기/.test(text||'')) return 'popular';
-      if(/판매/.test(text||'')) return 'sales';
+      if(/최신/.test(text||'')) return 'latest';
       return getGeneralSortMode();
     };
     const buttons=(activeKey)=>{
       const btn=(key,label)=>`<button class="sort-btn ${activeKey===key?'active':''}" data-sort-mode="${key}" onclick="window.changeSort('${key}', this)">${label}</button>`;
-      return [btn('total','종합 1위'),btn('value','가성비'),btn('popular','인기순'),btn('sales','판매순')].join('');
+      return [btn('total','종합 1위'),btn('value','가성비'),btn('popular','인기순'),btn('latest','최신순')].join('');
     };
     const apply=()=>{
       document.querySelectorAll('.sort-options').forEach(wrap=>{

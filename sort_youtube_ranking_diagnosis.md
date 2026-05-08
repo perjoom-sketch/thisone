@@ -3,12 +3,12 @@
 ## 1. `js/image_text_policy_patch.js`
 
 - 파일 존재: **Y**
-- `changeSort` 현재 구현: `sortOrMode`를 `total/value/popular/sales`로 정규화한 뒤, API 정렬값으로 매핑하고, 검색 API를 다시 호출한 다음 `rankItemsForMode()`로 클라이언트 측 재정렬 후 렌더링합니다.
+- `changeSort` 현재 구현: `sortOrMode`를 `total/value/popular/latest`로 정규화한 뒤, API 정렬값으로 매핑하고, 검색 API를 다시 호출한 다음 `rankItemsForMode()`로 클라이언트 측 재정렬 후 렌더링합니다.
 - 정렬 탭 4개 현재 동작:
   - `종합 1위` → `window.changeSort('total', this)` → API sort: `sim`
   - `가성비` → `window.changeSort('value', this)` → API sort: `asc`
   - `인기순` → `window.changeSort('popular', this)` → API sort: `sim`
-  - `판매순` → `window.changeSort('sales', this)` → API sort: `sim`
+  - `최신순` → `window.changeSort('latest', this)` → API sort: `date`
 - 정렬 모달 UI: **없음**. 이 파일은 `.sort-options` 내부 버튼을 직접 치환/삽입하며, 정렬용 modal/dialog 생성 코드는 확인되지 않았습니다.
 
 ### 핵심 코드 발췌
@@ -16,6 +16,7 @@
 ```js
 function mapSortModeToApi(mode){
   if(mode==='value') return 'asc';
+  if(mode==='latest') return 'date';
   return 'sim';
 }
 global.changeSort=async function(sortOrMode, sourceBtn){
@@ -26,7 +27,7 @@ global.changeSort=async function(sortOrMode, sourceBtn){
 
 ```js
 const btn=(key,label)=>`<button class="sort-btn ${activeKey===key?'active':''}" data-sort-mode="${key}" onclick="window.changeSort('${key}', this)">${label}</button>`;
-return [btn('total','종합 1위'),btn('value','가성비'),btn('popular','인기순'),btn('sales','판매순')].join('');
+return [btn('total','종합 1위'),btn('value','가성비'),btn('popular','인기순'),btn('latest','최신순')].join('');
 ```
 
 ---
@@ -68,14 +69,14 @@ const youtubeReputation = await enrichYoutubeReputation({
 
 - 파일 존재: **Y**
 - 인기순 관련 로직: **있음**
-- `youtubeScore`, `youtubeReputation`, `matchedVideoCount`, `popularScore` 관련 로직이 있습니다. YouTube 평판 bonus는 점수에 반영되고, 인기순/판매순 정렬에서는 `popularScore` 우선, 동점 시 `youtubeReputation.matchedVideoCount`를 보조 기준으로 사용합니다.
+- `youtubeScore`, `youtubeReputation`, `matchedVideoCount`, `popularScore` 관련 로직이 있습니다. YouTube 평판 bonus는 점수에 반영되고, 인기순 정렬에서는 `popularScore` 우선, 동점 시 `youtubeReputation.matchedVideoCount`를 보조 기준으로 사용합니다.
 - 후보 생성 시 `youtubeReputation`, `youtubeScore`, `youtubeReasons`도 유지됩니다.
 - `popularScore`는 현재 `finalScore`와 동일하게 설정됩니다.
 
 ### 핵심 코드 발췌
 
 ```js
-if (sortMode === 'popular' || sortMode === 'sales') {
+if (sortMode === 'popular') {
   return list.sort((a, b) => {
     const apop = Number(a.popularScore ?? a.finalScore ?? 0);
     const bpop = Number(b.popularScore ?? b.finalScore ?? 0);

@@ -747,7 +747,7 @@ function sortCandidatesByMode(candidates = [], mode = 'total') {
     });
   }
 
-  if (sortMode === 'popular' || sortMode === 'sales') {
+  if (sortMode === 'popular') {
     return list.sort((a, b) => {
       const apop = Number(a.popularScore ?? a.finalScore ?? 0);
       const bpop = Number(b.popularScore ?? b.finalScore ?? 0);
@@ -760,6 +760,10 @@ function sortCandidatesByMode(candidates = [], mode = 'total') {
       if (ap && bp) return ap - bp;
       return 0;
     });
+  }
+
+  if (sortMode === 'latest') {
+    return list;
   }
 
   return list.sort((a, b) => {

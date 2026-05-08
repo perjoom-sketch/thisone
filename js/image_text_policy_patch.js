@@ -156,7 +156,9 @@ function showMobileVisionDebug(title, rows){
           global.GeneralSearchState.lastItems=items;
           global.GeneralSearchState.resultMode=global.GeneralSearchState.resultMode||'fallback_general';
         }
-        global.ThisOneUI.renderResults(items, data&&data.total||items.length, 1, apiSort, global.GeneralSearchState&&global.GeneralSearchState.resultMode||'fallback_general');
+        const scrollY=window.scrollY;
+        await global.ThisOneUI.renderResults(items, data&&data.total||items.length, 1, apiSort, global.GeneralSearchState&&global.GeneralSearchState.resultMode||'fallback_general');
+        setTimeout(()=>window.scrollTo({top:scrollY}),150);
         setTimeout(()=>setSortActive(mode),0);
       }catch(e){
         console.error('[ThisOne][sort] failed:', e);
@@ -185,23 +187,7 @@ function showMobileVisionDebug(title, rows){
         wrap.innerHTML=buttons(activeKeyFromText(text));
       });
 
-      document.querySelectorAll('.ai-result > .ai-label').forEach(label=>{
-        const text=label.textContent||'';
-        if(!text.includes('지능형 분석 리포트')) return;
-        const parent=label.parentElement;
-        if(!parent||parent.querySelector('.thisone-rec-sort')) return;
-        const row=document.createElement('div');
-        row.className='ai-label-row thisone-rec-label-row';
-        const sort=document.createElement('div');
-        sort.className='sort-options thisone-rec-sort';
-        sort.dataset.thisoneSortPatchApplied='true';
-        sort.innerHTML=buttons(getRecSortMode());
-        parent.insertBefore(row,label);
-        row.appendChild(label);
-        row.appendChild(sort);
-      });
       document.querySelectorAll('.sort-options:not(.thisone-rec-sort)').forEach(wrap=>setWrapSortActive(wrap,getGeneralSortMode()));
-      document.querySelectorAll('.thisone-rec-sort').forEach(wrap=>setWrapSortActive(wrap,getRecSortMode()));
     };
     apply();
     const observer=new MutationObserver(apply);

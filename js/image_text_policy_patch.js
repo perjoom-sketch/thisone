@@ -67,7 +67,6 @@ function showMobileVisionDebug(title, rows){
   }
 
   function mapSortModeToApi(mode){
-    if(mode==='value') return 'asc';
     return 'sim';
   }
 

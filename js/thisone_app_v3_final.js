@@ -55,7 +55,7 @@ let _lastIntentProfile = null;
 const GeneralSearchState = {
   currentPage: 1,
   currentSort: 'sim',
-  sortMode: 'total',
+  sortMode: 'relevant',
   total: 0,
   query: '',
   resultMode: 'normal',
@@ -73,7 +73,7 @@ JSON 스키마:
   "cards": [
     { 
       "sourceId": "후보의 id", 
-      "label": "짧은 분류 태그 (예: 종합 1위, 가성비, 최저가, 브랜드 우선)" 
+      "label": "짧은 분류 태그 (예: 추천, 최저가, 브랜드 우선)" 
     }
   ],
   "rejects": [
@@ -441,7 +441,7 @@ async function sendMsg(forceMode) {
         GeneralSearchState.resultMode = 'fallback_general';
         GeneralSearchState.lastItems = candidates;
 
-        const allowedSorts = ['sim', 'asc'];
+        const allowedSorts = ['sim'];
         const preservedSort = allowedSorts.includes(GeneralSearchState.currentSort)
           ? GeneralSearchState.currentSort
           : 'sim'; // 정렬 상태가 없으면 관련도 기준으로
@@ -643,7 +643,7 @@ async function sendMsg(forceMode) {
         GeneralSearchState.resultMode = 'fallback_general';
         GeneralSearchState.lastItems = generalCandidates;
 
-        const allowedSorts = ['sim', 'asc'];
+        const allowedSorts = ['sim'];
         const preservedSort = allowedSorts.includes(GeneralSearchState.currentSort)
           ? GeneralSearchState.currentSort
           : 'sim';
@@ -794,9 +794,11 @@ window.changePage = async function(page) {
   await refreshGeneralResults();
 };
 
-window.changeSort = async function(sort) {
+window.changeSort = async function(sortOrMode) {
   if (loading) return;
-  GeneralSearchState.currentSort = sort;
+  const mode = ['relevant', 'low', 'high'].includes(sortOrMode) ? sortOrMode : 'relevant';
+  GeneralSearchState.currentSort = 'sim';
+  GeneralSearchState.sortMode = mode;
   GeneralSearchState.currentPage = 1; // 정렬 변경 시 1페이지로
   await refreshGeneralResults();
 };
@@ -896,7 +898,7 @@ async function refreshGeneralResults() {
     
     const rawItems = searchData?.items || [];
     const normalizedItems = rawItems.map(normalizeGeneralSearchItem);
-    const rankMode = GeneralSearchState.sortMode || (GeneralSearchState.currentSort === 'asc' ? 'value' : 'total');
+    const rankMode = GeneralSearchState.sortMode || 'relevant';
     const rankedItems = window.ThisOneRanking?.buildCandidates
       ? window.ThisOneRanking.buildCandidates(normalizedItems, GeneralSearchState.query, window._lastIntentProfile || null)
       : normalizedItems;

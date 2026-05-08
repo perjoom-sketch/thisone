@@ -67,8 +67,6 @@ function showMobileVisionDebug(title, rows){
   }
 
   function mapSortModeToApi(mode){
-    if(mode==='low') return 'asc';
-    if(mode==='high') return 'dsc';
     return 'sim';
   }
 
@@ -126,8 +124,6 @@ function showMobileVisionDebug(title, rows){
 
   function normalizeSortMode(sortOrMode){
     if(sortOrMode==='relevant'||sortOrMode==='low'||sortOrMode==='high') return sortOrMode;
-    if(sortOrMode==='value'||sortOrMode==='asc') return 'low';
-    if(sortOrMode==='dsc') return 'high';
     return 'relevant';
   }
 

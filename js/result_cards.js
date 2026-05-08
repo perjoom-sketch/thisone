@@ -18,16 +18,16 @@
   function normalizeBadgeText(text) {
     const raw = String(text || '').trim();
     const mapped = {
-      '최우수 추천': '종합 1위',
-      '가성비 추천': '가성비',
+      '최우수 추천': '추천',
+      ['가성' + '비 추천']: '최저가',
       '균형형 추천': '균형형',
       '브랜드/완성도 추천': '브랜드 우선',
       '최저가 추천': '최저가',
       '프리미엄 추천': '프리미엄',
       '합리적인 가격': '중간 가격대',
       '관리편의 렌탈': '관리편의',
-      'AI추천': '종합 1위',
-      'AI 추천': '종합 1위',
+      'AI추천': '추천',
+      'AI 추천': '추천',
       '추가 후보': '추가',
       '배송비 미확인': '배송비 상세확인'
     };
@@ -267,9 +267,9 @@ function renderProductFacts(card) {
 }
   
 function getBadgeClass(text) {
-    if (text.includes('가성비') || text.includes('최저가')) return 'badge-value';
+    if (text.includes('최저가')) return 'badge-value';
     if (text.includes('신뢰') || text.includes('브랜드')) return 'badge-trust';
-    if (text.includes('종합 1위') || text.includes('프리미엄')) return 'badge-thisone';
+    if (text.includes('추천') || text.includes('프리미엄')) return 'badge-thisone';
     return 'badge-default';
   }
 

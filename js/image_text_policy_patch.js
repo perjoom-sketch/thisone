@@ -67,6 +67,8 @@ function showMobileVisionDebug(title, rows){
   }
 
   function mapSortModeToApi(mode){
+    if(mode==='low') return 'asc';
+    if(mode==='high') return 'dsc';
     return 'sim';
   }
 
@@ -80,25 +82,25 @@ function showMobileVisionDebug(title, rows){
   }
 
   function getGeneralSortMode(){
-    if(global.GeneralSearchState&&global.GeneralSearchState.sortMode) return global.GeneralSearchState.sortMode;
-    if(global.ThisOneGeneralSortMode) return global.ThisOneGeneralSortMode;
-    return global.ThisOneSortMode||'total';
+    if(global.GeneralSearchState&&global.GeneralSearchState.sortMode) return normalizeSortMode(global.GeneralSearchState.sortMode);
+    if(global.ThisOneGeneralSortMode) return normalizeSortMode(global.ThisOneGeneralSortMode);
+    return normalizeSortMode(global.ThisOneSortMode);
   }
 
   function getRecSortMode(){
-    return global.ThisOneRecSortMode||'total';
+    return normalizeSortMode(global.ThisOneRecSortMode);
   }
 
   function setWrapSortActive(wrap, mode){
     if(!wrap) return;
-    const activeMode=mode||'total';
+    const activeMode=mode||'relevant';
     wrap.querySelectorAll('.sort-btn').forEach(btn=>{
       btn.classList.toggle('active',btn.dataset.sortMode===activeMode);
     });
   }
 
   function setSortActive(mode, sourceBtn){
-    const activeMode=mode||'total';
+    const activeMode=mode||'relevant';
     const sourceWrap=sourceBtn&&sourceBtn.closest?sourceBtn.closest('.sort-options'):null;
     if(sourceWrap){
       if(sourceWrap.classList.contains('thisone-rec-sort')){
@@ -123,10 +125,10 @@ function showMobileVisionDebug(title, rows){
   }
 
   function normalizeSortMode(sortOrMode){
-    if(['total','value','popular','latest'].includes(sortOrMode)) return sortOrMode;
-    if(sortOrMode==='asc') return 'value';
-    if(sortOrMode==='sim') return 'total';
-    return getGeneralSortMode()||'total';
+    if(sortOrMode==='relevant'||sortOrMode==='low'||sortOrMode==='high') return sortOrMode;
+    if(sortOrMode==='value'||sortOrMode==='asc') return 'low';
+    if(sortOrMode==='dsc') return 'high';
+    return 'relevant';
   }
 
   function installSortExecutionPatch(){
@@ -167,21 +169,20 @@ function showMobileVisionDebug(title, rows){
 
   function installSortButtonsPatch(){
     const activeKeyFromText=(text)=>{
-      if(/가성비|최저/.test(text||'')) return 'value';
-      if(/인기/.test(text||'')) return 'popular';
-      if(/판매|최신/.test(text||'')) return 'latest';
+      if(/낮은가격|최저/.test(text||'')) return 'low';
+      if(/높은가격|최고/.test(text||'')) return 'high';
       return getGeneralSortMode();
     };
     const buttons=(activeKey)=>{
       const btn=(key,label)=>`<button class="sort-btn ${activeKey===key?'active':''}" data-sort-mode="${key}" onclick="window.changeSort('${key}', this)">${label}</button>`;
-      return [btn('total','종합 1위'),btn('value','가성비'),btn('popular','인기순'),btn('latest','최신순')].join('');
+      return [btn('relevant','관련순'),btn('low','낮은가격순'),btn('high','높은가격순')].join('');
     };
     const apply=()=>{
       document.querySelectorAll('.sort-options').forEach(wrap=>{
         if(wrap.classList.contains('thisone-rec-sort')) return;
         if(wrap.dataset.thisoneSortPatchApplied==='true') return;
         const text=wrap.textContent||'';
-        if(!text.includes('관련도순')&&!text.includes('최저가순')&&!text.includes('종합 1위')) return;
+        if(!text.includes('관련도순')&&!text.includes('관련순')&&!text.includes('최저가순')&&!text.includes('낮은가격순')&&!text.includes('높은가격순')) return;
         wrap.dataset.thisoneSortPatchApplied='true';
         wrap.innerHTML=buttons(activeKeyFromText(text));
       });

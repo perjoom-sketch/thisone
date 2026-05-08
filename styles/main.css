@@ -744,6 +744,81 @@ body.search-mode .results-view {
   border-color: var(--color-primary);
 }
 
+.sort-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.2rem, 0.8vw, 0.4rem);
+  min-width: max-content;
+  border: clamp(0.06rem, 0.12vw, 0.08rem) solid var(--color-border);
+  border-radius: 999rem;
+  padding: clamp(0.3rem, 0.8vw, 0.45rem) clamp(0.75rem, 1.8vw, 1rem);
+  background: #fff;
+  color: var(--color-primary);
+  font-size: clamp(0.72rem, 1.5vw, 0.82rem);
+  font-weight: 800;
+  line-height: 1.2;
+  cursor: pointer;
+  box-shadow: 0 clamp(0.08rem, 0.4vw, 0.15rem) clamp(0.4rem, 1.2vw, 0.65rem) rgba(15, 23, 42, 0.08);
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s;
+}
+
+.sort-icon-btn:hover,
+.sort-icon-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.sort-icon-btn:active {
+  transform: translateY(clamp(0.04rem, 0.2vw, 0.08rem));
+}
+
+.sort-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-modal) + 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(0.9rem, 4vw, 1.5rem);
+  background: rgba(15, 23, 42, 0.36);
+}
+
+.sort-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(86vw, 22rem);
+  overflow: hidden;
+  border: clamp(0.06rem, 0.12vw, 0.08rem) solid rgba(226, 232, 240, 0.95);
+  border-radius: clamp(0.9rem, 3vw, 1.25rem);
+  background: #fff;
+  box-shadow: 0 clamp(0.8rem, 3vw, 1.4rem) clamp(2rem, 7vw, 3.5rem) rgba(15, 23, 42, 0.22);
+}
+
+.sort-modal-option {
+  width: 100%;
+  border: 0;
+  border-bottom: clamp(0.06rem, 0.12vw, 0.08rem) solid var(--color-border);
+  padding: clamp(0.85rem, 3vw, 1rem) clamp(1rem, 4vw, 1.2rem);
+  background: #fff;
+  color: var(--color-text-dark);
+  font-size: clamp(0.92rem, 3.5vw, 1rem);
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sort-modal-option:last-child {
+  border-bottom: 0;
+}
+
+.sort-modal-option:hover,
+.sort-modal-option.active {
+  background: #eff6ff;
+  color: var(--color-primary);
+}
+
 .pagination {
   display: flex;
   justify-content: center;

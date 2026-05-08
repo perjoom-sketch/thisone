@@ -89,10 +89,27 @@ function showMobileVisionDebug(title, rows){
     return normalizeSortMode(global.ThisOneRecSortMode);
   }
 
+  function getSortLabel(mode){
+    return {
+      relevant: '관련순',
+      low: '낮은가격순',
+      high: '높은가격순'
+    }[mode] || '관련순';
+  }
+
   function setWrapSortActive(wrap, mode){
     if(!wrap) return;
     const activeMode=mode||'relevant';
-    wrap.querySelectorAll('.sort-btn').forEach(btn=>{
+    wrap.querySelectorAll('.sort-btn,.sort-icon-btn').forEach(btn=>{
+      if(btn.classList.contains('sort-icon-btn')){
+        btn.dataset.sortMode=activeMode;
+        btn.textContent=getSortLabel(activeMode)+' ▾';
+        btn.classList.add('active');
+        return;
+      }
+      btn.classList.toggle('active',btn.dataset.sortMode===activeMode);
+    });
+    wrap.querySelectorAll('.sort-modal-option').forEach(btn=>{
       btn.classList.toggle('active',btn.dataset.sortMode===activeMode);
     });
   }
@@ -170,9 +187,47 @@ function showMobileVisionDebug(title, rows){
       return getGeneralSortMode();
     };
     const buttons=(activeKey)=>{
-      const btn=(key,label)=>`<button class="sort-btn ${activeKey===key?'active':''}" data-sort-mode="${key}" onclick="window.changeSort('${key}', this)">${label}</button>`;
-      return [btn('relevant','관련순'),btn('low','낮은가격순'),btn('high','높은가격순')].join('');
+      const label = {
+        relevant: '관련순',
+        low: '낮은가격순',
+        high: '높은가격순'
+      }[activeKey] || '관련순';
+      return `<button class="sort-icon-btn"
+        onclick="window.openSortModal(this)"
+        data-sort-mode="${activeKey}">${label} ▾</button>`;
     };
+
+    global.openSortModal=function(sourceBtn){
+      const activeKey=normalizeSortMode(sourceBtn&&sourceBtn.dataset&&sourceBtn.dataset.sortMode);
+      document.querySelectorAll('.sort-modal-backdrop').forEach(el=>el.remove());
+      const backdrop=document.createElement('div');
+      backdrop.className='sort-modal-backdrop';
+      const modal=document.createElement('div');
+      modal.className='sort-modal';
+      modal.setAttribute('role','dialog');
+      modal.setAttribute('aria-modal','true');
+      modal.setAttribute('aria-label','정렬 선택');
+
+      ['relevant','low','high'].forEach(key=>{
+        const option=document.createElement('button');
+        option.type='button';
+        option.className='sort-modal-option'+(key===activeKey?' active':'');
+        option.dataset.sortMode=key;
+        option.textContent=getSortLabel(key);
+        option.addEventListener('click',()=>{
+          global.changeSort(key, sourceBtn);
+          backdrop.remove();
+        });
+        modal.appendChild(option);
+      });
+
+      backdrop.addEventListener('click',(event)=>{
+        if(event.target===backdrop) backdrop.remove();
+      });
+      backdrop.appendChild(modal);
+      document.body.appendChild(backdrop);
+    };
+
     const apply=()=>{
       document.querySelectorAll('.sort-options').forEach(wrap=>{
         if(wrap.classList.contains('thisone-rec-sort')) return;

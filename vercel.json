@@ -1,6 +1,23 @@
 {
   "headers": [
     {
+      "source": "/sort_youtube_ranking_diagnosis.md",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/markdown; charset=utf-8"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "attachment; filename=\"sort_youtube_ranking_diagnosis.md\""
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {

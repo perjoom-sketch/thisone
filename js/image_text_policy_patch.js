@@ -98,7 +98,17 @@ function showMobileVisionDebug(title, rows){
   }
 
   function setSortActive(mode, sourceBtn){
-    const activeMode=mode||'relevant';
+    const activeMode=normalizeSortMode(mode);
+    const labels = {
+      relevant: '관련순',
+      low: '낮은가격순',
+      high: '높은가격순'
+    };
+    const iconBtn = document.querySelector('.sort-icon-btn');
+    if (iconBtn) {
+      iconBtn.textContent = (labels[activeMode] || '관련순') + ' ▾';
+      iconBtn.dataset.sortMode = activeMode;
+    }
     const sourceWrap=sourceBtn&&sourceBtn.closest?sourceBtn.closest('.sort-options'):null;
     if(sourceWrap){
       if(sourceWrap.classList.contains('thisone-rec-sort')){
@@ -201,12 +211,12 @@ function showMobileVisionDebug(title, rows){
   }
 
   function installSortButtonsPatch(){
-    const activeKeyFromText=(text)=>{
-      if(/낮은가격|최저/.test(text||'')) return 'low';
-      if(/높은가격|최고/.test(text||'')) return 'high';
-      return getGeneralSortMode();
+    const activeKeyFromWrap=(wrap)=>{
+      const activeBtn=wrap&&wrap.querySelector&&wrap.querySelector('.sort-btn.active, .sort-icon-btn');
+      return normalizeSortMode(activeBtn&&activeBtn.dataset&&activeBtn.dataset.sortMode||getGeneralSortMode());
     };
     function buttons(activeKey) {
+      activeKey=normalizeSortMode(activeKey);
       const labels = {
         relevant: '관련순',
         low: '낮은가격순',
@@ -226,7 +236,7 @@ function showMobileVisionDebug(title, rows){
         const text=wrap.textContent||'';
         if(!text.includes('관련도순')&&!text.includes('관련순')&&!text.includes('최저가순')&&!text.includes('낮은가격순')&&!text.includes('높은가격순')) return;
         wrap.dataset.thisoneSortPatchApplied='true';
-        wrap.innerHTML=buttons(activeKeyFromText(text));
+        wrap.innerHTML=buttons(activeKeyFromWrap(wrap));
       });
 
       document.querySelectorAll('.sort-options:not(.thisone-rec-sort)').forEach(wrap=>setWrapSortActive(wrap,getGeneralSortMode()));

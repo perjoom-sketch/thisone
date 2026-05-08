@@ -128,6 +128,43 @@ function showMobileVisionDebug(title, rows){
   }
 
   function installSortExecutionPatch(){
+    global.openSortModal = function(sourceBtn) {
+      document.querySelectorAll('.sort-modal-wrap').forEach(el => el.remove());
+
+      const currentMode = sourceBtn?.dataset?.sortMode || 'relevant';
+      const options = [
+        { mode: 'relevant', label: '관련순' },
+        { mode: 'low', label: '낮은가격순' },
+        { mode: 'high', label: '높은가격순' }
+      ];
+
+      const wrap = document.createElement('div');
+      wrap.className = 'sort-modal-wrap';
+      wrap.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;';
+
+      const backdrop = document.createElement('div');
+      backdrop.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.3);';
+      backdrop.onclick = () => wrap.remove();
+
+      const modal = document.createElement('div');
+      modal.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:8px;padding:16px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.15);';
+
+      options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.textContent = opt.label;
+        btn.style.cssText = `display:block;width:100%;padding:10px 16px;border:none;background:${opt.mode === currentMode ? '#f0f0f0' : '#fff'};text-align:left;cursor:pointer;font-size:14px;font-weight:${opt.mode === currentMode ? 'bold' : 'normal'};`;
+        btn.onclick = () => {
+          wrap.remove();
+          window.changeSort(opt.mode, sourceBtn);
+        };
+        modal.appendChild(btn);
+      });
+
+      wrap.appendChild(backdrop);
+      wrap.appendChild(modal);
+      document.body.appendChild(wrap);
+    };
+
     global.changeSort=async function(sortOrMode, sourceBtn){
       const mode=normalizeSortMode(sortOrMode);
       const apiSort=mapSortModeToApi(mode);
@@ -169,10 +206,19 @@ function showMobileVisionDebug(title, rows){
       if(/높은가격|최고/.test(text||'')) return 'high';
       return getGeneralSortMode();
     };
-    const buttons=(activeKey)=>{
-      const btn=(key,label)=>`<button class="sort-btn ${activeKey===key?'active':''}" data-sort-mode="${key}" onclick="window.changeSort('${key}', this)">${label}</button>`;
-      return [btn('relevant','관련순'),btn('low','낮은가격순'),btn('high','높은가격순')].join('');
-    };
+    function buttons(activeKey) {
+      const labels = {
+        relevant: '관련순',
+        low: '낮은가격순',
+        high: '높은가격순'
+      };
+      const label = labels[activeKey] || '관련순';
+      return `<button class="sort-icon-btn"
+        onclick="window.openSortModal(this)"
+        data-sort-mode="${activeKey}"
+        style="cursor:pointer;padding:4px 10px;border:1px solid #ddd;border-radius:4px;background:#fff;font-size:13px;">
+        ${label} ▾</button>`;
+    }
     const apply=()=>{
       document.querySelectorAll('.sort-options').forEach(wrap=>{
         if(wrap.classList.contains('thisone-rec-sort')) return;

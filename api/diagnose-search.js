@@ -38,6 +38,12 @@ function summarizeItems(items, query) {
     return {
       rank: index + 1,
       title,
+      category1: stripTags(item.category1 || ''),
+      category2: stripTags(item.category2 || ''),
+      category3: stripTags(item.category3 || ''),
+      category4: stripTags(item.category4 || ''),
+      brand: stripTags(item.brand || ''),
+      maker: stripTags(item.maker || ''),
       mallName: stripTags(item.mallName || ''),
       lprice: Number(item.lprice || 0),
       productType: item.productType || '',

@@ -79,7 +79,7 @@
 
       const key = prompt('관리자 비밀번호를 입력해주세요.\n아직 설정 전이면 이 값으로 새 관리자 비밀번호를 설정합니다.');
       if (!key) return;
-      if (String(key).trim().length < 4) return alert('관리자 비밀번호는 4자리 이상 입력해주세요.');
+      if (String(key).trim().length < 4) return window.ThisOneUI?.showNotice?.('관리자 비밀번호는 4자리 이상 입력해주세요.');
 
       btn.disabled = true;
       btn.textContent = '확인 중...';
@@ -87,7 +87,7 @@
         await verifyManagerKey(key);
         setManagerKey(key);
         render();
-        alert('관리자 모드가 켜졌습니다.');
+        window.ThisOneUI?.showNotice?.('관리자 모드가 켜졌습니다.');
       } catch (err) {
         if (err.needsSetup || String(err.message || '').includes('아직 설정')) {
           if (!confirm('관리자 비밀번호가 아직 없습니다.\n방금 입력한 값으로 새 관리자 비밀번호를 설정할까요?')) {
@@ -99,16 +99,16 @@
             await setupManagerKey(key);
             setManagerKey(key);
             render();
-            alert('관리자 비밀번호가 설정되었고 관리자 모드가 켜졌습니다.');
+            window.ThisOneUI?.showNotice?.('관리자 비밀번호가 설정되었고 관리자 모드가 켜졌습니다.');
           } catch (setupErr) {
             clearManagerKey();
             render();
-            alert('관리자 비밀번호 설정 실패: ' + (setupErr.message || '다시 시도해주세요.'));
+            window.ThisOneUI?.showNotice?.('관리자 비밀번호 설정 실패: ' + (setupErr.message || '다시 시도해주세요.'));
           }
         } else {
           clearManagerKey();
           render();
-          alert('관리자 모드 실패: ' + (err.message || '관리자 키를 확인해주세요.'));
+          window.ThisOneUI?.showNotice?.('관리자 모드 실패: ' + (err.message || '관리자 키를 확인해주세요.'));
         }
       } finally {
         btn.disabled = false;
@@ -166,7 +166,7 @@
 
   async function deleteInquiry(id) {
     const item = (global._inquiryCache || []).find((inq) => String(inq.id) === String(id));
-    if (!item) return alert('삭제할 글을 찾을 수 없습니다.');
+    if (!item) return window.ThisOneUI?.showNotice?.('삭제할 글을 찾을 수 없습니다.');
 
     const password = getActionKey();
     if (!password) return;
@@ -182,16 +182,16 @@
       });
       const result = await res.json().catch(() => ({}));
       if (res.ok && result.status === 'success') {
-        alert('문의가 삭제되었습니다.');
+        window.ThisOneUI?.showNotice?.('문의가 삭제되었습니다.');
         const area = document.getElementById('inqContent_' + id);
         const itemEl = area && area.closest('.inquiry-item');
         if (itemEl) itemEl.remove();
       } else {
-        alert('삭제 실패: ' + (result.message || '비밀번호를 확인해주세요.'));
+        window.ThisOneUI?.showNotice?.('삭제 실패: ' + (result.message || '비밀번호를 확인해주세요.'));
       }
     } catch (err) {
-      console.error('[Inquiry] Delete failed:', err);
-      alert('삭제 중 오류가 발생했습니다.');
+      console.warn('[Inquiry] Delete failed:', err);
+      window.ThisOneUI?.showNotice?.('삭제 중 오류가 발생했습니다.');
     }
   }
 
@@ -201,7 +201,7 @@
 
     const newPassword = prompt('새 글 비밀번호를 입력해주세요.');
     if (!newPassword) return;
-    if (String(newPassword).trim().length < 4) return alert('새 비밀번호는 4자리 이상 입력해주세요.');
+    if (String(newPassword).trim().length < 4) return window.ThisOneUI?.showNotice?.('새 비밀번호는 4자리 이상 입력해주세요.');
 
     try {
       const res = await fetch('/api/inquiry', {
@@ -212,14 +212,14 @@
       const result = await res.json().catch(() => ({}));
       if (res.ok && result.status === 'success') {
         setManagerKey(managerKey);
-        alert('글 비밀번호가 새로 설정되었습니다.');
+        window.ThisOneUI?.showNotice?.('글 비밀번호가 새로 설정되었습니다.');
       } else {
         if (result.message && result.message.includes('관리자')) clearManagerKey();
-        alert('비밀번호 재설정 실패: ' + (result.message || '관리자 키를 확인해주세요.'));
+        window.ThisOneUI?.showNotice?.('비밀번호 재설정 실패: ' + (result.message || '관리자 키를 확인해주세요.'));
       }
     } catch (err) {
-      console.error('[Inquiry] Password reset failed:', err);
-      alert('비밀번호 재설정 중 오류가 발생했습니다.');
+      console.warn('[Inquiry] Password reset failed:', err);
+      window.ThisOneUI?.showNotice?.('비밀번호 재설정 중 오류가 발생했습니다.');
     }
   }
 
@@ -227,7 +227,7 @@
     if (!global.ThisOneUI || global.ThisOneUI.prepareEdit?.__managerPatchApplied) return;
     const patchedPrepareEdit = function(id) {
       const item = (global._inquiryCache || []).find((inq) => String(inq.id) === String(id));
-      if (!item) return alert('데이터를 찾을 수 없습니다.');
+      if (!item) return window.ThisOneUI?.showNotice?.('데이터를 찾을 수 없습니다.');
       const password = getActionKey();
       if (!password) return;
       global._editModeId = id;

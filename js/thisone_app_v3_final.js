@@ -29,9 +29,9 @@ async function openAdminStats(pw) {
         window.ThisOneUI.showAdminStats(result.data);
       }
     } else {
-      alert(result.message || '인증 실패');
+      window.ThisOneUI?.showNotice?.(result.message || '인증 실패', { tone: 'warning' });
     }
-  } catch(e) { alert('통계 로딩 실패'); }
+  } catch(e) { window.ThisOneUI?.showNotice?.('통계 로딩 실패', { tone: 'warning' }); }
 }
 
 window.addEventListener('load', () => {
@@ -201,7 +201,7 @@ function extractJSON(str) {
       return null;
     }
   } catch (e) {
-    console.error("JSON extraction failed", e);
+    console.warn("JSON extraction failed", e);
     return null;
   }
 }
@@ -261,6 +261,7 @@ function prepareSendContext(forceMode) {
 
   const contentEl = document.getElementById('msgContainer');
   if (contentEl) contentEl.innerHTML = '';
+  window.ThisOneUI?.clearErrorState?.('search');
   if (txt) {
     searchHistory.push(txt);
     SearchDropdown?.pushRecentSearch?.(txt);
@@ -324,7 +325,8 @@ async function sendMsg(forceMode) {
       await handleFallback(context, err);
     }
   } catch (globalErr) {
-    console.error("[ThisOne] Global sendMsg Error:", globalErr);
+    console.warn("[ThisOne] Global sendMsg Error:", globalErr);
+    window.ThisOneUI?.addErrorState?.('apiFail');
     loading = false;
   } finally {
     if (context) {
@@ -358,12 +360,12 @@ async function handleImageSearch(context) {
 
     console.warn("[Vision] AI가 상품명을 식별하지 못함. 이미지 전용 검색 중단.");
     typingEl?.remove();
-    window.ThisOneUI?.addFallback?.('이미지 속 상품을 식별하지 못했습니다. 명확한 사진으로 다시 시도해주세요.');
+    window.ThisOneUI?.addErrorState?.('imageFail');
     context.stop = true;
   } catch (e) {
-    console.error("[Vision] 이미지 분석 치명적 실패:", e);
+    console.warn("[Vision] 이미지 분석 치명적 실패:", e);
     typingEl?.remove();
-    window.ThisOneUI?.addFallback?.('이미지 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    window.ThisOneUI?.addErrorState?.('imageFail');
     context.stop = true;
   }
 }
@@ -379,7 +381,7 @@ async function handleNormalSearch(context) {
     if (searchQuery === '이미지 기반 상품 검색') {
       console.warn(`[ThisOne] "${context.finalSearchQuery}" 결과 없음. 이미지 검색만으로는 결과를 찾을 수 없습니다.`);
       typingEl?.remove();
-      window.ThisOneUI?.addFallback?.('이미지에 해당하는 상품을 쇼핑 데이터에서 찾을 수 없습니다.');
+      window.ThisOneUI?.addErrorState?.('imageFail');
       context.stop = true;
       return;
     }
@@ -436,7 +438,7 @@ async function handleAIAnalysis(context) {
 
   if (!context.candidates || !context.candidates.length) {
     typingEl?.remove();
-    window.ThisOneUI?.addFallback?.('검색 결과가 없습니다.');
+    window.ThisOneUI?.addErrorState?.('noResults');
     context.stop = true;
     return;
   }
@@ -713,7 +715,7 @@ async function handleFallback(context, err, options = {}) {
   if (!context) return;
 
   if (err) {
-    console.error("[ThisOne] Search flow error:", err);
+    console.warn("[ThisOne] Search flow error:", err);
   }
 
   const candidates = context.candidates;
@@ -728,7 +730,7 @@ async function handleFallback(context, err, options = {}) {
     if (options.reason) {
       let msg = `데이터 분석이 지연되고 있어(${elapsed}초), 디스원 AI 분석이 아닌 일반 검색 결과를 먼저 보여드립니다.`;
       if (options.reason === 'error') msg = `AI 분석 중 오류가 발생하여(${elapsed}초), 디스원 AI 분석이 아닌 일반 검색 결과를 먼저 보여드립니다.`;
-      window.ThisOneUI?.addFallback?.(msg);
+      window.ThisOneUI?.addErrorState?.(options.reason === 'error' ? 'apiFail' : 'aiDelay', { replace: false });
 
       GeneralSearchState.query = context.finalSearchQuery;
       GeneralSearchState.currentPage = 1;
@@ -754,7 +756,7 @@ async function handleFallback(context, err, options = {}) {
 
     window.ThisOneUI?.renderResults?.(candidates, 0, 1, GeneralSearchState.currentSort, GeneralSearchState.resultMode || 'normal');
   } else {
-    window.ThisOneUI?.addFallback?.('검색 결과를 가져오는 중 문제가 발생했습니다.');
+    window.ThisOneUI?.addErrorState?.('apiFail');
   }
 }
 
@@ -978,7 +980,8 @@ async function refreshGeneralResults() {
       GeneralSearchState.resultMode
     );
   } catch (e) {
-    console.error("Failed to refresh general results", e);
+    console.warn("Failed to refresh general results", e);
+    window.ThisOneUI?.addErrorState?.('apiFail');
   } finally {
     loading = false;
   }

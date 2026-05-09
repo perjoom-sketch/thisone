@@ -71,7 +71,7 @@
         if (confirm('관리자 모드를 해제할까요?')) {
           clearManagerKey();
           updateManagerButtonState();
-          alert('관리자 모드가 해제되었습니다.');
+          window.ThisOneUI?.showNotice?.('관리자 모드가 해제되었습니다.');
         }
         return;
       }
@@ -80,7 +80,7 @@
       if (!key) return;
       setManagerKey(key);
       updateManagerButtonState();
-      alert('관리자 모드가 켜졌습니다. 이 브라우저 탭에서 수정/삭제/비번 재설정 시 관리자 키를 자동 사용합니다.');
+      window.ThisOneUI?.showNotice?.('관리자 모드가 켜졌습니다. 이 브라우저 탭에서 수정/삭제/비번 재설정 시 관리자 키를 자동 사용합니다.');
     };
 
     const closeBtn = header.querySelector('.close-btn');
@@ -153,7 +153,7 @@
     });
 
     if (!item) {
-      alert('데이터를 찾을 수 없습니다.');
+      window.ThisOneUI?.showNotice?.('데이터를 찾을 수 없습니다.');
       return;
     }
 
@@ -184,7 +184,7 @@
     });
 
     if (!item) {
-      alert('삭제할 글을 찾을 수 없습니다.');
+      window.ThisOneUI?.showNotice?.('삭제할 글을 찾을 수 없습니다.');
       return;
     }
 
@@ -203,7 +203,7 @@
       const result = await res.json().catch(function() { return {}; });
 
       if (res.ok && result.status === 'success') {
-        alert('문의가 삭제되었습니다.');
+        window.ThisOneUI?.showNotice?.('문의가 삭제되었습니다.');
         global._inquiryCache = (global._inquiryCache || []).filter(function(inq) {
           return String(inq.id) !== String(id);
         });
@@ -216,11 +216,11 @@
           global.ThisOneUI.openInquiryBoard();
         }
       } else {
-        alert('삭제 실패: ' + (result.message || '비밀번호를 확인해주세요.'));
+        window.ThisOneUI?.showNotice?.('삭제 실패: ' + (result.message || '비밀번호를 확인해주세요.'));
       }
     } catch (err) {
-      console.error('[Inquiry] Delete failed:', err);
-      alert('삭제 중 오류가 발생했습니다.');
+      console.warn('[Inquiry] Delete failed:', err);
+      window.ThisOneUI?.showNotice?.('삭제 중 오류가 발생했습니다.');
     }
   }
 
@@ -230,7 +230,7 @@
     });
 
     if (!item) {
-      alert('비밀번호를 재설정할 글을 찾을 수 없습니다.');
+      window.ThisOneUI?.showNotice?.('비밀번호를 재설정할 글을 찾을 수 없습니다.');
       return;
     }
 
@@ -240,7 +240,7 @@
     const nextPassword = prompt('새 글 비밀번호를 입력해주세요.\n4자리 이상 권장');
     if (!nextPassword) return;
     if (String(nextPassword).trim().length < 4) {
-      alert('새 비밀번호는 4자리 이상 입력해주세요.');
+      window.ThisOneUI?.showNotice?.('새 비밀번호는 4자리 이상 입력해주세요.');
       return;
     }
 
@@ -261,13 +261,13 @@
       if (res.ok && result.status === 'success') {
         setManagerKey(managerKey);
         updateManagerButtonState();
-        alert('글 비밀번호가 새로 설정되었습니다.');
+        window.ThisOneUI?.showNotice?.('글 비밀번호가 새로 설정되었습니다.');
       } else {
-        alert('비밀번호 재설정 실패: ' + (result.message || '관리자 키를 확인해주세요.'));
+        window.ThisOneUI?.showNotice?.('비밀번호 재설정 실패: ' + (result.message || '관리자 키를 확인해주세요.'));
       }
     } catch (err) {
-      console.error('[Inquiry] Password reset failed:', err);
-      alert('비밀번호 재설정 중 오류가 발생했습니다.');
+      console.warn('[Inquiry] Password reset failed:', err);
+      window.ThisOneUI?.showNotice?.('비밀번호 재설정 중 오류가 발생했습니다.');
     }
   }
 
@@ -282,7 +282,7 @@
       if (!key) return;
       setManagerKey(key);
       updateManagerButtonState();
-      alert('관리자 모드가 켜졌습니다.');
+      window.ThisOneUI?.showNotice?.('관리자 모드가 켜졌습니다.');
     };
     global.ThisOneUI.disableInquiryManager = function() {
       clearManagerKey();

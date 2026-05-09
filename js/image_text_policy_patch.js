@@ -145,7 +145,7 @@ function showMobileVisionDebug(title, rows){
           if(typeof sort.setSortActive==='function') sort.setSortActive(mode);
         },0);
       }catch(e){
-        console.error('[ThisOne][sort] failed:', e);
+        console.warn('[ThisOne][sort] failed:', e);
       }
     };
   }

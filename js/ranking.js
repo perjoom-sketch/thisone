@@ -1,9 +1,3 @@
-const MASK_PRICE_FLOOR = 1500;
-
-function isMaskQuery(query) {
-  return /(마스크|kf94|kf80|kf-ad|비말|황사|방역|보건용|덴탈|새부리)/i.test(String(query || '').toLowerCase());
-}
-
 function rewriteSearchQuery(query) {
   const q = String(query || '').trim();
   const lower = q.toLowerCase();
@@ -655,8 +649,8 @@ function shouldExcludeFromPriceRank(item, query, medianPrice, profile) {
   const badges = [];
   const q = String(query || '').toLowerCase();
   const t = String(item.name || '').toLowerCase();
-  const queryIsMainProduct = /(선풍기|공기청정기|프린터|유모차|이어폰|에어팟|가전|의자|책상|노트북|모니터|로봇청소기|청소기|세탁기|건조기|스타일러|에어랩|에어컨|냉난방기|로보락|다이슨|비스포크|갤럭시|아이폰|워치|패드|태블릿|마스크|kf94|kf80|kf-ad)/i.test(q) || (profile?.categoryHint && /(가전|기기|디지털|스마트)/i.test(profile.categoryHint));
-  const titleIsMainProduct = /(선풍기|공기청정기|프린터|유모차|이어폰|에어팟|가전|의자|책상|노트북|모니터|로봇청소기|청소기|세탁기|건조기|스타일러|에어랩|에어컨|냉난방기|로보락|다이슨|비스포크|갤럭시|아이폰|워치|패드|태블릿|마스크|kf94|kf80|kf-ad)/i.test(t);
+  const queryIsMainProduct = /(선풍기|공기청정기|프린터|유모차|이어폰|에어팟|가전|의자|책상|노트북|모니터|로봇청소기|청소기|세탁기|건조기|스타일러|에어랩|에어컨|냉난방기|로보락|다이슨|비스포크|갤럭시|아이폰|워치|패드|태블릿)/i.test(q) || (profile?.categoryHint && /(가전|기기|디지털|스마트)/i.test(profile.categoryHint));
+  const titleIsMainProduct = /(선풍기|공기청정기|프린터|유모차|이어폰|에어팟|가전|의자|책상|노트북|모니터|로봇청소기|청소기|세탁기|건조기|스타일러|에어랩|에어컨|냉난방기|로보락|다이슨|비스포크|갤럭시|아이폰|워치|패드|태블릿)/i.test(t);
   
   const accessoryWords = ['부품','악세사리','액세서리','필터','소모품','케이스','보호필름','충전기','먼지봉투','물걸레','배터리','사이드브러쉬','더스트백','브러쉬'];
   const queryWantsAccessory = accessoryWords.some(w => q.includes(w));
@@ -857,12 +851,7 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
     };
   });
 
-  const maskPriceFloorActive = isMaskQuery(queryText);
-  const priceFloored = maskPriceFloorActive
-    ? mapped.filter((candidate) => !(candidate.priceNum > 0 && candidate.priceNum < MASK_PRICE_FLOOR))
-    : mapped;
-
-  const deduped = dedupeCandidatesByModel(priceFloored);
+  const deduped = dedupeCandidatesByModel(mapped);
   const medianPrice = getMedianPrice(deduped, queryText);
 
   return deduped.map((candidate) => {
@@ -1038,7 +1027,6 @@ function mergeAiWithCandidates(aiResult, candidates = []) {
 }
 
 window.ThisOneRanking = {
-  isMaskQuery,
   rewriteSearchQuery,
   parsePriceNumber,
   parseShippingCost,

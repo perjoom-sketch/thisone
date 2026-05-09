@@ -369,9 +369,7 @@ function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 
           <span>${headerTitle}</span>
         </div>
         <div class="sort-options">
-          <button class="sort-btn ${currentSort === 'sim' || currentSort === 'relevant' ? 'active' : ''}" data-sort-mode="relevant" onclick="window.changeSort('relevant', this)">관련순</button>
-          <button class="sort-btn ${currentSort === 'low' ? 'active' : ''}" data-sort-mode="low" onclick="window.changeSort('low', this)">낮은가격순</button>
-          <button class="sort-btn ${currentSort === 'high' ? 'active' : ''}" data-sort-mode="high" onclick="window.changeSort('high', this)">높은가격순</button>
+          ${window.ThisOneSort?.buttons?.(currentSort) || ''}
         </div>
       </div>
       <div class="pick-list">
@@ -384,14 +382,10 @@ function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 
 
   content.insertAdjacentHTML('beforeend', html);
   
-  // 첫 페이지 진입 시에만 스크롤 (페이지 전환 시에는 결과 영역으로 스크롤)
+  // 페이지 전환 시에만 결과 영역으로 이동하고, 첫 검색 렌더링에서는 현재 스크롤을 유지한다.
   if (currentPage > 1) {
     const wrap = document.querySelector('.general-results-wrap');
     if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  } else {
-    setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 100);
   }
 }
 

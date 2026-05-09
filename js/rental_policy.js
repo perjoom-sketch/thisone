@@ -3,22 +3,37 @@ function parseRentalNumber(text) {
   return Number(String(text || '').replace(/[^\d]/g, '')) || 0;
 }
 
+function parseRentalYearMonths(text) {
+  const source = String(text || '');
+  const yearPatterns = [
+    /(\d{1,2})\s*년\s*(?:약정|의무사용)?/i,
+    /의무(?:사용|기간)\s*(\d{1,2})\s*년/i
+  ];
+
+  for (const pattern of yearPatterns) {
+    const match = source.match(pattern);
+    if (match) return (parseInt(match[1], 10) || 0) * 12;
+  }
+
+  return 0;
+}
+
 function enrichRentalCandidate(candidate) {
   if (!candidate || typeof candidate !== 'object') return candidate;
   const text = `${candidate.name || ''} ${candidate.store || ''} ${candidate.price || ''}`;
   const monthlyMatch = text.match(/월\s*([0-9,]+)\s*원/i);
   const monthsMatch = text.match(/(\d+)\s*개월/i);
-  const yearsMatch = text.match(/(\d+)\s*년\s*약정/i);
+  const rentalYearMonths = parseRentalYearMonths(text);
   const isRental = /렌탈|대여|구독|약정|월납|의무사용|방문관리|코디관리|관리형/i.test(text)
     || !!monthlyMatch
     || !!monthsMatch
-    || !!yearsMatch;
+    || rentalYearMonths > 0;
   const rentalMonthlyFee = monthlyMatch
     ? parseRentalNumber(monthlyMatch[1])
     : (isRental ? parseRentalNumber(candidate.price) : 0);
   const rentalMonths = monthsMatch
     ? parseInt(monthsMatch[1], 10)
-    : (yearsMatch ? parseInt(yearsMatch[1], 10) * 12 : 0);
+    : rentalYearMonths;
   const rentalTotalFee = rentalMonthlyFee > 0 && rentalMonths > 0
     ? rentalMonthlyFee * rentalMonths
     : 0;
@@ -235,9 +250,9 @@ function installManagedRentalRankingPatch() {
     const text = `${item?.name || ''} ${item?.price || ''} ${item?.priceText || ''}`;
     const monthlyMatch = text.match(/월\s*([0-9,]+)\s*원/i);
     const monthsMatch = text.match(/(\d+)\s*개월/i);
-    const yearsMatch = text.match(/(\d+)\s*년\s*약정/i);
+    const rentalYearMonths = parseRentalYearMonths(text);
     const monthly = monthlyMatch ? parseRentalNumber(monthlyMatch[1]) : parseRentalNumber(item?.price || item?.priceText || item?.lprice || item?.priceNum || 0);
-    const months = monthsMatch ? parseInt(monthsMatch[1], 10) : (yearsMatch ? parseInt(yearsMatch[1], 10) * 12 : 0);
+    const months = monthsMatch ? parseInt(monthsMatch[1], 10) : rentalYearMonths;
     return {
       isRental: true,
       rentalMonthlyFee: monthly || 0,

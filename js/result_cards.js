@@ -372,6 +372,21 @@ function getBadgeClass(text) {
     return Number(String(text || '').replace(/[^\d]/g, '')) || 0;
   }
 
+  function parseRentalYearMonths(text) {
+    const source = String(text || '');
+    const yearPatterns = [
+      /(\d{1,2})\s*년\s*(?:약정|의무사용)?/i,
+      /의무(?:사용|기간)\s*(\d{1,2})\s*년/i
+    ];
+
+    for (const pattern of yearPatterns) {
+      const match = source.match(pattern);
+      if (match) return (parseInt(match[1], 10) || 0) * 12;
+    }
+
+    return 0;
+  }
+
   const rentalSignalPattern = /렌탈|대여|구독|약정|월납|의무사용|방문관리|코디관리|관리형|월\s*[0-9,]+\s*원|\d+\s*개월/i;
 
   function rentalText(item) {
@@ -392,8 +407,7 @@ function getBadgeClass(text) {
     const t = rentalText(item);
     const months = t.match(/(\d+)\s*개월/i);
     if (months) return parseInt(months[1], 10) || 0;
-    const years = t.match(/(\d+)\s*년\s*약정/i);
-    return years ? (parseInt(years[1], 10) || 0) * 12 : 0;
+    return parseRentalYearMonths(t);
   }
 
   function enrichRental(item) {

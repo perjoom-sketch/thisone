@@ -375,7 +375,7 @@ function getBadgeClass(text) {
   function parseRentalYearMonths(text) {
     const source = String(text || '');
     const yearPatterns = [
-      /(\d{1,2})\s*년\s*(?:약정|의무사용)?/i,
+      /(\d{1,2})\s*년\s*(?:약정|의무사용|의무기간)/i,
       /의무(?:사용|기간)\s*(\d{1,2})\s*년/i
     ];
 

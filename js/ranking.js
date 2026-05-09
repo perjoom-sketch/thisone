@@ -1,3 +1,10 @@
+const MASK_LOW_PRICE_PENALTY_FLOOR = 1500;
+const MASK_LOW_PRICE_SCORE_PENALTY = 30;
+
+function isMaskQuery(query) {
+  return /(마스크|kf94|kf80|kf-ad|비말|황사|방역|보건용|덴탈|새부리)/i.test(String(query || '').toLowerCase());
+}
+
 function rewriteSearchQuery(query) {
   const q = String(query || '').trim();
   const lower = q.toLowerCase();
@@ -907,6 +914,11 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
           }
         }
       });
+    }
+
+    if (isMaskQuery(queryText) && candidate.priceNum > 0 && candidate.priceNum < MASK_LOW_PRICE_PENALTY_FLOOR) {
+      specPenalty += MASK_LOW_PRICE_SCORE_PENALTY;
+      badges.push('저가 마스크 감점');
     }
 
     if (priceRisk.exclude) {

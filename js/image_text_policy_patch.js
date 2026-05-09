@@ -70,60 +70,34 @@ function showMobileVisionDebug(title, rows){
     return 'sim';
   }
 
+  function getSort(){
+    return global.ThisOneSort||{};
+  }
+
+  function getSortMode(sortOrMode){
+    const sort=getSort();
+    return typeof sort.normalizeSortMode==='function'?sort.normalizeSortMode(sortOrMode):'relevant';
+  }
+
   function rankItemsForMode(items, query, mode){
     const ranking=global.ThisOneRanking;
     if(!ranking||typeof ranking.buildCandidates!=='function') return items||[];
     const profile=global._lastIntentProfile||null;
     const candidates=ranking.buildCandidates(items||[], query||'', profile);
-    if(typeof ranking.sortCandidatesByMode==='function') return ranking.sortCandidatesByMode(candidates, mode);
-    return candidates;
+    const sort=getSort();
+    return typeof sort.sortCandidatesByMode==='function'?sort.sortCandidatesByMode(candidates, mode):candidates;
   }
 
   function getGeneralSortMode(){
-    if(global.GeneralSearchState&&global.GeneralSearchState.sortMode) return normalizeSortMode(global.GeneralSearchState.sortMode);
-    if(global.ThisOneGeneralSortMode) return normalizeSortMode(global.ThisOneGeneralSortMode);
-    return normalizeSortMode(global.ThisOneSortMode);
+    const sort=getSort();
+    if(typeof sort.getGeneralSortMode==='function') return sort.getGeneralSortMode();
+    if(global.GeneralSearchState&&global.GeneralSearchState.sortMode) return getSortMode(global.GeneralSearchState.sortMode);
+    if(global.ThisOneGeneralSortMode) return getSortMode(global.ThisOneGeneralSortMode);
+    return getSortMode(global.ThisOneSortMode);
   }
 
   function getRecSortMode(){
-    return normalizeSortMode(global.ThisOneRecSortMode);
-  }
-
-  function setWrapSortActive(wrap, mode){
-    if(!wrap) return;
-    const activeMode=mode||'relevant';
-    wrap.querySelectorAll('.sort-btn').forEach(btn=>{
-      btn.classList.toggle('active',btn.dataset.sortMode===activeMode);
-    });
-  }
-
-  function setSortActive(mode, sourceBtn){
-    const activeMode=normalizeSortMode(mode);
-    const labels = {
-      relevant: '관련순',
-      low: '낮은가격순',
-      high: '높은가격순'
-    };
-    const iconBtn = document.querySelector('.sort-icon-btn');
-    if (iconBtn) {
-      iconBtn.textContent = (labels[activeMode] || '관련순') + ' ▾';
-      iconBtn.dataset.sortMode = activeMode;
-    }
-    const sourceWrap=sourceBtn&&sourceBtn.closest?sourceBtn.closest('.sort-options'):null;
-    if(sourceWrap){
-      if(sourceWrap.classList.contains('thisone-rec-sort')){
-        global.ThisOneRecSortMode=activeMode;
-      }else{
-        global.ThisOneGeneralSortMode=activeMode;
-        global.ThisOneSortMode=activeMode;
-      }
-      setWrapSortActive(sourceWrap, activeMode);
-      return;
-    }
-
-    global.ThisOneGeneralSortMode=activeMode;
-    global.ThisOneSortMode=activeMode;
-    document.querySelectorAll('.sort-options:not(.thisone-rec-sort)').forEach(wrap=>setWrapSortActive(wrap, activeMode));
+    return getSortMode(global.ThisOneRecSortMode);
   }
 
   function getCurrentGeneralQuery(){
@@ -132,53 +106,17 @@ function showMobileVisionDebug(title, rows){
     return getPrimaryInputValue();
   }
 
-  function normalizeSortMode(sortOrMode){
-    if(sortOrMode==='relevant'||sortOrMode==='low'||sortOrMode==='high') return sortOrMode;
-    return 'relevant';
-  }
 
   function installSortExecutionPatch(){
-    global.openSortModal = function(sourceBtn) {
-      document.querySelectorAll('.sort-modal-wrap').forEach(el => el.remove());
-
-      const currentMode = sourceBtn?.dataset?.sortMode || 'relevant';
-      const options = [
-        { mode: 'relevant', label: '관련순' },
-        { mode: 'low', label: '낮은가격순' },
-        { mode: 'high', label: '높은가격순' }
-      ];
-
-      const wrap = document.createElement('div');
-      wrap.className = 'sort-modal-wrap';
-      wrap.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;';
-
-      const backdrop = document.createElement('div');
-      backdrop.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.3);';
-      backdrop.onclick = () => wrap.remove();
-
-      const modal = document.createElement('div');
-      modal.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:8px;padding:16px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.15);';
-
-      options.forEach(opt => {
-        const btn = document.createElement('button');
-        btn.textContent = opt.label;
-        btn.style.cssText = `display:block;width:100%;padding:10px 16px;border:none;background:${opt.mode === currentMode ? '#f0f0f0' : '#fff'};text-align:left;cursor:pointer;font-size:14px;font-weight:${opt.mode === currentMode ? 'bold' : 'normal'};`;
-        btn.onclick = () => {
-          wrap.remove();
-          window.changeSort(opt.mode, sourceBtn);
-        };
-        modal.appendChild(btn);
-      });
-
-      wrap.appendChild(backdrop);
-      wrap.appendChild(modal);
-      document.body.appendChild(wrap);
-    };
+    if(global.ThisOneSort&&typeof global.ThisOneSort.openSortModal==='function'){
+      global.openSortModal=global.ThisOneSort.openSortModal;
+    }
 
     global.changeSort=async function(sortOrMode, sourceBtn){
-      const mode=normalizeSortMode(sortOrMode);
+      const sort=getSort();
+      const mode=getSortMode(sortOrMode);
       const apiSort=mapSortModeToApi(mode);
-      setSortActive(mode, sourceBtn);
+      if(typeof sort.setSortActive==='function') sort.setSortActive(mode, sourceBtn);
       try{
         if(global.GeneralSearchState){
           global.GeneralSearchState.currentSort=apiSort;
@@ -203,7 +141,9 @@ function showMobileVisionDebug(title, rows){
         const scrollY=window.scrollY;
         await global.ThisOneUI.renderResults(items, data&&data.total||items.length, 1, apiSort, global.GeneralSearchState&&global.GeneralSearchState.resultMode||'fallback_general');
         setTimeout(()=>window.scrollTo({top:scrollY}),150);
-        setTimeout(()=>setSortActive(mode),0);
+        setTimeout(()=>{
+          if(typeof sort.setSortActive==='function') sort.setSortActive(mode);
+        },0);
       }catch(e){
         console.error('[ThisOne][sort] failed:', e);
       }
@@ -213,22 +153,8 @@ function showMobileVisionDebug(title, rows){
   function installSortButtonsPatch(){
     const activeKeyFromWrap=(wrap)=>{
       const activeBtn=wrap&&wrap.querySelector&&wrap.querySelector('.sort-btn.active, .sort-icon-btn');
-      return normalizeSortMode(activeBtn&&activeBtn.dataset&&activeBtn.dataset.sortMode||getGeneralSortMode());
+      return getSortMode(activeBtn&&activeBtn.dataset&&activeBtn.dataset.sortMode||getGeneralSortMode());
     };
-    function buttons(activeKey) {
-      activeKey=normalizeSortMode(activeKey);
-      const labels = {
-        relevant: '관련순',
-        low: '낮은가격순',
-        high: '높은가격순'
-      };
-      const label = labels[activeKey] || '관련순';
-      return `<button class="sort-icon-btn"
-        onclick="window.openSortModal(this)"
-        data-sort-mode="${activeKey}"
-        style="cursor:pointer;padding:4px 10px;border:1px solid #ddd;border-radius:4px;background:#fff;font-size:13px;">
-        ${label} ▾</button>`;
-    }
     const apply=()=>{
       document.querySelectorAll('.sort-options').forEach(wrap=>{
         if(wrap.classList.contains('thisone-rec-sort')) return;
@@ -236,10 +162,10 @@ function showMobileVisionDebug(title, rows){
         const text=wrap.textContent||'';
         if(!text.includes('관련도순')&&!text.includes('관련순')&&!text.includes('최저가순')&&!text.includes('낮은가격순')&&!text.includes('높은가격순')) return;
         wrap.dataset.thisoneSortPatchApplied='true';
-        wrap.innerHTML=buttons(activeKeyFromWrap(wrap));
+        wrap.innerHTML=getSort().buttons(activeKeyFromWrap(wrap));
       });
 
-      document.querySelectorAll('.sort-options:not(.thisone-rec-sort)').forEach(wrap=>setWrapSortActive(wrap,getGeneralSortMode()));
+      document.querySelectorAll('.sort-options:not(.thisone-rec-sort)').forEach(wrap=>getSort().setWrapSortActive(wrap,getGeneralSortMode()));
     };
     apply();
     const observer=new MutationObserver(apply);

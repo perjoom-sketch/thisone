@@ -731,42 +731,7 @@ function getPriceValueIndex(candidate, candidates = []) {
   return Math.max(0, Math.min(1, 1 - percentile));
 }
 
-function sortCandidatesByMode(candidates = [], mode = 'relevant') {
-  const list = Array.isArray(candidates) ? [...candidates] : [];
-  const sortMode = String(mode || 'relevant');
-
-  if (sortMode === 'low') {
-    return list.sort((a, b) => {
-      const ap = Number(a.totalPriceNum || a.priceNum || 0);
-      const bp = Number(b.totalPriceNum || b.priceNum || 0);
-      if (ap && bp && ap !== bp) return ap - bp;
-      if (ap && !bp) return -1;
-      if (!ap && bp) return 1;
-      return Number(b.finalScore ?? 0) - Number(a.finalScore ?? 0);
-    });
-  }
-
-  if (sortMode === 'high') {
-    return list.sort((a, b) => {
-      const ap = Number(a.totalPriceNum || a.priceNum || 0);
-      const bp = Number(b.totalPriceNum || b.priceNum || 0);
-      if (ap && bp && ap !== bp) return bp - ap;
-      if (ap && !bp) return -1;
-      if (!ap && bp) return 1;
-      return Number(b.finalScore ?? 0) - Number(a.finalScore ?? 0);
-    });
-  }
-
-  return list.sort((a, b) => {
-    const at = Number(a.totalScore ?? a.finalScore ?? 0);
-    const bt = Number(b.totalScore ?? b.finalScore ?? 0);
-    if (bt !== at) return bt - at;
-    const ap = Number(a.totalPriceNum || a.priceNum || 0);
-    const bp = Number(b.totalPriceNum || b.priceNum || 0);
-    if (ap && bp) return ap - bp;
-    return 0;
-  });
-}
+const sortCandidatesByMode = window.ThisOneSort.sortCandidatesByMode;
 
 function getSafePriceCandidate(candidates) {
   return (candidates || [])

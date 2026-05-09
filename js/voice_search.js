@@ -195,7 +195,7 @@
     try {
       recognition.start();
     } catch (error) {
-      console.error('[ThisOne][voice] start failed:', error);
+      console.warn('[ThisOne][voice] start failed:', error);
       showVoiceToast('음성 인식을 시작할 수 없습니다. 다시 시도해주세요.');
     }
   }

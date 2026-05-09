@@ -21,7 +21,89 @@ function appendAndScroll(node) {
       node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, 50);
     */
-  } catch(e) { console.error("Render append failed", e); }
+  } catch(e) { console.warn("Render append failed", e); }
+}
+
+
+const ERROR_STATE_MESSAGES = {
+  noResults: '조건을 바꿔서 다시 검색해볼까요?',
+  aiDelay: '분석 중입니다. 일반 결과를 먼저 확인해주세요',
+  apiFail: '잠시 후 다시 시도해주세요',
+  imageFail: '이미지를 인식하지 못했어요. 텍스트로 검색해보세요'
+};
+
+function clearErrorState(target = 'results') {
+  const selector = target === 'search' ? '.search-error-state' : '.result-error-state';
+  document.querySelectorAll(selector).forEach((node) => node.remove());
+}
+
+function buildErrorStateNode(type, options = {}) {
+  const message = options.message || ERROR_STATE_MESSAGES[type] || ERROR_STATE_MESSAGES.apiFail;
+  const node = document.createElement('div');
+  const location = options.location || (type === 'imageFail' ? 'search' : 'results');
+  const variant = type === 'aiDelay' ? 'inline' : 'center';
+  node.className = location === 'search'
+    ? `search-error-state error-state error-state-${type}`
+    : `result-error-state error-state error-state-${type} error-state-${variant}`;
+  node.setAttribute('role', type === 'aiDelay' ? 'status' : 'alert');
+  node.setAttribute('aria-live', 'polite');
+  node.dataset.errorState = type;
+  node.innerHTML = `
+    <span class="error-state-icon" aria-hidden="true">${window.MINI_SCOPE || '✦'}</span>
+    <span class="error-state-message">${esc(message)}</span>
+  `;
+  return node;
+}
+
+function addErrorState(type, options = {}) {
+  const location = options.location || (type === 'imageFail' ? 'search' : 'results');
+  clearErrorState(location);
+  const node = buildErrorStateNode(type, { ...options, location });
+
+  if (location === 'search') {
+    const searchWrap = document.getElementById('landingSearch');
+    if (!searchWrap) return null;
+    searchWrap.insertAdjacentElement('afterend', node);
+    return node;
+  }
+
+  const content = getContentEl();
+  if (!content) return null;
+  if (options.replace !== false) {
+    content.innerHTML = '';
+    appendAndScroll(node);
+    return node;
+  }
+
+  const generalWrap = content.querySelector('.general-results-wrap');
+  if (type === 'aiDelay' && generalWrap) {
+    content.insertBefore(node, generalWrap);
+  } else {
+    appendAndScroll(node);
+  }
+  return node;
+}
+
+function showNotice(message, options = {}) {
+  const text = String(message || '').trim();
+  if (!text) return null;
+  const root = document.body;
+  if (!root) return null;
+  let stack = document.getElementById('noticeStack');
+  if (!stack) {
+    stack = document.createElement('div');
+    stack.id = 'noticeStack';
+    stack.className = 'notice-stack';
+    root.appendChild(stack);
+  }
+  const node = document.createElement('div');
+  node.className = `notice-toast notice-${options.tone || 'info'}`;
+  node.setAttribute('role', 'status');
+  node.textContent = text;
+  stack.appendChild(node);
+  const duration = Number(options.duration || 3200);
+  window.setTimeout(() => node.remove(), duration);
+  return node;
 }
 
 function renderHistoryBar() {
@@ -87,12 +169,23 @@ function addUserMsg(txt, imgSrc) {
   appendAndScroll(d);
 }
 
-function addFallback(txt) {
+function addFallback(txt, options = {}) {
+  const message = typeof txt === 'string' ? txt.trim() : '';
+  const normalized = message.replace(/\s+/g, ' ');
+  const stateByMessage = [
+    ['imageFail', /이미지|식별|인식/],
+    ['noResults', /검색 결과가 없습니다|결과를 찾을 수 없습니다|결과 없음|0건/],
+    ['apiFail', /오류|문제|실패|잠시 후|가져오는 중/]
+  ].find(([, pattern]) => pattern.test(normalized));
+
+  if (stateByMessage && !options.keepComment) {
+    return addErrorState(stateByMessage[0], options);
+  }
+
   const d = document.createElement('div');
   d.className = 'ai-result';
-  
-  const defaultMsg = '데이터 분석을 바탕으로 최적의 후보군 선별을 마쳤습니다. 아래 리스트에서 사용자님의 환경에 가장 적합한 상품을 확인해 보세요.';
-  let contentTxt = txt || defaultMsg;
+  const fallbackMessage = message || '잠시 후 다시 시도해주세요';
+  let contentTxt = fallbackMessage;
 
   if (typeof stripCitations === 'function') {
     contentTxt = stripCitations(contentTxt);
@@ -108,14 +201,15 @@ function addFallback(txt) {
   d.innerHTML = `
     <div class="ai-label">
       <div class="dot">${window.MINI_SCOPE || '✦'}</div>
-      <span>분석 완료</span>
+      <span>안내</span>
     </div>
-    <details class="fold-box ai-comment-box">
-      <summary>AI 코멘트</summary>
-      <div class="fold-content">${fmt}</div>
-    </details>
+    <div class="error-state error-state-inline" role="status" aria-live="polite">
+      <span class="error-state-icon" aria-hidden="true">${window.MINI_SCOPE || '✦'}</span>
+      <span class="error-state-message">${fmt}</span>
+    </div>
   `;
   appendAndScroll(d);
+  return d;
 }
 
 function removeLegacyProgressUi(root = document) {
@@ -391,7 +485,7 @@ async function loadDynamicTrends() {
       });
     }
   } catch (err) {
-    console.error('트렌드 칩 로딩 실패:', err);
+    console.warn('트렌드 칩 로딩 실패:', err);
   }
 }
 
@@ -471,7 +565,7 @@ function prepareEdit(id) {
   // 캐시에서 해당 데이터 찾기
   const item = (window._inquiryCache || []).find(inq => String(inq.id) === String(id));
   if (!item) {
-    alert('데이터를 찾을 수 없습니다.');
+    showNotice('데이터를 찾을 수 없습니다.', { tone: 'warning' });
     return;
   }
 
@@ -500,7 +594,7 @@ async function submitInquiry() {
   const now = Date.now();
   if (now - lastSubmitTime < 10000) { // 10초 쿨타임
     const remaining = Math.ceil((10000 - (now - lastSubmitTime)) / 1000);
-    alert(`도배 방지를 위해 ${remaining}초 후 다시 시도해주세요.`);
+    showNotice(`도배 방지를 위해 ${remaining}초 후 다시 시도해주세요.`, { tone: 'warning' });
     return;
   }
 
@@ -512,17 +606,17 @@ async function submitInquiry() {
   console.log('[Inquiry] Attempting submission...');
 
   if (!title || !password || !content) {
-    alert('제목, 비밀번호, 내용을 모두 입력해주세요.');
+    showNotice('제목, 비밀번호, 내용을 모두 입력해주세요.', { tone: 'warning' });
     return;
   }
 
   if (title.length < 2 || content.length < 5) {
-    alert('너무 짧은 내용은 등록할 수 없습니다. (제목 2자, 내용 5자 이상)');
+    showNotice('너무 짧은 내용은 등록할 수 없습니다. (제목 2자, 내용 5자 이상)', { tone: 'warning' });
     return;
   }
 
   if (author.length > 20) {
-    alert('닉네임은 20자 이하로 입력해주세요.');
+    showNotice('닉네임은 20자 이하로 입력해주세요.', { tone: 'warning' });
     return;
   }
 
@@ -551,7 +645,7 @@ async function submitInquiry() {
     console.log('[Inquiry] Result:', result);
 
     if (res.ok && result.status === 'success') {
-      alert(isEdit ? '문의가 수정되었습니다.' : '문의가 성공적으로 등록되었습니다.');
+      showNotice(isEdit ? '문의가 수정되었습니다.' : '문의가 성공적으로 등록되었습니다.', { tone: 'success' });
       lastSubmitTime = Date.now(); 
       if (document.getElementById('inqTitle')) document.getElementById('inqTitle').value = '';
       if (document.getElementById('inqAuthor')) document.getElementById('inqAuthor').value = '';
@@ -560,11 +654,11 @@ async function submitInquiry() {
       hideInquiryForm();
       fetchInquiries();
     } else {
-      alert('처리 실패: ' + (result.message || '비밀번호를 확인해주세요.'));
+      showNotice('처리 실패: ' + (result.message || '비밀번호를 확인해주세요.'), { tone: 'warning' });
     }
   } catch (err) {
-    console.error('[Inquiry] Critical Error:', err);
-    alert('등록 중 오류가 발생했습니다.');
+    console.warn('[Inquiry] Critical Error:', err);
+    showNotice('등록 중 오류가 발생했습니다.', { tone: 'warning' });
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -591,10 +685,16 @@ function purgeProgressLeak() {
   });
 }
 
+window.ThisOneDebug = window.ThisOneDebug || {};
+window.ThisOneDebug.forceErrorState = (type) => addErrorState(type);
+
 window.ThisOneUI = {
   renderHistoryBar,
   addUserMsg,
   addFallback,
+  addErrorState,
+  clearErrorState,
+  showNotice,
   addThinking,
   renderBadgeList,
   renderRawResults,

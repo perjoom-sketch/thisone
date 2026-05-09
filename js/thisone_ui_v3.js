@@ -378,6 +378,7 @@ function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 
         ${cardsHtml}
       </div>
       ${paginationHtml}
+      ${renderResultInquiryButton()}
     </div>
   `;
 
@@ -408,6 +409,14 @@ function escAttr(s) {
     .replace(/'/g, '&#39;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+}
+
+function renderResultInquiryButton() {
+  return `
+    <div class="result-inquiry-wrap">
+      <button type="button" class="result-inquiry-btn" onclick="window.ThisOneUI?.openInquiryBoard?.()">결과가 이상한가요? 문의 남기기</button>
+    </div>
+  `;
 }
 
 function addResultCard(result) {
@@ -454,6 +463,7 @@ function addResultCard(result) {
       </div>
       ${aiCommentHtml}
       ${rejectsHtml}
+      ${renderResultInquiryButton()}
     </div>
   `;
 

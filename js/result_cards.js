@@ -295,11 +295,17 @@ function getBadgeClass(text) {
       ? `<img class="row-img" src="${escAttr(card.image)}" alt="${escAttr(card.name || '상품')}" onerror="this.onerror=null;this.alt='';this.style.visibility='hidden';">`
       : `<div class="row-img-placeholder">상품</div>`;
 
+    const shouldHideBadge = (badge) => normalizeBadgeText(badge) === '종합 1위';
+
     const badgesHtml = !hideRecommendationUi && Array.isArray(card.badges) && card.badges.length
-      ? card.badges.map((badge) => normalizeBadgeText(badge)).map((b) => `<span class="row-badge-item ${getBadgeClass(b)}">${esc(b)}</span>`).join('')
+      ? card.badges
+          .map((badge) => normalizeBadgeText(badge))
+          .filter((badge) => badge && !shouldHideBadge(badge))
+          .map((b) => `<span class="row-badge-item ${getBadgeClass(b)}">${esc(b)}</span>`)
+          .join('')
       : '';
 
-    const labelBadge = !hideRecommendationUi && card.label
+    const labelBadge = !hideRecommendationUi && card.label && !shouldHideBadge(card.label)
       ? `<span class="row-badge-item row-label-badge">${esc(normalizeBadgeText(card.label))}</span>`
       : '';
 

@@ -1347,6 +1347,34 @@ body.search-mode .results-view {
 }
 
 
+.result-inquiry-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: clamp(12px, 2.4vw, 20px);
+}
+
+.result-inquiry-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: min(100%, 18rem);
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: var(--color-primary);
+  border-radius: 999px;
+  padding: clamp(10px, 2vw, 14px) clamp(14px, 3vw, 22px);
+  font-size: clamp(12px, 1.4vw, 14px);
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.result-inquiry-btn:hover {
+  border-color: var(--color-primary);
+  background: #dbeafe;
+}
+
 
 .status-line {
   width: 100%;

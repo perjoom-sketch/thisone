@@ -34,9 +34,6 @@ function sha1Short(value){
 function normalizeSearchCacheQuery(query){
   return String(improveQuery(query) || '').trim().toLowerCase();
 }
-function isMaskQuery(query){
-  return /(마스크|kf94|kf80|kf-ad|비말|황사|방역|보건용|덴탈|새부리)/i.test(String(query || '').toLowerCase());
-}
 function buildExpertSettingsHashSource(query, { start, display, sort }){
   return {
     excludeRental: isTrue(query.excludeRental),
@@ -307,11 +304,10 @@ async function handler(req,res){
     const start=parseInt(req.query.start||'1');
     const display=parseInt(req.query.display||'30');
     const sort=req.query.sort||'sim';
-    const skipSearchCache = isMaskQuery(q);
     const normalizedCacheQuery = normalizeSearchCacheQuery(q);
     const settingsHashSource = buildExpertSettingsHashSource(req.query, { start, display, sort });
     const searchCacheKey = buildSearchCacheKey(normalizedCacheQuery, settingsHashSource);
-    const cachedResponse = skipSearchCache ? null : await readSearchCache(searchCacheKey);
+    const cachedResponse = await readSearchCache(searchCacheKey);
 
     if (cachedResponse && typeof cachedResponse === 'object') {
       return res.status(200).json({
@@ -418,12 +414,11 @@ async function handler(req,res){
         normalizedQuery: normalizedCacheQuery,
         settingsHash: sha1Short(stableStringify(settingsHashSource)),
         hit: false,
-        skipped: skipSearchCache,
         ttlSeconds: SEARCH_CACHE_TTL_SECONDS
       }
     };
 
-    if (!skipSearchCache) await writeSearchCache(searchCacheKey, responseBody);
+    await writeSearchCache(searchCacheKey, responseBody);
     return res.status(200).json(responseBody);
 
   }catch(err){

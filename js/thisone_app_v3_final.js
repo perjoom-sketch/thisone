@@ -393,9 +393,11 @@ async function handleNormalSearch(context) {
   context.searchData = searchData;
   context.items = searchData?.items || [];
 
-  // 네이버 검색 결과는 의도분석을 기다리지 않고 원본 순서 그대로 즉시 먼저 보여준다.
+  // 네이버 검색 결과는 의도분석을 기다리지 않고 즉시 먼저 보여준다.
   if (!queryImage && context.items && context.items.length > 0) {
-    const earlyCandidates = context.items;
+    const earlyCandidates = window.ThisOneRanking?.buildCandidates
+      ? window.ThisOneRanking.buildCandidates(context.items, context.finalSearchQuery, null)
+      : context.items;
 
     if (earlyCandidates && earlyCandidates.length > 0) {
       GeneralSearchState.query = context.finalSearchQuery;

@@ -280,7 +280,7 @@ function getBadgeClass(text) {
       const fmt = (v) => Number(v || 0).toLocaleString('ko-KR');
       const monthly = `월 ${fmt(card.rentalMonthlyFee)}원`;
       if (card.rentalMonths > 0 && card.rentalTotalFee > 0) {
-        return `<span class="row-price-main">${esc(monthly)}</span><span class="row-price-sub">${esc(`${card.rentalMonths}개월 · 총 ${fmt(card.rentalTotalFee)}원`)}</span>`;
+        return `<span class="row-price-main">${esc(monthly)}</span><span class="row-price-sub">${esc(`의무 ${card.rentalMonths}개월`)}</span><span class="row-price-sub">${esc(`총 ${fmt(card.rentalTotalFee)}원`)}</span>`;
       }
       return `<span class="row-price-main">${esc(monthly)}</span>`;
     }
@@ -372,12 +372,14 @@ function getBadgeClass(text) {
     return Number(String(text || '').replace(/[^\d]/g, '')) || 0;
   }
 
+  const rentalSignalPattern = /렌탈|대여|구독|약정|월납|의무사용|방문관리|코디관리|관리형|월\s*[0-9,]+\s*원|\d+\s*개월/i;
+
   function rentalText(item) {
     return `${item?.name || ''} ${item?.store || ''} ${item?.price || ''}`;
   }
 
   function isRental(item) {
-    return item?.isRental === true || /렌탈|대여|구독|약정|월납/i.test(rentalText(item));
+    return item?.isRental === true || rentalSignalPattern.test(rentalText(item));
   }
 
   function rentalMonthlyFee(item) {

@@ -279,10 +279,7 @@ function getBadgeClass(text) {
     if (card?.isRental && card.rentalMonthlyFee > 0) {
       const fmt = (v) => Number(v || 0).toLocaleString('ko-KR');
       const monthly = `월 ${fmt(card.rentalMonthlyFee)}원`;
-      if (card.rentalMonths > 0 && card.rentalTotalFee > 0) {
-        return `<span class="row-price-main">${esc(monthly)}</span><span class="row-price-sub">${esc(`의무 ${card.rentalMonths}개월`)}</span><span class="row-price-sub">${esc(`총 ${fmt(card.rentalTotalFee)}원`)}</span>`;
-      }
-      return `<span class="row-price-main">${esc(monthly)}</span>`;
+      return `<span class="row-price-main">${esc(monthly)}</span><span class="row-price-sub">의무기간 상세페이지 확인</span>`;
     }
     return esc(card.price || '가격 정보 없음');
   }
@@ -365,26 +362,10 @@ function getBadgeClass(text) {
   };
 })(window);
 
-// 렌탈 상품을 구매가처럼 오해하지 않도록 표시 데이터만 보정한다.
-// 정렬은 강제하지 않고 AI가 월 납입액/약정/총액을 이해해 판단하게 한다.
+// 렌탈 상품을 구매가처럼 오해하지 않도록 월 납입액 표시 데이터만 보정한다.
 (function patchRentalDisplay(global) {
   function parseNumber(text) {
     return Number(String(text || '').replace(/[^\d]/g, '')) || 0;
-  }
-
-  function parseRentalYearMonths(text) {
-    const source = String(text || '');
-    const yearPatterns = [
-      /(\d{1,2})\s*년\s*(?:약정|의무사용|의무기간)/i,
-      /의무(?:사용|기간)\s*(\d{1,2})\s*년/i
-    ];
-
-    for (const pattern of yearPatterns) {
-      const match = source.match(pattern);
-      if (match) return (parseInt(match[1], 10) || 0) * 12;
-    }
-
-    return 0;
   }
 
   const rentalSignalPattern = /렌탈|대여|구독|약정|월납|의무사용|방문관리|코디관리|관리형|월\s*[0-9,]+\s*원|\d+\s*개월/i;
@@ -403,20 +384,11 @@ function getBadgeClass(text) {
     return isRental(item) ? Number(item?.priceNum || item?.lprice || parseNumber(item?.price) || 0) : 0;
   }
 
-  function rentalMonths(item) {
-    const t = rentalText(item);
-    const months = t.match(/(\d+)\s*개월/i);
-    if (months) return parseInt(months[1], 10) || 0;
-    return parseRentalYearMonths(t);
-  }
-
   function enrichRental(item) {
     if (!item || typeof item !== 'object') return item;
     const rental = isRental(item);
     const monthly = Number(item.rentalMonthlyFee || 0) || rentalMonthlyFee(item);
-    const months = Number(item.rentalMonths || 0) || rentalMonths(item);
-    const total = Number(item.rentalTotalFee || 0) || (monthly > 0 && months > 0 ? monthly * months : 0);
-    const next = { ...item, isRental: rental, rentalMonthlyFee: monthly, rentalMonths: months, rentalTotalFee: total };
+    const next = { ...item, isRental: rental, rentalMonthlyFee: monthly };
 
     if (rental) {
       const badges = Array.isArray(next.badges) ? [...next.badges] : [];
@@ -425,17 +397,6 @@ function getBadgeClass(text) {
     }
 
     return next;
-  }
-
-  function rentalPriceText(item) {
-    const c = enrichRental(item);
-    if (!c?.isRental) return c?.price || c?.priceText || '';
-    const fmt = (v) => Number(v || 0).toLocaleString('ko-KR');
-    if (c.rentalMonthlyFee > 0 && c.rentalMonths > 0) {
-      return `월 ${fmt(c.rentalMonthlyFee)}원 ${c.rentalMonths}개월 총 ${fmt(c.rentalTotalFee)}원`;
-    }
-    if (c.rentalMonthlyFee > 0) return `월 ${fmt(c.rentalMonthlyFee)}원`;
-    return `렌탈 ${c.price || c.priceText || '가격 확인'}`;
   }
 
   function patchRankingData() {
@@ -468,9 +429,7 @@ function getBadgeClass(text) {
     if (typeof cards.renderPickCard === 'function') {
       const originalRender = cards.renderPickCard.bind(cards);
       cards.renderPickCard = function patchedRenderPickCard(card, ...rest) {
-        const next = enrichRental(card);
-        if (next.isRental) next.price = rentalPriceText(next);
-        return originalRender(next, ...rest);
+        return originalRender(enrichRental(card), ...rest);
       };
     }
 
@@ -485,7 +444,6 @@ function getBadgeClass(text) {
   });
 
   global.ThisOneRentalHandling = {
-    enrichRental,
-    rentalPriceText
+    enrichRental
   };
 })(window);

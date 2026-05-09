@@ -3,47 +3,19 @@ function parseRentalNumber(text) {
   return Number(String(text || '').replace(/[^\d]/g, '')) || 0;
 }
 
-function parseRentalYearMonths(text) {
-  const source = String(text || '');
-  const yearPatterns = [
-    /(\d{1,2})\s*년\s*(?:약정|의무사용|의무기간)/i,
-    /의무(?:사용|기간)\s*(\d{1,2})\s*년/i
-  ];
-
-  for (const pattern of yearPatterns) {
-    const match = source.match(pattern);
-    if (match) return (parseInt(match[1], 10) || 0) * 12;
-  }
-
-  return 0;
-}
-
 function enrichRentalCandidate(candidate) {
   if (!candidate || typeof candidate !== 'object') return candidate;
   const text = `${candidate.name || ''} ${candidate.store || ''} ${candidate.price || ''}`;
   const monthlyMatch = text.match(/월\s*([0-9,]+)\s*원/i);
-  const monthsMatch = text.match(/(\d+)\s*개월/i);
-  const rentalYearMonths = parseRentalYearMonths(text);
   const isRental = /렌탈|대여|구독|약정|월납|의무사용|방문관리|코디관리|관리형/i.test(text)
-    || !!monthlyMatch
-    || !!monthsMatch
-    || rentalYearMonths > 0;
+    || !!monthlyMatch;
   const rentalMonthlyFee = monthlyMatch
     ? parseRentalNumber(monthlyMatch[1])
     : (isRental ? parseRentalNumber(candidate.price) : 0);
-  const rentalMonths = monthsMatch
-    ? parseInt(monthsMatch[1], 10)
-    : rentalYearMonths;
-  const rentalTotalFee = rentalMonthlyFee > 0 && rentalMonths > 0
-    ? rentalMonthlyFee * rentalMonths
-    : 0;
-
   return {
     ...candidate,
     isRental,
-    rentalMonthlyFee,
-    rentalMonths,
-    rentalTotalFee
+    rentalMonthlyFee
   };
 }
 
@@ -210,11 +182,11 @@ function applyRentalReasoningInstruction(payload) {
 [렌탈/관리형 상품 판단 원칙]
 - 렌탈 상품을 무조건 제외하거나 무조건 뒤로 보내지 마세요.
 - 렌탈 상품의 가격은 구매가가 아니라 월 납입액일 수 있습니다.
-- 후보에 isRental, rentalMonthlyFee, rentalMonths, rentalTotalFee가 있으면 반드시 이를 읽고 판단하세요.
-- rentalMonthlyFee는 월 납입액, rentalMonths는 약정 개월, rentalTotalFee는 전체 납부 예상액입니다.
-- 월 납입액만 보고 저렴하다고 판단하지 말고, 총 납부액과 약정기간을 함께 보세요.
+- 후보에 isRental, rentalMonthlyFee가 있으면 반드시 이를 읽고 판단하세요.
+- rentalMonthlyFee는 월 납입액입니다. 의무기간과 총 납부액은 상세페이지에서 확인해야 합니다.
+- 월 납입액만 보고 저렴하다고 단정하지 말고, 의무기간과 총 납부액은 상세페이지 확인이 필요하다고 보세요.
 - 관리/AS/방문관리/초기비용 부담 감소가 중요한 품목은 렌탈도 합리적인 선택일 수 있습니다.
-- 반대로 총 납부액이 구매가보다 지나치게 높거나 약정 부담이 크면 감점하세요.
+- 상세페이지에서 의무기간/총 납부액 부담이 확인될 수 있으므로 렌탈은 월 납입액과 관리 편의성을 함께 설명하세요.
 - 사용자가 렌탈제외를 켰다면 서버에서 이미 제거됩니다. 남아 있는 렌탈 후보는 비교 가능한 후보로 다루세요.
 - 분류 태그를 정할 때 렌탈이면 월 납입액과 총 납부액 관점을 반영하세요.
 
@@ -226,7 +198,7 @@ function applyRentalReasoningInstruction(payload) {
 - “자가관리”, “셀프관리”, “자가설치”, “필터 직접 교체” 상품은 저렴하더라도 기본 정수기 분석에서 1순위로 올리지 마세요.
 - 단, 사용자가 직접 “자가관리 정수기”, “셀프관리 정수기”, “무전원 정수기”, “저렴한 정수기”처럼 명시했다면 자가관리 상품도 우선 후보가 될 수 있습니다.
 - “렌탈”, “방문관리”, “관리형”, “필터교체”, “AS포함”, “코디관리” 문구가 있는 후보는 관리 편의성 관점에서 적극 비교하세요.
-- 정수기, 공기청정기, 안마의자, 비데, 음식물처리기처럼 관리/방문관리/필터교체가 중요한 품목에서는 렌탈 후보를 단순 저가 상품으로 보지 말고, isRental·rentalMonthlyFee·rentalMonths·rentalTotalFee 필드를 읽어 약정개월·총납부액·관리편의성을 구매 후보와 함께 비교하세요.
+- 정수기, 공기청정기, 안마의자, 비데, 음식물처리기처럼 관리/방문관리/필터교체가 중요한 품목에서는 렌탈 후보를 단순 저가 상품으로 보지 말고, isRental·rentalMonthlyFee 필드와 관리편의성을 구매 후보와 함께 비교하세요. 의무기간과 총 납부액은 상세페이지 확인 대상으로 다루세요.
 - 정수기 분류에는 가격뿐 아니라 필터 교체 방식과 관리 부담을 반영하세요.`;
 
   return {
@@ -249,15 +221,10 @@ function installManagedRentalRankingPatch() {
   const rentalFields = (item) => {
     const text = `${item?.name || ''} ${item?.price || ''} ${item?.priceText || ''}`;
     const monthlyMatch = text.match(/월\s*([0-9,]+)\s*원/i);
-    const monthsMatch = text.match(/(\d+)\s*개월/i);
-    const rentalYearMonths = parseRentalYearMonths(text);
     const monthly = monthlyMatch ? parseRentalNumber(monthlyMatch[1]) : parseRentalNumber(item?.price || item?.priceText || item?.lprice || item?.priceNum || 0);
-    const months = monthsMatch ? parseInt(monthsMatch[1], 10) : rentalYearMonths;
     return {
       isRental: true,
-      rentalMonthlyFee: monthly || 0,
-      rentalMonths: months || 0,
-      rentalTotalFee: monthly > 0 && months > 0 ? monthly * months : 0
+      rentalMonthlyFee: monthly || 0
     };
   };
   const applyRentalScorePenalty = (item, policy) => {

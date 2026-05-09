@@ -206,33 +206,50 @@ function extractJSON(str) {
   }
 }
 
-async function sendMsg(forceMode) {
-  try {
-    if (loading) return;
-    SearchDropdown?.hideAndLockRecentSearches?.();
-    if (forceMode) setSearchMode(forceMode);
+function createExpertSettings() {
+  // 설정값이 존재하지 않을 경우(모달을 열지 않았을 때 등)를 위한 샌니타이징
+  const getVal = (id) => document.getElementById(id)?.value || '';
+  const getCheck = (id) => document.getElementById(id)?.checked || false;
 
-    const inp = getInput();
-    const txt = inp ? inp.value.trim() : "";
-    if (!txt && !pendingImg) return;
-    currentQuery = txt; // 쿼리 저장 복구
+  return {
+    minPrice: getVal('minPrice'),
+    maxPrice: getVal('maxPrice'),
+    freeShipping: getCheck('freeShipping'),
+    excludeOverseas: getCheck('excludeOverseas'),
+    excludeAgent: getCheck('excludeAgent'),
+    excludeUsed: getCheck('excludeUsed'),
+    excludeRental: getCheck('excludeRental'),
+    resultCount: parseInt(getVal('resultCount')) || 5,
+    patienceTime: parseInt(getVal('patienceTime')) || 20
+  };
+}
 
-    // 모바일 스크롤 진압 1단계: 즉시 포커스 해제 및 키보드 닫기
-    SearchDropdown?.blurSearchInput?.();
+function prepareSendContext(forceMode) {
+  if (loading) return null;
+  SearchDropdown?.hideAndLockRecentSearches?.();
+  if (forceMode) setSearchMode(forceMode);
 
-    // 모바일 스크롤 진압 2단계: 여러 번에 걸쳐 상단 고정 (키보드 닫힘 애니메이션 대응)
-    const fixScroll = () => {
-      // 강제 상단 이동 제거 (사용자 불편 호소)
-      // document.body.scrollTop = 0;
-    };
-    fixScroll();
-    setTimeout(fixScroll, 100);
-    setTimeout(fixScroll, 300);
-    setTimeout(fixScroll, 600);
-    if (!currentQuery && !pendingImg) return;
+  const inp = getInput();
+  const txt = inp ? inp.value.trim() : "";
+  if (!txt && !pendingImg) return null;
+  currentQuery = txt; // 쿼리 저장 복구
+
+  // 모바일 스크롤 진압 1단계: 즉시 포커스 해제 및 키보드 닫기
+  SearchDropdown?.blurSearchInput?.();
+
+  // 모바일 스크롤 진압 2단계: 여러 번에 걸쳐 상단 고정 (키보드 닫힘 애니메이션 대응)
+  const fixScroll = () => {
+    // 강제 상단 이동 제거 (사용자 불편 호소)
+    // document.body.scrollTop = 0;
+  };
+  fixScroll();
+  setTimeout(fixScroll, 100);
+  setTimeout(fixScroll, 300);
+  setTimeout(fixScroll, 600);
+  if (!currentQuery && !pendingImg) return null;
 
   switchToSearchMode();
-  
+
   // 3단계 강제 제압: 구버전 요소 완전 소멸
   // 검색 후에도 검색창은 남겨두기 위해 landingSearch 제외
   ['welcome'].forEach(id => {
@@ -243,445 +260,74 @@ async function sendMsg(forceMode) {
   });
 
   const contentEl = document.getElementById('msgContainer');
-    if (contentEl) contentEl.innerHTML = '';
-    if (txt) {
-      searchHistory.push(txt);
-      SearchDropdown?.pushRecentSearch?.(txt);
-      SearchDropdown?.renderRecentSearches?.();
-    }
-    syncQueryInputs(currentQuery);
-    // 구버전 역사의 잔재(HistoryBar) 제거
-    // if (window.ThisOneUI?.renderHistoryBar) window.ThisOneUI.renderHistoryBar();
+  if (contentEl) contentEl.innerHTML = '';
+  if (txt) {
+    searchHistory.push(txt);
+    SearchDropdown?.pushRecentSearch?.(txt);
+    SearchDropdown?.renderRecentSearches?.();
+  }
+  syncQueryInputs(currentQuery);
+  // 구버전 역사의 잔재(HistoryBar) 제거
+  // if (window.ThisOneUI?.renderHistoryBar) window.ThisOneUI.renderHistoryBar();
 
-    const queryText = currentQuery || '이미지 기반 상품 검색';
-    const queryImage = pendingImg;
-    removeImg();
+  const queryText = currentQuery || '이미지 기반 상품 검색';
+  const queryImage = pendingImg;
+  removeImg();
 
-    loading = true;
-    SearchDropdown?.setResultsRendering?.(false);
-    const btn = getSendBtn(); if (btn) btn.disabled = true;
-    const typingEl = window.ThisOneUI?.addThinking?.();
+  loading = true;
+  SearchDropdown?.setResultsRendering?.(false);
+  const btn = getSendBtn(); if (btn) btn.disabled = true;
+  const typingEl = window.ThisOneUI?.addThinking?.();
+  const searchQuery = window.ThisOneRanking?.rewriteSearchQuery
+    ? window.ThisOneRanking.rewriteSearchQuery(queryText)
+    : queryText;
 
-    let candidates = null;
+  return {
+    forceMode,
+    txt,
+    queryText,
+    queryImage,
+    searchQuery,
+    finalSearchQuery: searchQuery,
+    expertSettings: createExpertSettings(),
+    trajectory: window.ThisOneTrajectory?.getSession() || {},
+    typingEl,
+    intentProfile: null,
+    searchData: null,
+    items: [],
+    candidates: null,
+    stop: false
+  };
+}
+
+async function sendMsg(forceMode) {
+  let context = null;
+
+  try {
+    context = prepareSendContext(forceMode);
+    if (!context) return;
+
     try {
       GeneralSearchState.resultMode = 'normal';
-      let searchQuery = queryText;
-      if (window.ThisOneRanking?.rewriteSearchQuery) searchQuery = window.ThisOneRanking.rewriteSearchQuery(queryText);
+      context.typingEl?.updateThought?.('이미지 분석 및 검색 의도 파악 중...');
 
-      // 설정값이 존재하지 않을 경우(모달을 열지 않았을 때 등)를 위한 샌니타이징
-      const getVal = (id) => document.getElementById(id)?.value || '';
-      const getCheck = (id) => document.getElementById(id)?.checked || false;
-
-      const expertSettings = {
-        minPrice: getVal('minPrice'),
-        maxPrice: getVal('maxPrice'),
-        freeShipping: getCheck('freeShipping'),
-        excludeOverseas: getCheck('excludeOverseas'),
-        excludeAgent: getCheck('excludeAgent'),
-        excludeUsed: getCheck('excludeUsed'),
-        excludeRental: getCheck('excludeRental'),
-        resultCount: parseInt(getVal('resultCount')) || 5,
-        patienceTime: parseInt(getVal('patienceTime')) || 20
-      };
-      const trajectory = window.ThisOneTrajectory?.getSession() || {};
-
-      typingEl?.updateThought?.('이미지 분석 및 검색 의도 파악 중...');
-      
-      let intentProfile = null;
-      let finalSearchQuery = searchQuery;
-
-      // 이미지 검색 최적화
-      if (queryImage) {
-        console.log("[Vision] 1차 이미지 분석 시작...");
-        try {
-          // [방향 A] 이미지 검색 시 입력창 텍스트 격리 (비전 인식 오염 방지)
-          intentProfile = await window.ThisOneAPI.requestIntentInfer('', trajectory, queryImage);
-          if (intentProfile?.refinedSearchTerm) {
-            finalSearchQuery = intentProfile.refinedSearchTerm;
-            console.log(`%c[Vision] 분석 성공: ${finalSearchQuery}`, "color: #10b981; font-weight: bold;");
-            typingEl?.updateThought?.(`식별된 상품("${finalSearchQuery}") 데이터 수집 중...`);
-          } else {
-            console.warn("[Vision] AI가 상품명을 식별하지 못함. 이미지 전용 검색 중단.");
-            typingEl?.remove();
-            window.ThisOneUI?.addFallback?.('이미지 속 상품을 식별하지 못했습니다. 명확한 사진으로 다시 시도해주세요.');
-            return;
-          }
-        } catch (e) {
-          console.error("[Vision] 이미지 분석 치명적 실패:", e);
-          typingEl?.remove();
-          window.ThisOneUI?.addFallback?.('이미지 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
-          return;
-        }
+      if (context.queryImage) {
+        await handleImageSearch(context);
+        if (context.stop) return;
       }
 
-      console.log(`[Search] 쿼리 실행: ${finalSearchQuery}`);
-      let searchData = await window.ThisOneAPI.requestSearch(finalSearchQuery, expertSettings);
-      
-      // [신규] 결과가 0건일 경우 재시도 로직 (다단계 검색)
-      if ((!searchData?.items || searchData.items.length === 0) && finalSearchQuery !== searchQuery) {
-        if (searchQuery === '이미지 기반 상품 검색') {
-          console.warn(`[ThisOne] "${finalSearchQuery}" 결과 없음. 이미지 검색만으로는 결과를 찾을 수 없습니다.`);
-          typingEl?.remove();
-          window.ThisOneUI?.addFallback?.('이미지에 해당하는 상품을 쇼핑 데이터에서 찾을 수 없습니다.');
-          return;
-        }
-        console.warn(`[ThisOne] "${finalSearchQuery}" 결과 없음. 원본 쿼리 "${searchQuery}"로 재시도...`);
-        typingEl?.updateThought?.(`정밀 검색 결과가 부족하여 범위를 넓혀 재검색 중...`);
-        searchData = await window.ThisOneAPI.requestSearch(searchQuery, expertSettings);
-      }
+      await handleNormalSearch(context);
+      if (context.stop) return;
 
-      // [개선] intentProfile이 이미 있다면 중복 호출 방지
-           const items = searchData?.items || [];
-
-      // 네이버 검색 결과는 의도분석을 기다리지 않고 즉시 먼저 보여준다.
-      if (!queryImage && items && items.length > 0) {
-        const earlyCandidates = window.ThisOneRanking?.buildCandidates
-          ? window.ThisOneRanking.buildCandidates(items, finalSearchQuery, null)
-          : items;
-
-        if (earlyCandidates && earlyCandidates.length > 0) {
-          GeneralSearchState.query = finalSearchQuery;
-          GeneralSearchState.currentPage = 1;
-          GeneralSearchState.total = searchData?.total || 0;
-          GeneralSearchState.resultMode = 'fallback_general';
-          GeneralSearchState.lastItems = earlyCandidates;
-
-          SearchDropdown?.setResultsRendering?.(true);
-          window.ThisOneUI?.renderResults?.(
-            earlyCandidates,
-            GeneralSearchState.total,
-            GeneralSearchState.currentPage,
-            GeneralSearchState.currentSort,
-            GeneralSearchState.resultMode
-          );
-
-          typingEl?.updateThought?.('일반 검색 결과를 먼저 보여드리고, 디스원 분석을 계속 진행 중입니다...');
-        }
-      }
-
-      // [개선] intentProfile이 이미 있다면 중복 호출 방지
-      if (!intentProfile && !queryImage) {
-        intentProfile = await window.ThisOneAPI.requestIntentInfer(queryText, trajectory, null).catch(() => null);
-      }
-
-      _lastIntentProfile = intentProfile;
-      window._lastIntentProfile = intentProfile;
-
-      typingEl?.updateThought?.('상품 데이터 및 형상 분석 선별 중...');
-      candidates = window.ThisOneRanking?.buildCandidates ? window.ThisOneRanking.buildCandidates(items, finalSearchQuery, intentProfile) : items;
-
-      if (!candidates || !candidates.length) {
-        typingEl?.remove();
-        window.ThisOneUI?.addFallback?.('검색 결과가 없습니다.');
-        return;
-      }
-
-      // [삭제] 구버전으로 오해받을 수 있는 Raw Results 렌더링 제거
-      // window.ThisOneUI?.renderRawResults?.(candidates);
-      
-      // if (searchMode === 'raw') {
-      //   typingEl?.remove();
-      //   window.ThisOneUI?.renderRawResults?.(candidates);
-      //   return;
-      // }
-    
-      const prunedCandidates = candidates.map(c => ({
-        id: c.id, name: c.name, price: c.price, store: c.store, review: c.review,
-        badges: c.badges, bonusScore: c.bonusScore, specPenalty: c.specPenalty,
-        finalScore: c.finalScore, totalPriceNum: c.totalPriceNum
-      }));
-
-      const count = expertSettings.resultCount || 5;
-      typingEl?.updateThought?.(`검색결과 생성 중 (분석시간 설정: ${expertSettings.patienceTime || 20}초)...`);
-
-      const aiMessages = [{
-        role: 'user',
-        content: [{ 
-          type: 'text', 
-          text: `사용자 질문: ${queryText}\n\n후보 상품 목록(JSON): ${JSON.stringify(prunedCandidates, null, 2)}\n\n의도분석: ${JSON.stringify(intentProfile)}\n\n설정: ${JSON.stringify(expertSettings)}\n\n전문가 분석을 바탕으로 cards ${count}개를 분류하세요. 각 card에는 sourceId와 label만 포함하세요.` 
-        }]
-      }];
-      
-      if (queryImage && queryImage.data) {
-        aiMessages[0].content.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${queryImage.data}` } });
-      }
-
-      const patience = parseInt(expertSettings.patienceTime || 20);
-      const tokens = Math.min(400 + (patience * 20), 2000); // 인내심에 비례하여 응답 길이 조절
-
-      let depthPrompt = " 핵심 위주로 빠르게 요약하세요.";
-      if (patience > 30) depthPrompt = " 모든 후보의 스펙, 리뷰, 장단점을 초정밀 대조하여 가장 심도 있는 전문가 분석 리포트를 작성하세요. 분량이 길어져도 괜찮습니다.";
-      else if (patience > 10) depthPrompt = " 상품별 주요 차이점을 꼼꼼하게 분석하여 리포트를 작성하세요.";
-
-      let delayTimer = null;
-      let autoFallbackTimer = null;
-      let isFallbackShown = false;
-      const searchStartTime = Date.now();
-
-      const triggerFallback = (reason = 'delay') => {
-        if (isFallbackShown || !loading) return;
-        isFallbackShown = true;
-        
-        // 모든 타이머 해제
-        if (delayTimer) clearTimeout(delayTimer);
-        if (autoFallbackTimer) clearTimeout(autoFallbackTimer);
-        
-        typingEl?.remove();
-        SearchDropdown?.setResultsRendering?.(true);
-        
-        const elapsed = Math.round((Date.now() - searchStartTime) / 1000);
-        let msg = `데이터 분석이 지연되고 있어(${elapsed}초), 디스원 AI 분석이 아닌 일반 검색 결과를 먼저 보여드립니다.`;
-        if (reason === 'error') msg = `AI 분석 중 오류가 발생하여(${elapsed}초), 디스원 AI 분석이 아닌 일반 검색 결과를 먼저 보여드립니다.`;
-        
-        window.ThisOneUI?.addFallback?.(msg);
-        
-        GeneralSearchState.query = finalSearchQuery;
-        GeneralSearchState.currentPage = 1;
-        GeneralSearchState.total = searchData?.total || 0;
-        GeneralSearchState.resultMode = 'fallback_general';
-        GeneralSearchState.lastItems = candidates;
-
-        const allowedSorts = ['sim'];
-        const preservedSort = allowedSorts.includes(GeneralSearchState.currentSort)
-          ? GeneralSearchState.currentSort
-          : 'sim'; // 정렬 상태가 없으면 관련도 기준으로
-        GeneralSearchState.currentSort = preservedSort;
-
-        SearchDropdown?.setResultsRendering?.(true);
-        window.ThisOneUI?.renderResults?.(
-          candidates,
-          GeneralSearchState.total,
-          GeneralSearchState.currentPage,
-          GeneralSearchState.currentSort,
-          GeneralSearchState.resultMode
-        );
-      };
-
-          // 8초 지연 타이머: 분석 진행 상태만 갱신
-      delayTimer = setTimeout(() => {
-        if (!isFallbackShown && loading) {
-          typingEl?.updateThought?.('디스원 분석이 계속 진행 중입니다. 일반 검색 결과를 먼저 확인하실 수 있습니다.');
-        }
-      }, 8000);
-
-      // 20초 자동 폴백 타이머
-      autoFallbackTimer = setTimeout(() => {
-        triggerFallback('delay');
-      }, patience * 1000);
-
-      try {
-        const aiDataText = await window.ThisOneAPI.requestChat({ 
-          model: MODEL, 
-          max_tokens: tokens, 
-          system: RANKING_PROMPT + depthPrompt, 
-          messages: aiMessages 
-        }, (chunk, fullText) => {
-          if (isFallbackShown) return; // 이미 폴백되었다면 업데이트 무시
-
-          // [보안/UI] JSON 징후가 보이면 즉시 업데이트를 멈추고 고정 메시지 표시
-          if (fullText.includes('[JSON]') || fullText.includes('{') || fullText.includes('":') || fullText.includes('```')) {
-            return;
-          }
-
-          const thoughtMatch = fullText.match(/\[?Thought\]?:?(.*?)(?=\[?JSON\]?|$)/si);
-          if (thoughtMatch && thoughtMatch[1]) {
-            typingEl?.updateThought?.(thoughtMatch[1].trim());
-          }
-          window.ThisOneUI?.purgeProgressLeak?.();
-        });
-
-        // 타이머 해제
-        if (delayTimer) clearTimeout(delayTimer);
-        if (autoFallbackTimer) clearTimeout(autoFallbackTimer);
-
-        if (isFallbackShown) return; // 이미 폴백이 노출되었다면 AI 결과 렌더링 스킵
-
-        typingEl?.remove();
-        window.ThisOneUI?.purgeProgressLeak?.();
-
-        if (!aiDataText || !aiDataText.trim()) {
-          triggerFallback('error');
-          return;
-        }
-
-        const thoughtMatchFromFinal = aiDataText.match(/\[?Thought\]?:?(.*?)(?=\[?JSON\]?|$)/si);
-        const aiComment = '';
-
-        const jsonMatch = aiDataText.match(/\[JSON\]:?\s*(\{[\s\S]*\})/);
-        const rawJson = jsonMatch ? jsonMatch[1] : aiDataText;
-        const parsed = extractJSON(rawJson);
-        
-        if (!parsed) throw new Error('Valid JSON block not found');
-        
-        const merged = window.ThisOneRanking?.mergeAiWithCandidates ? window.ThisOneRanking.mergeAiWithCandidates(deepClean(parsed), candidates) : parsed;
-
-        const targetCount = expertSettings.resultCount || 5;
-        const mergedCards = Array.isArray(merged?.cards) ? merged.cards : [];
-        const mergedRejects = Array.isArray(merged?.rejects) ? merged.rejects : [];
-        const rejectSourceIds = new Set(
-          mergedRejects
-            .map((r) => String(r?.sourceId || r?.id || '').trim())
-            .filter(Boolean)
-        );
-
-        const usedSourceIds = new Set();
-        const usedNames = new Set();
-        mergedCards.forEach((card) => {
-          const sid = String(card?.sourceId || card?.id || '').trim();
-          if (sid) usedSourceIds.add(sid);
-          const n = String(card?.name || '').trim().toLowerCase();
-          if (n) usedNames.add(n);
-        });
-
-        const supplements = [];
-        for (const candidate of (candidates || [])) {
-          if (mergedCards.length + supplements.length >= targetCount) break;
-
-          const cid = String(candidate?.id || '').trim();
-          const cname = String(candidate?.name || '').trim().toLowerCase();
-          if (cid && rejectSourceIds.has(cid)) continue;
-          if (cid && usedSourceIds.has(cid)) continue;
-          if (cname && usedNames.has(cname)) continue;
-
-          supplements.push({
-            ...candidate,
-            sourceId: candidate?.id || '',
-            label: '추가',
-            type: candidate?.type || 'extra'
-          });
-
-          if (cid) usedSourceIds.add(cid);
-          if (cname) usedNames.add(cname);
-        }
-
-        const finalCards = [...mergedCards, ...supplements].slice(0, targetCount);
-
-        // AI 분석 리포트 아래에 일반 검색 결과를 함께 표시
-        const normalizeName = (v) => String(v || '').trim().toLowerCase();
-        const resolveModelKey = (item = {}) => {
-          if (item.modelKey) return String(item.modelKey).trim().toLowerCase();
-          if (window.ThisOneRanking?.getModelKey) {
-            return String(window.ThisOneRanking.getModelKey(item.name || '') || '').trim().toLowerCase();
-          }
-          return '';
-        };
-
-        const pickedSourceIds = new Set();
-        const pickedIds = new Set();
-        const pickedNames = new Set();
-        const pickedModelKeys = new Set();
-
-        finalCards.forEach((card) => {
-          const sid = String(card?.sourceId || '').trim();
-          const cid = String(card?.id || '').trim();
-          const name = normalizeName(card?.name);
-          const modelKey = resolveModelKey(card);
-
-          if (sid) pickedSourceIds.add(sid);
-          if (cid) pickedIds.add(cid);
-          if (name) pickedNames.add(name);
-          if (modelKey) pickedModelKeys.add(modelKey);
-        });
-
-        let generalCandidates = (candidates || []).filter((candidate) => {
-          const sid = String(candidate?.sourceId || '').trim();
-          const cid = String(candidate?.id || '').trim();
-          const name = normalizeName(candidate?.name);
-          const modelKey = resolveModelKey(candidate);
-
-          if (sid && pickedSourceIds.has(sid)) return false;
-          if (cid && pickedIds.has(cid)) return false;
-          if (name && pickedNames.has(name)) return false;
-          if (modelKey && pickedModelKeys.has(modelKey)) return false;
-          return true;
-        });
-
-        const rawItems = searchData?.items || [];
-        const rawCount = rawItems.length;
-        const finalRecommendedCount = finalCards.length;
-
-        if (generalCandidates.length === 0) {
-          const rawGeneralItems = buildSafeFallbackGeneralItems(rawItems, finalSearchQuery, intentProfile, 100);
-
-          if (rawGeneralItems.length > 0) {
-            const nonDuplicateRawItems = rawGeneralItems.filter((item) => {
-              const sid = String(item?.sourceId || '').trim();
-              const cid = String(item?.id || '').trim();
-              const name = normalizeName(item?.name);
-              const modelKey = resolveModelKey(item);
-
-              if (sid && pickedSourceIds.has(sid)) return false;
-              if (cid && pickedIds.has(cid)) return false;
-              if (name && pickedNames.has(name)) return false;
-              if (modelKey && pickedModelKeys.has(modelKey)) return false;
-              return true;
-            });
-            generalCandidates = (nonDuplicateRawItems.length ? nonDuplicateRawItems : rawGeneralItems).slice(0, 30);
-          }
-        }
-
-        let fallbackReason = '';
-        let fallbackCount = 0;
-        if (rawCount > 0 && finalRecommendedCount === 0 && generalCandidates.length === 0) {
-          generalCandidates = buildSafeFallbackGeneralItems(rawItems, finalSearchQuery, intentProfile, 30);
-          fallbackCount = generalCandidates.length;
-          fallbackReason = 'raw_exists_but_final_empty';
-        }
-
-        const finalGeneralCount = generalCandidates.length;
-        console.debug('[ThisOne][safe-fallback]', {
-          rawCount,
-          finalRecommendedCount,
-          finalGeneralCount,
-          fallbackCount,
-          fallbackReason
-        });
-
-        GeneralSearchState.query = finalSearchQuery;
-        GeneralSearchState.currentPage = 1;
-        GeneralSearchState.total = searchData?.total || 0;
-        GeneralSearchState.resultMode = 'fallback_general';
-        GeneralSearchState.lastItems = generalCandidates;
-
-        const allowedSorts = ['sim'];
-        const preservedSort = allowedSorts.includes(GeneralSearchState.currentSort)
-          ? GeneralSearchState.currentSort
-          : 'sim';
-        GeneralSearchState.currentSort = preservedSort;
-
-        SearchDropdown?.setResultsRendering?.(true);
-        if (finalRecommendedCount > 0) {
-          window.ThisOneUI?.addResultCard?.({ ...merged, cards: finalCards, aiComment }, intentProfile);
-        }
-        window.ThisOneUI?.renderResults?.(
-          generalCandidates,
-          GeneralSearchState.total,
-          GeneralSearchState.currentPage,
-          GeneralSearchState.currentSort,
-          GeneralSearchState.resultMode
-        );
-        
-        setTimeout(() => {
-          window.scrollTo(0, 0);
-        }, 10); 
-
-      } catch (e) {
-        console.warn("AI Analysis Failed/Interrupted", e);
-        triggerFallback('error');
-      }
+      await handleAIAnalysis(context);
     } catch (err) {
-      console.error("[ThisOne] Search flow error:", err);
-      typingEl?.remove();
-      window.ThisOneUI?.purgeProgressLeak?.();
-
-      if (candidates && candidates.length > 0) {
-        SearchDropdown?.setResultsRendering?.(true);
-        window.ThisOneUI?.renderResults?.(candidates, 0, 1, GeneralSearchState.currentSort, GeneralSearchState.resultMode || 'normal');
-      } else {
-        SearchDropdown?.setResultsRendering?.(true);
-        window.ThisOneUI?.addFallback?.('검색 결과를 가져오는 중 문제가 발생했습니다.');
-      }
-    } finally {
+      await handleFallback(context, err);
+    }
+  } catch (globalErr) {
+    console.error("[ThisOne] Global sendMsg Error:", globalErr);
+    loading = false;
+  } finally {
+    if (context) {
       loading = false;
       SearchDropdown?.setResultsRendering?.(false);
       SearchDropdown?.hideAndLockRecentSearches?.();
@@ -691,9 +337,424 @@ async function sendMsg(forceMode) {
         document.activeElement.blur();
       }
     }
-  } catch (globalErr) {
-    console.error("[ThisOne] Global sendMsg Error:", globalErr);
-    loading = false;
+  }
+}
+
+async function handleImageSearch(context) {
+  const { queryImage, trajectory, typingEl } = context;
+
+  console.log("[Vision] 1차 이미지 분석 시작...");
+  try {
+    // [방향 A] 이미지 검색 시 입력창 텍스트 격리 (비전 인식 오염 방지)
+    const intentProfile = await window.ThisOneAPI.requestIntentInfer('', trajectory, queryImage);
+    context.intentProfile = intentProfile;
+
+    if (intentProfile?.refinedSearchTerm) {
+      context.finalSearchQuery = intentProfile.refinedSearchTerm;
+      console.log(`%c[Vision] 분석 성공: ${context.finalSearchQuery}`, "color: #10b981; font-weight: bold;");
+      typingEl?.updateThought?.(`식별된 상품("${context.finalSearchQuery}") 데이터 수집 중...`);
+      return;
+    }
+
+    console.warn("[Vision] AI가 상품명을 식별하지 못함. 이미지 전용 검색 중단.");
+    typingEl?.remove();
+    window.ThisOneUI?.addFallback?.('이미지 속 상품을 식별하지 못했습니다. 명확한 사진으로 다시 시도해주세요.');
+    context.stop = true;
+  } catch (e) {
+    console.error("[Vision] 이미지 분석 치명적 실패:", e);
+    typingEl?.remove();
+    window.ThisOneUI?.addFallback?.('이미지 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    context.stop = true;
+  }
+}
+
+async function handleNormalSearch(context) {
+  const { expertSettings, queryImage, searchQuery, typingEl } = context;
+
+  console.log(`[Search] 쿼리 실행: ${context.finalSearchQuery}`);
+  let searchData = await window.ThisOneAPI.requestSearch(context.finalSearchQuery, expertSettings);
+
+  // [신규] 결과가 0건일 경우 재시도 로직 (다단계 검색)
+  if ((!searchData?.items || searchData.items.length === 0) && context.finalSearchQuery !== searchQuery) {
+    if (searchQuery === '이미지 기반 상품 검색') {
+      console.warn(`[ThisOne] "${context.finalSearchQuery}" 결과 없음. 이미지 검색만으로는 결과를 찾을 수 없습니다.`);
+      typingEl?.remove();
+      window.ThisOneUI?.addFallback?.('이미지에 해당하는 상품을 쇼핑 데이터에서 찾을 수 없습니다.');
+      context.stop = true;
+      return;
+    }
+    console.warn(`[ThisOne] "${context.finalSearchQuery}" 결과 없음. 원본 쿼리 "${searchQuery}"로 재시도...`);
+    typingEl?.updateThought?.(`정밀 검색 결과가 부족하여 범위를 넓혀 재검색 중...`);
+    searchData = await window.ThisOneAPI.requestSearch(searchQuery, expertSettings);
+  }
+
+  context.searchData = searchData;
+  context.items = searchData?.items || [];
+
+  // 네이버 검색 결과는 의도분석을 기다리지 않고 즉시 먼저 보여준다.
+  if (!queryImage && context.items && context.items.length > 0) {
+    const earlyCandidates = window.ThisOneRanking?.buildCandidates
+      ? window.ThisOneRanking.buildCandidates(context.items, context.finalSearchQuery, null)
+      : context.items;
+
+    if (earlyCandidates && earlyCandidates.length > 0) {
+      GeneralSearchState.query = context.finalSearchQuery;
+      GeneralSearchState.currentPage = 1;
+      GeneralSearchState.total = searchData?.total || 0;
+      GeneralSearchState.resultMode = 'fallback_general';
+      GeneralSearchState.lastItems = earlyCandidates;
+
+      SearchDropdown?.setResultsRendering?.(true);
+      window.ThisOneUI?.renderResults?.(
+        earlyCandidates,
+        GeneralSearchState.total,
+        GeneralSearchState.currentPage,
+        GeneralSearchState.currentSort,
+        GeneralSearchState.resultMode
+      );
+
+      typingEl?.updateThought?.('일반 검색 결과를 먼저 보여드리고, 디스원 분석을 계속 진행 중입니다...');
+    }
+  }
+}
+
+async function handleAIAnalysis(context) {
+  const { expertSettings, queryImage, queryText, searchData, typingEl, trajectory } = context;
+
+  // [개선] intentProfile이 이미 있다면 중복 호출 방지
+  if (!context.intentProfile && !queryImage) {
+    context.intentProfile = await window.ThisOneAPI.requestIntentInfer(queryText, trajectory, null).catch(() => null);
+  }
+
+  _lastIntentProfile = context.intentProfile;
+  window._lastIntentProfile = context.intentProfile;
+
+  typingEl?.updateThought?.('상품 데이터 및 형상 분석 선별 중...');
+  context.candidates = window.ThisOneRanking?.buildCandidates
+    ? window.ThisOneRanking.buildCandidates(context.items, context.finalSearchQuery, context.intentProfile)
+    : context.items;
+
+  if (!context.candidates || !context.candidates.length) {
+    typingEl?.remove();
+    window.ThisOneUI?.addFallback?.('검색 결과가 없습니다.');
+    context.stop = true;
+    return;
+  }
+
+  // [삭제] 구버전으로 오해받을 수 있는 Raw Results 렌더링 제거
+  // window.ThisOneUI?.renderRawResults?.(context.candidates);
+
+  // if (searchMode === 'raw') {
+  //   typingEl?.remove();
+  //   window.ThisOneUI?.renderRawResults?.(context.candidates);
+  //   return;
+  // }
+
+  const prunedCandidates = context.candidates.map(c => ({
+    id: c.id, name: c.name, price: c.price, store: c.store, review: c.review,
+    badges: c.badges, bonusScore: c.bonusScore, specPenalty: c.specPenalty,
+    finalScore: c.finalScore, totalPriceNum: c.totalPriceNum
+  }));
+
+  const count = expertSettings.resultCount || 5;
+  typingEl?.updateThought?.(`검색결과 생성 중 (분석시간 설정: ${expertSettings.patienceTime || 20}초)...`);
+
+  const aiMessages = [{
+    role: 'user',
+    content: [{
+      type: 'text',
+      text: `사용자 질문: ${queryText}\n\n후보 상품 목록(JSON): ${JSON.stringify(prunedCandidates, null, 2)}\n\n의도분석: ${JSON.stringify(context.intentProfile)}\n\n설정: ${JSON.stringify(expertSettings)}\n\n전문가 분석을 바탕으로 cards ${count}개를 분류하세요. 각 card에는 sourceId와 label만 포함하세요.`
+    }]
+  }];
+
+  if (queryImage && queryImage.data) {
+    aiMessages[0].content.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${queryImage.data}` } });
+  }
+
+  const patience = parseInt(expertSettings.patienceTime || 20);
+  const tokens = Math.min(400 + (patience * 20), 2000); // 인내심에 비례하여 응답 길이 조절
+
+  let depthPrompt = " 핵심 위주로 빠르게 요약하세요.";
+  if (patience > 30) depthPrompt = " 모든 후보의 스펙, 리뷰, 장단점을 초정밀 대조하여 가장 심도 있는 전문가 분석 리포트를 작성하세요. 분량이 길어져도 괜찮습니다.";
+  else if (patience > 10) depthPrompt = " 상품별 주요 차이점을 꼼꼼하게 분석하여 리포트를 작성하세요.";
+
+  let delayTimer = null;
+  let autoFallbackTimer = null;
+  let isFallbackShown = false;
+  const searchStartTime = Date.now();
+
+  const triggerFallback = (reason = 'delay') => {
+    if (isFallbackShown || !loading) return;
+    isFallbackShown = true;
+
+    // 모든 타이머 해제
+    if (delayTimer) clearTimeout(delayTimer);
+    if (autoFallbackTimer) clearTimeout(autoFallbackTimer);
+
+    handleFallback(context, null, { reason, elapsed: Math.round((Date.now() - searchStartTime) / 1000) });
+  };
+
+  // 8초 지연 타이머: 분석 진행 상태만 갱신
+  delayTimer = setTimeout(() => {
+    if (!isFallbackShown && loading) {
+      typingEl?.updateThought?.('디스원 분석이 계속 진행 중입니다. 일반 검색 결과를 먼저 확인하실 수 있습니다.');
+    }
+  }, 8000);
+
+  // 20초 자동 폴백 타이머
+  autoFallbackTimer = setTimeout(() => {
+    triggerFallback('delay');
+  }, patience * 1000);
+
+  try {
+    const aiDataText = await window.ThisOneAPI.requestChat({
+      model: MODEL,
+      max_tokens: tokens,
+      system: RANKING_PROMPT + depthPrompt,
+      messages: aiMessages
+    }, (chunk, fullText) => {
+      if (isFallbackShown) return; // 이미 폴백되었다면 업데이트 무시
+
+      // [보안/UI] JSON 징후가 보이면 즉시 업데이트를 멈추고 고정 메시지 표시
+      if (fullText.includes('[JSON]') || fullText.includes('{') || fullText.includes('":') || fullText.includes('```')) {
+        return;
+      }
+
+      const thoughtMatch = fullText.match(/\[?Thought\]?:?(.*?)(?=\[?JSON\]?|$)/si);
+      if (thoughtMatch && thoughtMatch[1]) {
+        typingEl?.updateThought?.(thoughtMatch[1].trim());
+      }
+      window.ThisOneUI?.purgeProgressLeak?.();
+    });
+
+    // 타이머 해제
+    if (delayTimer) clearTimeout(delayTimer);
+    if (autoFallbackTimer) clearTimeout(autoFallbackTimer);
+
+    if (isFallbackShown) return; // 이미 폴백이 노출되었다면 AI 결과 렌더링 스킵
+
+    typingEl?.remove();
+    window.ThisOneUI?.purgeProgressLeak?.();
+
+    if (!aiDataText || !aiDataText.trim()) {
+      triggerFallback('error');
+      return;
+    }
+
+    const thoughtMatchFromFinal = aiDataText.match(/\[?Thought\]?:?(.*?)(?=\[?JSON\]?|$)/si);
+    const aiComment = '';
+
+    const jsonMatch = aiDataText.match(/\[JSON\]:?\s*(\{[\s\S]*\})/);
+    const rawJson = jsonMatch ? jsonMatch[1] : aiDataText;
+    const parsed = extractJSON(rawJson);
+
+    if (!parsed) throw new Error('Valid JSON block not found');
+
+    const merged = window.ThisOneRanking?.mergeAiWithCandidates ? window.ThisOneRanking.mergeAiWithCandidates(deepClean(parsed), context.candidates) : parsed;
+
+    const targetCount = expertSettings.resultCount || 5;
+    const mergedCards = Array.isArray(merged?.cards) ? merged.cards : [];
+    const mergedRejects = Array.isArray(merged?.rejects) ? merged.rejects : [];
+    const rejectSourceIds = new Set(
+      mergedRejects
+        .map((r) => String(r?.sourceId || r?.id || '').trim())
+        .filter(Boolean)
+    );
+
+    const usedSourceIds = new Set();
+    const usedNames = new Set();
+    mergedCards.forEach((card) => {
+      const sid = String(card?.sourceId || card?.id || '').trim();
+      if (sid) usedSourceIds.add(sid);
+      const n = String(card?.name || '').trim().toLowerCase();
+      if (n) usedNames.add(n);
+    });
+
+    const supplements = [];
+    for (const candidate of (context.candidates || [])) {
+      if (mergedCards.length + supplements.length >= targetCount) break;
+
+      const cid = String(candidate?.id || '').trim();
+      const cname = String(candidate?.name || '').trim().toLowerCase();
+      if (cid && rejectSourceIds.has(cid)) continue;
+      if (cid && usedSourceIds.has(cid)) continue;
+      if (cname && usedNames.has(cname)) continue;
+
+      supplements.push({
+        ...candidate,
+        sourceId: candidate?.id || '',
+        label: '추가',
+        type: candidate?.type || 'extra'
+      });
+
+      if (cid) usedSourceIds.add(cid);
+      if (cname) usedNames.add(cname);
+    }
+
+    const finalCards = [...mergedCards, ...supplements].slice(0, targetCount);
+
+    // AI 분석 리포트 아래에 일반 검색 결과를 함께 표시
+    const normalizeName = (v) => String(v || '').trim().toLowerCase();
+    const resolveModelKey = (item = {}) => {
+      if (item.modelKey) return String(item.modelKey).trim().toLowerCase();
+      if (window.ThisOneRanking?.getModelKey) {
+        return String(window.ThisOneRanking.getModelKey(item.name || '') || '').trim().toLowerCase();
+      }
+      return '';
+    };
+
+    const pickedSourceIds = new Set();
+    const pickedIds = new Set();
+    const pickedNames = new Set();
+    const pickedModelKeys = new Set();
+
+    finalCards.forEach((card) => {
+      const sid = String(card?.sourceId || '').trim();
+      const cid = String(card?.id || '').trim();
+      const name = normalizeName(card?.name);
+      const modelKey = resolveModelKey(card);
+
+      if (sid) pickedSourceIds.add(sid);
+      if (cid) pickedIds.add(cid);
+      if (name) pickedNames.add(name);
+      if (modelKey) pickedModelKeys.add(modelKey);
+    });
+
+    let generalCandidates = (context.candidates || []).filter((candidate) => {
+      const sid = String(candidate?.sourceId || '').trim();
+      const cid = String(candidate?.id || '').trim();
+      const name = normalizeName(candidate?.name);
+      const modelKey = resolveModelKey(candidate);
+
+      if (sid && pickedSourceIds.has(sid)) return false;
+      if (cid && pickedIds.has(cid)) return false;
+      if (name && pickedNames.has(name)) return false;
+      if (modelKey && pickedModelKeys.has(modelKey)) return false;
+      return true;
+    });
+
+    const rawItems = searchData?.items || [];
+    const rawCount = rawItems.length;
+    const finalRecommendedCount = finalCards.length;
+
+    if (generalCandidates.length === 0) {
+      const rawGeneralItems = buildSafeFallbackGeneralItems(rawItems, context.finalSearchQuery, context.intentProfile, 100);
+
+      if (rawGeneralItems.length > 0) {
+        const nonDuplicateRawItems = rawGeneralItems.filter((item) => {
+          const sid = String(item?.sourceId || '').trim();
+          const cid = String(item?.id || '').trim();
+          const name = normalizeName(item?.name);
+          const modelKey = resolveModelKey(item);
+
+          if (sid && pickedSourceIds.has(sid)) return false;
+          if (cid && pickedIds.has(cid)) return false;
+          if (name && pickedNames.has(name)) return false;
+          if (modelKey && pickedModelKeys.has(modelKey)) return false;
+          return true;
+        });
+        generalCandidates = (nonDuplicateRawItems.length ? nonDuplicateRawItems : rawGeneralItems).slice(0, 30);
+      }
+    }
+
+    let fallbackReason = '';
+    let fallbackCount = 0;
+    if (rawCount > 0 && finalRecommendedCount === 0 && generalCandidates.length === 0) {
+      generalCandidates = buildSafeFallbackGeneralItems(rawItems, context.finalSearchQuery, context.intentProfile, 30);
+      fallbackCount = generalCandidates.length;
+      fallbackReason = 'raw_exists_but_final_empty';
+    }
+
+    const finalGeneralCount = generalCandidates.length;
+    console.debug('[ThisOne][safe-fallback]', {
+      rawCount,
+      finalRecommendedCount,
+      finalGeneralCount,
+      fallbackCount,
+      fallbackReason
+    });
+
+    GeneralSearchState.query = context.finalSearchQuery;
+    GeneralSearchState.currentPage = 1;
+    GeneralSearchState.total = searchData?.total || 0;
+    GeneralSearchState.resultMode = 'fallback_general';
+    GeneralSearchState.lastItems = generalCandidates;
+
+    const allowedSorts = ['sim'];
+    const preservedSort = allowedSorts.includes(GeneralSearchState.currentSort)
+      ? GeneralSearchState.currentSort
+      : 'sim';
+    GeneralSearchState.currentSort = preservedSort;
+
+    SearchDropdown?.setResultsRendering?.(true);
+    if (finalRecommendedCount > 0) {
+      window.ThisOneUI?.addResultCard?.({ ...merged, cards: finalCards, aiComment }, context.intentProfile);
+    }
+    window.ThisOneUI?.renderResults?.(
+      generalCandidates,
+      GeneralSearchState.total,
+      GeneralSearchState.currentPage,
+      GeneralSearchState.currentSort,
+      GeneralSearchState.resultMode
+    );
+
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+    }, 10);
+  } catch (e) {
+    if (delayTimer) clearTimeout(delayTimer);
+    if (autoFallbackTimer) clearTimeout(autoFallbackTimer);
+    console.warn("AI Analysis Failed/Interrupted", e);
+    triggerFallback('error');
+  }
+}
+
+async function handleFallback(context, err, options = {}) {
+  if (!context) return;
+
+  if (err) {
+    console.error("[ThisOne] Search flow error:", err);
+  }
+
+  const candidates = context.candidates;
+  const typingEl = context.typingEl;
+  const elapsed = options.elapsed;
+
+  typingEl?.remove();
+  window.ThisOneUI?.purgeProgressLeak?.();
+  SearchDropdown?.setResultsRendering?.(true);
+
+  if (candidates && candidates.length > 0) {
+    if (options.reason) {
+      let msg = `데이터 분석이 지연되고 있어(${elapsed}초), 디스원 AI 분석이 아닌 일반 검색 결과를 먼저 보여드립니다.`;
+      if (options.reason === 'error') msg = `AI 분석 중 오류가 발생하여(${elapsed}초), 디스원 AI 분석이 아닌 일반 검색 결과를 먼저 보여드립니다.`;
+      window.ThisOneUI?.addFallback?.(msg);
+
+      GeneralSearchState.query = context.finalSearchQuery;
+      GeneralSearchState.currentPage = 1;
+      GeneralSearchState.total = context.searchData?.total || 0;
+      GeneralSearchState.resultMode = 'fallback_general';
+      GeneralSearchState.lastItems = candidates;
+
+      const allowedSorts = ['sim'];
+      const preservedSort = allowedSorts.includes(GeneralSearchState.currentSort)
+        ? GeneralSearchState.currentSort
+        : 'sim'; // 정렬 상태가 없으면 관련도 기준으로
+      GeneralSearchState.currentSort = preservedSort;
+
+      window.ThisOneUI?.renderResults?.(
+        candidates,
+        GeneralSearchState.total,
+        GeneralSearchState.currentPage,
+        GeneralSearchState.currentSort,
+        GeneralSearchState.resultMode
+      );
+      return;
+    }
+
+    window.ThisOneUI?.renderResults?.(candidates, 0, 1, GeneralSearchState.currentSort, GeneralSearchState.resultMode || 'normal');
+  } else {
+    window.ThisOneUI?.addFallback?.('검색 결과를 가져오는 중 문제가 발생했습니다.');
   }
 }
 

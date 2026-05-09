@@ -13,6 +13,7 @@ try {
 }
 
 const SEARCH_CACHE_TTL_SECONDS = 3600;
+const EXACT_FIRST_MIN_RESULTS = 3;
 const YOUTUBE_REPUTATION_TIMEOUT_MS = Number(process.env.YOUTUBE_REPUTATION_TIMEOUT_MS || 3500);
 
 function stripTags(text){return String(text||'').replace(/<[^>]*>/g,'').trim();}
@@ -49,7 +50,7 @@ function buildExpertSettingsHashSource(query, { start, display, sort }){
   };
 }
 function buildSearchCacheKey(normalizedQuery, settingsHashSource){
-  return `search:v1:${encodeURIComponent(normalizedQuery)}:${sha1Short(stableStringify(settingsHashSource))}`;
+  return `search:v2:${encodeURIComponent(normalizedQuery)}:${sha1Short(stableStringify(settingsHashSource))}`;
 }
 async function readSearchCache(key){
   if (!kv || !key) return null;
@@ -156,6 +157,87 @@ async function fetchNaverShopItems(query, { display = 10, start = 1, sort = 'sim
     clearTimeout(timeoutId);
   }
 }
+
+function normalizeQueryKey(query){
+  return String(query || '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+function buildExactFirstQueries(originalQuery, improvedQuery){
+  const queries = [];
+  const addQuery = (query) => {
+    const normalized = normalizeQueryKey(query);
+    if (!normalized || queries.some((entry) => entry.key === normalized)) return;
+    queries.push({ query: String(query || '').trim(), key: normalized });
+  };
+
+  const original = String(originalQuery || '').trim();
+  if (/김\s*서방\s*마스크/.test(original)) {
+    addQuery(original.replace(/김\s*서방\s*마스크/g, '김서방마스크'));
+  }
+  addQuery(original);
+  addQuery(improvedQuery);
+
+  return queries.map((entry) => entry.query);
+}
+function mergeUniqueNaverItems(baseItems, extraItems){
+  const base = Array.isArray(baseItems) ? baseItems : [];
+  const extra = Array.isArray(extraItems) ? extraItems : [];
+  const seen = new Set(base.map((item) => String(item?.productId || item?.link || stripTags(item?.title || '') || '')));
+  const merged = [...base];
+
+  extra.forEach((item) => {
+    const key = String(item?.productId || item?.link || stripTags(item?.title || '') || '');
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    merged.push(item);
+  });
+
+  return merged;
+}
+async function fetchNaverShopItemsExactFirst(originalQuery, improvedQuery, { display = 10, start = 1, sort = 'sim' } = {}){
+  const queries = buildExactFirstQueries(originalQuery, improvedQuery);
+  const exactQuery = queries[0] || improvedQuery || originalQuery;
+  const exactData = await fetchNaverShopItems(exactQuery, { display, start, sort });
+  const exactItems = Array.isArray(exactData.items) ? exactData.items : [];
+  const debug = {
+    strategy: 'exact_first',
+    minExactItems: EXACT_FIRST_MIN_RESULTS,
+    exactQuery,
+    improvedQuery,
+    exactReturnedItems: exactItems.length,
+    usedQueries: [exactQuery],
+    supplemented: false
+  };
+
+  if (exactItems.length >= EXACT_FIRST_MIN_RESULTS || queries.length === 1) {
+    return { data: exactData, debug };
+  }
+
+  let mergedItems = exactItems;
+  let total = Number(exactData.total || 0);
+  for (const query of queries.slice(1)) {
+    const supplementalData = await fetchNaverShopItems(query, { display, start, sort });
+    debug.usedQueries.push(query);
+    debug.supplemented = true;
+    debug.supplementalQuery = query;
+    debug.supplementalReturnedItems = Array.isArray(supplementalData.items) ? supplementalData.items.length : 0;
+    mergedItems = mergeUniqueNaverItems(mergedItems, supplementalData.items);
+    total = Math.max(total, Number(supplementalData.total || 0));
+    if (mergedItems.length >= display) break;
+  }
+
+  return {
+    data: {
+      ...exactData,
+      total,
+      items: mergedItems.slice(0, display)
+    },
+    debug: {
+      ...debug,
+      mergedReturnedItems: Math.min(mergedItems.length, display)
+    }
+  };
+}
+
 function formatDeliveryFromItem(item){
   const rawDelivery = stripTags(item.delivery || item.deliveryInfo || item.shipping || item.shippingInfo || item.deliveryFeeText || item.shippingFeeText || '');
   if (rawDelivery) return rawDelivery;
@@ -351,8 +433,11 @@ async function handler(req,res){
     }
 
     let data;
+    let naverQueryDebug = null;
     try {
-      data = await fetchNaverShopItems(improvedQ, { display, start, sort });
+      const exactFirstResult = await fetchNaverShopItemsExactFirst(q, improvedQ, { display, start, sort });
+      data = exactFirstResult.data;
+      naverQueryDebug = exactFirstResult.debug;
     } catch (err) {
       if (err.status) {
         return res.status(err.status).json({error:'Naver Shopping API error',detail:err.detail});
@@ -393,6 +478,7 @@ async function handler(req,res){
       query:q,
       improvedQuery:improvedQ,
       canonicalDebug,
+      naverQueryDebug,
       total:data.total||0,
       items:finalItems,
       rejectedItems:[

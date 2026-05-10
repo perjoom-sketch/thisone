@@ -17,18 +17,36 @@ function getAliTimestamp() {
  * 2. IOP API 서명(Signature) 생성기
  * 빈 값 제외, ASCII 오름차순 정렬, HMAC-SHA256 해싱의 규격을 따릅니다.
  */
-function generateSignature(params, secret) {
+function buildAliExpressSignBaseString(params) {
   const keys = Object.keys(params)
     .filter(key => key !== 'sign' && params[key] !== undefined && params[key] !== null && params[key] !== '')
     .sort();
-    
-  let baseString = ''; 
+
+  let baseString = '';
   keys.forEach(key => {
     baseString += key + String(params[key]);
   });
 
+  return baseString;
+}
+
+function generateSignature(params, secret) {
   return crypto.createHmac('sha256', secret)
-    .update(baseString, 'utf8')
+    .update(buildAliExpressSignBaseString(params), 'utf8')
+    .digest('hex')
+    .toUpperCase();
+}
+
+function generateMethodPrefixedSha256Signature(params, secret) {
+  return crypto.createHmac('sha256', secret)
+    .update(`${params.method || ''}${buildAliExpressSignBaseString(params)}`, 'utf8')
+    .digest('hex')
+    .toUpperCase();
+}
+
+function generateTopStyleMd5Signature(params, secret) {
+  return crypto.createHash('md5')
+    .update(`${secret}${buildAliExpressSignBaseString(params)}${secret}`, 'utf8')
     .digest('hex')
     .toUpperCase();
 }
@@ -80,13 +98,15 @@ function signAliExpressParams(params, appSecret) {
   return signedParams;
 }
 
-async function requestAliExpress(params) {
-  const response = await fetch('https://api-sg.aliexpress.com/sync', {
-    method: 'POST',
-    headers: {
+async function requestAliExpress(params, transport = 'POST') {
+  const encodedParams = new URLSearchParams(params).toString();
+  const isGet = transport === 'GET';
+  const response = await fetch(`https://api-sg.aliexpress.com/sync${isGet ? `?${encodedParams}` : ''}`, {
+    method: isGet ? 'GET' : 'POST',
+    headers: isGet ? undefined : {
       'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
     },
-    body: new URLSearchParams(params).toString()
+    body: isGet ? undefined : encodedParams
   });
 
   const data = await response.json();
@@ -124,6 +144,49 @@ function buildAliExpressProbeError(name, error) {
     subMsg: undefined,
     errorCode: error.name || 'AliExpressProbeRequestError',
     errorMessage: error.message || 'AliExpress probe request failed',
+    bizSuccess: false,
+    itemCount: 0,
+    responseKeys: []
+  };
+}
+
+function buildAliExpressSignatureProbeSummary(probeCase, data, response) {
+  const debug = buildAliExpressDebug(data, probeCase.params, response);
+  const products = getAliExpressProducts(data);
+
+  return {
+    name: probeCase.name,
+    httpStatus: debug.httpStatus,
+    transport: probeCase.transport,
+    signMethod: probeCase.signMethod,
+    timestampFormat: probeCase.timestampFormat,
+    signatureVariant: probeCase.signatureVariant,
+    code: debug.code,
+    msg: debug.msg,
+    subCode: debug.subCode,
+    subMsg: debug.subMsg,
+    errorCode: debug.errorCode,
+    errorMessage: debug.errorMessage,
+    bizSuccess: debug.bizSuccess,
+    itemCount: products.length,
+    responseKeys: debug.responseKeys
+  };
+}
+
+function buildAliExpressSignatureProbeError(probeCase, error) {
+  return {
+    name: probeCase.name,
+    httpStatus: undefined,
+    transport: probeCase.transport,
+    signMethod: probeCase.signMethod,
+    timestampFormat: probeCase.timestampFormat,
+    signatureVariant: probeCase.signatureVariant,
+    code: undefined,
+    msg: undefined,
+    subCode: undefined,
+    subMsg: undefined,
+    errorCode: error.name || 'AliExpressSignatureProbeRequestError',
+    errorMessage: error.message || 'AliExpress signature probe request failed',
     bizSuccess: false,
     itemCount: 0,
     responseKeys: []
@@ -204,6 +267,152 @@ async function runAliExpressProbe(baseParams, appSecret) {
       results.push(buildAliExpressProbeSummary(probeCase.name, data, signedParams, response));
     } catch (error) {
       results.push(buildAliExpressProbeError(probeCase.name, error));
+    }
+  }
+
+  return results;
+}
+
+function getAliTimestampMillis() {
+  return String(Date.now());
+}
+
+function buildMinimalAliExpressParams(baseParams) {
+  return {
+    app_key: baseParams.app_key,
+    method: baseParams.method,
+    keywords: baseParams.keywords,
+    page_no: baseParams.page_no,
+    page_size: baseParams.page_size,
+    sign_method: baseParams.sign_method,
+    timestamp: baseParams.timestamp,
+    tracking_id: baseParams.tracking_id,
+    v: baseParams.v
+  };
+}
+
+function signAliExpressSignatureProbeParams(params, appSecret, signatureVariant) {
+  const signedParams = { ...params };
+
+  if (signatureVariant.includes('md5')) {
+    signedParams.sign = generateTopStyleMd5Signature(signedParams, appSecret);
+  } else if (signatureVariant.includes('with_method_prefix')) {
+    signedParams.sign = generateMethodPrefixedSha256Signature(signedParams, appSecret);
+  } else {
+    signedParams.sign = generateSignature(signedParams, appSecret);
+  }
+
+  return signedParams;
+}
+
+function buildAliExpressSignatureProbeCases(baseParams) {
+  const millisTimestamp = getAliTimestampMillis();
+  const millisParams = { ...baseParams, timestamp: millisTimestamp };
+  const md5Params = { ...baseParams, sign_method: 'md5' };
+  const minimalMd5Params = { ...buildMinimalAliExpressParams(baseParams), sign_method: 'md5' };
+
+  return [
+    {
+      name: 'current_post_sha256',
+      transport: 'POST',
+      signMethod: 'sha256',
+      timestampFormat: 'standard',
+      signatureVariant: 'current',
+      params: { ...baseParams }
+    },
+    {
+      name: 'get_sha256_current',
+      transport: 'GET',
+      signMethod: 'sha256',
+      timestampFormat: 'standard',
+      signatureVariant: 'current',
+      params: { ...baseParams }
+    },
+    {
+      name: 'post_sha256_with_method_prefix',
+      transport: 'POST',
+      signMethod: 'sha256',
+      timestampFormat: 'standard',
+      signatureVariant: 'with_method_prefix',
+      params: { ...baseParams }
+    },
+    {
+      name: 'get_sha256_with_method_prefix',
+      transport: 'GET',
+      signMethod: 'sha256',
+      timestampFormat: 'standard',
+      signatureVariant: 'with_method_prefix',
+      params: { ...baseParams }
+    },
+    {
+      name: 'post_md5_top_style',
+      transport: 'POST',
+      signMethod: 'md5',
+      timestampFormat: 'standard',
+      signatureVariant: 'top_style_md5',
+      params: md5Params
+    },
+    {
+      name: 'get_md5_top_style',
+      transport: 'GET',
+      signMethod: 'md5',
+      timestampFormat: 'standard',
+      signatureVariant: 'top_style_md5',
+      params: md5Params
+    },
+    {
+      name: 'post_timestamp_millis_sha256',
+      transport: 'POST',
+      signMethod: 'sha256',
+      timestampFormat: 'millis',
+      signatureVariant: 'current',
+      params: { ...millisParams }
+    },
+    {
+      name: 'get_timestamp_millis_sha256',
+      transport: 'GET',
+      signMethod: 'sha256',
+      timestampFormat: 'millis',
+      signatureVariant: 'current',
+      params: { ...millisParams }
+    },
+    {
+      name: 'post_timestamp_millis_with_method_prefix',
+      transport: 'POST',
+      signMethod: 'sha256',
+      timestampFormat: 'millis',
+      signatureVariant: 'with_method_prefix',
+      params: { ...millisParams }
+    },
+    {
+      name: 'minimal_get_md5',
+      transport: 'GET',
+      signMethod: 'md5',
+      timestampFormat: 'standard',
+      signatureVariant: 'top_style_md5',
+      params: minimalMd5Params
+    }
+  ];
+}
+
+async function runAliExpressSignatureProbe(baseParams, appSecret) {
+  const results = [];
+
+  for (const probeCase of buildAliExpressSignatureProbeCases(baseParams)) {
+    try {
+      const signedParams = signAliExpressSignatureProbeParams(
+        probeCase.params,
+        appSecret,
+        probeCase.signatureVariant
+      );
+      const { response, data } = await requestAliExpress(signedParams, probeCase.transport);
+      results.push(buildAliExpressSignatureProbeSummary(
+        { ...probeCase, params: signedParams },
+        data,
+        response
+      ));
+    } catch (error) {
+      results.push(buildAliExpressSignatureProbeError(probeCase, error));
     }
   }
 
@@ -354,6 +563,16 @@ export default async function handler(req, res) {
 
       return res.status(200).json({
         status: 'ProbeComplete',
+        search_query: searchQuery,
+        results
+      });
+    }
+
+    if (req.query?.sigprobe === '1') {
+      const results = await runAliExpressSignatureProbe(baseParams, APP_SECRET);
+
+      return res.status(200).json({
+        status: 'SignatureProbeComplete',
         search_query: searchQuery,
         results
       });

@@ -422,7 +422,7 @@ function renderAnalysisProgress() {
         </li>
       </ol>
       <div class="analysis-ad-slot" aria-label="ThisOne 자체 광고" data-ad-slot="analysis" data-ad-size="leaderboard">
-        <a class="thisone-ad-link" href="#inquiry" aria-label="ThisOne 광고 제휴 문의하기">
+        <a class="thisone-ad-link" href="#inquiry" aria-label="ThisOne 광고 제휴 문의하기" onclick="window.ThisOneUI?.openAdInquiryFromBanner?.(event)">
           <div class="thisone-ad-crossfade" aria-hidden="true">
           <picture class="thisone-ad-frame thisone-ad-frame-a">
             <source
@@ -627,6 +627,42 @@ function hideInquiryForm() {
   if (submitBtn) submitBtn.textContent = '등록하기';
 }
 
+function openAdInquiryFromBanner(event) {
+  if (event) event.preventDefault();
+
+  openInquiryBoard();
+  showInquiryForm();
+  window._editModeId = null;
+
+  const titleEl = document.getElementById('inqTitle');
+  const authorEl = document.getElementById('inqAuthor');
+  const passwordEl = document.getElementById('inqPassword');
+  const contentEl = document.getElementById('inqContent');
+  const submitBtn = document.getElementById('inqSubmitBtn');
+
+  if (titleEl && (!titleEl.value.trim() || titleEl.value.trim() === '광고/제휴 문의')) {
+    titleEl.value = '광고/제휴 문의';
+  }
+
+  if (authorEl && (!authorEl.value.trim() || authorEl.value.trim() === '광고주')) {
+    authorEl.value = '광고주';
+  }
+
+  if (contentEl && !contentEl.value.trim()) {
+    contentEl.value = `안녕하세요. ThisOne 광고/제휴 문의드립니다.
+
+업체명:
+담당자:
+연락처:
+광고 희망 상품/카테고리:
+문의 내용:`;
+  }
+
+  if (submitBtn) submitBtn.textContent = '등록하기';
+  if (passwordEl) passwordEl.focus();
+  else if (contentEl) contentEl.focus();
+}
+
 async function fetchInquiries() {
   const list = document.getElementById('inquiryList');
   if (!list) return;
@@ -817,6 +853,7 @@ window.ThisOneUI = {
   removeLegacyProgressUi,
   loadDynamicTrends,
   openInquiryBoard,
+  openAdInquiryFromBanner,
   closeInquiryBoard,
   showInquiryForm,
   hideInquiryForm,

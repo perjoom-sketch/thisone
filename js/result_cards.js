@@ -91,6 +91,29 @@ function extractModelName(name) {
     return `<span class="row-badge-item badge-trust row-youtube-badge" title="YouTube 평판 데이터 반영">${esc(label)}</span>`;
   }
 
+  function renderReviewSignalBadge(card) {
+    const signals = card?.reviewSignals;
+    if (!signals) return '';
+
+    const reviewSignalBonus = numberOrZero(card?.reviewSignalBonus);
+    const searchSignalScore = numberOrZero(card?.searchSignalScore);
+    const strongestMatch = compactText(signals?.strongestMatch).toLowerCase();
+    const positiveHits = Number(signals?.positiveHits || 0);
+    const negativeHits = Number(signals?.negativeHits || 0);
+    const confidence = Number(signals?.confidence || 0);
+    const hasModelMatchedSignal = strongestMatch === 'medium' || strongestMatch === 'strong';
+
+    if (!hasModelMatchedSignal) return '';
+    if (!Number.isFinite(positiveHits) || !Number.isFinite(negativeHits)) return '';
+    if (negativeHits > positiveHits) return '';
+    if (!Number.isFinite(confidence) || confidence < 0.3) return '';
+
+    const isEligible = reviewSignalBonus > 0 || (searchSignalScore > 0 && positiveHits >= negativeHits);
+    if (!isEligible) return '';
+
+    return '<span class="row-badge-item badge-review-signal row-review-signal-badge" title="외부 리뷰 신호가 보조 반영되었습니다">리뷰 신호</span>';
+  }
+
   function renderPositiveSignalBadges(card) {
     const signals = Array.isArray(card?.positiveSignals) ? card.positiveSignals : [];
     return signals
@@ -486,6 +509,7 @@ function getBadgeClass(text) {
                 ${labelBadge}
                 ${badgesHtml}
                 ${renderYoutubeReputationBadge(card)}
+                ${renderReviewSignalBadge(card)}
               </div>
             </div>
           </div>

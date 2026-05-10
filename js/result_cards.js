@@ -501,6 +501,19 @@ function getBadgeClass(text) {
       ? `<span class="row-badge-item row-label-badge">${esc(normalizeBadgeText(card.label))}</span>`
       : '';
 
+    const recommendationBadgesHtml = !hideRecommendationUi
+      ? [
+          labelBadge,
+          badgesHtml,
+          renderReviewSignalBadge(card),
+          renderYoutubeReputationBadge(card)
+        ].join('')
+      : '';
+
+    const positiveSignalBadgesHtml = !hideRecommendationUi
+      ? renderPositiveSignalBadges(card)
+      : '';
+
     return `
     <a class="pick-row-link" href="${escAttr(card.link || '#')}" target="_blank" rel="noopener noreferrer">
       <article class="pick-row ${isFirst ? 'pick-row-first' : ''}">
@@ -513,10 +526,7 @@ function getBadgeClass(text) {
             <div class="row-title-line">
               <h3 class="row-title">${esc(card.name || '상품명 없음')}</h3>
               <div class="row-badges">
-                ${labelBadge}
-                ${badgesHtml}
-                ${renderReviewSignalBadge(card)}
-                ${renderYoutubeReputationBadge(card)}
+                ${recommendationBadgesHtml}
               </div>
             </div>
           </div>
@@ -525,7 +535,7 @@ function getBadgeClass(text) {
             <span class="row-store-name">${esc(card.store || '판매처 정보 없음')}</span>
             <span class="row-delivery">${esc(card.delivery || '배송 정보 확인 필요')}</span>
             ${card.review ? `<span class="row-review">${esc(card.review)}</span>` : ''}
-            ${renderPositiveSignalBadges(card)}
+            ${positiveSignalBadgesHtml}
           </div>
 
           ${renderProductFacts(card)}

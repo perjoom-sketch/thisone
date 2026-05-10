@@ -680,7 +680,11 @@ function openAdInquiryFromBanner(event) {
 담당자:
 연락처:
 광고 희망 상품/카테고리:
-문의 내용:`;
+희망 노출 기간:
+문의 내용:
+
+※ ThisOne은 검색 결과에 광고를 섞지 않는 원칙을 유지합니다.
+※ 초기 제휴는 카테고리 적합성 검토 후 개별 안내됩니다.`;
   }
 
   if (submitBtn) submitBtn.textContent = '등록하기';

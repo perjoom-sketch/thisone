@@ -4,6 +4,7 @@ const { applyUniversalAIFilter } = require('../lib/universalFilter');
 const { improveQuery } = require('../lib/queryNormalizer');
 const { shouldUseCanonicalIntent, canonicalizeQuery } = require('../lib/canonicalIntent');
 const { enrichYoutubeReputation } = require('../lib/youtubeReputation');
+const { enrichReviewSignals } = require('../lib/reviewSignals');
 
 let kv = null;
 try {
@@ -15,6 +16,7 @@ try {
 const SEARCH_CACHE_TTL_SECONDS = 3600;
 const EXACT_FIRST_MIN_RESULTS = 3;
 const YOUTUBE_REPUTATION_TIMEOUT_MS = Number(process.env.YOUTUBE_REPUTATION_TIMEOUT_MS || 3500);
+const REVIEW_SIGNALS_TIMEOUT_MS = Number(process.env.REVIEW_SIGNALS_TIMEOUT_MS || 3000);
 
 function stripTags(text){return String(text||'').replace(/<[^>]*>/g,'').trim();}
 function isTrue(value){return value === true || String(value).toLowerCase() === 'true';}
@@ -84,9 +86,31 @@ async function writeYoutubeCache(key, value, ttlSeconds){
     // fail-open: YouTube 평판 캐시 저장 실패는 검색 응답에 영향 주지 않는다.
   }
 }
+async function readReviewSignalsCache(key){
+  if (!kv || !key) return null;
+  try {
+    return await kv.get(key);
+  } catch (e) {
+    return null;
+  }
+}
+async function writeReviewSignalsCache(key, value, ttlSeconds){
+  if (!kv || !key || !value) return;
+  try {
+    await kv.set(key, value, { ex: ttlSeconds });
+  } catch (e) {
+    // fail-open: 외부 검색 신호 캐시 저장 실패는 검색 응답에 영향 주지 않는다.
+  }
+}
 function isYoutubeReputationEnabled(){
   if (!process.env.YOUTUBE_API_KEY) return false;
   return String(process.env.YOUTUBE_REPUTATION_ENABLED || 'true').toLowerCase() !== 'false';
+}
+function isReviewSignalsEnabled(){
+  if (!process.env.GOOGLE_CSE_API_KEY) return false;
+  if (!process.env.GOOGLE_CSE_CX) return false;
+  if (String(process.env.REVIEW_SIGNALS_ENABLED || 'true').toLowerCase() === 'false') return false;
+  return true;
 }
 
 function buildYoutubeDebugInfo(youtubeResult, durationMs){
@@ -106,6 +130,68 @@ function buildYoutubeDebugInfo(youtubeResult, durationMs){
       timeoutMs: Number(debug.timeoutMs || YOUTUBE_REPUTATION_TIMEOUT_MS),
       error
     }
+  };
+}
+function buildReviewSignalsDebugInfo(reviewSignalsResult, durationMs){
+  const debug = reviewSignalsResult?.debug || {};
+  const enabled = debug.enabled === true;
+  const cached = debug.cached === true;
+  const error = debug.error || null;
+  const reason = debug.reason || (enabled ? null : 'missing_credentials_or_disabled');
+  return {
+    search_signals: {
+      enabled,
+      provider: debug.provider || process.env.REVIEW_SIGNALS_PROVIDER || 'google_cse',
+      called: enabled && debug.called === true && !cached,
+      success: enabled ? debug.success === true && !error : false,
+      cached,
+      durationMs: Number(durationMs || debug.durationMs || 0),
+      resultCount: Number(debug.resultCount || 0),
+      matchedCount: Number(debug.matchedCount || 0),
+      timeoutMs: Number(debug.timeoutMs || REVIEW_SIGNALS_TIMEOUT_MS),
+      error,
+      reason
+    }
+  };
+}
+function buildDebugInfo(youtubeResult, youtubeDurationMs, reviewSignalsResult, reviewSignalsDurationMs){
+  return {
+    ...buildYoutubeDebugInfo(youtubeResult, youtubeDurationMs),
+    ...buildReviewSignalsDebugInfo(reviewSignalsResult, reviewSignalsDurationMs)
+  };
+}
+function buildCachedDebugInfo(cachedResponse){
+  const fallback = {
+    youtube_api: {
+      enabled: cachedResponse.youtubeReputationDebug?.enabled === true,
+      called: false,
+      success: cachedResponse.youtubeReputationDebug?.enabled === true ? !cachedResponse.youtubeReputationDebug?.error : false,
+      durationMs: 0,
+      cached: true,
+      videoCount: Number(cachedResponse.youtubeReputationDebug?.videoCount || 0),
+      matchedCount: Number(cachedResponse.youtubeReputationDebug?.matchedCount || 0),
+      timeoutMs: Number(cachedResponse.youtubeReputationDebug?.timeoutMs || YOUTUBE_REPUTATION_TIMEOUT_MS),
+      error: cachedResponse.youtubeReputationDebug?.error || null
+    },
+    search_signals: {
+      enabled: cachedResponse.reviewSignalsDebug?.enabled === true,
+      provider: cachedResponse.reviewSignalsDebug?.provider || process.env.REVIEW_SIGNALS_PROVIDER || 'google_cse',
+      called: false,
+      success: cachedResponse.reviewSignalsDebug?.enabled === true ? !cachedResponse.reviewSignalsDebug?.error : false,
+      cached: true,
+      durationMs: 0,
+      resultCount: Number(cachedResponse.reviewSignalsDebug?.resultCount || 0),
+      matchedCount: Number(cachedResponse.reviewSignalsDebug?.matchedCount || 0),
+      timeoutMs: Number(cachedResponse.reviewSignalsDebug?.timeoutMs || REVIEW_SIGNALS_TIMEOUT_MS),
+      error: cachedResponse.reviewSignalsDebug?.error || null,
+      reason: cachedResponse.reviewSignalsDebug?.reason || (cachedResponse.reviewSignalsDebug?.enabled === true ? null : 'missing_credentials_or_disabled')
+    }
+  };
+  return {
+    ...fallback,
+    ...(cachedResponse.debug_info || {}),
+    youtube_api: cachedResponse.debug_info?.youtube_api || fallback.youtube_api,
+    search_signals: cachedResponse.debug_info?.search_signals || fallback.search_signals
   };
 }
 
@@ -394,19 +480,7 @@ async function handler(req,res){
     if (cachedResponse && typeof cachedResponse === 'object') {
       return res.status(200).json({
         ...cachedResponse,
-        debug_info: cachedResponse.debug_info || {
-          youtube_api: {
-            enabled: cachedResponse.youtubeReputationDebug?.enabled === true,
-            called: false,
-            success: cachedResponse.youtubeReputationDebug?.enabled === true ? !cachedResponse.youtubeReputationDebug?.error : false,
-            durationMs: 0,
-            cached: true,
-            videoCount: Number(cachedResponse.youtubeReputationDebug?.videoCount || 0),
-            matchedCount: Number(cachedResponse.youtubeReputationDebug?.matchedCount || 0),
-            timeoutMs: Number(cachedResponse.youtubeReputationDebug?.timeoutMs || YOUTUBE_REPUTATION_TIMEOUT_MS),
-            error: cachedResponse.youtubeReputationDebug?.error || null
-          }
-        },
+        debug_info: buildCachedDebugInfo(cachedResponse),
         _cached: true,
         searchCacheDebug: {
           ...(cachedResponse.searchCacheDebug || {}),
@@ -470,8 +544,22 @@ async function handler(req,res){
       writeCache: writeYoutubeCache
     });
     const youtubeDurationMs = Date.now() - youtubeStartAt;
-    const finalItems = youtubeReputation.items;
-    const debugInfo = buildYoutubeDebugInfo(youtubeReputation, youtubeDurationMs);
+
+    const reviewSignalsStartAt = Date.now();
+    const reviewSignals = await enrichReviewSignals({
+      query: improvedQ,
+      items: youtubeReputation.items,
+      provider: process.env.REVIEW_SIGNALS_PROVIDER || 'google_cse',
+      apiKey: process.env.GOOGLE_CSE_API_KEY,
+      cx: process.env.GOOGLE_CSE_CX,
+      enabled: isReviewSignalsEnabled() && start === 1,
+      timeoutMs: REVIEW_SIGNALS_TIMEOUT_MS,
+      readCache: readReviewSignalsCache,
+      writeCache: writeReviewSignalsCache
+    });
+    const reviewSignalsDurationMs = Date.now() - reviewSignalsStartAt;
+    const finalItems = reviewSignals.items;
+    const debugInfo = buildDebugInfo(youtubeReputation, youtubeDurationMs, reviewSignals, reviewSignalsDurationMs);
 
     const responseBody = {
       debug_info: debugInfo,
@@ -494,6 +582,7 @@ async function handler(req,res){
       },
       universalFilterDebug:universalResult.debug||null,
       youtubeReputationDebug:youtubeReputation.debug||null,
+      reviewSignalsDebug:reviewSignals.debug||null,
       _cached: false,
       searchCacheDebug: {
         key: searchCacheKey,
@@ -524,5 +613,8 @@ module.exports._private = {
   mapNaverItems,
   normalizeSearchCacheQuery,
   sha1Short,
-  stableStringify
+  stableStringify,
+  isReviewSignalsEnabled,
+  readReviewSignalsCache,
+  writeReviewSignalsCache
 };

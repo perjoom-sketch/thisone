@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThisOne Review Signal Diagnostics</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --line: #dfe6f1;
+      --text: #172033;
+      --muted: #64748b;
+      --blue: #2563eb;
+      --blue-soft: #eaf1ff;
+      --green-soft: #eaf8f0;
+      --red-soft: #fff0f0;
+      --amber-soft: #fff7e6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    main {
+      width: min(94vw, 72rem);
+      margin: 0 auto;
+      padding: clamp(1rem, 3vw, 2rem) 0 clamp(2rem, 6vw, 4rem);
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.75rem, 2vw, 1.25rem);
+    }
+    header, section {
+      background: var(--panel);
+      border: 0.0625rem solid var(--line);
+      border-radius: clamp(0.875rem, 2vw, 1.25rem);
+      padding: clamp(1rem, 2.5vw, 1.5rem);
+      box-shadow: 0 1rem 2.25rem rgba(15, 23, 42, 0.06);
+    }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: clamp(1.35rem, 3vw, 2rem); font-weight: 760; color: #1f3f78; }
+    h2 { font-size: clamp(1rem, 2vw, 1.25rem); margin-bottom: clamp(0.75rem, 2vw, 1rem); }
+    h3 { font-size: clamp(0.95rem, 1.8vw, 1.1rem); }
+    p { color: var(--muted); line-height: 1.55; font-size: clamp(0.9rem, 1.6vw, 1rem); }
+    .query-row {
+      display: flex;
+      align-items: stretch;
+      gap: clamp(0.5rem, 2vw, 0.875rem);
+      margin-top: clamp(0.875rem, 2vw, 1.125rem);
+    }
+    input {
+      flex: 1;
+      min-width: 0;
+      border: 0.0625rem solid var(--line);
+      border-radius: 999rem;
+      padding: clamp(0.75rem, 2vw, 0.95rem) clamp(0.9rem, 2.5vw, 1.2rem);
+      font-size: clamp(0.95rem, 2vw, 1.05rem);
+      outline: none;
+    }
+    input:focus { border-color: var(--blue); box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.12); }
+    button {
+      border: 0;
+      border-radius: 999rem;
+      padding: clamp(0.75rem, 2vw, 0.95rem) clamp(1rem, 2.5vw, 1.35rem);
+      background: var(--blue);
+      color: white;
+      font-weight: 760;
+      cursor: pointer;
+      font-size: clamp(0.9rem, 1.8vw, 1rem);
+      white-space: nowrap;
+    }
+    button:disabled { opacity: 0.55; cursor: wait; }
+    .status { min-height: 1.5rem; color: var(--muted); font-size: clamp(0.85rem, 1.5vw, 0.95rem); }
+    .metric-list, .result-list, .product-list {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.5rem, 1.5vw, 0.8rem);
+    }
+    .metric-row, .result-row, .product-row {
+      display: flex;
+      gap: clamp(0.6rem, 2vw, 1rem);
+      align-items: flex-start;
+      border: 0.0625rem solid var(--line);
+      border-radius: clamp(0.75rem, 1.8vw, 1rem);
+      padding: clamp(0.75rem, 2vw, 1rem);
+      background: #fbfdff;
+    }
+    .metric-label {
+      flex: 0 0 clamp(7rem, 24vw, 12rem);
+      color: var(--muted);
+      font-weight: 720;
+      font-size: clamp(0.82rem, 1.5vw, 0.95rem);
+    }
+    .metric-value { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: clamp(0.9rem, 1.6vw, 1rem); }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999rem;
+      padding: 0.2rem 0.55rem;
+      font-size: clamp(0.75rem, 1.4vw, 0.85rem);
+      font-weight: 760;
+      background: var(--blue-soft);
+      color: #1d4ed8;
+      margin-right: 0.35rem;
+      margin-bottom: 0.25rem;
+    }
+    .pill.good { background: var(--green-soft); color: #166534; }
+    .pill.bad { background: var(--red-soft); color: #991b1b; }
+    .pill.warn { background: var(--amber-soft); color: #9a5b00; }
+    .result-main, .product-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+    .result-title, .product-title { font-weight: 760; overflow-wrap: anywhere; line-height: 1.35; }
+    .snippet { color: #475569; line-height: 1.5; overflow-wrap: anywhere; }
+    .link { color: #2563eb; overflow-wrap: anywhere; text-decoration: none; }
+    .side {
+      flex: 0 0 clamp(8rem, 24vw, 14rem);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.35rem;
+      text-align: right;
+      color: var(--muted);
+      font-size: clamp(0.8rem, 1.5vw, 0.92rem);
+    }
+    .signal-stack { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.25rem; }
+    .empty {
+      border: 0.0625rem dashed var(--line);
+      border-radius: clamp(0.75rem, 1.8vw, 1rem);
+      padding: clamp(1rem, 3vw, 1.5rem);
+      color: var(--muted);
+      background: #fbfdff;
+    }
+    @media (max-width: 640px) {
+      main { width: min(96vw, 72rem); }
+      .query-row { gap: 0.5rem; }
+      .metric-row, .result-row, .product-row { gap: 0.55rem; }
+      .metric-label { flex-basis: clamp(6rem, 30vw, 8rem); }
+      .side { flex-basis: clamp(6.5rem, 28vw, 8rem); }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Review Signal Diagnostics</h1>
+      <p>Serper 또는 Google CSE 외부 검색 신호와 상품별 reviewSignals 매칭 결과를 관리자용으로 확인한다. 이 화면은 원문 snippet을 일반 사용자 카드에 노출하지 않는다.</p>
+      <form class="query-row" id="form">
+        <input id="query" name="q" value="로보락 S8 MaxV Ultra" autocomplete="off" aria-label="검색어">
+        <button id="run" type="submit">진단 실행</button>
+      </form>
+      <p class="status" id="status">검색어를 입력하고 진단 실행을 누르세요.</p>
+    </header>
+
+    <section>
+      <h2>1. search_signals debug</h2>
+      <div class="metric-list" id="debugList"><div class="empty">아직 진단 결과가 없습니다.</div></div>
+    </section>
+
+    <section>
+      <h2>2. 외부 검색 결과</h2>
+      <div class="result-list" id="externalResults"><div class="empty">외부 검색 결과가 여기에 표시됩니다.</div></div>
+    </section>
+
+    <section>
+      <h2>3. 상품별 매칭 결과</h2>
+      <div class="product-list" id="products"><div class="empty">상품별 매칭 결과가 여기에 표시됩니다.</div></div>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById('form');
+    const queryInput = document.getElementById('query');
+    const runButton = document.getElementById('run');
+    const statusEl = document.getElementById('status');
+    const debugList = document.getElementById('debugList');
+    const externalResults = document.getElementById('externalResults');
+    const products = document.getElementById('products');
+
+    function esc(value) {
+      return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+    }
+
+    function boolPill(value) {
+      const cls = value ? 'good' : 'bad';
+      return `<span class="pill ${cls}">${value ? 'true' : 'false'}</span>`;
+    }
+
+    function renderDebug(debug) {
+      if (!debug) {
+        debugList.innerHTML = '<div class="empty">search_signals debug가 없습니다.</div>';
+        return;
+      }
+      const rows = [
+        ['provider', debug.provider || '-'],
+        ['called', boolPill(debug.called === true)],
+        ['success', boolPill(debug.success === true)],
+        ['cached', boolPill(debug.cached === true)],
+        ['resultCount', Number(debug.resultCount || 0).toLocaleString()],
+        ['matchedCount', Number(debug.matchedCount || 0).toLocaleString()],
+        ['durationMs', `${Number(debug.durationMs || 0).toLocaleString()} ms`],
+        ['error', debug.error || '-']
+      ];
+      debugList.innerHTML = rows.map(([label, value]) => `<div class="metric-row"><div class="metric-label">${esc(label)}</div><div class="metric-value">${typeof value === 'string' ? esc(value) : value}</div></div>`).join('');
+    }
+
+    function renderExternalResults(results) {
+      if (!Array.isArray(results) || results.length === 0) {
+        externalResults.innerHTML = '<div class="empty">외부 검색 결과가 없습니다.</div>';
+        return;
+      }
+      externalResults.innerHTML = results.map((item) => `
+        <article class="result-row">
+          <div class="result-main">
+            <div class="result-title">${esc(item.title || '-')}</div>
+            <div class="snippet">${esc(item.snippet || '-')}</div>
+            <a class="link" href="${esc(item.link || '#')}" target="_blank" rel="noreferrer">${esc(item.link || '-')}</a>
+          </div>
+          <div class="side"><span class="pill">${esc(item.displayLink || '-')}</span></div>
+        </article>
+      `).join('');
+    }
+
+    function renderProducts(items) {
+      if (!Array.isArray(items) || items.length === 0) {
+        products.innerHTML = '<div class="empty">상품 결과가 없습니다.</div>';
+        return;
+      }
+      products.innerHTML = items.map((item) => {
+        const signals = Array.isArray(item.positiveSignals) && item.positiveSignals.length
+          ? item.positiveSignals.map((signal) => `<span class="pill good">${esc(signal)}</span>`).join('')
+          : '<span class="pill warn">positiveSignals 없음</span>';
+        return `
+          <article class="product-row">
+            <div class="product-main">
+              <div class="product-title">${esc(item.name || '-')}</div>
+              <div>${esc(item.store || '-')} · ${esc(item.priceText || (item.price ? `${Number(item.price).toLocaleString()}원` : '-'))}</div>
+              <div class="snippet">searchSignalReasons: ${esc(item.searchSignalReasons || '-')}</div>
+              <div class="signal-stack" style="justify-content:flex-start;">${signals}</div>
+            </div>
+            <div class="side">
+              <span>matched ${Number(item.reviewSignals?.matchedCount || 0).toLocaleString()}</span>
+              <span>positive ${Number(item.positiveHits || 0).toLocaleString()}</span>
+              <span>negative ${Number(item.negativeHits || 0).toLocaleString()}</span>
+              <span>confidence ${Number(item.confidence || 0).toFixed(4)}</span>
+              <span class="pill">score ${Number(item.searchSignalScore || 0)}</span>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    async function runDiagnostics(query) {
+      runButton.disabled = true;
+      statusEl.textContent = '진단 요청 중...';
+      try {
+        const response = await fetch(`/api/review-signal-diagnostics?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+        if (!response.ok || data.ok === false) throw new Error(data.error || 'diagnostics failed');
+        statusEl.textContent = `완료: ${data.query} → ${data.improvedQuery || data.query}`;
+        renderDebug(data.search_signals);
+        renderExternalResults(data.externalResults);
+        renderProducts(data.products);
+      } catch (error) {
+        statusEl.textContent = `오류: ${error.message}`;
+        renderDebug(null);
+        renderExternalResults([]);
+        renderProducts([]);
+      } finally {
+        runButton.disabled = false;
+      }
+    }
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const query = queryInput.value.trim();
+      if (!query) return;
+      runDiagnostics(query);
+    });
+  </script>
+</body>
+</html>

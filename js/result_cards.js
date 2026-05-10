@@ -345,6 +345,32 @@ function getBadgeClass(text) {
     return Number.isFinite(value) && value > 0 ? value * 12 : 0;
   }
 
+  function hasRecurringContractContext(text) {
+    return /렌탈|구독|대여|임대|정기\s*(?:구독|배송)|월납|월\s*(?:납부|이용료)/i.test(text);
+  }
+
+  function isCycleMonthContext(text, index, matchText) {
+    const start = Math.max(index - 12, 0);
+    const end = index + String(matchText || '').length + 12;
+    const nearby = text.slice(start, end);
+    return /방문\s*주기|배송\s*주기|주기\s*\d{1,3}\s*개월|\d{1,3}\s*개월\s*마다|\d{1,3}\s*개월\s*(?:방문|배송)/i.test(nearby);
+  }
+
+  function extractStandaloneContractMonths(text) {
+    if (!hasRecurringContractContext(text)) return { contractMonths: 0, contractLabel: '' };
+
+    const monthPattern = /(\d{1,3})\s*개월/gi;
+    let match;
+    while ((match = monthPattern.exec(text))) {
+      const months = Number(match[1]);
+      if (!Number.isFinite(months) || months <= 0) continue;
+      if (isCycleMonthContext(text, match.index, match[0])) continue;
+      return { contractMonths: months, contractLabel: `${months}개월` };
+    }
+
+    return { contractMonths: 0, contractLabel: '' };
+  }
+
   function extractContractLabel(text) {
     const monthPatterns = [
       /(의무\s*사용|의무구독|최소\s*이용|대여\s*기간|임대\s*기간|계약\s*기간|약정)\s*(\d{1,3})\s*개월/i,
@@ -376,7 +402,7 @@ function getBadgeClass(text) {
       }
     }
 
-    return { contractMonths: 0, contractLabel: '' };
+    return extractStandaloneContractMonths(text);
   }
 
   function extractRecurringContractMeta(title) {

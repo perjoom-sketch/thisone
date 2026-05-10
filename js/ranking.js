@@ -854,7 +854,14 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
       isUsed: /중고|리퍼|반품|전시/i.test(`${item.name}`),
       youtubeReputation: item.youtubeReputation || null,
       youtubeScore: Number(item.youtubeScore || item.youtubeReputation?.bonus || 0),
-      youtubeReasons: String(item.youtubeReasons || (Array.isArray(item.youtubeReputation?.reasons) ? item.youtubeReputation.reasons.join(', ') : '')).trim()
+      youtubeReasons: String(item.youtubeReasons || (Array.isArray(item.youtubeReputation?.reasons) ? item.youtubeReputation.reasons.join(', ') : '')).trim(),
+      category1: item.category1 || '',
+      category2: item.category2 || '',
+      category3: item.category3 || '',
+      category4: item.category4 || '',
+      brand: item.brand || '',
+      maker: item.maker || '',
+      productType: item.productType || ''
     };
   });
 

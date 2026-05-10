@@ -98,6 +98,25 @@
   word-break: keep-all;
 }
 
+.results-view .row-price-rental,
+#msgContainer .row-price-rental {
+  max-width: min(100%, 12rem);
+}
+
+.results-view .row-price-rental .row-price-main,
+#msgContainer .row-price-rental .row-price-main {
+  font-size: clamp(1rem, 1.35vw, 1.25rem);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.results-view .row-price-rental .row-price-sub,
+#msgContainer .row-price-rental .row-price-sub {
+  font-size: clamp(10px, 1vw, 12px);
+  font-weight: 700;
+  color: #64748b;
+}
+
 .results-view .row-label-badge,
 #msgContainer .row-label-badge,
 .results-view .badge-value,

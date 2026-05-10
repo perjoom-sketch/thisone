@@ -1357,12 +1357,12 @@ body.search-mode .results-view {
 
 .row-price-area {
   flex-shrink: 0;
-  width: clamp(80px, 15vw, 130px);
+  width: clamp(100px, 17vw, 150px);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: flex-end;
-  gap: 6px;
+  gap: clamp(6px, 1vw, 10px);
   text-align: right;
 }
 
@@ -1376,7 +1376,8 @@ body.search-mode .results-view {
 .row-price-rental {
   display: flex;
   flex-direction: column;
-  gap: clamp(2px, 0.5vw, 4px);
+  align-items: flex-end;
+  gap: clamp(5px, 0.9vw, 8px);
 }
 
 .row-price-main {
@@ -1384,12 +1385,22 @@ body.search-mode .results-view {
 }
 
 .row-price-sub {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: clamp(1px, 0.4vw, 3px);
   font-size: clamp(10px, 1vw, 12px);
   font-weight: 700;
   color: #64748b;
   letter-spacing: -0.02em;
-  white-space: nowrap;
+  line-height: 1.32;
+}
+
+.row-contract-line {
+  display: block;
+  max-width: min(100%, 12em);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .row-cta {

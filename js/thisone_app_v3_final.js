@@ -83,6 +83,302 @@ JSON 스키마:
 
 JSON 외의 다른 텍스트는 [Thought] 섹션에만 포함하세요.`;
 
+
+const V2_ACCESSORY_KEYWORDS = [
+  '필터', '교체용', '리필', '정수필터', '헤파', '활성탄',
+  '노즐', '봉투', '호스',
+  '커버', '패드', '시트', '천갈이', '덮개',
+  '부품', '액세서리', '악세서리',
+  '브러시', '솔', '걸레'
+];
+const V2_CONTEXT_KEYWORDS = ['가정용', '차량용', '자동차', '실내용', '업무용', '사무용'];
+const V2_CATEGORY_ROLE_MAP = {
+  "마스크": {
+    "main": [
+      {
+        "category3": "먼지차단마스크",
+        "productType": "1"
+      }
+    ],
+    "accessory": [
+      {
+        "category3": "먼지차단마스크",
+        "productType": "2"
+      }
+    ]
+  },
+  "정수기": {
+    "main": [
+      {
+        "category3": "정수기",
+        "category4": "냉온정수기"
+      }
+    ],
+    "accessory": [
+      {
+        "category3": "정수기",
+        "category4": "정수기필터"
+      }
+    ]
+  },
+  "로봇청소기": {
+    "main": [
+      {
+        "category3": "로봇청소기"
+      }
+    ],
+    "accessory": [
+      {
+        "category3": "청소기액세서리"
+      }
+    ]
+  },
+  "비데": {
+    "main": [
+      {
+        "category3": "비데/비데용품",
+        "category4": "전자식비데"
+      }
+    ],
+    "accessory": [
+      {
+        "category3": "비데/비데용품",
+        "category4": "비데필터"
+      }
+    ]
+  },
+  "음식물처리기": {
+    "main": [
+      {
+        "category3": "음식물처리기"
+      }
+    ],
+    "accessory": [
+      {
+        "category3": "기타주방가전부속품"
+      }
+    ]
+  },
+  "안마의자": {
+    "main": [
+      {
+        "category3": "안마의자"
+      }
+    ],
+    "accessory": [
+      {
+        "category3": "기타안마용품"
+      }
+    ]
+  },
+  "공기청정기": {
+    "main": [
+      {
+        "category3": "공기정화기",
+        "category4": "공기청정기"
+      }
+    ],
+    "accessory": [
+      {
+        "category3": "공기정화기",
+        "category4": "공기정화기필터"
+      }
+    ]
+  },
+  "에어컨_가정용": {
+    "main": [
+      {
+        "category3": "에어컨"
+      }
+    ],
+    "accessory": [
+      {
+        "category3": "에어컨주변기기"
+      }
+    ],
+    "irrelevant": [
+      {
+        "category3": "오일/소모품",
+        "category4": "에어컨필터"
+      }
+    ]
+  }
+};
+const V2_ROLE_ORDER = ['main', 'accessory', 'irrelevant'];
+
+function getAccessoryKeywords() {
+  return [...V2_ACCESSORY_KEYWORDS];
+}
+
+function detectIntent(query) {
+  const normalized = String(query || '').trim();
+  if (!normalized) return 'main';
+
+  if (normalized.includes('김서방마스크') && normalized.includes('리필')) {
+    const withoutRefill = normalized.replace(/\s*리필\s*/g, ' ').trim().replace(/\s+/g, ' ');
+    return getAccessoryKeywords().some((kw) => kw !== '리필' && withoutRefill.includes(kw)) ? 'accessory' : 'main';
+  }
+
+  if (normalized.includes('비데') && normalized.includes('노즐')) {
+    const withoutNozzle = normalized.replace(/\s*노즐\s*/g, ' ').trim().replace(/\s+/g, ' ');
+    return getAccessoryKeywords().some((kw) => kw !== '노즐' && withoutNozzle.includes(kw)) ? 'accessory' : 'main';
+  }
+
+  return getAccessoryKeywords().some((kw) => normalized.includes(kw)) ? 'accessory' : 'main';
+}
+
+function stripAccessoryKeywords(query) {
+  const keywords = getAccessoryKeywords();
+  let result = String(query || '');
+  for (const kw of keywords) {
+    result = result.replace(new RegExp(`\\s*${kw}\\s*`, 'g'), ' ');
+  }
+  return result.trim().replace(/\s+/g, ' ');
+}
+
+function v2MatchesRule(item, rule) {
+  return Object.keys(rule).every((field) => item?.[field] === rule[field]);
+}
+
+function v2MatchesRole(item, categoryKey, role) {
+  const rules = V2_CATEGORY_ROLE_MAP[categoryKey]?.[role] || [];
+  return rules.some((rule) => v2MatchesRule(item, rule));
+}
+
+function getCategoryRole(item) {
+  const categoryKey = Object.keys(V2_CATEGORY_ROLE_MAP).find((key) => (
+    V2_ROLE_ORDER.some((role) => v2MatchesRole(item, key, role))
+  ));
+  if (!categoryKey) return 'unknown';
+  return V2_ROLE_ORDER.find((role) => v2MatchesRole(item, categoryKey, role)) || 'unknown';
+}
+
+function isAmbiguousQuery(query, allCandidates) {
+  const normalized = String(query || '').trim();
+  if (detectIntent(normalized) !== 'accessory') return false;
+  if (V2_CONTEXT_KEYWORDS.some((keyword) => normalized.includes(keyword))) return false;
+
+  const accessoryCategoryKeys = new Set();
+  let hasAccessoryCandidate = false;
+  let hasIrrelevantCandidate = false;
+
+  for (const item of (allCandidates || [])) {
+    for (const categoryKey of Object.keys(V2_CATEGORY_ROLE_MAP)) {
+      if (v2MatchesRole(item, categoryKey, 'accessory')) {
+        accessoryCategoryKeys.add(categoryKey);
+        hasAccessoryCandidate = true;
+      }
+      if (v2MatchesRole(item, categoryKey, 'irrelevant')) {
+        hasIrrelevantCandidate = true;
+      }
+    }
+  }
+
+  return accessoryCategoryKeys.size >= 2 || (hasAccessoryCandidate && hasIrrelevantCandidate);
+}
+
+function addRoleScore(item, role, userIntent) {
+  if (role !== userIntent) return { ...item };
+  const boosted = { ...item, roleScoreBoost: (Number(item?.roleScoreBoost) || 0) + 20 };
+  ['bonusScore', 'finalScore', 'totalScore', 'valueScore'].forEach((field) => {
+    if (typeof boosted[field] === 'number' && Number.isFinite(boosted[field])) boosted[field] += 20;
+  });
+  return boosted;
+}
+
+function sortByRoleScore(items) {
+  return [...items].sort((a, b) => {
+    const as = Number(a?.finalScore ?? a?.totalScore ?? a?.bonusScore ?? 0);
+    const bs = Number(b?.finalScore ?? b?.totalScore ?? b?.bonusScore ?? 0);
+    return bs - as;
+  });
+}
+
+function applyRoleFilter(finalCards, userIntent, isAmbiguous) {
+  const filtered = [];
+  for (const item of (finalCards || [])) {
+    const role = getCategoryRole(item);
+    if (role === 'irrelevant' && !isAmbiguous) continue;
+    if (role === 'accessory' && userIntent === 'main') continue;
+    if (role === 'main' && userIntent === 'accessory' && filtered.length >= 5) continue;
+    filtered.push(addRoleScore(item, role, userIntent));
+  }
+  return sortByRoleScore(filtered);
+}
+
+function applyRoleFilterRelaxed(allCandidates, userIntent, isAmbiguous) {
+  const filtered = [];
+  for (const item of (allCandidates || [])) {
+    const role = getCategoryRole(item);
+    if (role === 'irrelevant' && !isAmbiguous) continue;
+    filtered.push(addRoleScore(item, role, userIntent));
+  }
+  return sortByRoleScore(filtered);
+}
+
+function getCandidateUniqueKey(item = {}) {
+  return String(item.productId || item.link || item.id || item.sourceId || item.name || '').trim();
+}
+
+function mergeUniqueCandidates(arr1, arr2) {
+  const seen = new Set();
+  const merged = [];
+  for (const item of [...(arr1 || []), ...(arr2 || [])]) {
+    const key = getCandidateUniqueKey(item);
+    if (key && seen.has(key)) continue;
+    if (key) seen.add(key);
+    merged.push(item);
+  }
+  return merged;
+}
+
+async function applyCategoryRoleToFinalCards(finalCards, query, allCandidates) {
+  const userIntent = detectIntent(query);
+  const isAmbiguous = isAmbiguousQuery(query, allCandidates);
+
+  let filtered = applyRoleFilter(finalCards, userIntent, isAmbiguous);
+
+  if (filtered.length < 5) {
+    console.log('[v2 fallback] 단계 1 발동', { beforeCount: filtered.length });
+    filtered = applyRoleFilterRelaxed(allCandidates, userIntent, isAmbiguous);
+  } else {
+    console.log('[v2 fallback] 단계 1 미발동', { count: filtered.length });
+  }
+
+  if (filtered.length < 5) {
+    const simplifiedQuery = stripAccessoryKeywords(query);
+    if (simplifiedQuery && simplifiedQuery !== query && simplifiedQuery.length > 0) {
+      console.log('[v2 fallback] 단계 2 발동', { simplifiedQuery, beforeCount: filtered.length });
+      try {
+        const additionalItems = await window.ThisOneAPI.requestSearch(simplifiedQuery, {});
+        const additionalArray = (additionalItems && additionalItems.items) || [];
+        const additionalCandidates = window.ThisOneRanking?.buildCandidates
+          ? window.ThisOneRanking.buildCandidates(additionalArray, simplifiedQuery, null)
+          : additionalArray;
+        const merged = mergeUniqueCandidates(allCandidates, additionalCandidates);
+        filtered = applyRoleFilterRelaxed(merged, userIntent, isAmbiguous);
+      } catch (e) {
+        console.warn('[v2 fallback] 단계 2 단순화 재검색 실패:', e);
+      }
+    } else {
+      console.log('[v2 fallback] 단계 2 미발동', { simplifiedQuery, count: filtered.length });
+    }
+  } else {
+    console.log('[v2 fallback] 단계 2 미발동', { count: filtered.length });
+  }
+
+  if (filtered.length < 5) {
+    console.log('[v2 fallback] 단계 3 발동', { beforeCount: filtered.length });
+    filtered = (allCandidates || []).slice(0, 10);
+  } else {
+    console.log('[v2 fallback] 단계 3 미발동', { count: filtered.length });
+  }
+
+  console.log('[v2] userIntent:', userIntent, 'isAmbiguous:', isAmbiguous, 'finalCount:', filtered.length);
+
+  return filtered.slice(0, 10);
+}
+
 function getInput() { return document.getElementById('msgInput'); }
 function getSendBtn() { return document.getElementById('sendBtn'); }
 
@@ -554,7 +850,7 @@ async function handleAIAnalysis(context) {
 
     const merged = window.ThisOneRanking?.mergeAiWithCandidates ? window.ThisOneRanking.mergeAiWithCandidates(deepClean(parsed), context.candidates) : parsed;
 
-    const targetCount = expertSettings.resultCount || 5;
+    const targetCount = Math.max(5, expertSettings.resultCount || 5);
     const mergedCards = Array.isArray(merged?.cards) ? merged.cards : [];
     const mergedRejects = Array.isArray(merged?.rejects) ? merged.rejects : [];
     const rejectSourceIds = new Set(
@@ -593,7 +889,8 @@ async function handleAIAnalysis(context) {
       if (cname) usedNames.add(cname);
     }
 
-    const finalCards = [...mergedCards, ...supplements].slice(0, targetCount);
+    let finalCards = [...mergedCards, ...supplements].slice(0, targetCount);
+    finalCards = await applyCategoryRoleToFinalCards(finalCards, context.finalSearchQuery, context.candidates || []);
 
     // AI 분석 리포트 아래에 일반 검색 결과를 함께 표시
     const normalizeName = (v) => String(v || '').trim().toLowerCase();

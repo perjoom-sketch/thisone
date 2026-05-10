@@ -318,6 +318,36 @@ function getYoutubeReputationBonus(candidate) {
   return { bonus, valueBonus, reasons };
 }
 
+function getReviewSignalBonus(candidate) {
+  const searchSignalScore = Number(candidate?.searchSignalScore || 0);
+  const reviewSignals = candidate?.reviewSignals;
+  if (!Number.isFinite(searchSignalScore) || searchSignalScore <= 0 || !reviewSignals || typeof reviewSignals !== 'object') {
+    return { bonus: 0, valueBonus: 0, reasons: '' };
+  }
+
+  const strongestMatch = String(reviewSignals.strongestMatch || '').toLowerCase();
+  const positiveHits = Number(reviewSignals.positiveHits || 0);
+  const negativeHits = Number(reviewSignals.negativeHits || 0);
+  const confidence = Number(reviewSignals.confidence || 0);
+  if (
+    strongestMatch === 'weak' ||
+    strongestMatch === 'none' ||
+    (strongestMatch !== 'medium' && strongestMatch !== 'strong') ||
+    negativeHits > positiveHits ||
+    !Number.isFinite(confidence) ||
+    confidence < 0.3
+  ) {
+    return { bonus: 0, valueBonus: 0, reasons: '' };
+  }
+
+  const maxBonus = strongestMatch === 'strong' ? 2 : 1;
+  const bonus = clampScore(searchSignalScore, 0, maxBonus);
+  const sourceValueBonus = Number(reviewSignals.valueBonus ?? Math.round(bonus * 0.5));
+  const valueBonus = clampScore(Number.isFinite(sourceValueBonus) ? sourceValueBonus : 0, 0, 1);
+  const reasons = strongestMatch === 'strong' ? '모델 일치 리뷰 신호' : '외부 리뷰 긍정 신호';
+  return { bonus, valueBonus, reasons };
+}
+
 function getCandidateBonus(candidate, profile, query) {
   const name = String(candidate.name || '').toLowerCase();
   const price = parsePriceNumber(candidate.price);
@@ -537,6 +567,12 @@ function getCandidateBonus(candidate, profile, query) {
   if (youtube.bonus) {
     bonusScore += youtube.bonus;
     bonusReasons.push(youtube.reasons || 'YouTube 평판 반영');
+  }
+
+  const reviewSignal = getReviewSignalBonus(candidate);
+  if (reviewSignal.bonus) {
+    bonusScore += reviewSignal.bonus;
+    bonusReasons.push(reviewSignal.reasons || '외부 리뷰 신호 반영');
   }
 
   // 3. 네이버 랭킹 가점 (id 기반 — 앞 순위일수록 가점)
@@ -855,6 +891,9 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
       youtubeReputation: item.youtubeReputation || null,
       youtubeScore: Number(item.youtubeScore || item.youtubeReputation?.bonus || 0),
       youtubeReasons: String(item.youtubeReasons || (Array.isArray(item.youtubeReputation?.reasons) ? item.youtubeReputation.reasons.join(', ') : '')).trim(),
+      searchSignalScore: Number(item.searchSignalScore || 0),
+      reviewSignals: item.reviewSignals || null,
+      searchSignalReasons: String(item.searchSignalReasons || '').trim(),
       category1: item.category1 || '',
       category2: item.category2 || '',
       category3: item.category3 || '',
@@ -871,6 +910,7 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
   return deduped.map((candidate) => {
     const bonus = getCandidateBonus(candidate, profile, queryText);
     const youtubeBonus = getYoutubeReputationBonus(candidate);
+    const reviewSignalBonus = getReviewSignalBonus(candidate);
     const priceValueIndex = getPriceValueIndex(candidate, deduped);
     const priceRisk = shouldExcludeFromPriceRank(candidate, queryText, medianPrice, profile);
 
@@ -938,9 +978,9 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
     }
 
     const finalScore = isStrictExcluded ? -999 : (bonus.bonusScore - specPenalty);
-    const baseScoreWithoutYoutube = isStrictExcluded ? -999 : (finalScore - youtubeBonus.bonus);
+    const baseScoreWithoutReputation = isStrictExcluded ? -999 : (finalScore - youtubeBonus.bonus - reviewSignalBonus.bonus);
     const totalScore = finalScore;
-    const valueScore = isStrictExcluded ? -999 : Number((baseScoreWithoutYoutube + (6 * priceValueIndex) + youtubeBonus.valueBonus).toFixed(2));
+    const valueScore = isStrictExcluded ? -999 : Number((baseScoreWithoutReputation + (6 * priceValueIndex) + youtubeBonus.valueBonus + reviewSignalBonus.valueBonus).toFixed(2));
 
     return {
       ...candidate,
@@ -950,6 +990,8 @@ function buildCandidates(items, queryText = '', intentProfile = null) {
       youtubeReputation: candidate.youtubeReputation || null,
       youtubeBonus: youtubeBonus.bonus,
       youtubeValueBonus: youtubeBonus.valueBonus,
+      reviewSignalBonus: reviewSignalBonus.bonus,
+      reviewSignalValueBonus: reviewSignalBonus.valueBonus,
       priceValueIndex,
       specPenalty,
       finalScore,

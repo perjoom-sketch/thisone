@@ -105,8 +105,8 @@
 
 .results-view .row-price-rental .row-price-main,
 #msgContainer .row-price-rental .row-price-main {
-  font-size: clamp(1rem, 1.35vw, 1.25rem);
-  font-weight: 900;
+  font-size: 15px;
+  font-weight: 800;
   white-space: nowrap;
 }
 

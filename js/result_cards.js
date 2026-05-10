@@ -91,6 +91,16 @@ function extractModelName(name) {
     return `<span class="row-badge-item badge-trust row-youtube-badge" title="YouTube 평판 데이터 반영">${esc(label)}</span>`;
   }
 
+  function renderPositiveSignalBadges(card) {
+    const signals = Array.isArray(card?.positiveSignals) ? card.positiveSignals : [];
+    return signals
+      .map(compactText)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((signal) => `<span class="row-positive-signal-badge">✓ ${esc(signal)}</span>`)
+      .join('');
+  }
+
   function getYoutubeDetailReasons(card) {
     const reasons = [];
     const add = (items, youtubeOnly) => {
@@ -484,6 +494,7 @@ function getBadgeClass(text) {
             <span class="row-store-name">${esc(card.store || '판매처 정보 없음')}</span>
             <span class="row-delivery">${esc(card.delivery || '배송 정보 확인 필요')}</span>
             ${card.review ? `<span class="row-review">${esc(card.review)}</span>` : ''}
+            ${renderPositiveSignalBadges(card)}
           </div>
 
           ${renderProductFacts(card)}

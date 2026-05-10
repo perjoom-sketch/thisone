@@ -1339,6 +1339,20 @@ body.search-mode .results-view {
   border-radius: 4px;
 }
 
+.row-positive-signal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(2px, 0.5vw, 4px);
+  padding: 2px 6px;
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: clamp(10px, 1vw, 11px);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
 .row-label-badge { background: #eff6ff; color: #2563eb; }
 .badge-value { background: #f0fdf4; color: #16a34a; border: 1px solid #dcfce7; }
 .badge-trust { background: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; }
@@ -1880,5 +1894,12 @@ body.search-mode .results-view {
   .analysis-ad-slot {
     width: min(100%, clamp(18rem, 82.051vw, 20rem));
     aspect-ratio: 320 / 100;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  .row-positive-signal-badge {
+    border-color: rgba(45, 212, 191, 0.38);
+    background: rgba(20, 184, 166, 0.14);
+    color: #99f6e4;
   }
 }

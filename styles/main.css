@@ -1356,6 +1356,8 @@ body.search-mode .results-view {
 .row-label-badge { background: #eff6ff; color: #2563eb; }
 .badge-value { background: #f0fdf4; color: #16a34a; border: 1px solid #dcfce7; }
 .badge-trust { background: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; }
+.row-review-signal-badge,
+.badge-review-signal { background: #ecfdf5; color: #047857; border: 1px solid #bbf7d0; }
 .badge-thisone { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; }
 .badge-default { background: #f1f5f9; color: #64748b; }
 

@@ -101,6 +101,26 @@ function extractModelName(name) {
       .join('');
   }
 
+  function renderReviewSignalBadge(card) {
+    const reviewSignals = card?.reviewSignals;
+    if (!reviewSignals || typeof reviewSignals !== 'object') return '';
+
+    const matchedCount = numberOrZero(reviewSignals.matchedCount);
+    const positiveHits = numberOrZero(reviewSignals.positiveHits);
+    const negativeHits = numberOrZero(reviewSignals.negativeHits);
+    if (matchedCount <= 0 || positiveHits <= negativeHits) return '';
+
+    const label = matchedCount > 1 ? `리뷰 신호 ${matchedCount}건` : '리뷰 신호 확인';
+    const reasons = Array.isArray(reviewSignals.publicReasons)
+      ? reviewSignals.publicReasons.map(compactText).filter(Boolean)
+      : [];
+    const title = reasons.length
+      ? reasons.slice(0, 3).join(' · ')
+      : compactText(reviewSignals.publicSummary) || '외부 리뷰 신호에서 긍정 언급 확인';
+
+    return `<span class="row-badge-item row-review-signal-badge" title="${escAttr(title)}">✓ ${esc(label)}</span>`;
+  }
+
   function getYoutubeDetailReasons(card) {
     const reasons = [];
     const add = (items, youtubeOnly) => {
@@ -485,6 +505,7 @@ function getBadgeClass(text) {
               <div class="row-badges">
                 ${labelBadge}
                 ${badgesHtml}
+                ${renderReviewSignalBadge(card)}
                 ${renderYoutubeReputationBadge(card)}
               </div>
             </div>

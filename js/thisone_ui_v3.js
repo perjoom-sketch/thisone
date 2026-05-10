@@ -734,9 +734,12 @@ async function fetchInquiries() {
 
       const displayInquiries = sortInquiriesForDisplay(result.data);
       const managerMode = isInquiryManagerMode();
+      const lastSubmittedInquiryId = String(window._lastSubmittedInquiryId || '');
 
-      list.innerHTML = displayInquiries.map(inq => `
-        <div class="inquiry-item ${managerMode && isAdInquiry(inq) ? 'is-ad-inquiry' : ''}">
+      list.innerHTML = displayInquiries.map(inq => {
+        const isNewInquiry = String(inq.id) === lastSubmittedInquiryId;
+        return `
+        <div class="inquiry-item ${managerMode && isAdInquiry(inq) ? 'is-ad-inquiry' : ''} ${isNewInquiry ? 'is-new-inquiry' : ''}">
           <div class="inq-header" onclick="window.toggleInquiry('${inq.id}')">
             <div class="inq-title-group">
               <div class="inq-badge">Q</div>
@@ -747,14 +750,15 @@ async function fetchInquiries() {
             </div>
             <div class="inq-arrow">▼</div>
           </div>
-          <div class="inq-content-area" id="inqContent_${inq.id}">
+          <div class="inq-content-area ${isNewInquiry ? 'show' : ''}" id="inqContent_${inq.id}">
             <div class="inq-body">${formatInquiryContent(inq.content)}</div>
             <div class="action-row right">
               <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px;" onclick="event.stopPropagation(); window.ThisOneUI.prepareEdit('${inq.id}')">수정하기</button>
             </div>
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
     }
   } catch (err) {
     list.innerHTML = '<div class="loading-text">목록 로딩 실패</div>';
@@ -845,6 +849,12 @@ async function submitInquiry() {
     console.log('[Inquiry] Result:', result);
 
     if (res.ok && result.status === 'success') {
+      if (!isEdit && result?.data?.id) {
+        window._lastSubmittedInquiryId = String(result.data.id);
+      } else {
+        window._lastSubmittedInquiryId = '';
+      }
+
       showNotice(isEdit ? '문의가 수정되었습니다.' : '문의가 성공적으로 등록되었습니다.', { tone: 'success' });
       lastSubmitTime = Date.now(); 
       if (document.getElementById('inqTitle')) document.getElementById('inqTitle').value = '';

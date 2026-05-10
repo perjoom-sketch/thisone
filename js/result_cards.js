@@ -92,15 +92,15 @@ function extractModelName(name) {
   }
 
   function renderReviewSignalBadge(card) {
-    const signals = card?.reviewSignals;
-    if (!signals) return '';
+    const reviewSignals = card?.reviewSignals;
+    if (!reviewSignals || typeof reviewSignals !== 'object') return '';
 
     const reviewSignalBonus = numberOrZero(card?.reviewSignalBonus);
     const searchSignalScore = numberOrZero(card?.searchSignalScore);
-    const strongestMatch = compactText(signals?.strongestMatch).toLowerCase();
-    const positiveHits = Number(signals?.positiveHits || 0);
-    const negativeHits = Number(signals?.negativeHits || 0);
-    const confidence = Number(signals?.confidence || 0);
+    const strongestMatch = compactText(reviewSignals?.strongestMatch).toLowerCase();
+    const positiveHits = Number(reviewSignals?.positiveHits || 0);
+    const negativeHits = Number(reviewSignals?.negativeHits || 0);
+    const confidence = Number(reviewSignals?.confidence || 0);
     const hasModelMatchedSignal = strongestMatch === 'medium' || strongestMatch === 'strong';
 
     if (!hasModelMatchedSignal) return '';
@@ -111,7 +111,35 @@ function extractModelName(name) {
     const isEligible = reviewSignalBonus > 0 || (searchSignalScore > 0 && positiveHits >= negativeHits);
     if (!isEligible) return '';
 
-    return '<span class="row-badge-item badge-review-signal row-review-signal-badge" title="외부 리뷰 신호가 보조 반영되었습니다">리뷰 신호</span>';
+    const sanitizeTitleText = (value) => {
+      const forbiddenPattern = new RegExp([
+        '사용' + '후기',
+        '구매자' + ' 후기',
+        '검증된' + ' 리뷰'
+      ].join('|'), 'g');
+      return compactText(value).replace(forbiddenPattern, '외부 리뷰 신호');
+    };
+    const reasons = Array.isArray(reviewSignals.publicReasons)
+      ? reviewSignals.publicReasons.map(sanitizeTitleText).filter(Boolean)
+      : [];
+    const summary = sanitizeTitleText(reviewSignals.publicSummary);
+    const matchedCount = numberOrZero(reviewSignals.matchedCount);
+    const titleParts = reasons.length
+      ? reasons.slice(0, 3)
+      : summary
+        ? [summary]
+        : [];
+
+    if (!titleParts.length) {
+      const countParts = [];
+      if (matchedCount > 0) countParts.push('외부 리뷰 신호 ' + matchedCount + '건');
+      if (positiveHits > 0) countParts.push(`긍정 신호 ${positiveHits}건`);
+      if (negativeHits > 0) countParts.push(`제외 신호 ${negativeHits}건`);
+      titleParts.push(countParts.join(' · ') || '외부 리뷰 신호 보조 반영');
+    }
+
+    const title = titleParts.join(' · ');
+    return `<span class="row-badge-item badge-review-signal row-review-signal-badge" title="${escAttr(title)}">리뷰 신호</span>`;
   }
 
   function renderPositiveSignalBadges(card) {
@@ -122,26 +150,6 @@ function extractModelName(name) {
       .slice(0, 2)
       .map((signal) => `<span class="row-positive-signal-badge">✓ ${esc(signal)}</span>`)
       .join('');
-  }
-
-  function renderReviewSignalBadge(card) {
-    const reviewSignals = card?.reviewSignals;
-    if (!reviewSignals || typeof reviewSignals !== 'object') return '';
-
-    const matchedCount = numberOrZero(reviewSignals.matchedCount);
-    const positiveHits = numberOrZero(reviewSignals.positiveHits);
-    const negativeHits = numberOrZero(reviewSignals.negativeHits);
-    if (matchedCount <= 0 || positiveHits <= negativeHits) return '';
-
-    const label = matchedCount > 1 ? `리뷰 신호 ${matchedCount}건` : '리뷰 신호 확인';
-    const reasons = Array.isArray(reviewSignals.publicReasons)
-      ? reviewSignals.publicReasons.map(compactText).filter(Boolean)
-      : [];
-    const title = reasons.length
-      ? reasons.slice(0, 3).join(' · ')
-      : compactText(reviewSignals.publicSummary) || '외부 리뷰 신호에서 긍정 언급 확인';
-
-    return `<span class="row-badge-item row-review-signal-badge" title="${escAttr(title)}">✓ ${esc(label)}</span>`;
   }
 
   function getYoutubeDetailReasons(card) {
@@ -530,7 +538,6 @@ function getBadgeClass(text) {
                 ${badgesHtml}
                 ${renderReviewSignalBadge(card)}
                 ${renderYoutubeReputationBadge(card)}
-                ${renderReviewSignalBadge(card)}
               </div>
             </div>
           </div>

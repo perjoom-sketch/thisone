@@ -4,7 +4,7 @@ const { applyUniversalAIFilter } = require('../lib/universalFilter');
 const { improveQuery } = require('../lib/queryNormalizer');
 const { shouldUseCanonicalIntent, canonicalizeQuery } = require('../lib/canonicalIntent');
 const { enrichYoutubeReputation } = require('../lib/youtubeReputation');
-const { enrichReviewSignals } = require('../lib/reviewSignals');
+const { enrichReviewSignals, extractPositiveSignals } = require('../lib/reviewSignals');
 
 let kv = null;
 try {
@@ -168,6 +168,24 @@ function buildDebugInfo(youtubeResult, youtubeDurationMs, reviewSignalsResult, r
     ...buildReviewSignalsDebugInfo(reviewSignalsResult, reviewSignalsDurationMs)
   };
 }
+
+function attachPositiveSignals(items){
+  return (Array.isArray(items) ? items : []).map((item) => {
+    const existingSignals = Array.isArray(item?.positiveSignals)
+      ? item.positiveSignals.map(signal => String(signal || '').trim()).filter(Boolean)
+      : [];
+    const fallbackSignals = existingSignals.length > 0
+      ? []
+      : extractPositiveSignals({ title: item?.name || item?.title || '', snippet: '' });
+    const positiveSignals = Array.from(new Set([...existingSignals, ...fallbackSignals])).slice(0, 2);
+
+    return {
+      ...item,
+      positiveSignals
+    };
+  });
+}
+
 function buildCachedDebugInfo(cachedResponse){
   const fallback = {
     youtube_api: {
@@ -486,8 +504,10 @@ async function handler(req,res){
     const cachedResponse = await readSearchCache(searchCacheKey);
 
     if (cachedResponse && typeof cachedResponse === 'object') {
+      const cachedItems = attachPositiveSignals(cachedResponse.items);
       return res.status(200).json({
         ...cachedResponse,
+        items: cachedItems,
         debug_info: buildCachedDebugInfo(cachedResponse),
         _cached: true,
         searchCacheDebug: {
@@ -567,7 +587,7 @@ async function handler(req,res){
       writeCache: writeReviewSignalsCache
     });
     const reviewSignalsDurationMs = Date.now() - reviewSignalsStartAt;
-    const finalItems = reviewSignals.items;
+    const finalItems = attachPositiveSignals(reviewSignals.items);
     const debugInfo = buildDebugInfo(youtubeReputation, youtubeDurationMs, reviewSignals, reviewSignalsDurationMs);
 
     const responseBody = {
@@ -614,6 +634,7 @@ module.exports=handler;
 module.exports.config={maxDuration:60};
 module.exports._private = {
   applySearchSettings,
+  attachPositiveSignals,
   buildExpertSettingsHashSource,
   buildSearchCacheKey,
   fetchNaverShopItems,

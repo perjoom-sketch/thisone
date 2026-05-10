@@ -422,7 +422,8 @@ function renderAnalysisProgress() {
         </li>
       </ol>
       <div class="analysis-ad-slot" aria-label="ThisOne 자체 광고" data-ad-slot="analysis" data-ad-size="leaderboard">
-        <div class="thisone-ad-crossfade" aria-hidden="false">
+        <a class="thisone-ad-link" href="#inquiry" aria-label="ThisOne 광고 제휴 문의하기">
+          <div class="thisone-ad-crossfade" aria-hidden="true">
           <picture class="thisone-ad-frame thisone-ad-frame-a">
             <source
               media="(max-width: 640px)"
@@ -453,7 +454,8 @@ function renderAnalysisProgress() {
               decoding="async"
             >
           </picture>
-        </div>
+          </div>
+        </a>
       </div>
     </div>
   `;

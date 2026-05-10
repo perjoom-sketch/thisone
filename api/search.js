@@ -106,10 +106,18 @@ function isYoutubeReputationEnabled(){
   if (!process.env.YOUTUBE_API_KEY) return false;
   return String(process.env.YOUTUBE_REPUTATION_ENABLED || 'true').toLowerCase() !== 'false';
 }
+function getReviewSignalsProvider(){
+  return String(process.env.REVIEW_SIGNALS_PROVIDER || 'google_cse').trim().toLowerCase() || 'google_cse';
+}
+function getReviewSignalsApiKey(provider = getReviewSignalsProvider()){
+  return provider === 'serper' ? process.env.SERPER_API_KEY : process.env.GOOGLE_CSE_API_KEY;
+}
 function isReviewSignalsEnabled(){
+  const provider = getReviewSignalsProvider();
+  if (String(process.env.REVIEW_SIGNALS_ENABLED || 'true').toLowerCase() === 'false') return false;
+  if (provider === 'serper') return Boolean(process.env.SERPER_API_KEY);
   if (!process.env.GOOGLE_CSE_API_KEY) return false;
   if (!process.env.GOOGLE_CSE_CX) return false;
-  if (String(process.env.REVIEW_SIGNALS_ENABLED || 'true').toLowerCase() === 'false') return false;
   return true;
 }
 
@@ -546,11 +554,12 @@ async function handler(req,res){
     const youtubeDurationMs = Date.now() - youtubeStartAt;
 
     const reviewSignalsStartAt = Date.now();
+    const reviewSignalsProvider = getReviewSignalsProvider();
     const reviewSignals = await enrichReviewSignals({
       query: improvedQ,
       items: youtubeReputation.items,
-      provider: process.env.REVIEW_SIGNALS_PROVIDER || 'google_cse',
-      apiKey: process.env.GOOGLE_CSE_API_KEY,
+      provider: reviewSignalsProvider,
+      apiKey: getReviewSignalsApiKey(reviewSignalsProvider),
       cx: process.env.GOOGLE_CSE_CX,
       enabled: isReviewSignalsEnabled() && start === 1,
       timeoutMs: REVIEW_SIGNALS_TIMEOUT_MS,

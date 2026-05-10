@@ -51,6 +51,156 @@ const SearchDropdown = window.ThisOneSearchDropdown;
 let searchMode = 'thisone';
 let _lastIntentProfile = null;
 
+const ThisOneIntentDetector = typeof require === 'function' ? require('../lib/intentDetector') : {};
+const ThisOneCategoryRole = typeof require === 'function' ? require('../lib/categoryRole') : {};
+const detectIntent = ThisOneIntentDetector.detectIntent || function(query) {
+  const q = String(query || '').toLowerCase().replace(/\s+/g, '');
+  if (!q) return 'main';
+  if (q.includes('김서방마스크') && q.includes('리필')) {
+    return q.replace(/리필/g, '').match(/필터|교체용|정수필터|헤파|활성탄|봉투|호스|커버|패드|시트|천갈이|덮개|부품|액세서리|악세서리|브러시|브러쉬|솔|걸레/) ? 'accessory' : 'main';
+  }
+  if (q.includes('비데') && q.includes('노즐')) {
+    return q.replace(/노즐/g, '').match(/필터|교체용|정수필터|헤파|활성탄|리필|봉투|호스|커버|패드|시트|천갈이|덮개|부품|액세서리|악세서리|브러시|브러쉬|솔|걸레/) ? 'accessory' : 'main';
+  }
+  return q.match(/필터|교체용|정수필터|헤파|활성탄|리필|노즐|봉투|호스|커버|패드|시트|천갈이|덮개|부품|액세서리|악세서리|브러시|브러쉬|솔|걸레/) ? 'accessory' : 'main';
+};
+
+const FINAL_CARD_CATEGORY_RULES = {
+  main: [
+    { category3: '먼지차단마스크', productType: '1' },
+    { category3: '정수기', category4: '냉온정수기' },
+    { category3: '로봇청소기' },
+    { category3: '비데/비데용품', category4: '전자식비데' },
+    { category3: '음식물처리기' },
+    { category3: '안마의자' },
+    { category3: '공기정화기', category4: '공기청정기' },
+    { category3: '에어컨' }
+  ],
+  accessory: [
+    { category3: '먼지차단마스크', productType: '2' },
+    { category3: '정수기', category4: '정수기필터' },
+    { category3: '청소기액세서리' },
+    { category3: '비데/비데용품', category4: '비데필터' },
+    { category3: '기타주방가전부속품' },
+    { category3: '기타안마용품' },
+    { category3: '공기정화기', category4: '공기정화기필터' },
+    { category3: '에어컨주변기기' }
+  ],
+  irrelevant: [
+    { category3: '오일/소모품', category4: '에어컨필터' }
+  ]
+};
+const FINAL_CARD_PRICE_PENALTY = 30;
+
+function finalCardMatchesRule(item, rule) {
+  return Object.keys(rule).every((field) => item?.[field] === rule[field]);
+}
+
+function getFinalCardCategoryRole(item) {
+  if (ThisOneCategoryRole.getCategoryRole) {
+    return ThisOneCategoryRole.getCategoryRole(item);
+  }
+
+  if (!item) return 'unknown';
+  if (FINAL_CARD_CATEGORY_RULES.irrelevant.some((rule) => finalCardMatchesRule(item, rule))) return 'irrelevant';
+  if (FINAL_CARD_CATEGORY_RULES.main.some((rule) => finalCardMatchesRule(item, rule))) return 'main';
+  if (FINAL_CARD_CATEGORY_RULES.accessory.some((rule) => finalCardMatchesRule(item, rule))) return 'accessory';
+  return 'unknown';
+}
+
+function getFinalCardMedianPrice(items = []) {
+  const prices = items
+    .map((item) => Number(item?.totalPriceNum || item?.priceNum || item?.lprice || 0))
+    .filter((price) => Number.isFinite(price) && price > 0)
+    .sort((a, b) => a - b);
+  if (!prices.length) return 0;
+  const mid = Math.floor(prices.length / 2);
+  return prices.length % 2 ? prices[mid] : (prices[mid - 1] + prices[mid]) / 2;
+}
+
+function buildFinalCardCandidateIndex(candidates = []) {
+  const byId = new Map();
+  const byName = new Map();
+
+  candidates.forEach((candidate) => {
+    const id = String(candidate?.id || candidate?.sourceId || '').trim();
+    const name = String(candidate?.name || '').trim().toLowerCase();
+    if (id) byId.set(id, candidate);
+    if (name) byName.set(name, candidate);
+  });
+
+  return { byId, byName };
+}
+
+function resolveFinalCardCandidate(card, index) {
+  const sourceId = String(card?.sourceId || card?.id || '').trim();
+  const name = String(card?.name || '').trim().toLowerCase();
+  return (sourceId && index.byId.get(sourceId)) || (name && index.byName.get(name)) || card;
+}
+
+function applyCategoryRoleToFinalCards(cards = [], context = {}, targetCount = 5) {
+  const sourceCards = Array.isArray(cards) ? cards : [];
+  const candidatePool = Array.isArray(context.candidates) ? context.candidates : [];
+  const userIntent = detectIntent(context.finalSearchQuery || context.queryText || '');
+  const preserveMainForAccessory = candidatePool.length < 5;
+  const candidateIndex = buildFinalCardCandidateIndex(candidatePool);
+  const medianPrice = getFinalCardMedianPrice(candidatePool);
+  const priceRiskFn = window.ThisOneRanking?.shouldExcludeFromPriceRank;
+
+  return sourceCards
+    .map((card, index) => {
+      const candidate = resolveFinalCardCandidate(card, candidateIndex);
+      const role = getFinalCardCategoryRole(candidate);
+      let roleScoreDelta = 0;
+      let pricePenalty = 0;
+      let remove = false;
+
+      if (role === 'irrelevant') {
+        remove = true;
+      } else if (role === 'accessory' && userIntent === 'main') {
+        remove = true;
+      } else if (role === 'main' && userIntent === 'accessory' && !preserveMainForAccessory) {
+        remove = true;
+      }
+
+      if (!remove && role === 'main') {
+        roleScoreDelta += 20;
+        const priceRisk = typeof priceRiskFn === 'function'
+          ? priceRiskFn(candidate, context.finalSearchQuery || context.queryText || '', medianPrice, context.intentProfile)
+          : { exclude: false };
+        if (priceRisk?.exclude) pricePenalty += FINAL_CARD_PRICE_PENALTY;
+      }
+
+      if (!remove && role === 'accessory' && userIntent === 'accessory') {
+        roleScoreDelta += 20;
+      }
+
+      const originalScore = Number(card?.finalScore ?? candidate?.finalScore ?? 0);
+      const finalScore = originalScore + roleScoreDelta - pricePenalty;
+
+      return {
+        card: {
+          ...card,
+          categoryRole: role,
+          userIntent,
+          roleScoreDelta,
+          pricePenalty,
+          finalScore
+        },
+        index,
+        finalScore,
+        remove
+      };
+    })
+    .filter((entry) => !entry.remove)
+    .sort((a, b) => {
+      if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
+      return a.index - b.index;
+    })
+    .map((entry) => entry.card)
+    .slice(0, targetCount);
+}
+
 // 일반 검색 상태 관리
 const GeneralSearchState = {
   currentPage: 1,
@@ -593,7 +743,8 @@ async function handleAIAnalysis(context) {
       if (cname) usedNames.add(cname);
     }
 
-    const finalCards = [...mergedCards, ...supplements].slice(0, targetCount);
+    let finalCards = [...mergedCards, ...supplements].slice(0, targetCount);
+    finalCards = applyCategoryRoleToFinalCards(finalCards, context, targetCount);
 
     // AI 분석 리포트 아래에 일반 검색 결과를 함께 표시
     const normalizeName = (v) => String(v || '').trim().toLowerCase();

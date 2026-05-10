@@ -153,6 +153,27 @@ async function requestIntentInfer(query, trajectory, image = null) {
   }
 }
 
+
+async function trackSearchEvent(payload) {
+  try {
+    const body = JSON.stringify(payload || {});
+
+    if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+      const blob = new Blob([body], { type: 'application/json' });
+      if (navigator.sendBeacon('/api/track', blob)) return Promise.resolve();
+    }
+
+    return fetch('/api/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      keepalive: true
+    }).catch(() => {});
+  } catch (e) {
+    return Promise.resolve();
+  }
+}
+
 function installPreSendImageStateCapture() {
   if (window.__thisOneImageCapturePatchApplied) return;
   window.__thisOneImageCapturePatchApplied = true;
@@ -203,4 +224,5 @@ window.ThisOneAPI = {
   requestSearchFull,
   requestChat,
   requestIntentInfer,
+  trackSearchEvent,
 };

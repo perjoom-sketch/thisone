@@ -1208,10 +1208,22 @@ body.search-mode .results-view {
 }
 
 .inq-body {
-  font-size: 14px;
-  color: #475569;
-  line-height: 1.6;
+  text-align: left;
+  white-space: normal;
+  font-size: clamp(13px, 2.4vw, 14px);
+  line-height: 1.75;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  color: var(--color-text, #334155);
   margin-bottom: 16px;
+}
+
+.inq-body-paragraph {
+  margin: 0 0 10px;
+}
+
+.inq-body-paragraph:last-child {
+  margin-bottom: 0;
 }
 
 /* ===== AI 검색 결과 (추가) ===== */

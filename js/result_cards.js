@@ -384,8 +384,8 @@ function getBadgeClass(text) {
     return meta;
   }
 
-  function formatRecurringContractMeta(meta) {
-    if (!meta || typeof meta !== 'object') return '';
+  function getUniqueRecurringMetaParts(meta) {
+    if (!meta || typeof meta !== 'object') return [];
     const parts = [];
     if (meta.contractType) parts.push(meta.contractType);
     if (meta.contractLabel) parts.push(meta.contractLabel);
@@ -399,15 +399,42 @@ function getBadgeClass(text) {
       if (!key || seen.has(key)) return false;
       seen.add(key);
       return true;
-    }).join(' · ');
+    });
+  }
+
+  function formatRecurringContractMeta(meta) {
+    return getUniqueRecurringMetaParts(meta).join(' · ');
+  }
+
+  function formatRecurringContractMetaHtml(meta) {
+    const parts = getUniqueRecurringMetaParts(meta);
+    if (!parts.length) return `<span class="row-contract-line">의무기간 상세페이지 확인</span>`;
+
+    const primary = [meta.contractType, meta.managementType].filter(Boolean);
+    const secondary = [
+      meta.contractLabel,
+      meta.visitCycleMonths > 0 ? `방문주기 ${meta.visitCycleMonths}개월` : '',
+      meta.deliveryCycleMonths > 0 ? `배송주기 ${meta.deliveryCycleMonths}개월` : ''
+    ].filter(Boolean);
+    const lines = [primary, secondary]
+      .map((lineParts) => {
+        const allowed = new Set(lineParts.map((part) => String(part || '').replace(/\s+/g, '')));
+        return parts.filter((part) => allowed.has(String(part || '').replace(/\s+/g, '')));
+      })
+      .filter((lineParts) => lineParts.length)
+      .map((lineParts) => lineParts.join(' · '));
+
+    return lines
+      .map((line) => `<span class="row-contract-line">${esc(line)}</span>`)
+      .join('');
   }
 
   function formatPriceHtml(card) {
     if (card?.isRental && card.rentalMonthlyFee > 0) {
       const fmt = (v) => Number(v || 0).toLocaleString('ko-KR');
       const monthly = `월 ${fmt(card.rentalMonthlyFee)}원`;
-      const metaText = formatRecurringContractMeta(extractRecurringContractMeta(getRecurringContractTitle(card))) || '의무기간 상세페이지 확인';
-      return `<span class="row-price-main">${esc(monthly)}</span><span class="row-price-sub">${esc(metaText)}</span>`;
+      const meta = extractRecurringContractMeta(getRecurringContractTitle(card));
+      return `<span class="row-price-main">${esc(monthly)}</span><span class="row-price-sub">${formatRecurringContractMetaHtml(meta)}</span>`;
     }
     return esc(card.price || '가격 정보 없음');
   }

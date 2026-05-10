@@ -1,4 +1,4 @@
-const crypto = require('crypto');
+import crypto from 'crypto';
 
 /**
  * 1. 알리익스프레스 표준 타임스탬프 생성기 (GMT+8 베이징 시간 고정)
@@ -40,6 +40,174 @@ function firstDefined(...values) {
 
 function isFalseLike(value) {
   return value === false || String(value).toLowerCase() === 'false';
+}
+
+function getAliExpressProducts(data) {
+  const products = data?.aliexpress_affiliate_product_query_response?.resp_result?.result?.products;
+
+  if (Array.isArray(products)) {
+    return products;
+  }
+
+  if (Array.isArray(products?.product)) {
+    return products.product;
+  }
+
+  return [];
+}
+
+function buildBaseAliExpressParams(appKey, searchQuery) {
+  return {
+    app_key: appKey,
+    format: 'json',
+    keywords: searchQuery,
+    method: 'aliexpress.affiliate.product.query',
+    page_no: '1',
+    page_size: '20',           // 한 번에 불러올 상품 수
+    sign_method: 'sha256',
+    sort: 'SALE_PRICE_ASC',    // 가격 비교 엔진에 맞춘 최저가 오름차순 정렬
+    target_currency: 'KRW',    // 원화
+    target_language: 'KO',     // 한국어
+    timestamp: getAliTimestamp(),
+    tracking_id: 'thisone',    // 어필리에이트 포털에 등록된 실제 Tracking ID
+    v: '2.0'
+  };
+}
+
+function signAliExpressParams(params, appSecret) {
+  const signedParams = { ...params };
+  signedParams.sign = generateSignature(signedParams, appSecret);
+  return signedParams;
+}
+
+async function requestAliExpress(params) {
+  const response = await fetch('https://api-sg.aliexpress.com/sync', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
+    },
+    body: new URLSearchParams(params).toString()
+  });
+
+  const data = await response.json();
+  return { response, data };
+}
+
+function buildAliExpressProbeSummary(name, data, params, response) {
+  const debug = buildAliExpressDebug(data, params, response);
+  const products = getAliExpressProducts(data);
+
+  return {
+    name,
+    httpStatus: debug.httpStatus,
+    status: firstDefined(data?.status, data?.error_response?.status, response.ok ? 'HTTP_OK' : 'HTTP_ERROR'),
+    code: debug.code,
+    msg: debug.msg,
+    subCode: debug.subCode,
+    subMsg: debug.subMsg,
+    errorCode: debug.errorCode,
+    errorMessage: debug.errorMessage,
+    bizSuccess: debug.bizSuccess,
+    itemCount: products.length,
+    responseKeys: debug.responseKeys
+  };
+}
+
+function buildAliExpressProbeError(name, error) {
+  return {
+    name,
+    httpStatus: undefined,
+    status: 'RequestError',
+    code: undefined,
+    msg: undefined,
+    subCode: undefined,
+    subMsg: undefined,
+    errorCode: error.name || 'AliExpressProbeRequestError',
+    errorMessage: error.message || 'AliExpress probe request failed',
+    bizSuccess: false,
+    itemCount: 0,
+    responseKeys: []
+  };
+}
+
+function buildAliExpressProbeCases(baseParams) {
+  return [
+    {
+      name: 'baseline_current',
+      params: { ...baseParams }
+    },
+    {
+      name: 'tracking_default',
+      params: { ...baseParams, tracking_id: 'default' }
+    },
+    {
+      name: 'english_usd',
+      params: {
+        ...baseParams,
+        keywords: 'air purifier',
+        target_language: 'EN',
+        target_currency: 'USD'
+      }
+    },
+    {
+      name: 'no_sort',
+      params: Object.fromEntries(
+        Object.entries(baseParams).filter(([key]) => key !== 'sort')
+      )
+    },
+    {
+      name: 'page_size_5',
+      params: { ...baseParams, page_size: '5' }
+    },
+    {
+      name: 'ship_to_kr',
+      params: { ...baseParams, ship_to_country: 'KR' }
+    },
+    {
+      name: 'platform_all',
+      params: { ...baseParams, platform_product_type: 'ALL' }
+    },
+    {
+      name: 'minimal',
+      params: {
+        app_key: baseParams.app_key,
+        method: baseParams.method,
+        keywords: baseParams.keywords,
+        page_no: baseParams.page_no,
+        page_size: baseParams.page_size,
+        sign_method: baseParams.sign_method,
+        timestamp: baseParams.timestamp,
+        tracking_id: baseParams.tracking_id,
+        v: baseParams.v
+      }
+    },
+    {
+      name: 'no_app_signature',
+      params: Object.fromEntries(
+        Object.entries(baseParams).filter(([key]) => key !== 'app_signature')
+      )
+    },
+    {
+      name: 'blank_app_signature',
+      params: { ...baseParams, app_signature: '' }
+    }
+  ];
+}
+
+async function runAliExpressProbe(baseParams, appSecret) {
+  const results = [];
+
+  for (const probeCase of buildAliExpressProbeCases(baseParams)) {
+    try {
+      const signedParams = signAliExpressParams(probeCase.params, appSecret);
+      const { response, data } = await requestAliExpress(signedParams);
+      results.push(buildAliExpressProbeSummary(probeCase.name, data, signedParams, response));
+    } catch (error) {
+      results.push(buildAliExpressProbeError(probeCase.name, error));
+    }
+  }
+
+  return results;
 }
 
 function buildAliExpressDebug(data, params, response) {
@@ -179,37 +347,25 @@ export default async function handler(req, res) {
     }
 
     // ThisOne 엔진용 알리익스프레스 파라미터 세팅
-    const params = {
-      app_key: APP_KEY,
-      format: 'json',
-      keywords: searchQuery,
-      method: 'aliexpress.affiliate.product.query',
-      page_no: '1',
-      page_size: '20',           // 한 번에 불러올 상품 수
-      sign_method: 'sha256',
-      sort: 'SALE_PRICE_ASC',    // 가격 비교 엔진에 맞춘 최저가 오름차순 정렬
-      target_currency: 'KRW',    // 원화
-      target_language: 'KO',     // 한국어
-      timestamp: getAliTimestamp(),
-      tracking_id: 'thisone',    // 어필리에이트 포털에 등록된 실제 Tracking ID
-      v: '2.0'
-    };
+    const baseParams = buildBaseAliExpressParams(APP_KEY, searchQuery);
+
+    if (req.query?.probe === '1') {
+      const results = await runAliExpressProbe(baseParams, APP_SECRET);
+
+      return res.status(200).json({
+        status: 'ProbeComplete',
+        search_query: searchQuery,
+        results
+      });
+    }
 
     // 서명 생성 및 파라미터 합체
-    params.sign = generateSignature(params, APP_SECRET);
+    const params = signAliExpressParams(baseParams, APP_SECRET);
 
     // 알리익스프레스 데이터 요청 (POST + URLSearchParams 조합으로 한글 인코딩 보호)
-    const response = await fetch('https://api-sg.aliexpress.com/sync', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
-      },
-      body: new URLSearchParams(params).toString()
-    });
-
-    const data = await response.json();
+    const { response, data } = await requestAliExpress(params);
     const debug = buildAliExpressDebug(data, params, response);
-    const products = data?.aliexpress_affiliate_product_query_response?.resp_result?.result?.products || [];
+    const products = getAliExpressProducts(data);
     const hasAliExpressError = !response.ok ||
       data?.error_response ||
       isFalseLike(debug.bizSuccess) ||

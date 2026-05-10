@@ -670,6 +670,26 @@ function isAdInquiry(inq) {
   return /\[?광고\/제휴\]?|광고|제휴/.test(title) || /광고\/제휴 문의/.test(content);
 }
 
+function isInquiryManagerMode() {
+  try {
+    return !!String(sessionStorage.getItem('thisone_inquiry_manager_key') || '').trim();
+  } catch (e) {
+    return false;
+  }
+}
+
+function sortInquiriesForDisplay(inquiries = []) {
+  const list = Array.isArray(inquiries) ? inquiries.slice() : [];
+  if (!isInquiryManagerMode()) return list;
+
+  return list.sort((a, b) => {
+    const aAd = isAdInquiry(a);
+    const bAd = isAdInquiry(b);
+    if (aAd === bAd) return 0;
+    return aAd ? -1 : 1;
+  });
+}
+
 async function fetchInquiries() {
   const list = document.getElementById('inquiryList');
   if (!list) return;
@@ -687,8 +707,11 @@ async function fetchInquiries() {
         return;
       }
 
-      list.innerHTML = result.data.map(inq => `
-        <div class="inquiry-item">
+      const displayInquiries = sortInquiriesForDisplay(result.data);
+      const managerMode = isInquiryManagerMode();
+
+      list.innerHTML = displayInquiries.map(inq => `
+        <div class="inquiry-item ${managerMode && isAdInquiry(inq) ? 'is-ad-inquiry' : ''}">
           <div class="inq-header" onclick="window.toggleInquiry('${inq.id}')">
             <div class="inq-title-group">
               <div class="inq-badge">Q</div>

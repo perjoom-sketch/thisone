@@ -1126,6 +1126,11 @@ body.search-mode .results-view {
   transition: all 0.2s;
 }
 
+.inquiry-item.is-ad-inquiry {
+  border-color: rgba(249, 115, 22, 0.24);
+  background: linear-gradient(180deg, #fffaf5 0%, #ffffff 65%);
+}
+
 .inq-header {
   padding: 16px 20px;
   cursor: pointer;

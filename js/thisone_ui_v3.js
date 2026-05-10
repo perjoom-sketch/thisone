@@ -663,6 +663,13 @@ function openAdInquiryFromBanner(event) {
   else if (contentEl) contentEl.focus();
 }
 
+
+function isAdInquiry(inq) {
+  const title = String(inq?.title || '');
+  const content = String(inq?.content || '');
+  return /\[?광고\/제휴\]?|광고|제휴/.test(title) || /광고\/제휴 문의/.test(content);
+}
+
 async function fetchInquiries() {
   const list = document.getElementById('inquiryList');
   if (!list) return;
@@ -686,7 +693,7 @@ async function fetchInquiries() {
             <div class="inq-title-group">
               <div class="inq-badge">Q</div>
               <div class="inq-info">
-                <div class="inq-title">${esc(inq.title)}</div>
+                <div class="inq-title">${isAdInquiry(inq) ? '<span class="inq-badge-ad">광고/제휴</span>' : ''}${esc(inq.title)}</div>
                 <div class="inq-meta">${esc(inq.author || '익명')} • ${new Date(inq.createdAt).toLocaleDateString()}</div>
               </div>
             </div>

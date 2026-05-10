@@ -33,21 +33,150 @@ function generateSignature(params, secret) {
     .toUpperCase();
 }
 
+
+function firstDefined(...values) {
+  return values.find((value) => value !== undefined && value !== null && value !== '');
+}
+
+function isFalseLike(value) {
+  return value === false || String(value).toLowerCase() === 'false';
+}
+
+function buildAliExpressDebug(data, params, response) {
+  const responseRoot = data && typeof data === 'object' ? data : {};
+  const aliResponse = responseRoot.aliexpress_affiliate_product_query_response || {};
+  const respResult = aliResponse.resp_result || {};
+  const result = respResult.result || {};
+  const errorResponse = responseRoot.error_response || {};
+
+  const debug = {
+    method: params.method,
+    httpStatus: response.status,
+    bizSuccess: firstDefined(
+      responseRoot.bizSuccess,
+      responseRoot.biz_success,
+      aliResponse.bizSuccess,
+      aliResponse.biz_success,
+      respResult.bizSuccess,
+      respResult.biz_success,
+      result.bizSuccess,
+      result.biz_success
+    ),
+    code: firstDefined(
+      responseRoot.code,
+      aliResponse.code,
+      respResult.code,
+      respResult.resp_code,
+      result.code,
+      errorResponse.code
+    ),
+    msg: firstDefined(
+      responseRoot.msg,
+      aliResponse.msg,
+      respResult.msg,
+      respResult.resp_msg,
+      result.msg,
+      errorResponse.msg
+    ),
+    subCode: firstDefined(
+      responseRoot.subCode,
+      responseRoot.sub_code,
+      aliResponse.subCode,
+      aliResponse.sub_code,
+      respResult.subCode,
+      respResult.sub_code,
+      result.subCode,
+      result.sub_code,
+      errorResponse.sub_code,
+      errorResponse.subCode
+    ),
+    subMsg: firstDefined(
+      responseRoot.subMsg,
+      responseRoot.sub_msg,
+      aliResponse.subMsg,
+      aliResponse.sub_msg,
+      respResult.subMsg,
+      respResult.sub_msg,
+      result.subMsg,
+      result.sub_msg,
+      errorResponse.sub_msg,
+      errorResponse.subMsg
+    ),
+    errorCode: firstDefined(
+      responseRoot.errorCode,
+      responseRoot.error_code,
+      aliResponse.errorCode,
+      aliResponse.error_code,
+      respResult.errorCode,
+      respResult.error_code,
+      result.errorCode,
+      result.error_code,
+      errorResponse.code
+    ),
+    errorMessage: firstDefined(
+      responseRoot.errorMessage,
+      responseRoot.error_message,
+      aliResponse.errorMessage,
+      aliResponse.error_message,
+      respResult.errorMessage,
+      respResult.error_message,
+      result.errorMessage,
+      result.error_message,
+      errorResponse.msg
+    ),
+    requestId: firstDefined(
+      responseRoot.requestId,
+      responseRoot.request_id,
+      aliResponse.requestId,
+      aliResponse.request_id,
+      respResult.requestId,
+      respResult.request_id,
+      result.requestId,
+      result.request_id,
+      errorResponse.request_id,
+      errorResponse.requestId
+    ),
+    responseKeys: Object.keys(responseRoot)
+  };
+
+  if (debug.code === 404 || String(debug.code) === '404' || debug.subCode) {
+    debug.possibleReason = 'AliExpress Advanced API 권한, 메서드 권한, 파라미터, 또는 계정 상태 문제일 수 있습니다. App Management의 Active 여부는 서버 코드에서 확정할 수 없습니다.';
+  }
+
+  return debug;
+}
+
+function getAliExpressMessage(debug, fallback) {
+  return firstDefined(
+    debug.subMsg,
+    debug.errorMessage,
+    debug.msg,
+    fallback
+  );
+}
+
 /**
  * 3. 메인 핸들러 (Vercel Serverless Function)
  */
 export default async function handler(req, res) {
+  const searchQuery = req.query?.q || '마우스';
+
   try {
     // 환경변수 공백 제거 및 로드
     const APP_KEY = (process.env.ALIEXPRESS_APP_KEY || '').trim();
     const APP_SECRET = (process.env.ALIEXPRESS_APP_SECRET || '').trim();
 
     if (!APP_KEY || !APP_SECRET) {
-      return res.status(500).json({ error: '서버 환경 변수(API Key/Secret) 누락' });
+      return res.status(200).json({
+        status: 'AliExpressError',
+        message: '서버 환경 변수(API Key/Secret) 누락',
+        search_query: searchQuery,
+        debug: {
+          method: 'aliexpress.affiliate.product.query',
+          errorCode: 'MissingAliExpressConfig'
+        }
+      });
     }
-
-    // 클라이언트 검색어 추출 (기본값: 마우스)
-    const searchQuery = req.query.q || '마우스';
 
     // ThisOne 엔진용 알리익스프레스 파라미터 세팅
     const params = {
@@ -79,38 +208,44 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
+    const debug = buildAliExpressDebug(data, params, response);
+    const products = data?.aliexpress_affiliate_product_query_response?.resp_result?.result?.products || [];
+    const hasAliExpressError = !response.ok ||
+      data?.error_response ||
+      isFalseLike(debug.bizSuccess) ||
+      (debug.code !== undefined && debug.code !== 0 && debug.code !== '0' && products.length === 0);
     
     // ----------------------------------------------------------------
-    // 응답 상태 분류 (Pending 권한 처리 포함)
+    // 응답 상태 분류 (AliExpress 실패도 전체 검색 흐름을 중단시키지 않도록 200으로 반환)
     // ----------------------------------------------------------------
-    
-    // 1. 권한 미승인 (현재 겪고 있는 404 에러를 우아하게 예외 처리)
-    if (data.aliexpress_affiliate_product_query_response?.resp_result?.resp_code === 404) {
-      return res.status(202).json({ 
-        status: 'Pending',
-        message: 'Advanced API 권한 심사가 진행 중입니다. 알리 측 승인을 기다려주세요.',
-        search_query: searchQuery
+    if (hasAliExpressError) {
+      return res.status(200).json({
+        status: 'AliExpressError',
+        message: getAliExpressMessage(debug, 'AliExpress API returned bizSuccess=false'),
+        search_query: searchQuery,
+        debug
       });
     }
 
-    // 2. 기타 서명 오류나 시스템 오류
-    if (data.error_response) {
-      return res.status(400).json({ 
-        status: 'Error',
-        message: '알리익스프레스 API 호출 실패',
-        detail: data.error_response 
-      });
-    }
-
-    // 3. 권한 승인 완료 후 데이터 정상 수신
     return res.status(200).json({
       status: 'Success',
       message: '상품 데이터를 성공적으로 불러왔습니다.',
-      items: data.aliexpress_affiliate_product_query_response?.resp_result?.result?.products || []
+      search_query: searchQuery,
+      items: products,
+      debug
     });
 
   } catch (error) {
     console.error('ThisOne API Handler Error:', error);
-    return res.status(500).json({ error: '서버 내부 오류', detail: error.message });
+    return res.status(200).json({
+      status: 'AliExpressError',
+      message: error.message || 'AliExpress API request failed',
+      search_query: searchQuery,
+      debug: {
+        method: 'aliexpress.affiliate.product.query',
+        errorName: error.name,
+        errorMessage: error.message
+      }
+    });
   }
 }

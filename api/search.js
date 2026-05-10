@@ -52,7 +52,7 @@ function buildExpertSettingsHashSource(query, { start, display, sort }){
   };
 }
 function buildSearchCacheKey(normalizedQuery, settingsHashSource){
-  return `search:v2:${encodeURIComponent(normalizedQuery)}:${sha1Short(stableStringify(settingsHashSource))}`;
+  return `search:v3:${encodeURIComponent(normalizedQuery)}:${sha1Short(stableStringify(settingsHashSource))}`;
 }
 async function readSearchCache(key){
   if (!kv || !key) return null;
@@ -224,6 +224,9 @@ function buildCachedDebugInfo(cachedResponse){
 function isRentalLikeItem(item){
   const text = `${item?.name || ''} ${item?.store || ''} ${item?.priceText || ''} ${item?.delivery || ''}`;
   return /렌탈|대여|구독|약정|약정\s*\d+\s*년|월납|월\s*납입|의무사용|의무\s*\d+|방문관리|직접관리|자가관리|방문주기\s*\d*|코디관리|관리형|월\s*[0-9,]+\s*원|\d+\s*개월/i.test(text);
+}
+function hasExplicitRecurringIntent(query){
+  return /렌탈|구독|대여|임대|정기\s*(?:배송|구독)|월납|월\s*(?:납부|이용료)|약정|의무\s*사용|의무구독|계약\s*기간/i.test(String(query || ''));
 }
 function isRentalCapableQuery(query){
   const q = String(query || '').toLowerCase();
@@ -399,8 +402,9 @@ function appendUniqueItems(baseItems, extraItems){
   return merged;
 }
 async function enrichRentalCapableItems(query, items, settings){
-  if (settings?.excludeRental) return { items, addedCount: 0, query: null };
-  if (!isRentalCapableQuery(query)) return { items, addedCount: 0, query: null };
+  if (settings?.excludeRental) return { items, addedCount: 0, query: null, skippedReason: 'excludeRental' };
+  if (!settings?.explicitRecurringIntent) return { items, addedCount: 0, query: null, skippedReason: 'missing_explicit_recurring_intent' };
+  if (!isRentalCapableQuery(query)) return { items, addedCount: 0, query: null, skippedReason: 'not_rental_capable_query' };
 
   const existingRentalCount = (items || []).filter(isRentalLikeItem).length;
   if (existingRentalCount >= 3) {
@@ -424,7 +428,7 @@ async function enrichRentalCapableItems(query, items, settings){
   }
 }
 function restoreRentalItemsIfAllowed(filteredItems, sourceItems, settings){
-  if (settings?.excludeRental) return filteredItems;
+  if (settings?.excludeRental || !settings?.explicitRecurringIntent) return filteredItems;
   const base = Array.isArray(filteredItems) ? filteredItems : [];
   const source = Array.isArray(sourceItems) ? sourceItems : [];
   const existingIds = new Set(base.map(item => String(item?.id || '')));
@@ -440,9 +444,10 @@ function applySearchSettings(items, query) {
   const freeShipping = isTrue(query.freeShipping);
   const minPrice = parsePositiveNumber(query.minPrice);
   const maxPrice = parsePositiveNumber(query.maxPrice);
+  const explicitRecurringIntent = hasExplicitRecurringIntent(query.q || query.query);
 
   const filtersActive = excludeRental || excludeUsed || excludeOverseas || excludeAgent || freeShipping || minPrice > 0 || maxPrice > 0;
-  if (!filtersActive) return { items, rejected: [], settings: { excludeRental, excludeUsed, excludeOverseas, excludeAgent, freeShipping, minPrice, maxPrice } };
+  if (!filtersActive) return { items, rejected: [], settings: { excludeRental, excludeUsed, excludeOverseas, excludeAgent, freeShipping, minPrice, maxPrice, explicitRecurringIntent } };
 
   const rejected = [];
   const filtered = items.filter(item => {
@@ -478,7 +483,7 @@ function applySearchSettings(items, query) {
   return {
     items: filtered,
     rejected,
-    settings: { excludeRental, excludeUsed, excludeOverseas, excludeAgent, freeShipping, minPrice, maxPrice }
+    settings: { excludeRental, excludeUsed, excludeOverseas, excludeAgent, freeShipping, minPrice, maxPrice, explicitRecurringIntent }
   };
 }
 
@@ -639,6 +644,9 @@ module.exports._private = {
   buildSearchCacheKey,
   fetchNaverShopItems,
   fetchNaverShopItemsExactFirst,
+  hasExplicitRecurringIntent,
+  enrichRentalCapableItems,
+  restoreRentalItemsIfAllowed,
   improveQuery,
   mapNaverItems,
   normalizeSearchCacheQuery,

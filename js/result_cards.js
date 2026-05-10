@@ -275,11 +275,139 @@ function getBadgeClass(text) {
 
 
 
+  function getRecurringContractTitle(card) {
+    return compactText([
+      card?.name,
+      card?.title,
+      card?.productName,
+      card?.price,
+      card?.priceText
+    ].filter(Boolean).join(' '));
+  }
+
+  function normalizeContractLabel(label) {
+    const text = compactText(label).replace(/\s+/g, '');
+    const labels = {
+      '의무사용': '의무사용',
+      '의무구독': '의무구독',
+      '최소이용': '최소이용',
+      '대여기간': '대여기간',
+      '임대기간': '임대기간',
+      '계약기간': '계약기간',
+      '약정': '약정',
+      '의무': '의무사용'
+    };
+    return labels[text] || '';
+  }
+
+  function monthsFromYears(years) {
+    const value = Number(years || 0);
+    return Number.isFinite(value) && value > 0 ? value * 12 : 0;
+  }
+
+  function extractContractLabel(text) {
+    const monthPatterns = [
+      /(의무\s*사용|의무구독|최소\s*이용|대여\s*기간|임대\s*기간|계약\s*기간|약정)\s*(\d{1,3})\s*개월/i,
+      /(\d{1,3})\s*개월\s*(의무\s*사용|의무|약정|의무구독|최소\s*이용|대여\s*기간|임대\s*기간|계약\s*기간)/i
+    ];
+
+    for (const pattern of monthPatterns) {
+      const match = text.match(pattern);
+      if (!match) continue;
+      const label = normalizeContractLabel(Number(match[1]) ? match[2] : match[1]);
+      const months = Number(Number(match[1]) ? match[1] : match[2]);
+      if (label && Number.isFinite(months) && months > 0) {
+        return { contractMonths: months, contractLabel: `${label} ${months}개월` };
+      }
+    }
+
+    const yearPatterns = [
+      /(의무\s*사용|약정|의무구독|최소\s*이용|대여\s*기간|임대\s*기간|계약\s*기간)\s*(\d{1,2})\s*년/i,
+      /(\d{1,2})\s*년\s*(의무\s*사용|의무|약정|의무구독|최소\s*이용|대여\s*기간|임대\s*기간|계약\s*기간)/i
+    ];
+
+    for (const pattern of yearPatterns) {
+      const match = text.match(pattern);
+      if (!match) continue;
+      const label = normalizeContractLabel(Number(match[1]) ? match[2] : match[1]);
+      const months = monthsFromYears(Number(match[1]) ? match[1] : match[2]);
+      if (label && months > 0) {
+        return { contractMonths: months, contractLabel: `${label} ${months}개월` };
+      }
+    }
+
+    return { contractMonths: 0, contractLabel: '' };
+  }
+
+  function extractRecurringContractMeta(title) {
+    const text = compactText(title);
+    const meta = {
+      contractType: '',
+      contractMonths: 0,
+      contractLabel: '',
+      managementType: '',
+      visitCycleMonths: 0,
+      deliveryCycleMonths: 0
+    };
+    if (!text) return meta;
+
+    if (/정기\s*배송/i.test(text)) meta.contractType = '정기배송';
+    else if (/정기\s*구독|구독/i.test(text)) meta.contractType = '구독';
+    else if (/대여/i.test(text)) meta.contractType = '대여';
+    else if (/임대/i.test(text)) meta.contractType = '임대';
+    else if (/렌탈|월납|월\s*납부|월\s*이용료/i.test(text)) meta.contractType = '렌탈';
+
+    const contract = extractContractLabel(text);
+    meta.contractMonths = contract.contractMonths;
+    meta.contractLabel = contract.contractLabel;
+
+    if (/자가\s*관리/i.test(text)) meta.managementType = '자가관리';
+    else if (/셀프\s*관리/i.test(text)) meta.managementType = '셀프관리';
+    else if (/방문\s*관리(?:형)?/i.test(text)) meta.managementType = '방문관리';
+    else if (/(?:^|[^가-힣])관리형(?:\s*렌탈)?(?:$|[^가-힣])/i.test(text)) meta.managementType = '관리형';
+
+    const visitMatch = text.match(/방문\s*주기\s*(\d{1,2})\s*개월/i)
+      || text.match(/(\d{1,2})\s*개월\s*마다\s*방문/i)
+      || text.match(/(\d{1,2})\s*개월\s*방문/i)
+      || text.match(/방문\s*(\d{1,2})\s*개월/i);
+    if (visitMatch) meta.visitCycleMonths = Number(visitMatch[1]) || 0;
+
+    const deliveryMatch = text.match(/배송\s*주기\s*(\d{1,2})\s*개월/i)
+      || text.match(/(\d{1,2})\s*개월\s*마다\s*배송/i);
+    if (deliveryMatch) meta.deliveryCycleMonths = Number(deliveryMatch[1]) || 0;
+    else if (/매월\s*배송/i.test(text)) meta.deliveryCycleMonths = 1;
+
+    if (!meta.contractType && (meta.contractLabel || meta.managementType || meta.visitCycleMonths)) {
+      meta.contractType = '렌탈';
+    }
+
+    return meta;
+  }
+
+  function formatRecurringContractMeta(meta) {
+    if (!meta || typeof meta !== 'object') return '';
+    const parts = [];
+    if (meta.contractType) parts.push(meta.contractType);
+    if (meta.contractLabel) parts.push(meta.contractLabel);
+    if (meta.managementType) parts.push(meta.managementType);
+    if (meta.visitCycleMonths > 0) parts.push(`방문주기 ${meta.visitCycleMonths}개월`);
+    if (meta.deliveryCycleMonths > 0) parts.push(`배송주기 ${meta.deliveryCycleMonths}개월`);
+
+    const seen = new Set();
+    return parts.filter((part) => {
+      const key = String(part || '').replace(/\s+/g, '');
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).join(' · ');
+  }
+
   function formatPriceHtml(card) {
     if (card?.isRental && card.rentalMonthlyFee > 0) {
       const fmt = (v) => Number(v || 0).toLocaleString('ko-KR');
       const monthly = `월 ${fmt(card.rentalMonthlyFee)}원`;
-      return `<span class="row-price-main">${esc(monthly)}</span><span class="row-price-sub">의무기간 상세페이지 확인</span>`;
+      const metaText = formatRecurringContractMeta(extractRecurringContractMeta(getRecurringContractTitle(card))) || '의무기간 상세페이지 확인';
+      return `<span class="row-price-main">${esc(monthly)}</span><span class="row-price-sub">${esc(metaText)}</span>`;
     }
     return esc(card.price || '가격 정보 없음');
   }
@@ -358,7 +486,9 @@ function getBadgeClass(text) {
 
   global.ThisOneResultCards = {
     renderPickCard,
-    renderAiComment
+    renderAiComment,
+    extractRecurringContractMeta,
+    formatRecurringContractMeta
   };
 })(window);
 
@@ -368,7 +498,7 @@ function getBadgeClass(text) {
     return Number(String(text || '').replace(/[^\d]/g, '')) || 0;
   }
 
-  const rentalSignalPattern = /렌탈|대여|구독|약정|월납|의무사용|방문관리|코디관리|관리형|월\s*[0-9,]+\s*원|\d+\s*개월/i;
+  const rentalSignalPattern = /렌탈|대여|임대|구독|정기\s*구독|정기\s*배송|약정|월납|월\s*납부|월\s*이용료|의무\s*사용|의무구독|최소\s*이용|대여\s*기간|임대\s*기간|계약\s*기간|방문관리|자가관리|셀프관리|코디관리|관리형|방문\s*주기|배송\s*주기|매월\s*배송|월\s*[0-9,]+\s*원/i;
 
   function rentalText(item) {
     return `${item?.name || ''} ${item?.store || ''} ${item?.price || ''}`;

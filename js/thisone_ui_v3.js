@@ -497,6 +497,31 @@ function esc(s) {
     .replace(/>/g, '&gt;');
 }
 
+
+function formatInquiryContent(content) {
+  const raw = String(content || '').replace(/\r\n/g, '\n').trim();
+  if (!raw) return '';
+
+  const hasLineBreak = /\n/.test(raw);
+  const blocks = hasLineBreak
+    ? raw.split(/\n{2,}/)
+    : raw.split(/(?<=[.!?。！？])\s+/);
+
+  return blocks
+    .map((block) => {
+      const lines = String(block || '')
+        .split(/\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      if (!lines.length) return '';
+
+      return `<p class="inq-body-paragraph">${lines.map((line) => esc(line)).join('<br>')}</p>`;
+    })
+    .filter(Boolean)
+    .join('');
+}
+
 function escAttr(s) {
   return String(s || '')
     .replace(/&/g, '&amp;')
@@ -723,7 +748,7 @@ async function fetchInquiries() {
             <div class="inq-arrow">▼</div>
           </div>
           <div class="inq-content-area" id="inqContent_${inq.id}">
-            <div class="inq-body">${esc(inq.content)}</div>
+            <div class="inq-body">${formatInquiryContent(inq.content)}</div>
             <div class="action-row right">
               <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px;" onclick="event.stopPropagation(); window.ThisOneUI.prepareEdit('${inq.id}')">수정하기</button>
             </div>

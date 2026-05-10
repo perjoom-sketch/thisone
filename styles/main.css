@@ -1353,22 +1353,23 @@ body.search-mode .results-view {
   line-height: 1.35;
 }
 
-.row-review-signal-badge {
+.row-review-signal-badge,
+.badge-review-signal {
   display: inline-flex;
   align-items: center;
   gap: clamp(2px, 0.5vw, 4px);
   padding: clamp(2px, 0.5vw, 3px) clamp(6px, 1vw, 8px);
-  border: 1px solid #bfdbfe;
+  border: 1px solid #bbf7d0;
   border-radius: 999px;
-  background: #eff6ff;
-  color: #2563eb;
+  background: #ecfdf5;
+  color: #047857;
+  white-space: nowrap;
+  line-height: 1.35;
 }
 
 .row-label-badge { background: #eff6ff; color: #2563eb; }
 .badge-value { background: #f0fdf4; color: #16a34a; border: 1px solid #dcfce7; }
 .badge-trust { background: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; }
-.row-review-signal-badge,
-.badge-review-signal { background: #ecfdf5; color: #047857; border: 1px solid #bbf7d0; }
 .badge-thisone { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; }
 .badge-default { background: #f1f5f9; color: #64748b; }
 
@@ -1916,7 +1917,8 @@ body.search-mode .results-view {
     color: #99f6e4;
   }
 
-  .row-review-signal-badge {
+  .row-review-signal-badge,
+  .badge-review-signal {
     border-color: rgba(96, 165, 250, 0.42);
     background: rgba(37, 99, 235, 0.16);
     color: #bfdbfe;

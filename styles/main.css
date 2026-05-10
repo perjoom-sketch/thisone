@@ -1705,8 +1705,8 @@ body.search-mode .results-view {
 
 .analysis-ad-slot {
   position: relative;
-  width: min(100%, 728px);
-  height: 90px;
+  width: min(100%, clamp(20rem, 56.875vw, 45.5rem));
+  aspect-ratio: 728 / 90;
   align-self: center;
   overflow: hidden;
   border: 0;
@@ -1727,6 +1727,8 @@ body.search-mode .results-view {
   width: 100%;
   height: 100%;
   opacity: 0;
+  font-size: 0;
+  color: transparent;
 }
 
 .thisone-ad-frame img {
@@ -1789,9 +1791,9 @@ body.search-mode .results-view {
   font-weight: 700;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .analysis-ad-slot {
-    width: min(100%, 320px);
-    height: 100px;
+    width: min(100%, clamp(18rem, 82.051vw, 20rem));
+    aspect-ratio: 320 / 100;
   }
 }

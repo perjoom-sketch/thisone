@@ -72,23 +72,31 @@ function extractModelName(name) {
       .filter(Boolean);
   }
 
-  function getYoutubeVideoCount(card) {
-    const rep = card?.youtubeReputation || {};
-    return numberOrZero(
-      rep.matchedVideoCount ||
-      rep.analyzedVideoCount ||
-      rep.analyzedCount ||
-      rep.videoCount ||
+  function isYoutubeDisplayText(text) {
+    return /youtube|유튜브/i.test(String(text || ''));
+  }
+
+  function hasYoutubeSignal(card) {
+    const youtubeTextSources = [
+      card?.label,
+      ...(Array.isArray(card?.badges) ? card.badges : []),
+      ...(Array.isArray(card?.positiveSignals) ? card.positiveSignals : []),
+      ...splitReasonList(card?.bonusReasons),
+      ...splitReasonList(card?.youtubeReasons)
+    ];
+
+    return !!(
+      card?.youtubeReputation ||
+      card?.youtubeReasons ||
       card?.youtubeVideoCount ||
-      card?.youtubeAnalyzedVideoCount
+      card?.youtubeAnalyzedVideoCount ||
+      youtubeTextSources.some(isYoutubeDisplayText)
     );
   }
 
   function renderYoutubeReputationBadge(card) {
-    if (!card?.youtubeReputation) return '';
-    const count = getYoutubeVideoCount(card);
-    const label = count > 0 ? `▶ YouTube ${count}개 분석` : '▶ YouTube 분석됨';
-    return `<span class="row-badge-item badge-trust row-youtube-badge" title="YouTube 평판 데이터 반영">${esc(label)}</span>`;
+    if (!hasYoutubeSignal(card)) return '';
+    return '<span class="row-badge-item badge-trust row-youtube-badge" title="YouTube 평판 데이터 반영">YouTube 평판</span>';
   }
 
   function renderReviewSignalBadge(card) {
@@ -147,39 +155,10 @@ function extractModelName(name) {
     return signals
       .map(compactText)
       .filter(Boolean)
+      .filter((signal) => !isYoutubeDisplayText(signal))
       .slice(0, 2)
       .map((signal) => `<span class="row-positive-signal-badge">✓ ${esc(signal)}</span>`)
       .join('');
-  }
-
-  function getYoutubeDetailReasons(card) {
-    const reasons = [];
-    const add = (items, youtubeOnly) => {
-      items.forEach((reason) => {
-        const text = compactText(reason);
-        if (!text) return;
-        if (youtubeOnly && !/youtube|유튜브|영상|리뷰|후기|언급|평판|반응|조회/i.test(text)) return;
-        if (!reasons.includes(text)) reasons.push(text);
-      });
-    };
-
-    add(splitReasonList(card?.bonusReasons), true);
-    add(splitReasonList(card?.youtubeReasons), false);
-    add(splitReasonList(card?.youtubeReputation?.reasons), false);
-    return reasons.slice(0, 3);
-  }
-
-  function renderYoutubeDetails(card) {
-    if (!card?.youtubeReputation) return '';
-    const reasons = getYoutubeDetailReasons(card);
-    if (!reasons.length) return '';
-
-    return `
-      <div class="row-product-facts row-youtube-details">
-        <span class="row-product-facts-label">YouTube</span>
-        <span>${esc(reasons.join(' · '))}</span>
-      </div>
-    `;
   }
 
 function renderProductFacts(card) {
@@ -513,12 +492,12 @@ function getBadgeClass(text) {
     const badgesHtml = !hideRecommendationUi && Array.isArray(card.badges) && card.badges.length
       ? card.badges
           .map((badge) => normalizeBadgeText(badge))
-          .filter((badge) => badge && !shouldHideBadge(badge))
+          .filter((badge) => badge && !shouldHideBadge(badge) && !isYoutubeDisplayText(badge))
           .map((b) => `<span class="row-badge-item ${getBadgeClass(b)}">${esc(b)}</span>`)
           .join('')
       : '';
 
-    const labelBadge = !hideRecommendationUi && card.label && !shouldHideBadge(card.label)
+    const labelBadge = !hideRecommendationUi && card.label && !shouldHideBadge(card.label) && !isYoutubeDisplayText(card.label)
       ? `<span class="row-badge-item row-label-badge">${esc(normalizeBadgeText(card.label))}</span>`
       : '';
 
@@ -550,7 +529,6 @@ function getBadgeClass(text) {
           </div>
 
           ${renderProductFacts(card)}
-          ${renderYoutubeDetails(card)}
         </div>
 
         <div class="row-price-area">

@@ -568,6 +568,12 @@ function prepareSendContext(forceMode) {
   // if (window.ThisOneUI?.renderHistoryBar) window.ThisOneUI.renderHistoryBar();
 
   const queryText = currentQuery || '이미지 기반 상품 검색';
+  const searchStartedAt = Date.now();
+  window.ThisOneAPI?.trackSearchEvent?.({
+    type: 'search_start',
+    q: queryText,
+    mode: 'normal'
+  });
   const queryImage = pendingImg;
   removeImg();
 
@@ -589,6 +595,7 @@ function prepareSendContext(forceMode) {
     expertSettings: createExpertSettings(),
     trajectory: window.ThisOneTrajectory?.getSession() || {},
     typingEl,
+    searchStartedAt,
     intentProfile: null,
     searchData: null,
     items: [],
@@ -618,9 +625,11 @@ async function sendMsg(forceMode) {
 
       await handleAIAnalysis(context);
     } catch (err) {
+      trackSearchError(context, err);
       await handleFallback(context, err);
     }
   } catch (globalErr) {
+    trackSearchError(context, globalErr);
     console.warn("[ThisOne] Global sendMsg Error:", globalErr);
     window.ThisOneUI?.addErrorState?.('apiFail');
     loading = false;
@@ -703,6 +712,14 @@ async function handleNormalSearch(context) {
   context.rawSearchData = searchData;
   context.searchData = searchData;
   context.items = searchData?.items || [];
+  window.ThisOneAPI?.trackSearchEvent?.({
+    type: 'search_raw_done',
+    q: context.queryText,
+    mode: 'normal',
+    rawCount: context.items.length,
+    resultCount: context.items.length,
+    elapsedMs: Date.now() - (context.searchStartedAt || Date.now())
+  });
   window.ThisOneUI?.updateAnalysisProgress?.('collect', 'done');
   window.ThisOneUI?.updateAnalysisProgress?.('ai', 'active');
   window.ThisOneUI?.updateAnalysisProgress?.('reputation', 'active');
@@ -752,8 +769,17 @@ async function handleAIAnalysis(context) {
       context.fullSearchData = fullSearchData;
       context.searchData = fullSearchData;
       context.items = fullSearchData?.items || [];
+      window.ThisOneAPI?.trackSearchEvent?.({
+        type: 'search_full_done',
+        q: context.queryText,
+        mode: 'normal',
+        fullCount: context.items.length,
+        resultCount: context.items.length,
+        elapsedMs: Date.now() - (context.searchStartedAt || Date.now())
+      });
       window.ThisOneUI?.updateAnalysisProgress?.('reputation', 'done');
     } catch (fullErr) {
+      trackSearchError(context, fullErr);
       console.warn('[ThisOne] full search failed; raw results remain visible:', fullErr);
       typingEl?.remove();
       window.ThisOneUI?.showAnalysisFailure?.('AI 분석에 실패했습니다. 일반 검색 결과는 그대로 확인할 수 있습니다.');
@@ -1039,11 +1065,26 @@ async function handleAIAnalysis(context) {
       window.scrollTo(0, 0);
     }, 10);
   } catch (e) {
+    trackSearchError(context, e);
     if (delayTimer) clearTimeout(delayTimer);
     if (autoFallbackTimer) clearTimeout(autoFallbackTimer);
     console.warn("AI Analysis Failed/Interrupted", e);
     triggerFallback('error');
   }
+}
+
+
+function trackSearchError(context, error) {
+  if (!context || context.__searchErrorTracked) return;
+  context.__searchErrorTracked = true;
+  window.ThisOneAPI?.trackSearchEvent?.({
+    type: 'search_error',
+    q: context.queryText || context.searchQuery || '',
+    mode: 'normal',
+    hasError: true,
+    errorMessage: String(error?.message || error || '').slice(0, 160),
+    elapsedMs: Date.now() - (context.searchStartedAt || Date.now())
+  });
 }
 
 async function handleFallback(context, err, options = {}) {

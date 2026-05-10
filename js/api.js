@@ -21,9 +21,27 @@ async function safeFetchJson(url, options = {}, timeoutMs = 10000) {
   }
 }
 
+function buildSearchParams(query, settings = {}, start = 1, display = 30, sort = 'sim') {
+  return new URLSearchParams({ q: query, ...settings, start, display, sort });
+}
+
 async function requestSearch(query, settings = {}, start = 1, display = 30, sort = 'sim') {
-  const params = new URLSearchParams({ q: query, ...settings, start, display, sort });
+  const params = buildSearchParams(query, settings, start, display, sort);
   return await safeFetchJson(`/api/search?${params.toString()}`, {
+    method: 'GET'
+  }, 55000);
+}
+
+async function requestSearchRaw(query, settings = {}, start = 1, display = 30, sort = 'sim') {
+  const params = buildSearchParams(query, settings, start, display, sort);
+  return await safeFetchJson(`/api/search/raw?${params.toString()}`, {
+    method: 'GET'
+  }, 20000);
+}
+
+async function requestSearchFull(query, settings = {}, start = 1, display = 30, sort = 'sim') {
+  const params = buildSearchParams(query, settings, start, display, sort);
+  return await safeFetchJson(`/api/search/full?${params.toString()}`, {
     method: 'GET'
   }, 55000);
 }
@@ -181,6 +199,8 @@ window.addEventListener('load', () => {
 window.ThisOneAPI = {
   safeFetchJson,
   requestSearch,
+  requestSearchRaw,
+  requestSearchFull,
   requestChat,
   requestIntentInfer,
 };

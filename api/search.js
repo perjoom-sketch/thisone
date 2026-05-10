@@ -514,3 +514,15 @@ async function handler(req,res){
 
 module.exports=handler;
 module.exports.config={maxDuration:60};
+module.exports._private = {
+  applySearchSettings,
+  buildExpertSettingsHashSource,
+  buildSearchCacheKey,
+  fetchNaverShopItems,
+  fetchNaverShopItemsExactFirst,
+  improveQuery,
+  mapNaverItems,
+  normalizeSearchCacheQuery,
+  sha1Short,
+  stableStringify
+};

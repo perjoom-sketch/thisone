@@ -1,0 +1,35 @@
+{
+  "마스크": {
+    "main":      [{ "category3": "먼지차단마스크", "productType": "1" }],
+    "accessory": [{ "category3": "먼지차단마스크", "productType": "2" }]
+  },
+  "정수기": {
+    "main":      [{ "category3": "정수기", "category4": "냉온정수기" }],
+    "accessory": [{ "category3": "정수기", "category4": "정수기필터" }]
+  },
+  "로봇청소기": {
+    "main":      [{ "category3": "로봇청소기" }],
+    "accessory": [{ "category3": "청소기액세서리" }]
+  },
+  "비데": {
+    "main":      [{ "category3": "비데/비데용품", "category4": "전자식비데" }],
+    "accessory": [{ "category3": "비데/비데용품", "category4": "비데필터" }]
+  },
+  "음식물처리기": {
+    "main":      [{ "category3": "음식물처리기" }],
+    "accessory": [{ "category3": "기타주방가전부속품" }]
+  },
+  "안마의자": {
+    "main":      [{ "category3": "안마의자" }],
+    "accessory": [{ "category3": "기타안마용품" }]
+  },
+  "공기청정기": {
+    "main":      [{ "category3": "공기정화기", "category4": "공기청정기" }],
+    "accessory": [{ "category3": "공기정화기", "category4": "공기정화기필터" }]
+  },
+  "에어컨_가정용": {
+    "main":       [{ "category3": "에어컨" }],
+    "accessory":  [{ "category3": "에어컨주변기기" }],
+    "irrelevant": [{ "category3": "오일/소모품", "category4": "에어컨필터" }]
+  }
+}

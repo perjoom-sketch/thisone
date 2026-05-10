@@ -123,7 +123,13 @@ function buildBaseAliExpressParams(appKey, searchQuery) {
   };
 }
 
-function signAliExpressParams(params, appSecret, signatureVariant = 'current') {
+function signAliExpressParams(params, appSecret) {
+  const signedParams = { ...params };
+  signedParams.sign = generateSignature(signedParams, appSecret);
+  return signedParams;
+}
+
+function signAliExpressParamsForProbe(params, appSecret, signatureVariant) {
   const signedParams = { ...params };
   signedParams.sign = generateAliExpressSignature(signedParams, appSecret, signatureVariant);
   return signedParams;
@@ -423,7 +429,7 @@ async function runAliExpressSignatureProbe(baseParams, appSecret) {
 
   for (const probeCase of buildAliExpressSignatureProbeCases(baseParams)) {
     try {
-      const signedParams = signAliExpressParams(probeCase.params, appSecret, probeCase.signatureVariant);
+      const signedParams = signAliExpressParamsForProbe(probeCase.params, appSecret, probeCase.signatureVariant);
       const { response, data } = await requestAliExpressWithTransport(signedParams, probeCase.transport);
       results.push(buildAliExpressSignatureProbeSummary(probeCase, data, signedParams, response));
     } catch (error) {

@@ -421,7 +421,40 @@ function renderAnalysisProgress() {
           <span class="analysis-step-text">평판 확인</span>
         </li>
       </ol>
-      <div class="analysis-ad-slot" aria-label="광고 슬롯" data-ad-slot="analysis" data-ad-size="leaderboard"></div>
+      <div class="analysis-ad-slot" aria-label="ThisOne 자체 광고" data-ad-slot="analysis" data-ad-size="leaderboard">
+        <div class="thisone-ad-crossfade" aria-hidden="false">
+          <picture class="thisone-ad-frame thisone-ad-frame-a">
+            <source
+              media="(max-width: 768px)"
+              srcset="/ads/thisone_banner_A_mobile_320x100.png 1x, /ads/thisone_banner_A_mobile_320x100@2x.png 2x"
+            >
+            <img
+              src="/ads/thisone_banner_A_pc_728x90.png"
+              srcset="/ads/thisone_banner_A_pc_728x90.png 1x, /ads/thisone_banner_A_pc_728x90@2x.png 2x"
+              width="728"
+              height="90"
+              alt="광고가 아닌 추천을 찾으셨군요"
+              loading="eager"
+              decoding="async"
+            >
+          </picture>
+          <picture class="thisone-ad-frame thisone-ad-frame-b">
+            <source
+              media="(max-width: 768px)"
+              srcset="/ads/thisone_banner_B_mobile_320x100.png 1x, /ads/thisone_banner_B_mobile_320x100@2x.png 2x"
+            >
+            <img
+              src="/ads/thisone_banner_B_pc_728x90.png"
+              srcset="/ads/thisone_banner_B_pc_728x90.png 1x, /ads/thisone_banner_B_pc_728x90@2x.png 2x"
+              width="728"
+              height="90"
+              alt="이 자리에 정직하게 노출되세요"
+              loading="eager"
+              decoding="async"
+            >
+          </picture>
+        </div>
+      </div>
     </div>
   `;
   const generalWrap = content.querySelector('.general-results-wrap');

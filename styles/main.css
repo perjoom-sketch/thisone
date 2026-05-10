@@ -1704,12 +1704,80 @@ body.search-mode .results-view {
 }
 
 .analysis-ad-slot {
+  position: relative;
   width: min(100%, 728px);
   height: 90px;
   align-self: center;
-  border: 1px dashed rgba(148, 163, 184, 0.7);
+  overflow: hidden;
+  border: 0;
   border-radius: clamp(10px, 2vw, 14px);
-  background: rgba(255, 255, 255, 0.62);
+  background: transparent;
+}
+
+.thisone-ad-crossfade {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.thisone-ad-frame {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+
+.thisone-ad-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: clamp(10px, 2vw, 14px);
+}
+
+.thisone-ad-frame-a {
+  opacity: 1;
+  animation: thisoneAdFadeA 5s ease-in-out forwards;
+}
+
+.thisone-ad-frame-b {
+  opacity: 0;
+  animation: thisoneAdFadeB 5s ease-in-out forwards;
+}
+
+@keyframes thisoneAdFadeA {
+  0%, 42% {
+    opacity: 1;
+  }
+  70%, 100% {
+    opacity: 0;
+  }
+}
+
+@keyframes thisoneAdFadeB {
+  0%, 42% {
+    opacity: 0;
+  }
+  70%, 100% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thisone-ad-frame-a,
+  .thisone-ad-frame-b {
+    animation: none !important;
+  }
+
+  .thisone-ad-frame-a {
+    opacity: 1;
+  }
+
+  .thisone-ad-frame-b {
+    opacity: 0;
+  }
 }
 
 .analysis-failure-message {

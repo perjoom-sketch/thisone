@@ -669,8 +669,20 @@ async function handleImageSearch(context) {
 async function handleNormalSearch(context) {
   const { expertSettings, queryImage, searchQuery, typingEl } = context;
 
-  console.log(`[Search] 쿼리 실행: ${context.finalSearchQuery}`);
-  let searchData = await window.ThisOneAPI.requestSearch(context.finalSearchQuery, expertSettings);
+  console.log(`[Search] 병렬 트랙 실행: ${context.finalSearchQuery}`);
+  window.ThisOneUI?.renderAnalysisProgress?.();
+  typingEl?.updateThought?.('일반 검색과 디스원 분석을 동시에 시작했습니다...');
+
+  const rawSearchPromise = window.ThisOneAPI.requestSearchRaw(context.finalSearchQuery, expertSettings);
+  context.fullSearchPromise = window.ThisOneAPI.requestSearchFull(context.finalSearchQuery, expertSettings);
+
+  let searchData;
+  try {
+    searchData = await rawSearchPromise;
+  } catch (rawErr) {
+    console.warn('[ThisOne] raw search failed, falling back to legacy search endpoint:', rawErr);
+    searchData = await window.ThisOneAPI.requestSearch(context.finalSearchQuery, expertSettings);
+  }
 
   // [신규] 결과가 0건일 경우 재시도 로직 (다단계 검색)
   if ((!searchData?.items || searchData.items.length === 0) && context.finalSearchQuery !== searchQuery) {
@@ -681,15 +693,21 @@ async function handleNormalSearch(context) {
       context.stop = true;
       return;
     }
-    console.warn(`[ThisOne] "${context.finalSearchQuery}" 결과 없음. 원본 쿼리 "${searchQuery}"로 재시도...`);
+    console.warn(`[ThisOne] "${context.finalSearchQuery}" raw 결과 없음. 원본 쿼리 "${searchQuery}"로 재시도...`);
     typingEl?.updateThought?.(`정밀 검색 결과가 부족하여 범위를 넓혀 재검색 중...`);
-    searchData = await window.ThisOneAPI.requestSearch(searchQuery, expertSettings);
+    searchData = await window.ThisOneAPI.requestSearchRaw(searchQuery, expertSettings);
+    context.fullSearchPromise = window.ThisOneAPI.requestSearchFull(searchQuery, expertSettings);
+    context.finalSearchQuery = searchQuery;
   }
 
+  context.rawSearchData = searchData;
   context.searchData = searchData;
   context.items = searchData?.items || [];
+  window.ThisOneUI?.updateAnalysisProgress?.('collect', 'done');
+  window.ThisOneUI?.updateAnalysisProgress?.('ai', 'active');
+  window.ThisOneUI?.updateAnalysisProgress?.('reputation', 'active');
 
-  // 네이버 검색 결과는 의도분석을 기다리지 않고 즉시 먼저 보여준다.
+  // raw 일반 검색 결과는 full/AI 분석을 기다리지 않고 즉시 먼저 보여준다.
   if (!queryImage && context.items && context.items.length > 0) {
     const earlyCandidates = window.ThisOneRanking?.buildCandidates
       ? window.ThisOneRanking.buildCandidates(context.items, context.finalSearchQuery, null)
@@ -698,7 +716,7 @@ async function handleNormalSearch(context) {
     if (earlyCandidates && earlyCandidates.length > 0) {
       GeneralSearchState.query = context.finalSearchQuery;
       GeneralSearchState.currentPage = 1;
-      GeneralSearchState.total = searchData?.total || 0;
+      GeneralSearchState.total = context.searchData?.total || 0;
       GeneralSearchState.resultMode = 'fallback_general';
       GeneralSearchState.lastItems = earlyCandidates;
 
@@ -717,11 +735,31 @@ async function handleNormalSearch(context) {
 }
 
 async function handleAIAnalysis(context) {
-  const { expertSettings, queryImage, queryText, searchData, typingEl, trajectory } = context;
+  const { expertSettings, queryImage, queryText, typingEl, trajectory } = context;
 
   // [개선] intentProfile이 이미 있다면 중복 호출 방지
   if (!context.intentProfile && !queryImage) {
     context.intentProfile = await window.ThisOneAPI.requestIntentInfer(queryText, trajectory, null).catch(() => null);
+  }
+
+  if (context.fullSearchPromise) {
+    try {
+      let fullSearchData = await context.fullSearchPromise;
+      if ((!fullSearchData?.items || fullSearchData.items.length === 0) && context.finalSearchQuery !== context.searchQuery && context.searchQuery !== '이미지 기반 상품 검색') {
+        fullSearchData = await window.ThisOneAPI.requestSearchFull(context.searchQuery, expertSettings);
+        context.finalSearchQuery = context.searchQuery;
+      }
+      context.fullSearchData = fullSearchData;
+      context.searchData = fullSearchData;
+      context.items = fullSearchData?.items || [];
+      window.ThisOneUI?.updateAnalysisProgress?.('reputation', 'done');
+    } catch (fullErr) {
+      console.warn('[ThisOne] full search failed; raw results remain visible:', fullErr);
+      typingEl?.remove();
+      window.ThisOneUI?.showAnalysisFailure?.('AI 분석에 실패했습니다. 일반 검색 결과는 그대로 확인할 수 있습니다.');
+      context.stop = true;
+      return;
+    }
   }
 
   _lastIntentProfile = context.intentProfile;
@@ -932,7 +970,7 @@ async function handleAIAnalysis(context) {
       return true;
     });
 
-    const rawItems = searchData?.items || [];
+    const rawItems = context.searchData?.items || [];
     const rawCount = rawItems.length;
     const finalRecommendedCount = finalCards.length;
 
@@ -975,7 +1013,7 @@ async function handleAIAnalysis(context) {
 
     GeneralSearchState.query = context.finalSearchQuery;
     GeneralSearchState.currentPage = 1;
-    GeneralSearchState.total = searchData?.total || 0;
+    GeneralSearchState.total = context.searchData?.total || 0;
     GeneralSearchState.resultMode = 'fallback_general';
     GeneralSearchState.lastItems = generalCandidates;
 

@@ -1632,3 +1632,98 @@ body.search-mode .results-view {
     min-height: clamp(120px, 42vw, 180px);
   }
 }
+
+/* ===== 병렬 검색 분석 진행 영역 ===== */
+.analysis-progress-wrap {
+  order: 0;
+}
+
+.analysis-progress-panel {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 2vw, 16px);
+  width: 100%;
+  padding: clamp(12px, 2.4vw, 20px);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  border-radius: clamp(16px, 3vw, 24px);
+  background: linear-gradient(135deg, rgba(239, 246, 255, 0.96), rgba(248, 250, 252, 0.96));
+}
+
+.analysis-progress-title {
+  color: var(--color-primary);
+}
+
+.analysis-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.8vw, 12px);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.analysis-step {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 1.8vw, 12px);
+  color: #64748b;
+  font-size: clamp(12px, 1.5vw, 14px);
+  font-weight: 700;
+}
+
+.analysis-step-mark {
+  width: clamp(14px, 2.4vw, 18px);
+  height: clamp(14px, 2.4vw, 18px);
+  border-radius: 999px;
+  border: 2px solid #bfdbfe;
+  background: #fff;
+  flex: 0 0 auto;
+}
+
+.analysis-step.is-active .analysis-step-mark {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 clamp(3px, 1vw, 5px) rgba(59, 130, 246, 0.12);
+}
+
+.analysis-step.is-done {
+  color: #2563eb;
+}
+
+.analysis-step.is-done .analysis-step-mark {
+  border-color: #2563eb;
+  background: #2563eb;
+}
+
+.analysis-step.is-failed {
+  color: #dc2626;
+}
+
+.analysis-step.is-failed .analysis-step-mark {
+  border-color: #dc2626;
+  background: #fee2e2;
+}
+
+.analysis-ad-slot {
+  width: min(100%, 728px);
+  height: 90px;
+  align-self: center;
+  border: 1px dashed rgba(148, 163, 184, 0.7);
+  border-radius: clamp(10px, 2vw, 14px);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.analysis-failure-message {
+  padding: clamp(10px, 2vw, 14px);
+  border-radius: clamp(10px, 2vw, 14px);
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: clamp(12px, 1.5vw, 14px);
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .analysis-ad-slot {
+    width: min(100%, 320px);
+    height: 100px;
+  }
+}

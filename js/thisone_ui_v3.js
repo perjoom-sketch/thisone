@@ -380,13 +380,79 @@ function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 
     </div>
   `;
 
-  content.insertAdjacentHTML('beforeend', html);
+  const generalWrap = content.querySelector('.general-results-wrap');
+  if (generalWrap) generalWrap.insertAdjacentHTML('beforebegin', html);
+  else content.insertAdjacentHTML('beforeend', html);
   
   // 페이지 전환 시에만 결과 영역으로 이동하고, 첫 검색 렌더링에서는 현재 스크롤을 유지한다.
   if (currentPage > 1) {
     const wrap = document.querySelector('.general-results-wrap');
     if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+}
+
+function renderAnalysisProgress() {
+  const content = getContentEl();
+  if (!content) return null;
+  const existing = document.querySelector('.analysis-progress-wrap');
+  if (existing) existing.remove();
+
+  const node = document.createElement('div');
+  node.className = 'ai-result analysis-progress-wrap';
+  node.setAttribute('role', 'status');
+  node.setAttribute('aria-live', 'polite');
+  node.innerHTML = `
+    <div class="analysis-progress-panel">
+      <div class="ai-label analysis-progress-title">
+        <span class="dot">${window.MINI_SCOPE || '✦'}</span>
+        <span>지능형 분석 리포트</span>
+      </div>
+      <ol class="analysis-step-list">
+        <li class="analysis-step is-active" data-analysis-step="collect">
+          <span class="analysis-step-mark" aria-hidden="true"></span>
+          <span class="analysis-step-text">후보 수집</span>
+        </li>
+        <li class="analysis-step is-active" data-analysis-step="ai">
+          <span class="analysis-step-mark" aria-hidden="true"></span>
+          <span class="analysis-step-text">AI 분석 중</span>
+        </li>
+        <li class="analysis-step" data-analysis-step="reputation">
+          <span class="analysis-step-mark" aria-hidden="true"></span>
+          <span class="analysis-step-text">평판 확인</span>
+        </li>
+      </ol>
+      <div class="analysis-ad-slot" aria-label="광고 슬롯" data-ad-slot="analysis" data-ad-size="leaderboard"></div>
+    </div>
+  `;
+  const generalWrap = content.querySelector('.general-results-wrap');
+  if (generalWrap) content.insertBefore(node, generalWrap);
+  else appendAndScroll(node);
+  return node;
+}
+
+function updateAnalysisProgress(step, state = 'done') {
+  const wrap = document.querySelector('.analysis-progress-wrap');
+  if (!wrap) return;
+  const node = wrap.querySelector(`[data-analysis-step="${step}"]`);
+  if (!node) return;
+  node.classList.toggle('is-done', state === 'done');
+  node.classList.toggle('is-active', state === 'active');
+  node.classList.toggle('is-failed', state === 'failed');
+}
+
+function showAnalysisFailure(message = 'AI 분석에 실패했습니다. 일반 검색 결과는 그대로 확인할 수 있습니다.') {
+  const wrap = document.querySelector('.analysis-progress-wrap') || renderAnalysisProgress();
+  if (!wrap) return;
+  wrap.classList.add('analysis-progress-failed');
+  updateAnalysisProgress('ai', 'failed');
+  const panel = wrap.querySelector('.analysis-progress-panel');
+  const existing = wrap.querySelector('.analysis-failure-message');
+  if (existing) existing.remove();
+  panel?.insertAdjacentHTML('beforeend', `<div class="analysis-failure-message">${esc(message)}</div>`);
+}
+
+function clearAnalysisProgress() {
+  document.querySelectorAll('.analysis-progress-wrap').forEach((node) => node.remove());
 }
 
 function esc(s) {
@@ -446,8 +512,10 @@ function addResultCard(result) {
     `
     : '';
 
+  clearAnalysisProgress();
+
   const html = `
-    <div class="ai-result">
+    <div class="ai-result ai-recommendation-wrap">
       <div class="ai-label">
         <span class="dot">✦</span>
         <span>지능형 분석 리포트</span>
@@ -461,7 +529,9 @@ function addResultCard(result) {
     </div>
   `;
 
-  content.insertAdjacentHTML('beforeend', html);
+  const generalWrap = content.querySelector('.general-results-wrap');
+  if (generalWrap) generalWrap.insertAdjacentHTML('beforebegin', html);
+  else content.insertAdjacentHTML('beforeend', html);
   // 강제 스크롤 제거: 사용자 시야 방해 방지
 }
 
@@ -701,6 +771,10 @@ window.ThisOneUI = {
   showNotice,
   addThinking,
   renderBadgeList,
+  renderAnalysisProgress,
+  updateAnalysisProgress,
+  showAnalysisFailure,
+  clearAnalysisProgress,
   renderRawResults,
   renderResults: renderRawResults,
   addResultCard,

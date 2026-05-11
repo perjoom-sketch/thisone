@@ -437,8 +437,18 @@ function renderAnalysisProgress() {
             >
           </button>
           <div class="piki-signal-board">
-            <span class="piki-signal-chip piki-signal-plus">플러스 신호</span>
-            <span class="piki-signal-chip piki-signal-caution">주의 신호</span>
+            <span class="piki-signal-chip piki-signal-plus">
+              <span class="piki-signal-main">좋은것</span>
+              <span class="piki-signal-sub">품질 · 만족 · 장점</span>
+            </span>
+            <span class="piki-signal-chip piki-signal-value">
+              <span class="piki-signal-main">저렴한것</span>
+              <span class="piki-signal-sub">가격 · 가성비 · 할인 · 최저가</span>
+            </span>
+            <span class="piki-signal-chip piki-signal-caution">
+              <span class="piki-signal-main">불편한것</span>
+              <span class="piki-signal-sub">단점 · AS · 소음 · 무게 · 관리 불편</span>
+            </span>
           </div>
         </div>
         <div class="piki-message-rail" aria-label="피키 분석 진행 메시지">

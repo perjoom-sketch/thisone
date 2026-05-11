@@ -5,6 +5,12 @@ const { improveQuery } = require('../lib/queryNormalizer');
 const { shouldUseCanonicalIntent, canonicalizeQuery } = require('../lib/canonicalIntent');
 const { enrichYoutubeReputation } = require('../lib/youtubeReputation');
 const { enrichReviewSignals, extractPositiveSignals } = require('../lib/reviewSignals');
+const {
+  applyRecurringOfferPolicy,
+  detectRecurringOfferType,
+  hasExplicitRecurringIntent,
+  restoreRecurringOffers
+} = require('../lib/recurringOffer');
 
 let kv = null;
 try {
@@ -222,11 +228,7 @@ function buildCachedDebugInfo(cachedResponse){
 }
 
 function isRentalLikeItem(item){
-  const text = `${item?.name || ''} ${item?.store || ''} ${item?.priceText || ''} ${item?.delivery || ''}`;
-  return /렌탈|대여|구독|약정|약정\s*\d+\s*년|월납|월\s*납입|의무사용|의무\s*\d+|방문관리|직접관리|자가관리|방문주기\s*\d*|코디관리|관리형|월\s*[0-9,]+\s*원|\d+\s*개월/i.test(text);
-}
-function hasExplicitRecurringIntent(query){
-  return /렌탈|구독|대여|임대|정기\s*(?:배송|구독)|월납|월\s*(?:납부|이용료)|약정|의무\s*사용|의무구독|계약\s*기간/i.test(String(query || ''));
+  return Boolean(detectRecurringOfferType(item));
 }
 function isRentalCapableQuery(query){
   const q = String(query || '').toLowerCase();
@@ -509,12 +511,21 @@ async function handler(req,res){
     const cachedResponse = await readSearchCache(searchCacheKey);
 
     if (cachedResponse && typeof cachedResponse === 'object') {
-      const cachedItems = attachPositiveSignals(cachedResponse.items);
+      const cachedSettings = {
+        ...(cachedResponse.searchSettingsDebug?.applied || {}),
+        explicitRecurringIntent: cachedResponse.searchSettingsDebug?.applied?.explicitRecurringIntent === true || hasExplicitRecurringIntent(cachedResponse.query || q),
+        excludeRental: cachedResponse.searchSettingsDebug?.applied?.excludeRental === true
+      };
+      const cachedPolicy = applyRecurringOfferPolicy(attachPositiveSignals(cachedResponse.items), cachedSettings);
       return res.status(200).json({
         ...cachedResponse,
-        items: cachedItems,
+        items: cachedPolicy.items,
         debug_info: buildCachedDebugInfo(cachedResponse),
         _cached: true,
+        searchSettingsDebug: {
+          ...(cachedResponse.searchSettingsDebug || {}),
+          recurringOfferGuard: cachedPolicy.debug
+        },
         searchCacheDebug: {
           ...(cachedResponse.searchCacheDebug || {}),
           key: searchCacheKey,
@@ -564,7 +575,11 @@ async function handler(req,res){
 
     const universalResult=await applyUniversalAIFilter({query:q,items});
     const universalItems=Array.isArray(universalResult.filteredItems)?universalResult.filteredItems:items;
-    const restoredItems=restoreRentalItemsIfAllowed(universalItems, itemsBeforeUniversalFilter, settingsResult.settings);
+    const restoredItems=restoreRecurringOffers(
+      restoreRentalItemsIfAllowed(universalItems, itemsBeforeUniversalFilter, settingsResult.settings),
+      itemsBeforeUniversalFilter,
+      settingsResult.settings
+    );
 
     const youtubeStartAt = Date.now();
     const youtubeReputation = await enrichYoutubeReputation({
@@ -592,7 +607,8 @@ async function handler(req,res){
       writeCache: writeReviewSignalsCache
     });
     const reviewSignalsDurationMs = Date.now() - reviewSignalsStartAt;
-    const finalItems = attachPositiveSignals(reviewSignals.items);
+    const recurringOfferPolicy = applyRecurringOfferPolicy(attachPositiveSignals(reviewSignals.items), settingsResult.settings);
+    const finalItems = recurringOfferPolicy.items;
     const debugInfo = buildDebugInfo(youtubeReputation, youtubeDurationMs, reviewSignals, reviewSignalsDurationMs);
 
     const responseBody = {
@@ -612,6 +628,7 @@ async function handler(req,res){
         rejectedCount: settingsResult.rejected.length,
         restoredRentalCount: Math.max(0, finalItems.length - universalItems.length),
         rentalEnrichment,
+        recurringOfferGuard: recurringOfferPolicy.debug,
         note: 'freeShipping only applies when upstream delivery text is available'
       },
       universalFilterDebug:universalResult.debug||null,
@@ -644,9 +661,12 @@ module.exports._private = {
   buildSearchCacheKey,
   fetchNaverShopItems,
   fetchNaverShopItemsExactFirst,
+  applyRecurringOfferPolicy,
+  detectRecurringOfferType,
   hasExplicitRecurringIntent,
   enrichRentalCapableItems,
   restoreRentalItemsIfAllowed,
+  restoreRecurringOffers,
   improveQuery,
   mapNaverItems,
   normalizeSearchCacheQuery,

@@ -495,6 +495,12 @@ function getBadgeClass(text) {
       .join('');
   }
 
+  function renderRecurringOfferNote(card) {
+    if (!card?.isRecurringOffer || card?.recurringIntentExplicit === true) return '';
+    const type = compactText(card.recurringOfferType) || '월납';
+    return `<div class="row-price-sub row-recurring-offer-note"><span class="row-contract-line">${esc(type)} 조건 · 일반 구매가 아님</span></div>`;
+  }
+
   function formatPriceHtml(card) {
     if (card?.isRental && card.rentalMonthlyFee > 0) {
       const fmt = (v) => Number(v || 0).toLocaleString('ko-KR');
@@ -508,7 +514,7 @@ function getBadgeClass(text) {
   function renderPickCard(card, isFirst, options) {
     const opts = options || {};
     const hideRecommendationUi = !!opts.hideRecommendationUi;
-    const priceClass = card.isRental ? 'row-price row-price-rental' : 'row-price';
+    const priceClass = card.isRental || card.isRecurringOffer ? 'row-price row-price-rental' : 'row-price';
     const imageHtml = card.image
       ? `<img class="row-img" src="${escAttr(card.image)}" alt="${escAttr(card.name || '상품')}" onerror="this.onerror=null;this.alt='';this.style.visibility='hidden';">`
       : `<div class="row-img-placeholder">상품</div>`;
@@ -569,6 +575,7 @@ function getBadgeClass(text) {
 
         <div class="row-price-area">
           <div class="${priceClass}">${formatPriceHtml(card)}</div>
+          ${renderRecurringOfferNote(card)}
           <div class="row-cta">최종가 확인</div>
         </div>
       </article>
@@ -605,11 +612,11 @@ function getBadgeClass(text) {
   const rentalSignalPattern = /렌탈|대여|임대|구독|정기\s*구독|정기\s*배송|약정|월납|월\s*납부|월\s*이용료|의무\s*사용|의무구독|최소\s*이용|대여\s*기간|임대\s*기간|계약\s*기간|방문관리|자가관리|셀프관리|코디관리|관리형|방문\s*주기|배송\s*주기|매월\s*배송|월\s*[0-9,]+\s*원/i;
 
   function rentalText(item) {
-    return `${item?.name || ''} ${item?.store || ''} ${item?.price || ''}`;
+    return `${item?.name || ''} ${item?.store || ''} ${item?.price || ''} ${item?.priceText || ''} ${item?.recurringOfferType || ''}`;
   }
 
   function isRental(item) {
-    return item?.isRental === true || rentalSignalPattern.test(rentalText(item));
+    return item?.isRental === true || item?.isRecurringOffer === true || rentalSignalPattern.test(rentalText(item));
   }
 
   function rentalMonthlyFee(item) {

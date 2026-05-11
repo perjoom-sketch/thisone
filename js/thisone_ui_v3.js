@@ -436,10 +436,12 @@ function renderAnalysisProgress() {
               <span class="piki-sweat piki-sweat-b" aria-hidden="true"></span>
               <img
                 class="piki-figure-img"
-                src="/assets/piki/piki-working.png"
-                data-working-src="/assets/piki/piki-working.png"
+                src="/assets/piki/piki-working-left.png"
+                data-working-left-src="/assets/piki/piki-working-left.png"
+                data-throwing-left-src="/assets/piki/piki-throwing-left.png"
+                data-working-right-src="/assets/piki/piki-working-right.png"
+                data-throwing-right-src="/assets/piki/piki-throwing-right.png"
                 data-annoyed-src="/assets/piki/piki-annoyed.png"
-                data-throwing-src="/assets/piki/piki-throwing.png"
                 alt=""
                 loading="eager"
                 decoding="async"
@@ -507,12 +509,34 @@ function renderAnalysisProgress() {
   const pikiButton = node.querySelector('.piki-figure-btn');
   const pikiImage = node.querySelector('.piki-figure-img');
   const pikiLoader = node.querySelector('.piki-analysis-loader');
-  const PIKI_WORKING_MS = 1600;
-  const PIKI_THROWING_MS = 560;
+  const PIKI_WORKING_MS = 1500;
+  const PIKI_THROWING_MS = 600;
   const PIKI_ANNOYED_MS = 900;
+  const PIKI_FRAMES = [
+    { key: 'workingLeft', state: 'working', delay: PIKI_WORKING_MS },
+    { key: 'throwingLeft', state: 'throwing', delay: PIKI_THROWING_MS },
+    { key: 'workingRight', state: 'working', delay: PIKI_WORKING_MS },
+    { key: 'throwingRight', state: 'throwing', delay: PIKI_THROWING_MS }
+  ];
+  const preloadPikiImages = (sources = []) => {
+    if (typeof Image !== 'function') return;
+    sources.filter(Boolean).forEach((src) => {
+      const image = new Image();
+      image.src = src;
+    });
+  };
   let pikiLoopTimer = null;
   let reactionTimer = null;
   let pikiLoopStopped = false;
+  let pikiFrameIndex = 0;
+
+  preloadPikiImages([
+    pikiImage?.dataset?.workingLeftSrc,
+    pikiImage?.dataset?.throwingLeftSrc,
+    pikiImage?.dataset?.workingRightSrc,
+    pikiImage?.dataset?.throwingRightSrc,
+    pikiImage?.dataset?.annoyedSrc
+  ]);
 
   const clearPikiTimers = () => {
     if (pikiLoopTimer) clearTimeout(pikiLoopTimer);
@@ -521,21 +545,29 @@ function renderAnalysisProgress() {
     reactionTimer = null;
   };
 
-  const setPikiState = (state = 'working') => {
-    const nextState = state === 'throwing' ? 'throwing' : state === 'annoyed' ? 'annoyed' : 'working';
-    const srcKey = `${nextState}Src`;
-    const nextSrc = pikiImage?.dataset?.[srcKey] || pikiImage?.dataset?.workingSrc;
+  const setPikiState = (frame = PIKI_FRAMES[0]) => {
+    const nextFrame = typeof frame === 'string'
+      ? PIKI_FRAMES.find((item) => item.key === frame || item.state === frame)
+      : frame;
+    const nextState = frame === 'annoyed' ? 'annoyed' : nextFrame?.state || 'working';
+    const nextSrc = nextState === 'annoyed'
+      ? pikiImage?.dataset?.annoyedSrc
+      : pikiImage?.dataset?.[`${nextFrame?.key || 'workingLeft'}Src`] || pikiImage?.dataset?.workingLeftSrc;
     if (pikiLoader) pikiLoader.dataset.pikiState = nextState;
     if (pikiImage && nextSrc && pikiImage.getAttribute('src') !== nextSrc) pikiImage.setAttribute('src', nextSrc);
   };
 
-  const schedulePikiLoop = (state = 'working') => {
+  const schedulePikiLoop = (frameIndex = 0) => {
     if (pikiLoopStopped) return;
+    if (!node.isConnected && node.parentNode === null) {
+      stopPikiLoop();
+      return;
+    }
     if (pikiLoopTimer) clearTimeout(pikiLoopTimer);
-    setPikiState(state);
-    const nextState = state === 'working' ? 'throwing' : 'working';
-    const delay = state === 'working' ? PIKI_WORKING_MS : PIKI_THROWING_MS;
-    pikiLoopTimer = setTimeout(() => schedulePikiLoop(nextState), delay);
+    pikiFrameIndex = frameIndex % PIKI_FRAMES.length;
+    const frame = PIKI_FRAMES[pikiFrameIndex];
+    setPikiState(frame);
+    pikiLoopTimer = setTimeout(() => schedulePikiLoop(pikiFrameIndex + 1), frame.delay);
   };
 
   const stopPikiLoop = () => {
@@ -550,7 +582,7 @@ function renderAnalysisProgress() {
     setPikiState(state);
     reactionTimer = setTimeout(() => {
       reactionTimer = null;
-      schedulePikiLoop('working');
+      schedulePikiLoop(pikiFrameIndex + 1);
     }, PIKI_ANNOYED_MS);
   };
 
@@ -572,7 +604,7 @@ function renderAnalysisProgress() {
   const generalWrap = content.querySelector('.general-results-wrap');
   if (generalWrap) content.insertBefore(node, generalWrap);
   else appendAndScroll(node);
-  schedulePikiLoop('working');
+  schedulePikiLoop(0);
   return node;
 }
 
@@ -595,7 +627,7 @@ function showAnalysisFailure(message = 'AI 분석에 실패했습니다. 일반 
   wrap.setPikiState?.('throwing');
   const pikiLoader = wrap.querySelector('.piki-analysis-loader');
   const pikiImage = wrap.querySelector('.piki-figure-img');
-  const throwingSrc = pikiImage?.dataset?.throwingSrc;
+  const throwingSrc = pikiImage?.dataset?.throwingLeftSrc || pikiImage?.dataset?.throwingRightSrc;
   if (pikiLoader) pikiLoader.dataset.pikiState = 'throwing';
   if (pikiImage && throwingSrc && pikiImage.getAttribute('src') !== throwingSrc) pikiImage.setAttribute('src', throwingSrc);
   const panel = wrap.querySelector('.analysis-progress-panel');

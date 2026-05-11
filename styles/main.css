@@ -1914,6 +1914,7 @@ body.search-mode .results-view {
   min-width: 0;
   width: 100%;
   justify-self: center;
+  isolation: isolate;
 }
 
 .piki-figure-btn {
@@ -1925,7 +1926,8 @@ body.search-mode .results-view {
   aspect-ratio: 1 / 1;
   border: 0;
   border-radius: clamp(18px, 3vw, 28px);
-  background: radial-gradient(circle at 50% 38%, rgba(219, 234, 254, 0.96), rgba(239, 246, 255, 0.42) 58%, rgba(255, 255, 255, 0));
+  background: transparent;
+  box-shadow: none;
   padding: clamp(5px, 1.2vw, 8px);
   cursor: pointer;
   touch-action: manipulation;
@@ -1941,7 +1943,11 @@ body.search-mode .results-view {
   display: block;
   width: min(100%, clamp(86px, 16vw, 138px));
   height: auto;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
   object-fit: contain;
+  mix-blend-mode: multiply;
   filter: drop-shadow(0 14px 18px rgba(30, 64, 175, 0.16));
   transform-origin: 50% 84%;
   animation: pikiBusyFocus 1.55s ease-in-out infinite;

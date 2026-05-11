@@ -228,6 +228,13 @@ function removeLegacyProgressUi(root = document) {
   });
 }
 
+function removeTopSearchStatusWhenPikiActive(root = document) {
+  root.querySelectorAll('#thinkContainerV2').forEach((statusLine) => {
+    const statusWrap = statusLine.closest('.intelligence-mode') || statusLine;
+    statusWrap.remove();
+  });
+}
+
 function addThinking() {
   removeLegacyProgressUi();
 
@@ -394,6 +401,7 @@ function renderRawResults(items = [], total = 0, currentPage = 1, currentSort = 
 function renderAnalysisProgress() {
   const content = getContentEl();
   if (!content) return null;
+  removeTopSearchStatusWhenPikiActive();
   const existing = document.querySelector('.analysis-progress-wrap');
   if (existing) existing.remove();
 
@@ -1025,6 +1033,7 @@ window.ThisOneUI = {
   updateAnalysisProgress,
   showAnalysisFailure,
   clearAnalysisProgress,
+  removeTopSearchStatusWhenPikiActive,
   renderRawResults,
   renderResults: renderRawResults,
   addResultCard,

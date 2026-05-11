@@ -58,7 +58,7 @@ function buildExpertSettingsHashSource(query, { start, display, sort }){
   };
 }
 function buildSearchCacheKey(normalizedQuery, settingsHashSource){
-  return `search:v3:${encodeURIComponent(normalizedQuery)}:${sha1Short(stableStringify(settingsHashSource))}`;
+  return `search:v4:${encodeURIComponent(normalizedQuery)}:${sha1Short(stableStringify(settingsHashSource))}`;
 }
 async function readSearchCache(key){
   if (!kv || !key) return null;

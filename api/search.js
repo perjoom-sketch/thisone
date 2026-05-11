@@ -20,6 +20,7 @@ try {
 }
 
 const SEARCH_CACHE_TTL_SECONDS = 3600;
+const EXTERNAL_SIGNAL_CANDIDATE_LIMIT = 10;
 const EXACT_FIRST_MIN_RESULTS = 3;
 const YOUTUBE_REPUTATION_TIMEOUT_MS = Number(process.env.YOUTUBE_REPUTATION_TIMEOUT_MS || 3500);
 const REVIEW_SIGNALS_TIMEOUT_MS = Number(process.env.REVIEW_SIGNALS_TIMEOUT_MS || 3000);
@@ -52,13 +53,14 @@ function buildExpertSettingsHashSource(query, { start, display, sort }){
     freeShipping: isTrue(query.freeShipping),
     minPrice: parsePositiveNumber(query.minPrice),
     maxPrice: parsePositiveNumber(query.maxPrice),
+    mode: String(query.mode || '').trim().toLowerCase(),
     start,
     display,
     sort: String(sort || 'sim')
   };
 }
 function buildSearchCacheKey(normalizedQuery, settingsHashSource){
-  return `search:v4:${encodeURIComponent(normalizedQuery)}:${sha1Short(stableStringify(settingsHashSource))}`;
+  return `search:v5:${encodeURIComponent(normalizedQuery)}:${sha1Short(stableStringify(settingsHashSource))}`;
 }
 async function readSearchCache(key){
   if (!kv || !key) return null;
@@ -505,6 +507,9 @@ async function handler(req,res){
     const start=parseInt(req.query.start||'1');
     const display=parseInt(req.query.display||'30');
     const sort=req.query.sort||'sim';
+    const mode = String(req.query.mode || '').trim().toLowerCase();
+    const isGeneralSearchMode = mode === 'raw' || mode === 'general';
+    const shouldEnrichExternalSignals = !isGeneralSearchMode && start === 1;
     const normalizedCacheQuery = normalizeSearchCacheQuery(q);
     const settingsHashSource = buildExpertSettingsHashSource(req.query, { start, display, sort });
     const searchCacheKey = buildSearchCacheKey(normalizedCacheQuery, settingsHashSource);
@@ -584,33 +589,65 @@ async function handler(req,res){
     const restoredRentalCount = Math.max(0, rentalRestoredItems.length - universalItems.length);
     const restoredRecurringOfferCount = Math.max(0, restoredItems.length - rentalRestoredItems.length);
 
+    const externalSignalCandidateLimit = Math.min(EXTERNAL_SIGNAL_CANDIDATE_LIMIT, restoredItems.length);
+    const externalSignalCandidates = restoredItems.slice(0, externalSignalCandidateLimit);
+    const externalSignalRemainder = restoredItems.slice(externalSignalCandidateLimit);
+
     const youtubeStartAt = Date.now();
-    const youtubeReputation = await enrichYoutubeReputation({
-      query: improvedQ,
-      items: restoredItems,
-      apiKey: process.env.YOUTUBE_API_KEY,
-      enabled: isYoutubeReputationEnabled() && start === 1,
-      timeoutMs: YOUTUBE_REPUTATION_TIMEOUT_MS,
-      readCache: readYoutubeCache,
-      writeCache: writeYoutubeCache
-    });
+    let youtubeReputation = {
+      items: externalSignalCandidates,
+      debug: {
+        enabled: false,
+        skippedForGeneralSearch: isGeneralSearchMode,
+        reason: isGeneralSearchMode ? 'general_search_no_external_signals' : 'not_first_page',
+        externalSignalScope: shouldEnrichExternalSignals ? 'thisone_candidates' : 'none',
+        scopeLimit: shouldEnrichExternalSignals ? externalSignalCandidateLimit : 0
+      }
+    };
+    if (shouldEnrichExternalSignals) {
+      youtubeReputation = await enrichYoutubeReputation({
+        query: improvedQ,
+        items: externalSignalCandidates,
+        apiKey: process.env.YOUTUBE_API_KEY,
+        enabled: isYoutubeReputationEnabled(),
+        timeoutMs: YOUTUBE_REPUTATION_TIMEOUT_MS,
+        readCache: readYoutubeCache,
+        writeCache: writeYoutubeCache
+      });
+    }
     const youtubeDurationMs = Date.now() - youtubeStartAt;
 
     const reviewSignalsStartAt = Date.now();
     const reviewSignalsProvider = getReviewSignalsProvider();
-    const reviewSignals = await enrichReviewSignals({
-      query: improvedQ,
+    let reviewSignals = {
       items: youtubeReputation.items,
-      provider: reviewSignalsProvider,
-      apiKey: getReviewSignalsApiKey(reviewSignalsProvider),
-      cx: process.env.GOOGLE_CSE_CX,
-      enabled: isReviewSignalsEnabled() && start === 1,
-      timeoutMs: REVIEW_SIGNALS_TIMEOUT_MS,
-      readCache: readReviewSignalsCache,
-      writeCache: writeReviewSignalsCache
-    });
+      debug: {
+        enabled: false,
+        provider: reviewSignalsProvider,
+        skippedForGeneralSearch: isGeneralSearchMode,
+        reason: isGeneralSearchMode ? 'general_search_no_external_signals' : 'not_first_page',
+        externalSignalScope: shouldEnrichExternalSignals ? 'thisone_candidates' : 'none',
+        scopeLimit: shouldEnrichExternalSignals ? externalSignalCandidateLimit : 0
+      }
+    };
+    if (shouldEnrichExternalSignals) {
+      reviewSignals = await enrichReviewSignals({
+        query: improvedQ,
+        items: youtubeReputation.items,
+        provider: reviewSignalsProvider,
+        apiKey: getReviewSignalsApiKey(reviewSignalsProvider),
+        cx: process.env.GOOGLE_CSE_CX,
+        enabled: isReviewSignalsEnabled(),
+        timeoutMs: REVIEW_SIGNALS_TIMEOUT_MS,
+        readCache: readReviewSignalsCache,
+        writeCache: writeReviewSignalsCache
+      });
+    }
     const reviewSignalsDurationMs = Date.now() - reviewSignalsStartAt;
-    const recurringOfferPolicy = applyRecurringOfferPolicy(attachPositiveSignals(reviewSignals.items), settingsResult.settings);
+    const signalScopedItems = shouldEnrichExternalSignals
+      ? [...reviewSignals.items, ...externalSignalRemainder]
+      : restoredItems;
+    const recurringOfferPolicy = applyRecurringOfferPolicy(attachPositiveSignals(signalScopedItems), settingsResult.settings);
     const finalItems = recurringOfferPolicy.items;
     const debugInfo = buildDebugInfo(youtubeReputation, youtubeDurationMs, reviewSignals, reviewSignalsDurationMs);
 
@@ -636,8 +673,18 @@ async function handler(req,res){
         note: 'freeShipping only applies when upstream delivery text is available'
       },
       universalFilterDebug:universalResult.debug||null,
-      youtubeReputationDebug:youtubeReputation.debug||null,
-      reviewSignalsDebug:reviewSignals.debug||null,
+      youtubeReputationDebug:{
+        ...(youtubeReputation.debug || {}),
+        externalSignalScope: shouldEnrichExternalSignals ? 'thisone_candidates' : 'none',
+        scopeLimit: shouldEnrichExternalSignals ? externalSignalCandidateLimit : 0,
+        skippedForGeneralSearch: isGeneralSearchMode
+      },
+      reviewSignalsDebug:{
+        ...(reviewSignals.debug || {}),
+        externalSignalScope: shouldEnrichExternalSignals ? 'thisone_candidates' : 'none',
+        scopeLimit: shouldEnrichExternalSignals ? externalSignalCandidateLimit : 0,
+        skippedForGeneralSearch: isGeneralSearchMode
+      },
       _cached: false,
       searchCacheDebug: {
         key: searchCacheKey,

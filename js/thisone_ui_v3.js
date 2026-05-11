@@ -445,20 +445,6 @@ function renderAnalysisProgress() {
           ${loadingMessages.map((message, idx) => `<span class="piki-message" style="--piki-message-index:${idx};">${message}</span>`).join('')}
         </div>
       </div>
-      <ol class="analysis-step-list">
-        <li class="analysis-step is-active" data-analysis-step="collect">
-          <span class="analysis-step-mark" aria-hidden="true"></span>
-          <span class="analysis-step-text">후보 수집</span>
-        </li>
-        <li class="analysis-step is-active" data-analysis-step="ai">
-          <span class="analysis-step-mark" aria-hidden="true"></span>
-          <span class="analysis-step-text">AI 분석 중</span>
-        </li>
-        <li class="analysis-step" data-analysis-step="reputation">
-          <span class="analysis-step-mark" aria-hidden="true"></span>
-          <span class="analysis-step-text">평판 확인</span>
-        </li>
-      </ol>
       <div class="analysis-ad-slot" aria-label="ThisOne 자체 광고" data-ad-slot="analysis" data-ad-size="leaderboard">
         <a class="thisone-ad-link" href="#inquiry" aria-label="ThisOne 광고 제휴 문의하기" onclick="window.ThisOneUI?.openAdInquiryFromBanner?.(event)">
           <div class="thisone-ad-crossfade" aria-hidden="true">

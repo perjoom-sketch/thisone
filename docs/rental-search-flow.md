@@ -47,7 +47,7 @@
 | 8. recurring offer 복원 | `restoreRecurringOffers(universalItems, itemsBeforeUniversalFilter, settings)` | AI 필터 결과와 필터 전 후보 | `excludeRental=false`이면 AI 필터에서 빠진 recurring offer 원본 후보를 뒤에 복원 | 일반 구매 검색에서도 이미 섞인 recurring offer는 삭제하지 않음 |
 | 9. 평판/검색 신호 보강 | YouTube/review signals | 최종 후보 | 유튜브 평판, 외부 검색 신호, 긍정 신호를 붙임 | 렌탈 포함 여부를 직접 결정하지 않음 |
 | 10. recurring offer 메타/정렬 | `lib/recurringOffer.js` + 응답 생성 | 응답 items, `explicitRecurringIntent`, `excludeRental` | item에 `isRecurringOffer`, `recurringOfferType`, `recurringIntentExplicit`을 붙이고 일반 구매 검색에서 recurring offer를 stable partition으로 뒤쪽 이동 | 이미 섞인 렌탈/구독/대여/임대 상품의 오해 가능성을 줄임 |
-| 11. 응답/디버그 | response body | 최종 items/rejected/debug | `searchSettingsDebug`, `universalFilterDebug`, `searchSettingsDebug.recurringOfferGuard` 등으로 추적 | 렌탈 제외/보강/복원/서버 주석/정렬 여부를 확인 가능 |
+| 11. 응답/디버그 | response body | 최종 items/rejected/debug | `searchSettingsDebug`, `universalFilterDebug`, `searchSettingsDebug.restoredRentalCount`, `searchSettingsDebug.restoredRecurringOfferCount`, `searchSettingsDebug.recurringOfferGuard` 등으로 추적 | 렌탈 제외/보강/복원/서버 주석/정렬 여부를 확인 가능 |
 
 ## `excludeRental` 및 `explicitRecurringIntent` 상태별 흐름
 
@@ -77,7 +77,7 @@
 | 렌탈 후보 제거 | 일반검색 단계 자체에서는 제거하지 않음 | 명확한 무관/판촉/액세서리 판단 시 제외 가능하나 관리형 렌탈은 보존 원칙 | `excludeRental=true`이면 설정 필터가 가장 명확한 제거 경로 | 이번 정책은 일반검색에 이미 포함된 렌탈 상품을 새로 일괄 제거하지 않음 |
 | recurring offer 복원 | AI 이전 후보를 보관 | 필터링 결과에서 빠진 recurring offer 후보가 있을 수 있음 | `excludeRental=false`이면 복원하고, 명시 recurring intent가 아니면 뒤쪽으로 이동 | 일반 구매 검색에서도 원본에 있던 recurring offer를 삭제하지 않음 |
 | recurring offer 정책 | 응답 item을 서버에서 주석 처리 | 카드 렌더링 시 서버 메타 기반으로 보조 표시 | `explicitRecurringIntent=false`이고 `excludeRental=false`일 때만 뒤로 이동/표시 | 구매가와 월납/대여 조건의 오해를 줄임 |
-| 디버그 확인 | `naverQueryDebug`, `searchSettingsDebug.rentalEnrichment` | `universalFilterDebug` | `searchSettingsDebug.applied.excludeRental`, `searchSettingsDebug.applied.explicitRecurringIntent`, `searchSettingsDebug.recurringOfferGuard` | 런타임 조사 시 어느 단계에서 변했는지 추적 가능 |
+| 디버그 확인 | `naverQueryDebug`, `searchSettingsDebug.rentalEnrichment` | `universalFilterDebug` | `searchSettingsDebug.applied.excludeRental`, `searchSettingsDebug.applied.explicitRecurringIntent`, `searchSettingsDebug.restoredRentalCount`, `searchSettingsDebug.restoredRecurringOfferCount`, `searchSettingsDebug.recurringOfferGuard` | 런타임 조사 시 어느 단계에서 변했는지 추적 가능 |
 
 ## 현재 한계 및 후속 과제
 

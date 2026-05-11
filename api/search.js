@@ -575,11 +575,14 @@ async function handler(req,res){
 
     const universalResult=await applyUniversalAIFilter({query:q,items});
     const universalItems=Array.isArray(universalResult.filteredItems)?universalResult.filteredItems:items;
+    const rentalRestoredItems=restoreRentalItemsIfAllowed(universalItems, itemsBeforeUniversalFilter, settingsResult.settings);
     const restoredItems=restoreRecurringOffers(
-      restoreRentalItemsIfAllowed(universalItems, itemsBeforeUniversalFilter, settingsResult.settings),
+      rentalRestoredItems,
       itemsBeforeUniversalFilter,
       settingsResult.settings
     );
+    const restoredRentalCount = Math.max(0, rentalRestoredItems.length - universalItems.length);
+    const restoredRecurringOfferCount = Math.max(0, restoredItems.length - rentalRestoredItems.length);
 
     const youtubeStartAt = Date.now();
     const youtubeReputation = await enrichYoutubeReputation({
@@ -626,7 +629,8 @@ async function handler(req,res){
       searchSettingsDebug:{
         applied: settingsResult.settings,
         rejectedCount: settingsResult.rejected.length,
-        restoredRentalCount: Math.max(0, finalItems.length - universalItems.length),
+        restoredRentalCount,
+        restoredRecurringOfferCount,
         rentalEnrichment,
         recurringOfferGuard: recurringOfferPolicy.debug,
         note: 'freeShipping only applies when upstream delivery text is available'

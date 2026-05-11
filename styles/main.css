@@ -833,6 +833,36 @@ body.search-mode .results-view {
     padding: 12px;
   }
 
+  .general-results-wrap .ai-label-row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: clamp(6px, 2vw, 10px);
+  }
+
+  .general-results-wrap .ai-label-row .ai-label {
+    flex: 1 1 clamp(12rem, 65%, 100%);
+    min-width: min(100%, 12rem);
+    line-height: 1.35;
+  }
+
+  .general-results-wrap .ai-label-row .ai-label span:last-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: keep-all;
+  }
+
+  .general-results-wrap .sort-options {
+    flex: 0 0 auto;
+    justify-content: flex-end;
+    max-width: 100%;
+    margin-left: auto;
+  }
+
+  .general-results-wrap .sort-icon-btn {
+    max-width: 100%;
+    white-space: nowrap;
+  }
+
   .ftr-content {
     gap: 12px;
   }

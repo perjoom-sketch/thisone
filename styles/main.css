@@ -1807,8 +1807,17 @@ body.search-mode .results-view {
   padding: clamp(6px, 1.3vw, 9px) clamp(8px, 1.7vw, 12px);
   font-size: clamp(11px, 1.3vw, 13px);
   font-weight: 800;
+  transform-origin: 100% 50%;
   animation: pikiCardInspect 3.6s ease-in-out infinite;
   animation-delay: calc(var(--piki-card-index, 0) * 0.16s);
+}
+
+.piki-source-card-toss {
+  animation-name: pikiCardInspect, pikiCardTossAway;
+  animation-duration: 3.6s, 4.4s;
+  animation-timing-function: ease-in-out, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+  animation-delay: 0.48s, 1.35s;
 }
 
 .piki-signal-chip {
@@ -1870,7 +1879,11 @@ body.search-mode .results-view {
 }
 
 .piki-analysis-loader[data-piki-state="throwing"] .piki-figure-img {
-  animation: pikiThrowingAlert 0.72s ease-in-out 1;
+  animation: pikiThrowingAlert 0.56s ease-in-out 1;
+}
+
+.piki-analysis-loader[data-piki-state="throwing"] .piki-source-card-toss {
+  animation: pikiCardTossAway 0.56s ease-in-out 1;
 }
 
 .piki-speech {
@@ -1982,9 +1995,16 @@ body.search-mode .results-view {
 }
 
 @keyframes pikiCardInspect {
-  0%, 100% { transform: translateY(0); opacity: 0.72; }
-  38% { transform: translateY(clamp(-3px, -0.7vw, -2px)); opacity: 1; }
-  64% { transform: translateX(clamp(2px, 0.6vw, 4px)); opacity: 0.9; }
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.72; }
+  28% { transform: translate(clamp(3px, 0.8vw, 6px), clamp(-3px, -0.7vw, -2px)) scale(1.02); opacity: 1; }
+  56% { transform: translate(clamp(8px, 1.4vw, 12px), 0) scale(0.985); opacity: 0.9; }
+  78% { transform: translate(clamp(2px, 0.5vw, 4px), clamp(2px, 0.5vw, 4px)) scale(1); opacity: 0.86; }
+}
+
+@keyframes pikiCardTossAway {
+  0%, 58%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 0.78; }
+  70% { transform: translate(clamp(10px, 1.8vw, 16px), clamp(-5px, -1vw, -3px)) rotate(2deg) scale(1.02); opacity: 1; }
+  84% { transform: translate(clamp(28px, 4.5vw, 44px), clamp(8px, 1.6vw, 14px)) rotate(10deg) scale(0.9); opacity: 0.26; }
 }
 
 @keyframes pikiSignalSort {
@@ -2042,6 +2062,7 @@ body.search-mode .results-view {
 
 @media (prefers-reduced-motion: reduce) {
   .piki-source-card,
+  .piki-source-card-toss,
   .piki-signal-chip,
   .piki-figure-img,
   .piki-sweat,

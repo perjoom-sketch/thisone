@@ -1875,6 +1875,17 @@ body.search-mode .results-view {
   animation-delay: 0.45s;
 }
 
+.piki-center-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(3px, 0.8vw, 6px);
+  min-width: 0;
+  width: 100%;
+  justify-self: center;
+}
+
 .piki-figure-btn {
   position: relative;
   display: flex;
@@ -1882,7 +1893,6 @@ body.search-mode .results-view {
   justify-content: center;
   width: min(100%, clamp(96px, 18vw, 152px));
   aspect-ratio: 1 / 1;
-  justify-self: center;
   border: 0;
   border-radius: clamp(18px, 3vw, 28px);
   background: radial-gradient(circle at 50% 38%, rgba(219, 234, 254, 0.96), rgba(239, 246, 255, 0.42) 58%, rgba(255, 255, 255, 0));
@@ -1987,11 +1997,13 @@ body.search-mode .results-view {
 
 .piki-message-rail {
   position: relative;
-  min-height: clamp(22px, 4vw, 30px);
+  width: min(100%, clamp(112px, 19vw, 184px));
+  min-height: clamp(34px, 5vw, 42px);
   overflow: hidden;
   color: #334155;
-  font-size: clamp(12px, 1.5vw, 14px);
+  font-size: clamp(11px, 1.35vw, 13px);
   font-weight: 850;
+  line-height: 1.25;
   text-align: center;
 }
 
@@ -2001,6 +2013,8 @@ body.search-mode .results-view {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 0;
+  overflow-wrap: anywhere;
   opacity: 0;
   transform: translateY(38%);
   animation: pikiMessageCycle 12.5s ease-in-out infinite;
@@ -2104,8 +2118,14 @@ body.search-mode .results-view {
     padding: clamp(5px, 1.5vw, 6px) clamp(7px, 2vw, 9px);
   }
 
+  .piki-center-stage {
+    gap: clamp(2px, 0.7vw, 4px);
+  }
+
   .piki-message-rail {
-    font-size: clamp(11px, 3vw, 13px);
+    width: min(100%, clamp(86px, 26vw, 112px));
+    min-height: clamp(38px, 10vw, 48px);
+    font-size: clamp(10px, 2.7vw, 11px);
   }
 }
 

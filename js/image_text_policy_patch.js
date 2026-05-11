@@ -124,12 +124,12 @@ function showMobileVisionDebug(title, rows){
           global.GeneralSearchState.currentPage=1;
         }
         const q=getCurrentGeneralQuery();
-        if(!q||!global.ThisOneAPI||!global.ThisOneAPI.requestSearch||!global.ThisOneUI||!global.ThisOneUI.renderResults){
+        if(!q||!global.ThisOneAPI||!global.ThisOneAPI.requestSearchRaw||!global.ThisOneUI||!global.ThisOneUI.renderResults){
           console.warn('[ThisOne][sort]', 'sort click ignored: missing query or API', {q, apiSort, mode});
           return;
         }
         console.debug('[ThisOne][sort]', 'reload general results', {q, apiSort, mode});
-        const data=await global.ThisOneAPI.requestSearch(q, {}, 1, 30, apiSort);
+        const data=await global.ThisOneAPI.requestSearchRaw(q, {}, 1, 30, apiSort);
         const rawItems=data&&data.items||[];
         const items=rankItemsForMode(rawItems, q, mode);
         if(global.GeneralSearchState){

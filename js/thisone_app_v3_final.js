@@ -690,7 +690,7 @@ async function handleNormalSearch(context) {
     searchData = await rawSearchPromise;
   } catch (rawErr) {
     console.warn('[ThisOne] raw search failed, falling back to legacy search endpoint:', rawErr);
-    searchData = await window.ThisOneAPI.requestSearch(context.finalSearchQuery, expertSettings);
+    searchData = await window.ThisOneAPI.requestSearch(context.finalSearchQuery, { ...expertSettings, mode: 'general' });
   }
 
   // [신규] 결과가 0건일 경우 재시도 로직 (다단계 검색)
@@ -1327,7 +1327,7 @@ async function refreshGeneralResults() {
   
   try {
     if (!GeneralSearchState.resultMode) GeneralSearchState.resultMode = 'normal';
-    const searchData = await window.ThisOneAPI.requestSearch(
+    const searchData = await window.ThisOneAPI.requestSearchRaw(
       GeneralSearchState.query, 
       {}, 
       start, 

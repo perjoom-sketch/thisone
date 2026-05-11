@@ -421,21 +421,26 @@ function renderAnalysisProgress() {
           <div class="piki-source-stack">
             ${sourceLabels.map((label, idx) => `<span class="piki-source-card${idx === 3 ? ' piki-source-card-toss' : ''}" style="--piki-card-index:${idx};">${label}</span>`).join('')}
           </div>
-          <button class="piki-figure-btn" type="button" aria-label="피키 반응 보기">
-            <span class="piki-speech" aria-hidden="true">좋은 거 찾는 중!</span>
-            <span class="piki-sweat piki-sweat-a" aria-hidden="true"></span>
-            <span class="piki-sweat piki-sweat-b" aria-hidden="true"></span>
-            <img
-              class="piki-figure-img"
-              src="/assets/piki/piki-working.png"
-              data-working-src="/assets/piki/piki-working.png"
-              data-annoyed-src="/assets/piki/piki-annoyed.png"
-              data-throwing-src="/assets/piki/piki-throwing.png"
-              alt=""
-              loading="eager"
-              decoding="async"
-            >
-          </button>
+          <div class="piki-center-stage">
+            <button class="piki-figure-btn" type="button" aria-label="피키 반응 보기">
+              <span class="piki-speech" aria-hidden="true">좋은 거 찾는 중!</span>
+              <span class="piki-sweat piki-sweat-a" aria-hidden="true"></span>
+              <span class="piki-sweat piki-sweat-b" aria-hidden="true"></span>
+              <img
+                class="piki-figure-img"
+                src="/assets/piki/piki-working.png"
+                data-working-src="/assets/piki/piki-working.png"
+                data-annoyed-src="/assets/piki/piki-annoyed.png"
+                data-throwing-src="/assets/piki/piki-throwing.png"
+                alt=""
+                loading="eager"
+                decoding="async"
+              >
+            </button>
+            <div class="piki-message-rail" aria-label="피키 분석 진행 메시지">
+              ${loadingMessages.map((message, idx) => `<span class="piki-message" style="--piki-message-index:${idx};">${message}</span>`).join('')}
+            </div>
+          </div>
           <div class="piki-signal-board">
             <span class="piki-signal-chip piki-signal-plus">
               <span class="piki-signal-main">좋은것</span>
@@ -450,9 +455,6 @@ function renderAnalysisProgress() {
               <span class="piki-signal-sub">단점 · AS · 소음 · 무게 · 관리 불편</span>
             </span>
           </div>
-        </div>
-        <div class="piki-message-rail" aria-label="피키 분석 진행 메시지">
-          ${loadingMessages.map((message, idx) => `<span class="piki-message" style="--piki-message-index:${idx};">${message}</span>`).join('')}
         </div>
       </div>
       <div class="analysis-ad-slot" aria-label="ThisOne 자체 광고" data-ad-slot="analysis" data-ad-size="leaderboard">

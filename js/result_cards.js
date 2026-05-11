@@ -106,17 +106,15 @@ function extractModelName(name) {
     const reviewSignalBonus = numberOrZero(card?.reviewSignalBonus);
     const searchSignalScore = numberOrZero(card?.searchSignalScore);
     const strongestMatch = compactText(reviewSignals?.strongestMatch).toLowerCase();
+    const matchedCount = numberOrZero(reviewSignals.matchedCount);
     const positiveHits = Number(reviewSignals?.positiveHits || 0);
     const negativeHits = Number(reviewSignals?.negativeHits || 0);
-    const confidence = Number(reviewSignals?.confidence || 0);
-    const hasModelMatchedSignal = strongestMatch === 'medium' || strongestMatch === 'strong';
+    const hasReviewMatch = ['weak', 'medium', 'strong'].includes(strongestMatch);
 
-    if (!hasModelMatchedSignal) return '';
     if (!Number.isFinite(positiveHits) || !Number.isFinite(negativeHits)) return '';
     if (negativeHits > positiveHits) return '';
-    if (!Number.isFinite(confidence) || confidence < 0.3) return '';
 
-    const isEligible = reviewSignalBonus > 0 || (searchSignalScore > 0 && positiveHits >= negativeHits);
+    const isEligible = matchedCount > 0 || searchSignalScore > 0 || reviewSignalBonus > 0 || hasReviewMatch;
     if (!isEligible) return '';
 
     const sanitizeTitleText = (value) => {
@@ -131,7 +129,6 @@ function extractModelName(name) {
       ? reviewSignals.publicReasons.map(sanitizeTitleText).filter(Boolean)
       : [];
     const summary = sanitizeTitleText(reviewSignals.publicSummary);
-    const matchedCount = numberOrZero(reviewSignals.matchedCount);
     const titleParts = reasons.length
       ? reasons.slice(0, 3)
       : summary
@@ -533,14 +530,12 @@ function getBadgeClass(text) {
       ? `<span class="row-badge-item row-label-badge">${esc(normalizeBadgeText(card.label))}</span>`
       : '';
 
-    const recommendationBadgesHtml = !hideRecommendationUi
-      ? [
-          labelBadge,
-          badgesHtml,
-          renderReviewSignalBadge(card),
-          renderYoutubeReputationBadge(card)
-        ].join('')
-      : '';
+    const recommendationBadgesHtml = [
+      !hideRecommendationUi ? labelBadge : '',
+      !hideRecommendationUi ? badgesHtml : '',
+      renderReviewSignalBadge(card),
+      renderYoutubeReputationBadge(card)
+    ].join('');
 
     const positiveSignalBadgesHtml = !hideRecommendationUi
       ? renderPositiveSignalBadges(card)

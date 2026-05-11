@@ -397,6 +397,15 @@ function renderAnalysisProgress() {
   const existing = document.querySelector('.analysis-progress-wrap');
   if (existing) existing.remove();
 
+  const sourceLabels = ['쇼핑몰', '홈쇼핑', '전문몰', '블로그', '티스토리', '영상리뷰', '커뮤니티', '후기'];
+  const loadingMessages = [
+    '피키가 열심히 출처를 확인하는 중...',
+    '피키가 광고성 정보를 걸러내는 중...',
+    '피키가 쓸만한 후기를 찾아내는 중...',
+    '피키가 플러스 신호와 주의 신호를 나누는 중...',
+    '피키가 광고가 아닌 추천으로 정리하는 중...'
+  ];
+
   const node = document.createElement('div');
   node.className = 'ai-result analysis-progress-wrap';
   node.setAttribute('role', 'status');
@@ -406,6 +415,35 @@ function renderAnalysisProgress() {
       <div class="ai-label analysis-progress-title">
         <span class="dot">${window.MINI_SCOPE || '✦'}</span>
         <span>지능형 분석 리포트</span>
+      </div>
+      <div class="piki-analysis-loader" data-piki-state="working">
+        <div class="piki-workbench">
+          <div class="piki-source-stack">
+            ${sourceLabels.map((label, idx) => `<span class="piki-source-card${idx === 3 ? ' piki-source-card-toss' : ''}" style="--piki-card-index:${idx};">${label}</span>`).join('')}
+          </div>
+          <button class="piki-figure-btn" type="button" aria-label="피키 반응 보기">
+            <span class="piki-speech" aria-hidden="true">좋은 거 찾는 중!</span>
+            <span class="piki-sweat piki-sweat-a" aria-hidden="true"></span>
+            <span class="piki-sweat piki-sweat-b" aria-hidden="true"></span>
+            <img
+              class="piki-figure-img"
+              src="/assets/piki/piki-working.png"
+              data-working-src="/assets/piki/piki-working.png"
+              data-annoyed-src="/assets/piki/piki-annoyed.png"
+              data-throwing-src="/assets/piki/piki-throwing.png"
+              alt=""
+              loading="eager"
+              decoding="async"
+            >
+          </button>
+          <div class="piki-signal-board">
+            <span class="piki-signal-chip piki-signal-plus">플러스 신호</span>
+            <span class="piki-signal-chip piki-signal-caution">주의 신호</span>
+          </div>
+        </div>
+        <div class="piki-message-rail" aria-label="피키 분석 진행 메시지">
+          ${loadingMessages.map((message, idx) => `<span class="piki-message" style="--piki-message-index:${idx};">${message}</span>`).join('')}
+        </div>
       </div>
       <ol class="analysis-step-list">
         <li class="analysis-step is-active" data-analysis-step="collect">
@@ -459,9 +497,76 @@ function renderAnalysisProgress() {
       </div>
     </div>
   `;
+
+  const pikiButton = node.querySelector('.piki-figure-btn');
+  const pikiImage = node.querySelector('.piki-figure-img');
+  const pikiLoader = node.querySelector('.piki-analysis-loader');
+  const PIKI_WORKING_MS = 1600;
+  const PIKI_THROWING_MS = 560;
+  const PIKI_ANNOYED_MS = 900;
+  let pikiLoopTimer = null;
+  let reactionTimer = null;
+  let pikiLoopStopped = false;
+
+  const clearPikiTimers = () => {
+    if (pikiLoopTimer) clearTimeout(pikiLoopTimer);
+    if (reactionTimer) clearTimeout(reactionTimer);
+    pikiLoopTimer = null;
+    reactionTimer = null;
+  };
+
+  const setPikiState = (state = 'working') => {
+    const nextState = state === 'throwing' ? 'throwing' : state === 'annoyed' ? 'annoyed' : 'working';
+    const srcKey = `${nextState}Src`;
+    const nextSrc = pikiImage?.dataset?.[srcKey] || pikiImage?.dataset?.workingSrc;
+    if (pikiLoader) pikiLoader.dataset.pikiState = nextState;
+    if (pikiImage && nextSrc && pikiImage.getAttribute('src') !== nextSrc) pikiImage.setAttribute('src', nextSrc);
+  };
+
+  const schedulePikiLoop = (state = 'working') => {
+    if (pikiLoopStopped) return;
+    if (pikiLoopTimer) clearTimeout(pikiLoopTimer);
+    setPikiState(state);
+    const nextState = state === 'working' ? 'throwing' : 'working';
+    const delay = state === 'working' ? PIKI_WORKING_MS : PIKI_THROWING_MS;
+    pikiLoopTimer = setTimeout(() => schedulePikiLoop(nextState), delay);
+  };
+
+  const stopPikiLoop = () => {
+    pikiLoopStopped = true;
+    clearPikiTimers();
+  };
+
+  const showShortReaction = (state = 'annoyed') => {
+    if (pikiLoopStopped) return;
+    if (pikiLoopTimer) clearTimeout(pikiLoopTimer);
+    if (reactionTimer) clearTimeout(reactionTimer);
+    setPikiState(state);
+    reactionTimer = setTimeout(() => {
+      reactionTimer = null;
+      schedulePikiLoop('working');
+    }, PIKI_ANNOYED_MS);
+  };
+
+  pikiButton?.addEventListener('mouseenter', () => showShortReaction('annoyed'));
+  pikiButton?.addEventListener('focus', () => showShortReaction('annoyed'));
+  pikiButton?.addEventListener('pointerup', (event) => {
+    event.stopPropagation();
+    showShortReaction('annoyed');
+  });
+
+  node.stopPikiLoop = stopPikiLoop;
+  node.setPikiState = setPikiState;
+  const nativeRemove = node.remove.bind(node);
+  node.remove = () => {
+    stopPikiLoop();
+    nativeRemove();
+  };
+
   const generalWrap = content.querySelector('.general-results-wrap');
   if (generalWrap) content.insertBefore(node, generalWrap);
   else appendAndScroll(node);
+  schedulePikiLoop('working');
   return node;
 }
 
@@ -480,6 +585,13 @@ function showAnalysisFailure(message = 'AI 분석에 실패했습니다. 일반 
   if (!wrap) return;
   wrap.classList.add('analysis-progress-failed');
   updateAnalysisProgress('ai', 'failed');
+  wrap.stopPikiLoop?.();
+  wrap.setPikiState?.('throwing');
+  const pikiLoader = wrap.querySelector('.piki-analysis-loader');
+  const pikiImage = wrap.querySelector('.piki-figure-img');
+  const throwingSrc = pikiImage?.dataset?.throwingSrc;
+  if (pikiLoader) pikiLoader.dataset.pikiState = 'throwing';
+  if (pikiImage && throwingSrc && pikiImage.getAttribute('src') !== throwingSrc) pikiImage.setAttribute('src', throwingSrc);
   const panel = wrap.querySelector('.analysis-progress-panel');
   const existing = wrap.querySelector('.analysis-failure-message');
   if (existing) existing.remove();

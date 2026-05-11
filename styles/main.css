@@ -1785,7 +1785,9 @@ body.search-mode .results-view {
 }
 
 .piki-signal-board {
-  justify-content: flex-start;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
 }
 
 .piki-source-card,
@@ -1821,16 +1823,50 @@ body.search-mode .results-view {
 }
 
 .piki-signal-chip {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  width: min(100%, clamp(116px, 18vw, 172px));
   border: 1px solid rgba(147, 197, 253, 0.7);
-  padding: clamp(7px, 1.4vw, 10px) clamp(9px, 1.8vw, 13px);
-  font-size: clamp(11px, 1.3vw, 13px);
+  padding: clamp(6px, 1.1vw, 9px) clamp(8px, 1.5vw, 12px);
+  font-size: clamp(10px, 1.15vw, 12px);
   font-weight: 900;
+  line-height: 1.2;
+  white-space: normal;
   animation: pikiSignalSort 2.8s ease-in-out infinite;
+}
+
+.piki-signal-main,
+.piki-signal-sub {
+  display: block;
+  min-width: 0;
+}
+
+.piki-signal-main {
+  font-size: clamp(11px, 1.25vw, 13px);
+  letter-spacing: -0.02em;
+}
+
+.piki-signal-sub {
+  margin-top: clamp(2px, 0.45vw, 4px);
+  color: currentColor;
+  font-size: clamp(8px, 0.95vw, 10px);
+  font-weight: 800;
+  line-height: 1.25;
+  opacity: 0.72;
+  letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
 }
 
 .piki-signal-plus {
   background: #ecfdf5;
   color: #047857;
+}
+
+.piki-signal-value {
+  background: #eff6ff;
+  color: #1d4ed8;
+  animation-delay: 0.22s;
 }
 
 .piki-signal-caution {
@@ -2034,6 +2070,19 @@ body.search-mode .results-view {
   .piki-signal-chip {
     padding: clamp(5px, 1.7vw, 7px) clamp(6px, 2vw, 8px);
     font-size: clamp(10px, 2.7vw, 11px);
+  }
+
+  .piki-signal-chip {
+    width: 100%;
+  }
+
+  .piki-signal-main {
+    font-size: clamp(10px, 2.8vw, 11px);
+  }
+
+  .piki-signal-sub {
+    font-size: clamp(8px, 2.2vw, 9px);
+    line-height: 1.2;
   }
 
   .piki-source-card:nth-child(n + 6) {

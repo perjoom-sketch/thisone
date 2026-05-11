@@ -530,12 +530,14 @@ function getBadgeClass(text) {
       ? `<span class="row-badge-item row-label-badge">${esc(normalizeBadgeText(card.label))}</span>`
       : '';
 
-    const recommendationBadgesHtml = [
-      !hideRecommendationUi ? labelBadge : '',
-      !hideRecommendationUi ? badgesHtml : '',
-      renderReviewSignalBadge(card),
-      renderYoutubeReputationBadge(card)
-    ].join('');
+    const recommendationBadgesHtml = !hideRecommendationUi
+      ? [
+          labelBadge,
+          badgesHtml,
+          renderReviewSignalBadge(card),
+          renderYoutubeReputationBadge(card)
+        ].join('')
+      : '';
 
     const positiveSignalBadgesHtml = !hideRecommendationUi
       ? renderPositiveSignalBadges(card)

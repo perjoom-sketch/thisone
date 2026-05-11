@@ -20,6 +20,7 @@ try {
 }
 
 const SEARCH_CACHE_TTL_SECONDS = 3600;
+const EXTERNAL_SIGNAL_CANDIDATE_LIMIT = 10;
 const EXACT_FIRST_MIN_RESULTS = 3;
 const YOUTUBE_REPUTATION_TIMEOUT_MS = Number(process.env.YOUTUBE_REPUTATION_TIMEOUT_MS || 3500);
 const REVIEW_SIGNALS_TIMEOUT_MS = Number(process.env.REVIEW_SIGNALS_TIMEOUT_MS || 3000);
@@ -58,7 +59,7 @@ function buildExpertSettingsHashSource(query, { start, display, sort }){
   };
 }
 function buildSearchCacheKey(normalizedQuery, settingsHashSource){
-  return `search:v4:${encodeURIComponent(normalizedQuery)}:${sha1Short(stableStringify(settingsHashSource))}`;
+  return `search:v5:${encodeURIComponent(normalizedQuery)}:${sha1Short(stableStringify(settingsHashSource))}`;
 }
 async function readSearchCache(key){
   if (!kv || !key) return null;
@@ -584,10 +585,14 @@ async function handler(req,res){
     const restoredRentalCount = Math.max(0, rentalRestoredItems.length - universalItems.length);
     const restoredRecurringOfferCount = Math.max(0, restoredItems.length - rentalRestoredItems.length);
 
+    const externalSignalCandidateLimit = Math.min(EXTERNAL_SIGNAL_CANDIDATE_LIMIT, restoredItems.length);
+    const externalSignalCandidates = restoredItems.slice(0, externalSignalCandidateLimit);
+    const externalSignalRemainder = restoredItems.slice(externalSignalCandidateLimit);
+
     const youtubeStartAt = Date.now();
     const youtubeReputation = await enrichYoutubeReputation({
       query: improvedQ,
-      items: restoredItems,
+      items: externalSignalCandidates,
       apiKey: process.env.YOUTUBE_API_KEY,
       enabled: isYoutubeReputationEnabled() && start === 1,
       timeoutMs: YOUTUBE_REPUTATION_TIMEOUT_MS,
@@ -610,7 +615,8 @@ async function handler(req,res){
       writeCache: writeReviewSignalsCache
     });
     const reviewSignalsDurationMs = Date.now() - reviewSignalsStartAt;
-    const recurringOfferPolicy = applyRecurringOfferPolicy(attachPositiveSignals(reviewSignals.items), settingsResult.settings);
+    const signalScopedItems = [...reviewSignals.items, ...externalSignalRemainder];
+    const recurringOfferPolicy = applyRecurringOfferPolicy(attachPositiveSignals(signalScopedItems), settingsResult.settings);
     const finalItems = recurringOfferPolicy.items;
     const debugInfo = buildDebugInfo(youtubeReputation, youtubeDurationMs, reviewSignals, reviewSignalsDurationMs);
 
@@ -636,8 +642,8 @@ async function handler(req,res){
         note: 'freeShipping only applies when upstream delivery text is available'
       },
       universalFilterDebug:universalResult.debug||null,
-      youtubeReputationDebug:youtubeReputation.debug||null,
-      reviewSignalsDebug:reviewSignals.debug||null,
+      youtubeReputationDebug:{ ...(youtubeReputation.debug || {}), scopeLimit: externalSignalCandidateLimit },
+      reviewSignalsDebug:{ ...(reviewSignals.debug || {}), scopeLimit: externalSignalCandidateLimit },
       _cached: false,
       searchCacheDebug: {
         key: searchCacheKey,

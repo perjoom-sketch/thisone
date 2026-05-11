@@ -17,6 +17,7 @@
       --green-soft: #eaf8f0;
       --red-soft: #fff0f0;
       --amber-soft: #fff7e6;
+      --gray-soft: #f1f5f9;
     }
     * { box-sizing: border-box; }
     body {
@@ -74,12 +75,12 @@
     }
     button:disabled { opacity: 0.55; cursor: wait; }
     .status { min-height: 1.5rem; color: var(--muted); font-size: clamp(0.85rem, 1.5vw, 0.95rem); }
-    .metric-list, .result-list, .product-list {
+    .metric-list, .query-list, .result-list, .product-list, .evidence-list {
       display: flex;
       flex-direction: column;
       gap: clamp(0.5rem, 1.5vw, 0.8rem);
     }
-    .metric-row, .result-row, .product-row {
+    .metric-row, .query-item, .result-row, .product-row, .evidence-row {
       display: flex;
       gap: clamp(0.6rem, 2vw, 1rem);
       align-items: flex-start;
@@ -110,9 +111,10 @@
     .pill.good { background: var(--green-soft); color: #166534; }
     .pill.bad { background: var(--red-soft); color: #991b1b; }
     .pill.warn { background: var(--amber-soft); color: #9a5b00; }
-    .result-main, .product-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.35rem; }
-    .result-title, .product-title { font-weight: 760; overflow-wrap: anywhere; line-height: 1.35; }
-    .snippet { color: #475569; line-height: 1.5; overflow-wrap: anywhere; }
+    .pill.neutral { background: var(--gray-soft); color: #475569; }
+    .result-main, .product-main, .query-main, .evidence-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+    .result-title, .product-title, .query-title { font-weight: 760; overflow-wrap: anywhere; line-height: 1.35; }
+    .snippet { color: #475569; line-height: 1.5; overflow-wrap: anywhere; font-size: clamp(0.85rem, 1.5vw, 0.95rem); }
     .link { color: #2563eb; overflow-wrap: anywhere; text-decoration: none; }
     .side {
       flex: 0 0 clamp(8rem, 24vw, 14rem);
@@ -135,7 +137,7 @@
     @media (max-width: 640px) {
       main { width: min(96vw, 72rem); }
       .query-row { gap: 0.5rem; }
-      .metric-row, .result-row, .product-row { gap: 0.55rem; }
+      .metric-row, .query-item, .result-row, .product-row, .evidence-row { gap: 0.55rem; }
       .metric-label { flex-basis: clamp(6rem, 30vw, 8rem); }
       .side { flex-basis: clamp(6.5rem, 28vw, 8rem); }
     }
@@ -145,7 +147,7 @@
   <main>
     <header>
       <h1>Review Signal Diagnostics</h1>
-      <p>Serper 또는 Google CSE 외부 검색 신호와 상품별 reviewSignals 매칭 결과를 관리자용으로 확인한다. 이 화면은 원문 snippet을 일반 사용자 카드에 노출하지 않는다.</p>
+      <p>Serper review-signal 검색어, 검색 결과, plus/minus 키워드, 상품별 evidence와 최종 판정을 관리자용으로 확인한다. 이 화면은 production ranking이나 사용자 카드 UI를 변경하지 않는다.</p>
       <form class="query-row" id="form">
         <input id="query" name="q" value="로보락 S8 MaxV Ultra" autocomplete="off" aria-label="검색어">
         <button id="run" type="submit">진단 실행</button>
@@ -154,17 +156,22 @@
     </header>
 
     <section>
-      <h2>1. search_signals debug</h2>
+      <h2>1. 진단 요약</h2>
       <div class="metric-list" id="debugList"><div class="empty">아직 진단 결과가 없습니다.</div></div>
     </section>
 
     <section>
-      <h2>2. 외부 검색 결과</h2>
+      <h2>2. 실제 검색 쿼리</h2>
+      <div class="query-list" id="searchedQueries"><div class="empty">Serper 검색 쿼리가 여기에 표시됩니다.</div></div>
+    </section>
+
+    <section>
+      <h2>3. Serper-derived 검색 결과와 plus/minus 키워드</h2>
       <div class="result-list" id="externalResults"><div class="empty">외부 검색 결과가 여기에 표시됩니다.</div></div>
     </section>
 
     <section>
-      <h2>3. 상품별 매칭 결과</h2>
+      <h2>4. 상품별 evidence와 최종 판정</h2>
       <div class="product-list" id="products"><div class="empty">상품별 매칭 결과가 여기에 표시됩니다.</div></div>
     </section>
   </main>
@@ -175,6 +182,7 @@
     const runButton = document.getElementById('run');
     const statusEl = document.getElementById('status');
     const debugList = document.getElementById('debugList');
+    const searchedQueriesEl = document.getElementById('searchedQueries');
     const externalResults = document.getElementById('externalResults');
     const products = document.getElementById('products');
 
@@ -187,22 +195,61 @@
       return `<span class="pill ${cls}">${value ? 'true' : 'false'}</span>`;
     }
 
-    function renderDebug(debug) {
+    function htmlValue(value) {
+      return { html: value };
+    }
+
+    function renderMetricValue(value) {
+      if (value && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, 'html')) return value.html;
+      return esc(value);
+    }
+
+    function classificationPill(value) {
+      const normalized = String(value || 'neutral');
+      const cls = normalized === 'plus' ? 'good' : normalized === 'minus' ? 'bad' : normalized === 'mixed' ? 'warn' : 'neutral';
+      return `<span class="pill ${cls}">${esc(normalized)}</span>`;
+    }
+
+    function keywordPills(keywords, cls, fallback) {
+      if (!Array.isArray(keywords) || keywords.length === 0) return `<span class="pill neutral">${esc(fallback)}</span>`;
+      return keywords.map((keyword) => `<span class="pill ${cls}">${esc(keyword)}</span>`).join('');
+    }
+
+    function renderDebug(data) {
+      const debug = data?.search_signals;
       if (!debug) {
         debugList.innerHTML = '<div class="empty">search_signals debug가 없습니다.</div>';
         return;
       }
       const rows = [
-        ['provider', debug.provider || '-'],
-        ['called', boolPill(debug.called === true)],
-        ['success', boolPill(debug.success === true)],
-        ['cached', boolPill(debug.cached === true)],
+        ['provider', data.provider || debug.provider || '-'],
+        ['candidateSource', data.candidateSource || '-'],
+        ['called', htmlValue(boolPill(debug.called === true))],
+        ['success', htmlValue(boolPill(debug.success === true))],
+        ['cached', htmlValue(boolPill(debug.cached === true))],
         ['resultCount', Number(debug.resultCount || 0).toLocaleString()],
         ['matchedCount', Number(debug.matchedCount || 0).toLocaleString()],
+        ['overallScore', data.scores ? `${Number(data.scores.netSignalScore || 0).toLocaleString()} (plus ${data.scores.positiveHits || 0} / minus ${data.scores.negativeHits || 0})` : '-'],
+        ['finalClassification', htmlValue(classificationPill(data.finalClassification))],
         ['durationMs', `${Number(debug.durationMs || 0).toLocaleString()} ms`],
         ['error', debug.error || '-']
       ];
-      debugList.innerHTML = rows.map(([label, value]) => `<div class="metric-row"><div class="metric-label">${esc(label)}</div><div class="metric-value">${typeof value === 'string' ? esc(value) : value}</div></div>`).join('');
+      debugList.innerHTML = rows.map(([label, value]) => `<div class="metric-row"><div class="metric-label">${esc(label)}</div><div class="metric-value">${renderMetricValue(value)}</div></div>`).join('');
+    }
+
+    function renderSearchedQueries(queries) {
+      if (!Array.isArray(queries) || queries.length === 0) {
+        searchedQueriesEl.innerHTML = '<div class="empty">검색 쿼리 정보가 없습니다.</div>';
+        return;
+      }
+      searchedQueriesEl.innerHTML = queries.map((item) => `
+        <article class="query-item">
+          <div class="query-main">
+            <div class="query-title">${esc(item.query || '-')}</div>
+            <div class="snippet">provider: ${esc(item.provider || '-')}</div>
+          </div>
+        </article>
+      `).join('');
     }
 
     function renderExternalResults(results) {
@@ -210,16 +257,39 @@
         externalResults.innerHTML = '<div class="empty">외부 검색 결과가 없습니다.</div>';
         return;
       }
-      externalResults.innerHTML = results.map((item) => `
+      externalResults.innerHTML = results.map((item, index) => `
         <article class="result-row">
           <div class="result-main">
-            <div class="result-title">${esc(item.title || '-')}</div>
+            <div class="result-title">#${index + 1} ${esc(item.title || '-')}</div>
             <div class="snippet">${esc(item.snippet || '-')}</div>
             <a class="link" href="${esc(item.link || '#')}" target="_blank" rel="noreferrer">${esc(item.link || '-')}</a>
+            <div>${keywordPills(item.matchedPositiveKeywords, 'good', 'plus 없음')} ${keywordPills(item.matchedNegativeKeywords, 'bad', 'minus 없음')}</div>
           </div>
-          <div class="side"><span class="pill">${esc(item.displayLink || '-')}</span></div>
+          <div class="side">
+            ${classificationPill(item.classification)}
+            <span>score ${Number(item.signalScore || 0).toLocaleString()}</span>
+            <span>${esc(item.displayLink || '-')}</span>
+          </div>
         </article>
       `).join('');
+    }
+
+    function renderEvidence(evidence) {
+      if (!Array.isArray(evidence) || evidence.length === 0) return '<div class="empty">이 상품에 사용된 plus/minus evidence가 없습니다.</div>';
+      return `<div class="evidence-list">${evidence.map((item) => `
+        <article class="evidence-row">
+          <div class="evidence-main">
+            <div class="result-title">#${Number(item.resultIndex || 0) + 1} ${esc(item.title || '-')}</div>
+            <div class="snippet">${esc(item.snippet || '-')}</div>
+            <div class="snippet">match: ${esc(item.match?.matchStrength || 'none')} · ${esc(item.match?.reason || '-')} · weight ${Number(item.weight || 0).toFixed(2)}</div>
+            <div>${keywordPills(item.matchedPositiveKeywords, 'good', 'plus 없음')} ${keywordPills(item.matchedNegativeKeywords, 'bad', 'minus 없음')}</div>
+          </div>
+          <div class="side">
+            ${classificationPill(item.classification)}
+            <span>+${Number(item.weightedPositiveHits || 0).toFixed(2)}</span>
+            <span>-${Number(item.weightedNegativeHits || 0).toFixed(2)}</span>
+          </div>
+        </article>`).join('')}</div>`;
     }
 
     function renderProducts(items) {
@@ -227,44 +297,43 @@
         products.innerHTML = '<div class="empty">상품 결과가 없습니다.</div>';
         return;
       }
-      products.innerHTML = items.map((item) => {
-        const signals = Array.isArray(item.positiveSignals) && item.positiveSignals.length
-          ? item.positiveSignals.map((signal) => `<span class="pill good">${esc(signal)}</span>`).join('')
-          : '<span class="pill warn">positiveSignals 없음</span>';
-        return `
-          <article class="product-row">
-            <div class="product-main">
-              <div class="product-title">${esc(item.name || '-')}</div>
-              <div>${esc(item.store || '-')} · ${esc(item.priceText || (item.price ? `${Number(item.price).toLocaleString()}원` : '-'))}</div>
-              <div class="snippet">searchSignalReasons: ${esc(item.searchSignalReasons || '-')}</div>
-              <div class="signal-stack" style="justify-content:flex-start;">${signals}</div>
-            </div>
-            <div class="side">
-              <span>matched ${Number(item.reviewSignals?.matchedCount || 0).toLocaleString()}</span>
-              <span>positive ${Number(item.positiveHits || 0).toLocaleString()}</span>
-              <span>negative ${Number(item.negativeHits || 0).toLocaleString()}</span>
-              <span>confidence ${Number(item.confidence || 0).toFixed(4)}</span>
-              <span class="pill">score ${Number(item.searchSignalScore || 0)}</span>
-            </div>
-          </article>
-        `;
-      }).join('');
+      products.innerHTML = items.map((item) => `
+        <article class="product-row">
+          <div class="product-main">
+            <div class="product-title">${esc(item.name || '-')}</div>
+            <div class="snippet">${esc(item.store || '-')} · ${esc(item.priceText || (item.price ? `${Number(item.price).toLocaleString()}원` : '-'))}</div>
+            <div class="snippet">searchSignalReasons: ${esc(item.searchSignalReasons || '-')}</div>
+            ${renderEvidence(item.evidence)}
+          </div>
+          <div class="side">
+            ${classificationPill(item.finalClassification)}
+            <span>matched ${Number(item.reviewSignals?.matchedCount || 0).toLocaleString()}</span>
+            <span>weak ${Number(item.reviewSignals?.weakMatchedCount || 0).toLocaleString()}</span>
+            <span>plus ${Number(item.scores?.positiveHits || 0).toFixed(2)}</span>
+            <span>minus ${Number(item.scores?.negativeHits || 0).toFixed(2)}</span>
+            <span>confidence ${Number(item.scores?.confidence || 0).toFixed(4)}</span>
+            <span class="pill">score ${Number(item.scores?.searchSignalScore || 0)}</span>
+          </div>
+        </article>
+      `).join('');
     }
 
     async function runDiagnostics(query) {
       runButton.disabled = true;
       statusEl.textContent = '진단 요청 중...';
       try {
-        const response = await fetch(`/api/review-signal-diagnostics?q=${encodeURIComponent(query)}`);
+        const response = await fetch(`/api/diagnose-review-signals?q=${encodeURIComponent(query)}`);
         const data = await response.json();
         if (!response.ok || data.ok === false) throw new Error(data.error || 'diagnostics failed');
         statusEl.textContent = `완료: ${data.query} → ${data.improvedQuery || data.query}`;
-        renderDebug(data.search_signals);
-        renderExternalResults(data.externalResults);
+        renderDebug(data);
+        renderSearchedQueries(data.searchedQueries);
+        renderExternalResults(data.rawSerperResults || data.externalResults);
         renderProducts(data.products);
       } catch (error) {
         statusEl.textContent = `오류: ${error.message}`;
         renderDebug(null);
+        renderSearchedQueries([]);
         renderExternalResults([]);
         renderProducts([]);
       } finally {

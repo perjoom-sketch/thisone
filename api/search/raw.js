@@ -5,7 +5,8 @@ const {
   applySearchSettings,
   fetchNaverShopItemsExactFirst,
   improveQuery,
-  mapNaverItems
+  mapNaverItems,
+  applyRecurringOfferPolicy
 } = searchHandler._private || {};
 
 async function handler(req, res) {
@@ -16,7 +17,7 @@ async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
 
   try {
-    if (!applySearchSettings || !fetchNaverShopItemsExactFirst || !improveQuery || !mapNaverItems) {
+    if (!applySearchSettings || !fetchNaverShopItemsExactFirst || !improveQuery || !mapNaverItems || !applyRecurringOfferPolicy) {
       return res.status(500).json({ error: 'Search helpers are unavailable' });
     }
 
@@ -45,16 +46,18 @@ async function handler(req, res) {
 
     const mappedItems = mapNaverItems(data.items);
     const settingsResult = applySearchSettings(mappedItems, req.query);
+    const recurringOfferPolicy = applyRecurringOfferPolicy(settingsResult.items, settingsResult.settings);
 
     return res.status(200).json({
       query: q,
       improvedQuery: improvedQ,
       total: data.total || 0,
-      items: settingsResult.items,
+      items: recurringOfferPolicy.items,
       rejectedItems: settingsResult.rejected || [],
       searchSettingsDebug: {
         applied: settingsResult.settings,
         rejectedCount: settingsResult.rejected.length,
+        recurringOfferGuard: recurringOfferPolicy.debug,
         note: 'raw endpoint skips AI filtering and YouTube reputation enrichment'
       },
       naverQueryDebug,

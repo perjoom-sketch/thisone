@@ -14,7 +14,9 @@
     const raw = String(url || '').trim();
     if (!raw) return '';
     try {
-      return new URL(raw).href;
+      const parsed = new URL(raw);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '';
+      return parsed.href;
     } catch (e) {
       return '';
     }
@@ -85,7 +87,9 @@
       const title = escapeHtml(result?.title || href || '제목 없음');
       const snippet = escapeHtml(result?.snippet || '');
       const source = escapeHtml(getSource(result));
-      const linkAttrs = href ? `href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer"` : 'href="#" aria-disabled="true"';
+      const linkAttrs = href
+        ? `href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer"`
+        : 'aria-disabled="true" tabindex="-1"';
 
       return `
         <article class="web-search-result-row">

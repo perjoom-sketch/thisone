@@ -60,11 +60,11 @@
 
   function enterDocumentAIMode() {
     document.body.classList.add('ai-tool-mode', 'document-ai-mode');
-    document.body.classList.remove('instant-answer-mode');
+    document.body.classList.remove('instant-answer-mode', 'web-search-mode');
   }
 
   function exitAIToolMode() {
-    document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode');
+    document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode', 'web-search-mode');
     if (removePasteListener) {
       removePasteListener();
       removePasteListener = null;

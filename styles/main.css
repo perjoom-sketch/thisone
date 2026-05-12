@@ -3019,7 +3019,15 @@ body.ai-tool-mode #msgContainer {
 @media (max-width: 640px) {
   .web-search-panel {
     width: 95%;
-    padding: clamp(0.9rem, 4vw, 1.15rem);
+    padding: calc(env(safe-area-inset-top, 0px) + 1rem) clamp(0.9rem, 4vw, 1.15rem) clamp(0.9rem, 4vw, 1.15rem);
+  }
+
+  .web-search-panel .ai-tool-return {
+    position: sticky;
+    top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
+    z-index: 5;
+    margin-bottom: 1rem;
+    background: #eff6ff;
   }
 
   .web-search-form {

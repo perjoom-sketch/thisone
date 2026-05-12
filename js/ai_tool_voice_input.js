@@ -3,6 +3,8 @@
 
   const UNSUPPORTED_MESSAGE = '이 브라우저에서는 음성 입력을 지원하지 않습니다.';
   const LISTENING_MESSAGE = '듣고 있습니다...';
+  const NO_SPEECH_MESSAGE = '음성이 감지되지 않았습니다.';
+  const SILENCE_TIMEOUT_MS = 5000;
   const TITLE = '음성으로 입력';
   const LISTENING_TITLE = '듣는 중...';
   const MIC_ICON = `
@@ -54,8 +56,26 @@
     input.focus();
   }
 
+  function clearSilenceTimer(controller) {
+    if (!controller?.silenceTimerId) return;
+    clearTimeout(controller.silenceTimerId);
+    controller.silenceTimerId = null;
+  }
+
+  function startSilenceTimer(controller) {
+    clearSilenceTimer(controller);
+    controller.silenceTimerId = setTimeout(() => {
+      controller.silenceTimerId = null;
+      if (!controller.isListening || controller.hasFinalTranscript) return;
+      controller.pendingStatusMessage = NO_SPEECH_MESSAGE;
+      stopController(controller);
+    }, SILENCE_TIMEOUT_MS);
+  }
+
   function stopController(controller) {
-    if (!controller || !controller.isListening) return;
+    if (!controller) return;
+    clearSilenceTimer(controller);
+    if (!controller.isListening) return;
     controller.shouldRefocus = false;
     try { controller.recognition?.stop(); } catch (e) {}
   }
@@ -94,7 +114,10 @@
       status,
       appendMode,
       isListening: false,
-      shouldRefocus: false
+      shouldRefocus: false,
+      silenceTimerId: null,
+      hasFinalTranscript: false,
+      pendingStatusMessage: ''
     };
 
     recognition.lang = 'ko-KR';
@@ -115,7 +138,10 @@
       if (activeController && activeController !== controller) stopController(activeController);
       activeController = controller;
       controller.shouldRefocus = true;
+      controller.hasFinalTranscript = false;
+      controller.pendingStatusMessage = '';
       setListening(true);
+      startSilenceTimer(controller);
     };
 
     recognition.onresult = (event) => {
@@ -124,27 +150,37 @@
         const result = event.results[index];
         if (result?.isFinal) finalTranscript += result[0]?.transcript || '';
       }
-      if (finalTranscript) appendTranscript(input, finalTranscript, appendMode);
+      if (finalTranscript) {
+        controller.hasFinalTranscript = true;
+        clearSilenceTimer(controller);
+        appendTranscript(input, finalTranscript, appendMode);
+      }
     };
 
     recognition.onerror = (event) => {
+      clearSilenceTimer(controller);
       setListening(false);
       const permissionErrors = new Set(['not-allowed', 'permission-denied', 'service-not-allowed']);
       if (permissionErrors.has(event?.error)) {
-        setStatus(status, '마이크 권한을 허용해주세요.');
+        controller.pendingStatusMessage = '마이크 권한을 허용해주세요.';
       } else if (event?.error === 'no-speech') {
-        setStatus(status, '음성이 감지되지 않았습니다.');
+        controller.pendingStatusMessage = NO_SPEECH_MESSAGE;
       } else {
-        setStatus(status, '음성 인식 중 오류가 발생했습니다.');
+        controller.pendingStatusMessage = '음성 인식 중 오류가 발생했습니다.';
       }
+      setStatus(status, controller.pendingStatusMessage);
     };
 
     recognition.onend = () => {
       const shouldFocus = controller.shouldRefocus;
+      const pendingStatusMessage = controller.pendingStatusMessage;
+      clearSilenceTimer(controller);
       setListening(false);
+      if (pendingStatusMessage) setStatus(status, pendingStatusMessage);
       if (activeController === controller) activeController = null;
       if (shouldFocus) input.focus();
       controller.shouldRefocus = false;
+      controller.pendingStatusMessage = '';
     };
 
     button.addEventListener('click', (event) => {
@@ -170,6 +206,7 @@
       stop: () => stopController(controller),
       destroy: () => {
         stopController(controller);
+        clearSilenceTimer(controller);
         controllers.delete(controller);
         if (activeController === controller) activeController = null;
       }

@@ -190,14 +190,17 @@
     uploadButton?.addEventListener('click', () => openFilePicker(uploadInput));
     cameraButton?.addEventListener('click', () => openFilePicker(cameraInput));
 
+    function setSelectedFileStatus(fileInput, label) {
+      const fileName = fileInput?.files?.[0]?.name;
+      if (fileName) setStatus(status, `${label}: ${fileName}`);
+    }
+
     uploadInput?.addEventListener('change', () => {
-      const fileName = uploadInput.files?.[0]?.name;
-      if (fileName) setStatus(status, `선택된 이미지: ${fileName}`);
+      setSelectedFileStatus(uploadInput, '선택된 이미지');
     });
 
     cameraInput?.addEventListener('change', () => {
-      const fileName = cameraInput.files?.[0]?.name;
-      if (fileName) setStatus(status, `선택된 사진: ${fileName}`);
+      setSelectedFileStatus(cameraInput, '선택된 사진');
     });
 
     document.addEventListener('click', (event) => {

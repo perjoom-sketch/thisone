@@ -2491,7 +2491,7 @@ body.search-mode .results-view {
   align-items: center;
   justify-content: center;
   gap: clamp(0.4rem, 1vw, 0.65rem);
-  width: min(100%, 31.25rem);
+  width: auto;
   padding: clamp(0.65rem, 2vw, 0.85rem) clamp(0.95rem, 3vw, 1.25rem);
   border: 0.0625rem solid #bfdbfe;
   border-radius: 999rem;
@@ -2516,11 +2516,6 @@ body.search-mode .results-view {
   white-space: nowrap;
 }
 
-.document-ai-entry-subcopy {
-  color: #475569;
-  font-size: clamp(0.82rem, 1.6vw, 0.92rem);
-  font-weight: 500;
-}
 
 body.search-mode .document-ai-entry-wrap {
   display: none !important;
@@ -2535,9 +2530,5 @@ body.search-mode .document-ai-entry-wrap {
   .document-ai-entry-chip {
     width: auto;
     padding: clamp(0.55rem, 2vw, 0.7rem) clamp(0.85rem, 3vw, 1rem);
-  }
-
-  .document-ai-entry-subcopy {
-    display: none;
   }
 }

@@ -26,11 +26,11 @@ Answer with:
 
   function enterInstantAnswerMode() {
     document.body.classList.add('ai-tool-mode', 'instant-answer-mode');
-    document.body.classList.remove('document-ai-mode');
+    document.body.classList.remove('document-ai-mode', 'web-search-mode');
   }
 
   function exitAIToolMode() {
-    document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode');
+    document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode', 'web-search-mode');
     const container = document.getElementById('msgContainer');
     if (container) container.innerHTML = '';
   }

@@ -69,7 +69,7 @@ Focus on what the user should understand or do next.`;
     const safe = escapeHtml(text || '').trim();
     if (!safe) return '';
 
-    const withBold = safe.replace(/\*\*([^\n*]+)\*\*/g, '<strong>$1</strong>');
+    const withBold = safe.replace(/\*\*([^\n]+?)\*\*/g, '<strong>$1</strong>');
     return withBold
       .replace(/^###\s+(.+)$/gm, '<strong>$1</strong>')
       .replace(/^##\s+(.+)$/gm, '<strong>$1</strong>')

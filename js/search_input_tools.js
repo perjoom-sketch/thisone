@@ -65,18 +65,10 @@
     try { global.toggleFilterModal?.(); } catch (e) {}
   }
 
-  function openDocumentAI(event) {
-    event.preventDefault();
-    event.stopPropagation();
-    closeMenu();
-    global.ThisOneDocumentAI?.open?.();
-  }
-
   function renderMenuItems() {
     if (isMobileLike()) {
       return `
         <button class="search-tool-item" type="button" role="menuitem" data-tool="image"><span aria-hidden="true">🖼️</span><span>사진보관함</span></button>
-        <button class="search-tool-item" type="button" role="menuitem" data-tool="document-ai"><span aria-hidden="true">📄</span><span>문서 풀기</span></button>
         <div class="search-tool-separator" aria-hidden="true"></div>
         <button class="search-tool-item" type="button" role="menuitem" data-tool="settings"><span aria-hidden="true">⚙️</span><span>검색설정</span></button>
       `;
@@ -84,7 +76,6 @@
 
     return `
       <button class="search-tool-item" type="button" role="menuitem" data-tool="image"><span aria-hidden="true">🖼️</span><span>이미지 업로드</span></button>
-      <button class="search-tool-item" type="button" role="menuitem" data-tool="document-ai"><span aria-hidden="true">📄</span><span>문서 풀기</span></button>
       <div class="search-tool-separator" aria-hidden="true"></div>
       <button class="search-tool-item" type="button" role="menuitem" data-tool="settings"><span aria-hidden="true">⚙️</span><span>검색설정</span></button>
     `;
@@ -102,7 +93,6 @@
     `;
     wrap.querySelector('.search-plus-btn')?.addEventListener('click', toggleMenu);
     wrap.querySelector('[data-tool="image"]')?.addEventListener('click', openImageInput);
-    wrap.querySelector('[data-tool="document-ai"]')?.addEventListener('click', openDocumentAI);
     wrap.querySelector('[data-tool="settings"]')?.addEventListener('click', openSearchSettings);
     return wrap;
   }

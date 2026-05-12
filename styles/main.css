@@ -2746,11 +2746,14 @@ body.search-mode .document-ai-entry-wrap {
     justify-content: stretch;
   }
 
-  .instant-answer-panel .ai-tool-mic-button,
   .instant-answer-panel .instant-answer-submit,
-  .document-ai-panel .ai-tool-mic-button,
   .document-ai-panel .document-ai-submit {
     flex: 1 1 0;
+  }
+
+  .instant-answer-panel .ai-tool-mic-button,
+  .document-ai-panel .ai-tool-mic-button {
+    flex: 0 0 auto;
   }
 }
 
@@ -2806,9 +2809,9 @@ body.ai-tool-mode #msgContainer {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(0.35rem, 1vw, 0.5rem);
-  min-block-size: clamp(2.5rem, 8vw, 2.9rem);
-  padding: clamp(0.62rem, 1.8vw, 0.82rem) clamp(0.85rem, 2.5vw, 1.1rem);
+  inline-size: clamp(2.5rem, 8vw, 2.9rem);
+  block-size: clamp(2.5rem, 8vw, 2.9rem);
+  padding: 0;
   border: 0.0625rem solid #bfdbfe;
   border-radius: 999rem;
   background: #ffffff;
@@ -2825,13 +2828,9 @@ body.ai-tool-mode #msgContainer {
 
 .ai-tool-mic-icon {
   flex: 0 0 auto;
-  inline-size: clamp(1rem, 3vw, 1.125rem);
-  block-size: clamp(1rem, 3vw, 1.125rem);
+  inline-size: clamp(1.125rem, 3vw, 1.25rem);
+  block-size: clamp(1.125rem, 3vw, 1.25rem);
   color: currentColor;
-}
-
-.ai-tool-mic-text {
-  display: inline-block;
 }
 
 .ai-tool-mic-button:hover,
@@ -3034,8 +3033,8 @@ body.ai-tool-mode #msgContainer {
   }
 
   .web-search-form .ai-tool-mic-button {
-    padding-right: clamp(0.65rem, 2.4vw, 0.85rem);
-    padding-left: clamp(0.65rem, 2.4vw, 0.85rem);
+    inline-size: clamp(2.45rem, 11vw, 2.75rem);
+    block-size: clamp(2.45rem, 11vw, 2.75rem);
   }
 }
 /* Image-based starting point for 디스원 서치 */

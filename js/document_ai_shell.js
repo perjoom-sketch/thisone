@@ -104,18 +104,6 @@
           <p class="document-ai-sub-copy">PDF나 사진을 올리면 AI가 쉽게 해석하고, 궁금한 점에 답해드립니다.</p>
         </div>
 
-        <label class="document-ai-upload" id="documentAiUpload" for="documentAiFileInput">
-          <span class="document-ai-upload-title">PDF나 사진을 올려주세요</span>
-          <span class="document-ai-upload-copy">파일 선택, 드래그앤드롭, 붙여넣기를 지원합니다.</span>
-          <span class="document-ai-upload-action">파일 선택</span>
-        </label>
-        <input class="document-ai-file-input" id="documentAiFileInput" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" aria-label="문서 파일 업로드">
-        <div class="document-ai-upload-status-row" id="documentAiUploadStatusRow" hidden>
-          <p class="document-ai-upload-status" id="documentAiUploadStatus" aria-live="polite"></p>
-          <img class="document-ai-image-preview" id="documentAiImagePreview" alt="선택한 이미지 미리보기" hidden>
-          <button class="document-ai-file-remove" id="documentAiFileRemove" type="button" aria-label="선택한 파일 지우기" hidden>지우기</button>
-        </div>
-
         <div class="document-ai-privacy" role="note" aria-label="개인정보 안내">
           <strong>개인정보 안내</strong>
           <p>개인정보는 가리고 올려주세요.</p>
@@ -124,12 +112,21 @@
         </div>
 
         <label class="document-ai-question-label" for="documentAiQuestion">질문 입력창</label>
-        <textarea class="document-ai-question" id="documentAiQuestion" rows="4" placeholder="이 문서에서 궁금한 점을 물어보세요. 예: 내가 해야 할 일만 알려줘"></textarea>
-        <p class="ai-tool-voice-status" id="documentAiVoiceStatus" aria-live="polite" hidden></p>
+        <div class="document-ai-composer" id="documentAiComposer">
+          <textarea class="document-ai-question" id="documentAiQuestion" rows="4" placeholder="PDF나 사진을 추가하고 궁금한 점을 물어보세요. 예: 내가 해야 할 일만 알려줘"></textarea>
+          <input class="document-ai-file-input" id="documentAiFileInput" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" aria-label="문서 파일 업로드">
+          <div class="document-ai-upload-status-row" id="documentAiUploadStatusRow" hidden>
+            <p class="document-ai-upload-status" id="documentAiUploadStatus" aria-live="polite"></p>
+            <img class="document-ai-image-preview" id="documentAiImagePreview" alt="선택한 이미지 미리보기" hidden>
+            <button class="document-ai-file-remove" id="documentAiFileRemove" type="button" aria-label="선택한 파일 지우기" hidden>지우기</button>
+          </div>
+          <p class="ai-tool-voice-status" id="documentAiVoiceStatus" aria-live="polite" hidden></p>
 
-        <div class="ai-tool-action-row">
-          <button class="ai-tool-mic-button" id="documentAiMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
-          <button class="document-ai-submit" id="documentAiSubmit" type="button">해석하기</button>
+          <div class="ai-tool-action-row document-ai-composer-actions">
+            <button class="document-ai-upload" id="documentAiUpload" type="button" aria-label="파일 선택" title="파일 선택">+</button>
+            <button class="ai-tool-mic-button" id="documentAiMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
+            <button class="document-ai-submit" id="documentAiSubmit" type="button">해석하기</button>
+          </div>
         </div>
         <p class="document-ai-placeholder" id="documentAiPlaceholder" role="status" aria-live="polite" hidden></p>
       </section>
@@ -144,6 +141,7 @@
     const fileInput = document.getElementById('documentAiFileInput');
     const removeFileButton = document.getElementById('documentAiFileRemove');
     const upload = document.getElementById('documentAiUpload');
+    const composer = document.getElementById('documentAiComposer');
     const question = document.getElementById('documentAiQuestion');
     const micButton = document.getElementById('documentAiMicButton');
     const voiceStatus = document.getElementById('documentAiVoiceStatus');
@@ -155,7 +153,7 @@
       appendMode: 'newline'
     });
     function setDragOver(isDragOver) {
-      upload?.classList.toggle('is-drag-over', isDragOver);
+      composer?.classList.toggle('is-drag-over', isDragOver);
     }
 
     function clearImagePreview() {
@@ -251,29 +249,33 @@
 
     removeFileButton?.addEventListener('click', clearSelectedFile);
 
+    upload?.addEventListener('click', () => {
+      fileInput?.click();
+    });
+
     fileInput?.addEventListener('change', (event) => {
       handleFiles(event.target.files);
     });
 
-    upload?.addEventListener('dragenter', (event) => {
+    composer?.addEventListener('dragenter', (event) => {
       event.preventDefault();
       setDragOver(true);
     });
 
-    upload?.addEventListener('dragover', (event) => {
+    composer?.addEventListener('dragover', (event) => {
       event.preventDefault();
       setDragOver(true);
     });
 
-    upload?.addEventListener('dragleave', () => {
+    composer?.addEventListener('dragleave', () => {
       setDragOver(false);
     });
 
-    upload?.addEventListener('dragend', () => {
+    composer?.addEventListener('dragend', () => {
       setDragOver(false);
     });
 
-    upload?.addEventListener('drop', (event) => {
+    composer?.addEventListener('drop', (event) => {
       event.preventDefault();
       setDragOver(false);
       handleFiles(event.dataTransfer?.files);

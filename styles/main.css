@@ -2376,7 +2376,6 @@ body.search-mode .results-view {
 
 .document-ai-sub-copy,
 .document-ai-privacy p,
-.document-ai-upload-copy,
 .document-ai-question-label,
 .document-ai-upload-status,
 .document-ai-file-remove,
@@ -2384,43 +2383,64 @@ body.search-mode .results-view {
   font-size: clamp(0.88rem, 2vw, 1rem);
 }
 
-.document-ai-upload {
+.document-ai-composer {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  gap: clamp(0.65rem, 1.8vw, 0.9rem);
   width: 100%;
-  min-height: clamp(8.75rem, 18vw, 11.25rem);
-  gap: clamp(0.65rem, 2vw, 0.9rem);
-  padding: clamp(1.1rem, 4vw, 1.5rem);
-  border: 0.09375rem dashed #93c5fd;
+  padding: clamp(0.8rem, 2.5vw, 1.05rem);
+  border: 0.09375rem solid #bfdbfe;
   border-radius: clamp(1rem, 3vw, 1.35rem);
-  background: linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%);
-  text-align: center;
-  cursor: pointer;
+  background: #ffffff;
+  box-shadow: 0 clamp(0.2rem, 1vw, 0.45rem) clamp(1rem, 3vw, 1.5rem) rgba(37, 99, 235, 0.08);
   transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
-.document-ai-upload.is-drag-over {
+.document-ai-composer:focus-within {
   border-color: #2563eb;
-  background: #dbeafe;
+  box-shadow: 0 0 0 0.1875rem rgba(37, 99, 235, 0.15);
+}
+
+.document-ai-composer.is-drag-over {
+  border-color: #2563eb;
+  background: #eff6ff;
   box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.14);
   transform: translateY(-0.125rem);
 }
 
-.document-ai-upload-title {
-  color: #1e3a8a;
-  font-size: clamp(0.95rem, 2.2vw, 1.05rem);
+.document-ai-upload {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: clamp(2.5rem, 8vw, 2.9rem);
+  block-size: clamp(2.5rem, 8vw, 2.9rem);
+  padding: 0;
+  border: 0.0625rem solid #bfdbfe;
+  border-radius: 999rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-family: inherit;
+  font-size: clamp(1.35rem, 4vw, 1.65rem);
   font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
-.document-ai-upload-copy {
-  max-width: min(100%, clamp(18rem, 60vw, 32rem));
-  color: #475569;
-  line-height: 1.55;
+.document-ai-upload:hover,
+.document-ai-upload:focus-visible {
+  border-color: #60a5fa;
+  background: #dbeafe;
+  box-shadow: 0 0 0 clamp(0.12rem, 0.5vw, 0.2rem) rgba(37, 99, 235, 0.12);
+  outline: none;
 }
 
-.document-ai-upload-action,
+.document-ai-upload:active {
+  transform: translateY(clamp(0.04rem, 0.2vw, 0.08rem));
+}
+
 .document-ai-submit {
   border: 0;
   border-radius: 999rem;
@@ -2428,11 +2448,6 @@ body.search-mode .results-view {
   color: #fff;
   font-size: clamp(0.88rem, 2vw, 1rem);
   font-weight: 700;
-}
-
-.document-ai-upload-action {
-  padding: clamp(0.6rem, 1.6vw, 0.8rem) clamp(1rem, 3vw, 1.35rem);
-  white-space: nowrap;
 }
 
 .document-ai-file-input {
@@ -2448,7 +2463,10 @@ body.search-mode .results-view {
   align-items: center;
   flex-wrap: wrap;
   gap: clamp(0.45rem, 1.4vw, 0.65rem);
-  margin: calc(clamp(0.75rem, 2vw, 1rem) * -0.35) 0 0;
+  padding: clamp(0.55rem, 1.6vw, 0.75rem);
+  border: 0.0625rem solid #dbeafe;
+  border-radius: clamp(0.75rem, 2vw, 0.95rem);
+  background: #f8fbff;
 }
 
 .document-ai-upload-status-row[hidden] {
@@ -2528,21 +2546,19 @@ body.search-mode .results-view {
 
 .document-ai-question {
   width: 100%;
-  min-height: clamp(8rem, 22vw, 10rem);
-  padding: clamp(0.85rem, 2vw, 1rem);
-  border: 0.0625rem solid #cbd5e1;
-  border-radius: clamp(0.8rem, 2vw, 1rem);
-  background: #ffffff;
+  min-block-size: calc(1.6em * 4 + clamp(1.2rem, 3vw, 1.6rem));
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: #1e293b;
   font: inherit;
   font-size: clamp(0.95rem, 2vw, 1.05rem);
+  line-height: 1.6;
   resize: vertical;
 }
 
 .document-ai-question:focus {
   outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 0.1875rem rgba(37, 99, 235, 0.15);
 }
 
 .document-ai-submit {
@@ -2567,9 +2583,9 @@ body.search-mode .results-view {
     padding: clamp(0.9rem, 4vw, 1.15rem);
   }
 
-  .document-ai-upload {
-    min-height: clamp(7.5rem, 32vw, 8.5rem);
-    gap: clamp(0.5rem, 2vw, 0.75rem);
+  .document-ai-composer {
+    gap: clamp(0.55rem, 2.5vw, 0.75rem);
+    padding: clamp(0.7rem, 3vw, 0.9rem);
   }
 
   .document-ai-submit {

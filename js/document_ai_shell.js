@@ -113,9 +113,9 @@
 
         <div class="document-ai-privacy" role="note" aria-label="개인정보 안내">
           <strong>개인정보 안내</strong>
-          <p>개인정보는 종이나 손가락으로 가리고 올려주세요.</p>
+          <p>개인정보는 가리고 올려주세요.</p>
           <p>디스원은 이름이 아니라 문서의 뜻을 풀어드립니다.</p>
-          <p>이름, 주민번호, 주소, 전화번호, 계좌번호, 카드번호는 해석에 필요하지 않습니다.</p>
+          <p>주민번호, 주소, 전화번호, 계좌번호는 해석에 필요하지 않습니다.</p>
         </div>
 
         <label class="document-ai-question-label" for="documentAiQuestion">질문 입력창</label>

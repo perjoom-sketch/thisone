@@ -143,6 +143,10 @@
         </div>
 
         <p class="ai-tool-voice-status" id="webSearchVoiceStatus" aria-live="polite" hidden></p>
+        <div class="web-search-selected-file" id="webSearchSelectedFile" hidden>
+          <span class="web-search-selected-file-text" id="webSearchSelectedFileText" role="status" aria-live="polite"></span>
+          <button class="web-search-selected-file-remove" id="webSearchSelectedFileRemove" type="button" aria-label="선택한 이미지 제거" title="선택한 이미지 제거">×</button>
+        </div>
         <p class="web-search-status" id="webSearchStatus" role="status" aria-live="polite" hidden></p>
         <div class="web-search-results" id="webSearchResults" aria-live="polite"></div>
       </section>
@@ -161,6 +165,10 @@
     const cameraButton = root.querySelector('#webSearchCameraButton');
     const uploadInput = root.querySelector('#webSearchUploadInput');
     const cameraInput = root.querySelector('#webSearchCameraInput');
+    const selectedFileStatus = root.querySelector('#webSearchSelectedFile');
+    const selectedFileText = root.querySelector('#webSearchSelectedFileText');
+    const selectedFileRemove = root.querySelector('#webSearchSelectedFileRemove');
+    let selectedFileInput = null;
     global.ThisOneAIToolVoice?.attach?.({
       button: micButton,
       input,
@@ -190,9 +198,25 @@
     uploadButton?.addEventListener('click', () => openFilePicker(uploadInput));
     cameraButton?.addEventListener('click', () => openFilePicker(cameraInput));
 
+    function clearSelectedFileStatus() {
+      if (selectedFileInput) selectedFileInput.value = '';
+      selectedFileInput = null;
+      if (selectedFileText) selectedFileText.textContent = '';
+      if (selectedFileStatus) selectedFileStatus.hidden = true;
+    }
+
     function setSelectedFileStatus(fileInput, label) {
       const fileName = fileInput?.files?.[0]?.name;
-      if (fileName) setStatus(status, `${label}: ${fileName}`);
+      if (!fileName) {
+        clearSelectedFileStatus();
+        return;
+      }
+
+      if (fileInput === uploadInput && cameraInput) cameraInput.value = '';
+      if (fileInput === cameraInput && uploadInput) uploadInput.value = '';
+      selectedFileInput = fileInput;
+      if (selectedFileText) selectedFileText.textContent = `${label}: ${fileName}`;
+      if (selectedFileStatus) selectedFileStatus.hidden = false;
     }
 
     uploadInput?.addEventListener('change', () => {
@@ -202,6 +226,8 @@
     cameraInput?.addEventListener('change', () => {
       setSelectedFileStatus(cameraInput, '선택된 사진');
     });
+
+    selectedFileRemove?.addEventListener('click', clearSelectedFileStatus);
 
     document.addEventListener('click', (event) => {
       if (!root.contains(event.target)) return;

@@ -2930,6 +2930,81 @@ body.ai-tool-mode #msgContainer {
   display: flex;
   align-items: stretch;
   gap: clamp(0.45rem, 1.5vw, 0.7rem);
+  position: relative;
+}
+
+.web-search-input-options {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  flex: 0 0 auto;
+}
+
+.web-search-plus-button {
+  inline-size: clamp(2.6rem, 9vw, 3rem);
+  block-size: clamp(2.6rem, 9vw, 3rem);
+  border: 0.0625rem solid #cbd5e1;
+  border-radius: 999rem;
+  background: #ffffff;
+  color: #0284c7;
+  font-family: inherit;
+  font-size: clamp(1.45rem, 4vw, 1.8rem);
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.web-search-plus-button:hover,
+.web-search-plus-button:focus-visible,
+.web-search-plus-button[aria-expanded="true"] {
+  border-color: #38bdf8;
+  background: #eff6ff;
+  outline: none;
+}
+
+.web-search-input-menu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + clamp(0.4rem, 1.2vw, 0.6rem));
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.15rem, 0.6vw, 0.25rem);
+  min-inline-size: max-content;
+  padding: clamp(0.35rem, 1vw, 0.45rem);
+  border: 0.0625rem solid #dbeafe;
+  border-radius: clamp(0.8rem, 2vw, 1rem);
+  background: #ffffff;
+  box-shadow: 0 clamp(0.75rem, 3vw, 1.2rem) clamp(1.4rem, 5vw, 2rem) rgba(15, 23, 42, 0.14);
+}
+
+.web-search-input-menu[hidden] {
+  display: none;
+}
+
+.web-search-input-menu-item {
+  border: 0;
+  border-radius: clamp(0.55rem, 1.5vw, 0.75rem);
+  background: transparent;
+  color: #334155;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  font-weight: 700;
+  padding: clamp(0.62rem, 1.6vw, 0.75rem) clamp(0.8rem, 2vw, 1rem);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.web-search-input-menu-item:hover,
+.web-search-input-menu-item:focus-visible {
+  background: #f0f9ff;
+  color: #0369a1;
+  outline: none;
+}
+
+.web-search-image-input {
+  display: none;
 }
 
 .web-search-label {
@@ -3043,154 +3118,5 @@ body.ai-tool-mode #msgContainer {
   .web-search-form .ai-tool-mic-button {
     inline-size: clamp(2.45rem, 11vw, 2.75rem);
     block-size: clamp(2.45rem, 11vw, 2.75rem);
-  }
-}
-/* Image-based starting point for 디스원 서치 */
-.web-search-image-start {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(0.75rem, 2vw, 1rem);
-  width: 100%;
-  padding: clamp(0.875rem, 2.6vw, 1.25rem);
-  border: 0.0625rem solid #dbeafe;
-  border-radius: clamp(1rem, 3vw, 1.4rem);
-  background: linear-gradient(135deg, #f8fbff 0%, #f1f5f9 100%);
-}
-
-.web-search-image-copy {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(0.25rem, 1vw, 0.4rem);
-}
-
-.web-search-image-copy h3,
-.web-search-image-copy p,
-.web-search-suggestion-title,
-.web-search-image-fallback,
-.web-search-image-preview-info p,
-.web-search-image-action,
-.web-search-suggestion-chip,
-.web-search-image-remove {
-  margin: 0;
-  font-size: clamp(0.82rem, 2.4vw, 0.96rem);
-}
-
-.web-search-image-copy h3 {
-  color: #1e40af;
-  font-weight: 750;
-}
-
-.web-search-image-copy p,
-.web-search-image-preview-info p,
-.web-search-image-fallback {
-  color: #64748b;
-  line-height: 1.55;
-}
-
-.web-search-image-actions,
-.web-search-suggestion-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: clamp(0.5rem, 1.6vw, 0.75rem);
-}
-
-.web-search-image-action,
-.web-search-suggestion-chip,
-.web-search-image-remove {
-  border: 0.0625rem solid #bfdbfe;
-  border-radius: 999rem;
-  background: #ffffff;
-  color: #1d4ed8;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-
-.web-search-image-action,
-.web-search-suggestion-chip {
-  padding: clamp(0.58rem, 1.6vw, 0.72rem) clamp(0.8rem, 2.2vw, 1rem);
-}
-
-.web-search-image-action:hover,
-.web-search-image-action:focus-visible,
-.web-search-suggestion-chip:hover,
-.web-search-suggestion-chip:focus-visible,
-.web-search-image-remove:hover,
-.web-search-image-remove:focus-visible {
-  background: #eff6ff;
-  border-color: #60a5fa;
-  color: #1e3a8a;
-}
-
-.web-search-image-input {
-  display: none;
-}
-
-.web-search-image-preview {
-  display: flex;
-  align-items: center;
-  gap: clamp(0.75rem, 2vw, 1rem);
-  width: 100%;
-  padding: clamp(0.65rem, 2vw, 0.9rem);
-  border: 0.0625rem solid #e2e8f0;
-  border-radius: clamp(0.8rem, 2.4vw, 1rem);
-  background: #ffffff;
-}
-
-.web-search-image-preview[hidden],
-.web-search-image-suggestions[hidden] {
-  display: none;
-}
-
-.web-search-image-preview img {
-  flex: 0 0 clamp(4.75rem, 15vw, 6.5rem);
-  width: clamp(4.75rem, 15vw, 6.5rem);
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
-  border-radius: clamp(0.65rem, 2vw, 0.85rem);
-  background: #e2e8f0;
-}
-
-.web-search-image-preview-info {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: clamp(0.5rem, 1.6vw, 0.75rem);
-}
-
-.web-search-image-preview-info p {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.web-search-image-remove {
-  flex: 0 0 auto;
-  padding: clamp(0.42rem, 1.4vw, 0.55rem) clamp(0.62rem, 1.8vw, 0.8rem);
-  color: #475569;
-  border-color: #e2e8f0;
-}
-
-.web-search-image-suggestions {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(0.5rem, 1.5vw, 0.7rem);
-}
-
-.web-search-suggestion-title {
-  color: #334155;
-  font-weight: 750;
-}
-
-@media (max-width: 640px) {
-  .web-search-image-preview {
-    align-items: flex-start;
-  }
-
-  .web-search-image-preview-info {
-    flex-direction: column;
-    align-items: flex-start;
   }
 }

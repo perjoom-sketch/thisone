@@ -182,7 +182,7 @@ Focus on what the user should understand or do next.`;
         <p class="ai-tool-voice-status" id="instantAnswerVoiceStatus" aria-live="polite" hidden></p>
 
         <div class="ai-tool-action-row">
-          <button class="ai-tool-mic-button" id="instantAnswerMicButton" type="button" aria-label="음성으로 입력" title="브라우저 음성 인식을 사용합니다. 음성 파일은 저장하지 않습니다."></button>
+          <button class="ai-tool-mic-button" id="instantAnswerMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
           <button class="instant-answer-submit" id="instantAnswerSubmit" type="button">바로 답변</button>
         </div>
         <p class="instant-answer-status" id="instantAnswerStatus" role="status" aria-live="polite" hidden></p>

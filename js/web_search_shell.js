@@ -182,11 +182,13 @@
     cameraButton?.addEventListener('click', () => openFilePicker(cameraInput));
 
     uploadInput?.addEventListener('change', () => {
-      if (uploadInput.files?.length) setStatus(status, '이미지가 선택되었습니다.');
+      const fileName = uploadInput.files?.[0]?.name;
+      if (fileName) setStatus(status, `선택된 이미지: ${fileName}`);
     });
 
     cameraInput?.addEventListener('change', () => {
-      if (cameraInput.files?.length) setStatus(status, '사진이 선택되었습니다.');
+      const fileName = cameraInput.files?.[0]?.name;
+      if (fileName) setStatus(status, `선택된 사진: ${fileName}`);
     });
 
     document.addEventListener('click', (event) => {

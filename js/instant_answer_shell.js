@@ -68,11 +68,12 @@ Focus on what the user should understand or do next.`;
   function renderMarkdownLite(text) {
     const safe = escapeHtml(text || '').trim();
     if (!safe) return '';
-    return safe
+
+    const withBold = safe.replace(/\*\*([^\n*]+)\*\*/g, '<strong>$1</strong>');
+    return withBold
       .replace(/^###\s+(.+)$/gm, '<strong>$1</strong>')
       .replace(/^##\s+(.+)$/gm, '<strong>$1</strong>')
       .replace(/^#\s+(.+)$/gm, '<strong>$1</strong>')
-      .replace(/\*\*([^\n*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\n/g, '<br>');
   }
 

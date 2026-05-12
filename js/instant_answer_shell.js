@@ -89,14 +89,10 @@ Focus on what the user should understand or do next.`;
 
   async function requestInstantAnswer(question, onChunk) {
     const payload = {
-      model: global.MODEL || 'gemini-2.5-flash',
+      model: 'gemini-2.5-flash',
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: question }]
     };
-
-    if (global.ThisOneAPI?.requestChat) {
-      return global.ThisOneAPI.requestChat(payload, onChunk);
-    }
 
     const response = await fetch('/api/chat', {
       method: 'POST',
@@ -208,7 +204,7 @@ Focus on what the user should understand or do next.`;
     submit.addEventListener('click', async () => {
       const text = question.value.trim();
       if (!text) {
-        setStatus(status, '상황이나 질문을 먼저 입력해주세요.');
+        setStatus(status, '질문을 입력해주세요.');
         question.focus();
         return;
       }

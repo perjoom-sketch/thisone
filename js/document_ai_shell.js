@@ -4,6 +4,27 @@
 
   const DOCUMENT_AI_MODE = 'document-ai';
   const READY_MESSAGE = '해석 기능은 준비 중입니다.\n곧 어려운 내용을 쉽게 해석해드릴게요.';
+  const UNSUPPORTED_FILE_MESSAGE = '현재는 PDF, 이미지, 텍스트만 해석할 수 있습니다.';
+  const SUPPORTED_FILE_TYPES = new Set([
+    'application/pdf',
+    'image/jpeg',
+    'image/png',
+    'image/webp'
+  ]);
+
+  function isSupportedFile(file) {
+    return file && SUPPORTED_FILE_TYPES.has(file.type);
+  }
+
+  function getFirstSupportedFile(fileList) {
+    return Array.from(fileList || []).find(isSupportedFile) || null;
+  }
+
+  function setStatus(element, message) {
+    if (!element) return;
+    element.textContent = message;
+    element.hidden = false;
+  }
 
   function setSearchModeShell() {
     document.body.classList.add('search-mode');
@@ -26,12 +47,12 @@
           <p class="document-ai-sub-copy">PDF나 사진을 올리면 AI가 쉽게 해석하고, 궁금한 점에 답해드립니다.</p>
         </div>
 
-        <label class="document-ai-upload" for="documentAiFileInput">
+        <label class="document-ai-upload" id="documentAiUpload" for="documentAiFileInput">
           <span class="document-ai-upload-title">파일 업로드 영역</span>
-          <span class="document-ai-upload-copy">PDF, 사진, 캡처 이미지를 올려주세요.</span>
+          <span class="document-ai-upload-copy">PDF, JPG, PNG, WebP 이미지를 하나만 올려주세요.</span>
           <span class="document-ai-upload-action">파일 선택</span>
         </label>
-        <input class="document-ai-file-input" id="documentAiFileInput" type="file" accept="application/pdf,image/*" aria-label="문서 파일 업로드">
+        <input class="document-ai-file-input" id="documentAiFileInput" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" aria-label="문서 파일 업로드">
 
         <div class="document-ai-privacy" role="note" aria-label="개인정보 안내">
           <strong>개인정보 안내</strong>
@@ -50,10 +71,45 @@
 
     const button = document.getElementById('documentAiSubmit');
     const placeholder = document.getElementById('documentAiPlaceholder');
+    const fileInput = document.getElementById('documentAiFileInput');
+    const upload = document.getElementById('documentAiUpload');
+    const question = document.getElementById('documentAiQuestion');
+    function handleFiles(fileList) {
+      if (!fileList || fileList.length === 0) return;
+
+      const file = getFirstSupportedFile(fileList);
+      if (!file) {
+        setStatus(placeholder, UNSUPPORTED_FILE_MESSAGE);
+        if (fileInput) fileInput.value = '';
+        return;
+      }
+
+      setStatus(placeholder, `${file.name || '붙여넣은 이미지'} 파일을 선택했습니다.`);
+    }
+
     button?.addEventListener('click', () => {
-      if (!placeholder) return;
-      placeholder.textContent = READY_MESSAGE;
-      placeholder.hidden = false;
+      setStatus(placeholder, READY_MESSAGE);
+    });
+
+    fileInput?.addEventListener('change', (event) => {
+      handleFiles(event.target.files);
+    });
+
+    upload?.addEventListener('dragover', (event) => {
+      event.preventDefault();
+    });
+
+    upload?.addEventListener('drop', (event) => {
+      event.preventDefault();
+      handleFiles(event.dataTransfer?.files);
+    });
+
+    question?.addEventListener('paste', (event) => {
+      const files = Array.from(event.clipboardData?.files || []);
+      if (files.length === 0) return;
+
+      event.preventDefault();
+      handleFiles(files);
     });
   }
 

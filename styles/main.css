@@ -2844,10 +2844,22 @@ body.ai-tool-mode #msgContainer {
   font-weight: 600;
 }
 
-.web-search-form {
+.web-search-composer {
   display: flex;
-  align-items: stretch;
-  gap: clamp(0.45rem, 1.5vw, 0.7rem);
+  flex-direction: column;
+  gap: clamp(0.5rem, 1.6vw, 0.75rem);
+  width: 100%;
+  padding: clamp(0.65rem, 1.7vw, 0.85rem) clamp(0.85rem, 2.4vw, 1.25rem);
+  border: 0.125rem solid #dbeafe;
+  border-radius: clamp(1rem, 3vw, 1.75rem);
+  background: #ffffff;
+  box-shadow: 0 clamp(0.25rem, 1vw, 0.45rem) clamp(1rem, 3vw, 1.5rem) rgba(14, 165, 233, 0.08);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.web-search-composer:focus-within {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 clamp(0.14rem, 0.5vw, 0.25rem) rgba(14, 165, 233, 0.14);
 }
 
 .web-search-label {
@@ -2862,34 +2874,149 @@ body.ai-tool-mode #msgContainer {
 }
 
 .web-search-input {
-  flex: 1;
+  width: 100%;
   min-width: 0;
-  padding: clamp(0.75rem, 2vw, 0.95rem) clamp(0.85rem, 2vw, 1rem);
-  border: 0.0625rem solid #cbd5e1;
-  border-radius: clamp(0.85rem, 2vw, 1rem);
-  background: #ffffff;
+  min-height: clamp(2.5rem, 7vw, 3.1rem);
+  padding: clamp(0.45rem, 1.4vw, 0.6rem) clamp(0.2rem, 0.8vw, 0.35rem);
+  border: 0;
+  background: transparent;
   color: #1e293b;
   font-family: inherit;
   font-size: clamp(0.95rem, 2.2vw, 1.05rem);
+  outline: none;
 }
 
-.web-search-input:focus {
-  border-color: #0284c7;
-  box-shadow: 0 0 0 clamp(0.12rem, 0.5vw, 0.2rem) rgba(14, 165, 233, 0.14);
+.web-search-control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(0.65rem, 2vw, 1rem);
+  width: 100%;
+}
+
+.web-search-tools-left {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.web-search-plus-btn,
+.web-search-icon-btn,
+.web-search-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: clamp(2.5rem, 8vw, 3.125rem);
+  height: clamp(2.5rem, 8vw, 3.125rem);
+  border: 0;
+  border-radius: clamp(0.85rem, 2.5vw, 1rem);
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.web-search-plus-btn {
+  background: transparent;
+  color: #334155;
+  font-size: clamp(2rem, 8vw, 2.55rem);
+  font-weight: 400;
+  line-height: 1;
+}
+
+.web-search-plus-btn:hover,
+.web-search-plus-btn:focus-visible,
+.web-search-plus-btn[aria-expanded="true"] {
+  color: #2563eb;
+  outline: none;
+}
+
+.web-search-tools-menu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + clamp(0.4rem, 1.2vw, 0.55rem));
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.2rem, 0.8vw, 0.35rem);
+  min-width: min(65vw, 11rem);
+  padding: clamp(0.35rem, 1vw, 0.45rem);
+  border: 0.0625rem solid #e2e8f0;
+  border-radius: clamp(0.9rem, 2.5vw, 1rem);
+  background: #ffffff;
+  box-shadow: 0 clamp(0.8rem, 3vw, 1rem) clamp(1.6rem, 6vw, 2.5rem) rgba(15, 23, 42, 0.14);
+}
+
+.web-search-tools-menu[hidden] {
+  display: none;
+}
+
+.web-search-tool-item {
+  width: 100%;
+  padding: clamp(0.6rem, 1.8vw, 0.7rem) clamp(0.75rem, 2.2vw, 0.9rem);
+  border: 0;
+  border-radius: clamp(0.65rem, 2vw, 0.75rem);
+  background: transparent;
+  color: #334155;
+  font-family: inherit;
+  font-size: clamp(0.85rem, 2vw, 0.95rem);
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+
+.web-search-tool-item:hover,
+.web-search-tool-item:focus-visible {
+  background: #f8fafc;
+  color: #2563eb;
+  outline: none;
+}
+
+.web-search-controls-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: clamp(0.75rem, 2.5vw, 1.5rem);
+  flex: 0 0 auto;
+}
+
+.web-search-icon-btn {
+  background: transparent;
+  color: #64748b;
+}
+
+.web-search-icon-btn:hover,
+.web-search-icon-btn:focus-visible,
+.web-search-icon-btn.is-listening {
+  color: #2563eb;
+  background: #eff6ff;
   outline: none;
 }
 
 .web-search-submit {
-  flex: 0 0 auto;
-  padding: clamp(0.7rem, 2vw, 0.85rem) clamp(1rem, 3vw, 1.35rem);
-  border: 0;
-  border-radius: 999rem;
-  background: #0284c7;
+  background: #2563eb;
   color: #ffffff;
-  font-family: inherit;
-  font-size: clamp(0.95rem, 2vw, 1.05rem);
-  font-weight: 800;
-  cursor: pointer;
+}
+
+.web-search-submit:hover,
+.web-search-submit:focus-visible {
+  filter: brightness(1.05);
+  transform: translateY(-0.0625rem);
+  box-shadow: 0 clamp(0.25rem, 1vw, 0.35rem) clamp(0.7rem, 2vw, 0.9rem) rgba(37, 99, 235, 0.28);
+  outline: none;
+}
+
+.web-search-icon-btn svg,
+.web-search-submit svg {
+  width: clamp(1.15rem, 3.5vw, 1.35rem);
+  height: clamp(1.15rem, 3.5vw, 1.35rem);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .web-search-submit:disabled {
@@ -2940,13 +3067,9 @@ body.ai-tool-mode #msgContainer {
     padding: clamp(0.9rem, 4vw, 1.15rem);
   }
 
-  .web-search-form {
-    align-items: stretch;
-  }
-
-  .web-search-submit {
-    padding-right: clamp(0.85rem, 3vw, 1rem);
-    padding-left: clamp(0.85rem, 3vw, 1rem);
+  .web-search-composer {
+    padding-right: clamp(0.75rem, 4vw, 1rem);
+    padding-left: clamp(0.75rem, 4vw, 1rem);
   }
 }
 /* Image-based starting point for 디스원 서치 */

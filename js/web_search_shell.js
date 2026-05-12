@@ -4,6 +4,7 @@
   const UNSUPPORTED_IMAGE_MESSAGE = 'JPG, PNG, WebP 이미지 1장만 사용할 수 있습니다.';
   const INFERENCE_UNAVAILABLE_MESSAGE = '이미지에서 검색어를 추출하는 기능은 다음 단계에서 지원됩니다.';
   let removePasteListener = null;
+  let activeRecognition = null;
 
   function escapeHtml(value) {
     return String(value || '')
@@ -106,6 +107,7 @@
 
   function exitWebSearchMode() {
     document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode', 'web-search-mode');
+    stopVoiceInput();
     if (removePasteListener) {
       removePasteListener();
       removePasteListener = null;
@@ -194,6 +196,79 @@
     `;
   }
 
+  function closeWebSearchMenu(root) {
+    const menu = root?.querySelector('#webSearchToolsMenu');
+    const button = root?.querySelector('#webSearchPlusButton');
+    if (!menu || !button) return;
+    menu.hidden = true;
+    button.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleWebSearchMenu(root) {
+    const menu = root?.querySelector('#webSearchToolsMenu');
+    const button = root?.querySelector('#webSearchPlusButton');
+    if (!menu || !button) return;
+    const shouldOpen = menu.hidden;
+    menu.hidden = !shouldOpen;
+    button.setAttribute('aria-expanded', String(shouldOpen));
+  }
+
+  function getSpeechRecognition() {
+    return global.SpeechRecognition || global.webkitSpeechRecognition || null;
+  }
+
+  function stopVoiceInput(button) {
+    if (activeRecognition) {
+      try { activeRecognition.stop(); } catch (e) {}
+      activeRecognition = null;
+    }
+    if (button) button.classList.remove('is-listening');
+  }
+
+  function startVoiceInput(input, status, button) {
+    const SpeechRecognition = getSpeechRecognition();
+    if (!SpeechRecognition) {
+      setStatus(status, '이 브라우저에서는 음성 입력을 사용할 수 없습니다.');
+      return;
+    }
+
+    if (activeRecognition) {
+      stopVoiceInput(button);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    activeRecognition = recognition;
+    recognition.lang = 'ko-KR';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      button?.classList.add('is-listening');
+      setStatus(status, '음성을 듣고 있습니다...');
+    };
+    recognition.onresult = (event) => {
+      const transcript = String(event.results?.[0]?.[0]?.transcript || '').trim();
+      if (transcript && input) input.value = transcript;
+      setStatus(status, transcript ? '음성 입력을 검색어로 넣었습니다.' : '음성을 인식하지 못했습니다.');
+    };
+    recognition.onerror = () => {
+      setStatus(status, '음성 입력을 사용할 수 없습니다.');
+    };
+    recognition.onend = () => {
+      if (activeRecognition === recognition) activeRecognition = null;
+      button?.classList.remove('is-listening');
+    };
+
+    try {
+      recognition.start();
+    } catch (e) {
+      activeRecognition = null;
+      button?.classList.remove('is-listening');
+      setStatus(status, '음성 입력을 시작할 수 없습니다.');
+    }
+  }
+
   function clearImagePreview(root) {
     const preview = root.querySelector('#webSearchImagePreview');
     const previewImg = root.querySelector('#webSearchPreviewImg');
@@ -243,20 +318,25 @@
           <p class="web-search-sub-copy">상품이 아니라 일반 정보를 찾을 때 사용하세요.</p>
         </div>
 
-        <div class="web-search-form" role="search">
+        <div class="web-search-composer" role="search">
           <label class="web-search-label" for="webSearchInput">검색어 입력창</label>
           <input class="web-search-input" id="webSearchInput" type="search" placeholder="검색어를 입력하세요" autocomplete="off">
-          <button class="web-search-submit" id="webSearchSubmit" type="button">검색</button>
-        </div>
-
-        <section class="web-search-image-start" aria-labelledby="webSearchImageTitle">
-          <div class="web-search-image-copy">
-            <h3 id="webSearchImageTitle">이미지로 시작하기</h3>
-            <p>이름을 몰라도 사진을 올리면 검색어를 찾는 데 도움을 줍니다.</p>
-          </div>
-          <div class="web-search-image-actions">
-            <button class="web-search-image-action" id="webSearchUploadButton" type="button">이미지 올리기</button>
-            <button class="web-search-image-action" id="webSearchCameraButton" type="button">사진 찍기</button>
+          <div class="web-search-control-row">
+            <div class="web-search-tools-left">
+              <button class="web-search-plus-btn" id="webSearchPlusButton" type="button" aria-label="서치 입력 방식 선택" aria-expanded="false" aria-controls="webSearchToolsMenu">+</button>
+              <div class="web-search-tools-menu" id="webSearchToolsMenu" role="menu" hidden>
+                <button class="web-search-tool-item" id="webSearchUploadButton" type="button" role="menuitem">이미지 업로드</button>
+                <button class="web-search-tool-item" id="webSearchCameraButton" type="button" role="menuitem">사진 찍기</button>
+              </div>
+            </div>
+            <div class="web-search-controls-right">
+              <button class="web-search-icon-btn web-search-mic" id="webSearchMicButton" type="button" aria-label="음성 입력" title="음성 입력">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Z"></path><path d="M19 11a7 7 0 0 1-14 0"></path><path d="M12 18v3"></path><path d="M8 21h8"></path></svg>
+              </button>
+              <button class="web-search-submit" id="webSearchSubmit" type="button" aria-label="검색">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>
+              </button>
+            </div>
           </div>
           <input class="web-search-image-input" id="webSearchImageInput" type="file" accept="image/jpeg,image/png,image/webp" aria-label="서치 이미지 업로드">
           <div class="web-search-image-preview" id="webSearchImagePreview" hidden>
@@ -267,7 +347,7 @@
             </div>
           </div>
           <div class="web-search-image-suggestions" id="webSearchImageSuggestions" aria-live="polite" hidden></div>
-        </section>
+        </div>
 
         <p class="web-search-status" id="webSearchStatus" role="status" aria-live="polite" hidden></p>
         <div class="web-search-results" id="webSearchResults" aria-live="polite"></div>
@@ -283,8 +363,19 @@
     const uploadButton = root.querySelector('#webSearchUploadButton');
     const cameraButton = root.querySelector('#webSearchCameraButton');
     const removeButton = root.querySelector('#webSearchImageRemove');
+    const plusButton = root.querySelector('#webSearchPlusButton');
+    const micButton = root.querySelector('#webSearchMicButton');
 
     returnButton?.addEventListener('click', exitWebSearchMode);
+    plusButton?.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleWebSearchMenu(root);
+    });
+    root.addEventListener('click', (event) => {
+      if (event.target.closest('.web-search-tools-left')) return;
+      closeWebSearchMenu(root);
+    });
 
     async function runSearch(queryOverride) {
       const query = String(queryOverride || input.value || '').trim();
@@ -339,6 +430,7 @@
     }
 
     submit.addEventListener('click', () => runSearch());
+    micButton?.addEventListener('click', () => startVoiceInput(input, status, micButton));
     input.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
         event.preventDefault();
@@ -347,6 +439,7 @@
     });
 
     uploadButton?.addEventListener('click', () => {
+      closeWebSearchMenu(root);
       if (!fileInput) return;
       fileInput.removeAttribute('capture');
       fileInput.value = '';
@@ -354,6 +447,7 @@
     });
 
     cameraButton?.addEventListener('click', () => {
+      closeWebSearchMenu(root);
       if (!fileInput) return;
       fileInput.setAttribute('capture', 'environment');
       fileInput.value = '';
@@ -401,6 +495,12 @@
     removePasteListener = () => document.removeEventListener('paste', handlePaste);
     input.focus();
   }
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    const root = document.querySelector('.web-search-panel');
+    closeWebSearchMenu(root);
+  });
 
   function openWebSearch() {
     enterWebSearchMode();

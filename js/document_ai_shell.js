@@ -58,6 +58,12 @@
     element.hidden = false;
   }
 
+  function hideStatus(element) {
+    if (!element) return;
+    element.textContent = '';
+    element.hidden = true;
+  }
+
   function enterDocumentAIMode() {
     global.ThisOneAIToolVoice?.stopAll?.();
     document.body.classList.add('ai-tool-mode', 'document-ai-mode');
@@ -100,7 +106,10 @@
           <span class="document-ai-upload-action">파일 선택</span>
         </label>
         <input class="document-ai-file-input" id="documentAiFileInput" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" aria-label="문서 파일 업로드">
-        <p class="document-ai-upload-status" id="documentAiUploadStatus" aria-live="polite" hidden></p>
+        <div class="document-ai-upload-status-row" id="documentAiUploadStatusRow" hidden>
+          <p class="document-ai-upload-status" id="documentAiUploadStatus" aria-live="polite"></p>
+          <button class="document-ai-file-remove" id="documentAiFileRemove" type="button" aria-label="선택한 파일 지우기" hidden>지우기</button>
+        </div>
 
         <div class="document-ai-privacy" role="note" aria-label="개인정보 안내">
           <strong>개인정보 안내</strong>
@@ -124,8 +133,10 @@
     const returnButton = container.querySelector('[data-ai-tool-return]');
     const button = document.getElementById('documentAiSubmit');
     const placeholder = document.getElementById('documentAiPlaceholder');
+    const uploadStatusRow = document.getElementById('documentAiUploadStatusRow');
     const uploadStatus = document.getElementById('documentAiUploadStatus');
     const fileInput = document.getElementById('documentAiFileInput');
+    const removeFileButton = document.getElementById('documentAiFileRemove');
     const upload = document.getElementById('documentAiUpload');
     const question = document.getElementById('documentAiQuestion');
     const micButton = document.getElementById('documentAiMicButton');
@@ -140,17 +151,30 @@
       upload?.classList.toggle('is-drag-over', isDragOver);
     }
 
+    function setUploadStatus(message, options = {}) {
+      setStatus(uploadStatus, message);
+      if (uploadStatusRow) uploadStatusRow.hidden = false;
+      if (removeFileButton) removeFileButton.hidden = !options.canRemove;
+    }
+
+    function clearSelectedFile() {
+      if (fileInput) fileInput.value = '';
+      hideStatus(uploadStatus);
+      if (uploadStatusRow) uploadStatusRow.hidden = true;
+      if (removeFileButton) removeFileButton.hidden = true;
+    }
+
     function handleFiles(fileList, options = {}) {
       if (!fileList || fileList.length === 0) return false;
 
       const file = getFirstSupportedFile(fileList);
       if (!file) {
-        setStatus(uploadStatus, UNSUPPORTED_FILE_MESSAGE);
+        setUploadStatus(UNSUPPORTED_FILE_MESSAGE);
         if (fileInput) fileInput.value = '';
         return false;
       }
 
-      setStatus(uploadStatus, options.pasted ? PASTED_IMAGE_MESSAGE : `선택된 파일: ${file.name || '이미지'}`);
+      setUploadStatus(options.pasted ? PASTED_IMAGE_MESSAGE : `선택된 파일: ${file.name || '이미지'}`, { canRemove: true });
       return true;
     }
 
@@ -171,7 +195,7 @@
       if (files.length > 0) {
         if (isQuestionTextarea(event.target, question)) return;
         event.preventDefault();
-        setStatus(uploadStatus, UNSUPPORTED_PASTE_MESSAGE);
+        setUploadStatus(UNSUPPORTED_PASTE_MESSAGE);
         return;
       }
 
@@ -179,13 +203,13 @@
       if (pastedText) {
         if (isQuestionTextarea(event.target, question)) return;
         event.preventDefault();
-        setStatus(uploadStatus, PASTED_TEXT_MESSAGE);
+        setUploadStatus(PASTED_TEXT_MESSAGE);
         return;
       }
 
       if (isQuestionTextarea(event.target, question)) return;
       event.preventDefault();
-      setStatus(uploadStatus, UNSUPPORTED_PASTE_MESSAGE);
+      setUploadStatus(UNSUPPORTED_PASTE_MESSAGE);
     }
 
     returnButton?.addEventListener('click', exitAIToolMode);
@@ -193,6 +217,8 @@
     button?.addEventListener('click', () => {
       setStatus(placeholder, READY_MESSAGE);
     });
+
+    removeFileButton?.addEventListener('click', clearSelectedFile);
 
     fileInput?.addEventListener('change', (event) => {
       handleFiles(event.target.files);

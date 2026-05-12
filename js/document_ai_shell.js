@@ -104,32 +104,45 @@
           <p class="document-ai-sub-copy">PDF나 사진을 올리면 AI가 쉽게 해석하고, 궁금한 점에 답해드립니다.</p>
         </div>
 
-        <label class="document-ai-upload" id="documentAiUpload" for="documentAiFileInput">
-          <span class="document-ai-upload-title">PDF나 사진을 올려주세요</span>
-          <span class="document-ai-upload-copy">파일 선택, 드래그앤드롭, 붙여넣기를 지원합니다.</span>
-          <span class="document-ai-upload-action">파일 선택</span>
-        </label>
-        <input class="document-ai-file-input" id="documentAiFileInput" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" aria-label="문서 파일 업로드">
-        <div class="document-ai-upload-status-row" id="documentAiUploadStatusRow" hidden>
-          <p class="document-ai-upload-status" id="documentAiUploadStatus" aria-live="polite"></p>
-          <img class="document-ai-image-preview" id="documentAiImagePreview" alt="선택한 이미지 미리보기" hidden>
-          <button class="document-ai-file-remove" id="documentAiFileRemove" type="button" aria-label="선택한 파일 지우기" hidden>지우기</button>
+        <div class="document-ai-composer" id="documentAiUpload">
+          <div class="document-ai-composer-top">
+            <label class="document-ai-question-label" for="documentAiQuestion">질문 입력창</label>
+            <textarea class="document-ai-question" id="documentAiQuestion" rows="4" placeholder="이 문서에서 궁금한 점을 물어보세요. 예: 내가 해야 할 일만 알려줘"></textarea>
+            <div class="document-ai-upload-status-row" id="documentAiUploadStatusRow" hidden>
+              <p class="document-ai-upload-status" id="documentAiUploadStatus" aria-live="polite"></p>
+              <img class="document-ai-image-preview" id="documentAiImagePreview" alt="선택한 이미지 미리보기" hidden>
+              <button class="document-ai-file-remove" id="documentAiFileRemove" type="button" aria-label="선택한 파일 지우기" hidden>지우기</button>
+            </div>
+          </div>
+          <div class="document-ai-composer-bottom">
+            <div class="document-ai-composer-left-actions">
+              <button class="document-ai-upload-action" id="documentAiFileButton" type="button" aria-label="문서 파일 추가" title="파일 추가">+</button>
+              <button class="document-ai-help-button" id="documentAiHelpButton" type="button" aria-expanded="false" aria-controls="documentAiHelpPanel" aria-label="해석 질문 예시 보기" title="도움말">?</button>
+            </div>
+            <div class="document-ai-composer-right-actions">
+              <button class="ai-tool-mic-button" id="documentAiMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
+              <button class="document-ai-submit" id="documentAiSubmit" type="button">해석하기</button>
+            </div>
+          </div>
         </div>
+        <input class="document-ai-file-input" id="documentAiFileInput" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" aria-label="문서 파일 업로드">
+        <div class="document-ai-help-panel" id="documentAiHelpPanel" hidden>
+          <p class="document-ai-help-title">이렇게 물어보세요</p>
+          <div class="document-ai-help-examples">
+            <button type="button" data-document-ai-example="이 문서에서 내가 해야 할 일만 정리해줘">이 문서에서 내가 해야 할 일만 정리해줘</button>
+            <button type="button" data-document-ai-example="이 계약서에서 조심할 부분 알려줘">이 계약서에서 조심할 부분 알려줘</button>
+            <button type="button" data-document-ai-example="이 고지서가 무슨 뜻인지 쉽게 설명해줘">이 고지서가 무슨 뜻인지 쉽게 설명해줘</button>
+            <button type="button" data-document-ai-example="이 설명서 사진 보고 설정 방법 알려줘">이 설명서 사진 보고 설정 방법 알려줘</button>
+          </div>
+        </div>
+
+        <p class="ai-tool-voice-status" id="documentAiVoiceStatus" aria-live="polite" hidden></p>
 
         <div class="document-ai-privacy" role="note" aria-label="개인정보 안내">
           <strong>개인정보 안내</strong>
           <p>개인정보는 가리고 올려주세요.</p>
           <p>디스원은 이름이 아니라 문서의 뜻을 풀어드립니다.</p>
           <p>주민번호, 주소, 전화번호, 계좌번호는 해석에 필요하지 않습니다.</p>
-        </div>
-
-        <label class="document-ai-question-label" for="documentAiQuestion">질문 입력창</label>
-        <textarea class="document-ai-question" id="documentAiQuestion" rows="4" placeholder="이 문서에서 궁금한 점을 물어보세요. 예: 내가 해야 할 일만 알려줘"></textarea>
-        <p class="ai-tool-voice-status" id="documentAiVoiceStatus" aria-live="polite" hidden></p>
-
-        <div class="ai-tool-action-row">
-          <button class="ai-tool-mic-button" id="documentAiMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
-          <button class="document-ai-submit" id="documentAiSubmit" type="button">해석하기</button>
         </div>
         <p class="document-ai-placeholder" id="documentAiPlaceholder" role="status" aria-live="polite" hidden></p>
       </section>
@@ -142,9 +155,12 @@
     const uploadStatus = document.getElementById('documentAiUploadStatus');
     const imagePreview = document.getElementById('documentAiImagePreview');
     const fileInput = document.getElementById('documentAiFileInput');
+    const fileButton = document.getElementById('documentAiFileButton');
     const removeFileButton = document.getElementById('documentAiFileRemove');
     const upload = document.getElementById('documentAiUpload');
     const question = document.getElementById('documentAiQuestion');
+    const helpButton = document.getElementById('documentAiHelpButton');
+    const helpPanel = document.getElementById('documentAiHelpPanel');
     const micButton = document.getElementById('documentAiMicButton');
     const voiceStatus = document.getElementById('documentAiVoiceStatus');
     let imagePreviewUrl = '';
@@ -250,6 +266,26 @@
     });
 
     removeFileButton?.addEventListener('click', clearSelectedFile);
+
+    fileButton?.addEventListener('click', () => {
+      fileInput?.click();
+    });
+
+    helpButton?.addEventListener('click', () => {
+      if (!helpPanel) return;
+      const willOpen = helpPanel.hidden;
+      helpPanel.hidden = !willOpen;
+      helpButton.setAttribute('aria-expanded', String(willOpen));
+    });
+
+    helpPanel?.addEventListener('click', (event) => {
+      const exampleButton = event.target instanceof Element
+        ? event.target.closest('[data-document-ai-example]')
+        : null;
+      if (!exampleButton || !question) return;
+      question.value = exampleButton.dataset.documentAiExample || '';
+      question.focus();
+    });
 
     fileInput?.addEventListener('change', (event) => {
       handleFiles(event.target.files);

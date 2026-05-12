@@ -175,17 +175,21 @@ Focus on what the user should understand or do next.`;
           <p class="instant-answer-sub-copy">생활, 제품, 문서, 상황까지 궁금한 점을 바로 정리해드립니다.</p>
         </div>
 
-        <div class="instant-answer-examples" aria-label="즉답 예시 질문">
-          ${EXAMPLES.map((example) => `<button class="instant-answer-example-chip" type="button" data-example="${escapeHtml(example)}">${escapeHtml(example)}</button>`).join('')}
-        </div>
-
         <label class="instant-answer-question-label" for="instantAnswerQuestion">질문 입력창</label>
         <textarea class="instant-answer-question" id="instantAnswerQuestion" rows="5" placeholder="예: 배 아플 때 어떤 약 먹어야 해?"></textarea>
         <p class="ai-tool-voice-status" id="instantAnswerVoiceStatus" aria-live="polite" hidden></p>
 
         <div class="ai-tool-action-row">
+          <button class="instant-answer-help-button" id="instantAnswerHelpButton" type="button" aria-label="즉답 예시 보기" aria-controls="instantAnswerExamples" aria-expanded="false" title="즉답 예시 보기">?</button>
           <button class="ai-tool-mic-button" id="instantAnswerMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
           <button class="instant-answer-submit" id="instantAnswerSubmit" type="button">바로 답변</button>
+        </div>
+
+        <div class="instant-answer-examples" id="instantAnswerExamples" aria-label="즉답 예시 질문" hidden>
+          <div class="instant-answer-examples-title">즉답 예시</div>
+          <div class="instant-answer-examples-list">
+            ${EXAMPLES.map((example) => `<button class="instant-answer-example-chip" type="button" data-example="${escapeHtml(example)}">${escapeHtml(example)}</button>`).join('')}
+          </div>
         </div>
         <p class="instant-answer-status" id="instantAnswerStatus" role="status" aria-live="polite" hidden></p>
         <div class="instant-answer-result" id="instantAnswerResult" aria-live="polite" hidden></div>
@@ -197,6 +201,8 @@ Focus on what the user should understand or do next.`;
     const returnButton = root.querySelector('[data-ai-tool-return]');
     const question = root.querySelector('#instantAnswerQuestion');
     const submit = root.querySelector('#instantAnswerSubmit');
+    const helpButton = root.querySelector('#instantAnswerHelpButton');
+    const examplesPanel = root.querySelector('#instantAnswerExamples');
     const status = root.querySelector('#instantAnswerStatus');
     const result = root.querySelector('#instantAnswerResult');
     const micButton = root.querySelector('#instantAnswerMicButton');
@@ -210,10 +216,18 @@ Focus on what the user should understand or do next.`;
 
     returnButton?.addEventListener('click', exitAIToolMode);
 
+    helpButton?.addEventListener('click', () => {
+      const willOpen = Boolean(examplesPanel?.hidden);
+      if (examplesPanel) examplesPanel.hidden = !willOpen;
+      helpButton.setAttribute('aria-expanded', String(willOpen));
+    });
+
     root.querySelectorAll('[data-example]').forEach((button) => {
       button.addEventListener('click', () => {
         question.value = button.dataset.example || '';
         question.focus();
+        if (examplesPanel) examplesPanel.hidden = true;
+        helpButton?.setAttribute('aria-expanded', 'false');
       });
     });
 

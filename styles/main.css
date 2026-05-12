@@ -2465,6 +2465,21 @@ body.search-mode .results-view {
   overflow-wrap: anywhere;
 }
 
+.document-ai-image-preview {
+  flex: 0 0 auto;
+  width: clamp(3.25rem, 12vw, 4.5rem);
+  aspect-ratio: 1;
+  border: 0.0625rem solid #bfdbfe;
+  border-radius: clamp(0.6rem, 1.5vw, 0.8rem);
+  background: #ffffff;
+  object-fit: cover;
+  box-shadow: 0 clamp(0.2rem, 0.8vw, 0.35rem) clamp(0.75rem, 2vw, 1rem) rgba(37, 99, 235, 0.12);
+}
+
+.document-ai-image-preview[hidden] {
+  display: none;
+}
+
 .document-ai-file-remove {
   flex: 0 0 auto;
   padding: clamp(0.35rem, 1vw, 0.5rem) clamp(0.65rem, 1.8vw, 0.85rem);

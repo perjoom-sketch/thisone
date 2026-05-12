@@ -21,6 +21,10 @@
     return file && SUPPORTED_FILE_TYPES.has(file.type);
   }
 
+  function isPreviewableImage(file) {
+    return file && /^image\/(jpeg|png|webp)$/.test(file.type || '');
+  }
+
   function getFirstSupportedFile(fileList) {
     return Array.from(fileList || []).find(isSupportedFile) || null;
   }
@@ -108,6 +112,7 @@
         <input class="document-ai-file-input" id="documentAiFileInput" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" aria-label="문서 파일 업로드">
         <div class="document-ai-upload-status-row" id="documentAiUploadStatusRow" hidden>
           <p class="document-ai-upload-status" id="documentAiUploadStatus" aria-live="polite"></p>
+          <img class="document-ai-image-preview" id="documentAiImagePreview" alt="선택한 이미지 미리보기" hidden>
           <button class="document-ai-file-remove" id="documentAiFileRemove" type="button" aria-label="선택한 파일 지우기" hidden>지우기</button>
         </div>
 
@@ -135,12 +140,14 @@
     const placeholder = document.getElementById('documentAiPlaceholder');
     const uploadStatusRow = document.getElementById('documentAiUploadStatusRow');
     const uploadStatus = document.getElementById('documentAiUploadStatus');
+    const imagePreview = document.getElementById('documentAiImagePreview');
     const fileInput = document.getElementById('documentAiFileInput');
     const removeFileButton = document.getElementById('documentAiFileRemove');
     const upload = document.getElementById('documentAiUpload');
     const question = document.getElementById('documentAiQuestion');
     const micButton = document.getElementById('documentAiMicButton');
     const voiceStatus = document.getElementById('documentAiVoiceStatus');
+    let imagePreviewUrl = '';
     global.ThisOneAIToolVoice?.attach?.({
       button: micButton,
       input: question,
@@ -149,6 +156,24 @@
     });
     function setDragOver(isDragOver) {
       upload?.classList.toggle('is-drag-over', isDragOver);
+    }
+
+    function clearImagePreview() {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+        imagePreviewUrl = '';
+      }
+      if (!imagePreview) return;
+      imagePreview.removeAttribute('src');
+      imagePreview.hidden = true;
+    }
+
+    function setImagePreview(file) {
+      clearImagePreview();
+      if (!imagePreview || !isPreviewableImage(file)) return;
+      imagePreviewUrl = URL.createObjectURL(file);
+      imagePreview.src = imagePreviewUrl;
+      imagePreview.hidden = false;
     }
 
     function setUploadStatus(message, options = {}) {
@@ -160,6 +185,7 @@
     function clearSelectedFile() {
       if (fileInput) fileInput.value = '';
       hideStatus(uploadStatus);
+      clearImagePreview();
       if (uploadStatusRow) uploadStatusRow.hidden = true;
       if (removeFileButton) removeFileButton.hidden = true;
     }
@@ -170,11 +196,13 @@
       const file = getFirstSupportedFile(fileList);
       if (!file) {
         setUploadStatus(UNSUPPORTED_FILE_MESSAGE);
+        clearImagePreview();
         if (fileInput) fileInput.value = '';
         return false;
       }
 
       setUploadStatus(options.pasted ? PASTED_IMAGE_MESSAGE : `선택된 파일: ${file.name || '이미지'}`, { canRemove: true });
+      setImagePreview(file);
       return true;
     }
 
@@ -196,6 +224,7 @@
         if (isQuestionTextarea(event.target, question)) return;
         event.preventDefault();
         setUploadStatus(UNSUPPORTED_PASTE_MESSAGE);
+        clearImagePreview();
         return;
       }
 
@@ -204,12 +233,14 @@
         if (isQuestionTextarea(event.target, question)) return;
         event.preventDefault();
         setUploadStatus(PASTED_TEXT_MESSAGE);
+        clearImagePreview();
         return;
       }
 
       if (isQuestionTextarea(event.target, question)) return;
       event.preventDefault();
       setUploadStatus(UNSUPPORTED_PASTE_MESSAGE);
+      clearImagePreview();
     }
 
     returnButton?.addEventListener('click', exitAIToolMode);
@@ -249,7 +280,10 @@
     });
 
     document.addEventListener('paste', handlePaste);
-    removePasteListener = () => document.removeEventListener('paste', handlePaste);
+    removePasteListener = () => {
+      document.removeEventListener('paste', handlePaste);
+      clearImagePreview();
+    };
   }
 
   function openDocumentAI() {

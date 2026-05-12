@@ -180,7 +180,7 @@ Focus on what the user should understand or do next.`;
         </div>
 
         <label class="instant-answer-question-label" for="instantAnswerQuestion">질문 입력창</label>
-        <textarea class="instant-answer-question" id="instantAnswerQuestion" rows="4" placeholder="예: 배 아플 때 어떤 약 먹어야 해?"></textarea>
+        <textarea class="instant-answer-question" id="instantAnswerQuestion" rows="5" placeholder="예: 배 아플 때 어떤 약 먹어야 해?"></textarea>
         <p class="ai-tool-voice-status" id="instantAnswerVoiceStatus" aria-live="polite" hidden></p>
 
         <div class="ai-tool-action-row">

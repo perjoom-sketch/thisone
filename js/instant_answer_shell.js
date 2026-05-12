@@ -24,12 +24,15 @@ Answer with:
       .replace(/'/g, '&#39;');
   }
 
-  function setSearchModeShell() {
-    document.body.classList.add('search-mode');
-    const welcome = document.getElementById('welcome');
-    if (welcome) welcome.classList.add('hidden');
-    const landingSearch = document.getElementById('landingSearch');
-    if (landingSearch) landingSearch.scrollIntoView({ block: 'start' });
+  function enterInstantAnswerMode() {
+    document.body.classList.add('ai-tool-mode', 'instant-answer-mode');
+    document.body.classList.remove('document-ai-mode');
+  }
+
+  function exitAIToolMode() {
+    document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode');
+    const container = document.getElementById('msgContainer');
+    if (container) container.innerHTML = '';
   }
 
   function setStatus(element, message) {
@@ -101,6 +104,7 @@ Answer with:
   }
 
   function triggerSearch(term) {
+    exitAIToolMode();
     const input = document.getElementById('msgInput');
     if (input) {
       input.value = term;
@@ -139,6 +143,7 @@ Answer with:
 
     container.innerHTML = `
       <section class="instant-answer-panel" data-mode="${INSTANT_ANSWER_MODE}" aria-labelledby="instantAnswerTitle">
+        <button class="ai-tool-return" type="button" data-ai-tool-return>← 쇼핑검색으로 돌아가기</button>
         <div class="instant-answer-copy">
           <p class="instant-answer-eyebrow">즉답</p>
           <h2 id="instantAnswerTitle">디스원 즉답</h2>
@@ -161,10 +166,13 @@ Answer with:
     `;
 
     const root = container.querySelector('.instant-answer-panel');
+    const returnButton = root.querySelector('[data-ai-tool-return]');
     const question = root.querySelector('#instantAnswerQuestion');
     const submit = root.querySelector('#instantAnswerSubmit');
     const status = root.querySelector('#instantAnswerStatus');
     const result = root.querySelector('#instantAnswerResult');
+
+    returnButton?.addEventListener('click', exitAIToolMode);
 
     root.querySelectorAll('[data-example]').forEach((button) => {
       button.addEventListener('click', () => {
@@ -205,7 +213,7 @@ Answer with:
   }
 
   function openInstantAnswer() {
-    setSearchModeShell();
+    enterInstantAnswerMode();
     renderInstantAnswerShell();
   }
 

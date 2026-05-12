@@ -2478,12 +2478,14 @@ body.search-mode .results-view {
   }
 }
 
-/* Document AI entry chip */
+/* Document AI entry toolbar */
 .document-ai-entry-wrap {
   display: flex;
-  justify-content: center;
-  width: min(95%, 56.25rem);
+  justify-content: flex-start;
+  width: min(90%, clamp(20rem, 50vw, 56.25rem));
   margin: clamp(0.75rem, 2vw, 1rem) auto 0;
+  padding-bottom: clamp(0.65rem, 1.5vw, 0.9rem);
+  border-bottom: 0.0625rem solid #e2e8f0;
 }
 
 .document-ai-entry-chip {
@@ -2492,9 +2494,9 @@ body.search-mode .results-view {
   justify-content: center;
   gap: clamp(0.4rem, 1vw, 0.65rem);
   width: auto;
-  padding: clamp(0.65rem, 2vw, 0.85rem) clamp(0.95rem, 3vw, 1.25rem);
+  padding: clamp(0.6rem, 1.5vw, 0.75rem) clamp(0.85rem, 2.5vw, 1.1rem);
   border: 0.0625rem solid #bfdbfe;
-  border-radius: 999rem;
+  border-radius: clamp(0.65rem, 1vw, 0.75rem);
   background: #eff6ff;
   color: #1e3a8a;
   box-shadow: 0 clamp(0.25rem, 1vw, 0.5rem) clamp(0.75rem, 2vw, 1rem) rgba(37, 99, 235, 0.08);
@@ -2523,12 +2525,13 @@ body.search-mode .document-ai-entry-wrap {
 
 @media (max-width: 640px) {
   .document-ai-entry-wrap {
-    width: min(95%, 56.25rem);
+    width: 95%;
     margin-top: clamp(0.55rem, 2vw, 0.75rem);
+    padding-bottom: clamp(0.55rem, 2vw, 0.75rem);
   }
 
   .document-ai-entry-chip {
     width: auto;
-    padding: clamp(0.55rem, 2vw, 0.7rem) clamp(0.85rem, 3vw, 1rem);
+    padding: clamp(0.5rem, 2vw, 0.65rem) clamp(0.8rem, 3vw, 0.95rem);
   }
 }

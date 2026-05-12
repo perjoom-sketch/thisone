@@ -3119,15 +3119,26 @@ body.ai-tool-mode #msgContainer {
   align-self: flex-start;
   gap: clamp(0.35rem, 1vw, 0.5rem);
   max-inline-size: 100%;
-  padding: clamp(0.35rem, 1vw, 0.45rem) clamp(0.5rem, 1.6vw, 0.7rem);
+  padding: clamp(0.25rem, 0.8vw, 0.35rem) clamp(0.5rem, 1.6vw, 0.7rem) clamp(0.25rem, 0.8vw, 0.35rem) clamp(0.25rem, 0.8vw, 0.35rem);
   border: 0.0625rem solid #bae6fd;
   border-radius: 999rem;
   background: #f0f9ff;
   color: #075985;
 }
 
-.web-search-selected-file[hidden] {
+.web-search-selected-file[hidden],
+.web-search-selected-file-preview[hidden] {
   display: none;
+}
+
+.web-search-selected-file-preview {
+  flex: 0 0 clamp(2rem, 7vw, 2.5rem);
+  inline-size: clamp(2rem, 7vw, 2.5rem);
+  block-size: clamp(2rem, 7vw, 2.5rem);
+  border: 0.0625rem solid #dbeafe;
+  border-radius: 999rem;
+  background: #e2e8f0;
+  object-fit: cover;
 }
 
 .web-search-selected-file-text {

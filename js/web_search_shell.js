@@ -148,6 +148,7 @@
 
         <p class="ai-tool-voice-status" id="webSearchVoiceStatus" aria-live="polite" hidden></p>
         <div class="web-search-selected-file" id="webSearchSelectedFile" hidden>
+          <img class="web-search-selected-file-preview" id="webSearchSelectedFilePreview" alt="" hidden>
           <span class="web-search-selected-file-text" id="webSearchSelectedFileText" role="status" aria-live="polite"></span>
           <button class="web-search-selected-file-remove" id="webSearchSelectedFileRemove" type="button" aria-label="선택한 이미지 제거" title="선택한 이미지 제거">×</button>
         </div>
@@ -170,16 +171,21 @@
     const uploadInput = root.querySelector('#webSearchUploadInput');
     const cameraInput = root.querySelector('#webSearchCameraInput');
     const selectedFileStatus = root.querySelector('#webSearchSelectedFile');
+    const selectedFilePreview = root.querySelector('#webSearchSelectedFilePreview');
     const selectedFileText = root.querySelector('#webSearchSelectedFileText');
     const selectedFileRemove = root.querySelector('#webSearchSelectedFileRemove');
     let selectedFileInput = null;
+    let selectedFilePreviewUrl = '';
     global.ThisOneAIToolVoice?.attach?.({
       button: micButton,
       input,
       status: voiceStatus,
       appendMode: 'space'
     });
-    returnButton?.addEventListener('click', exitWebSearchMode);
+    returnButton?.addEventListener('click', () => {
+      clearSelectedFileStatus();
+      exitWebSearchMode();
+    });
 
     function setPlusMenuOpen(isOpen) {
       if (!plusButton || !plusMenu) return;
@@ -202,15 +208,27 @@
     uploadButton?.addEventListener('click', () => openFilePicker(uploadInput));
     cameraButton?.addEventListener('click', () => openFilePicker(cameraInput));
 
+    function revokeSelectedFilePreviewUrl() {
+      if (!selectedFilePreviewUrl) return;
+      URL.revokeObjectURL(selectedFilePreviewUrl);
+      selectedFilePreviewUrl = '';
+    }
+
     function clearSelectedFileStatus() {
       if (selectedFileInput) selectedFileInput.value = '';
       selectedFileInput = null;
+      revokeSelectedFilePreviewUrl();
+      if (selectedFilePreview) {
+        selectedFilePreview.removeAttribute('src');
+        selectedFilePreview.hidden = true;
+      }
       if (selectedFileText) selectedFileText.textContent = '';
       if (selectedFileStatus) selectedFileStatus.hidden = true;
     }
 
     function setSelectedFileStatus(fileInput, label) {
-      const fileName = fileInput?.files?.[0]?.name;
+      const file = fileInput?.files?.[0];
+      const fileName = file?.name;
       if (!fileName) {
         clearSelectedFileStatus();
         return;
@@ -219,6 +237,13 @@
       if (fileInput === uploadInput && cameraInput) cameraInput.value = '';
       if (fileInput === cameraInput && uploadInput) uploadInput.value = '';
       selectedFileInput = fileInput;
+      revokeSelectedFilePreviewUrl();
+      if (selectedFilePreview) {
+        selectedFilePreviewUrl = URL.createObjectURL(file);
+        selectedFilePreview.src = selectedFilePreviewUrl;
+        selectedFilePreview.alt = `${label} 미리보기`;
+        selectedFilePreview.hidden = false;
+      }
       if (selectedFileText) selectedFileText.textContent = `${label}: ${fileName}`;
       if (selectedFileStatus) selectedFileStatus.hidden = false;
     }

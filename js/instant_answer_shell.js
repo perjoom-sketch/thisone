@@ -1,18 +1,40 @@
 (function (global) {
   const INSTANT_ANSWER_MODE = 'instant-answer';
-  const SYSTEM_PROMPT = `ThisOne 즉답 should answer practical questions immediately.
-The user may not know the correct name, term, product name, legal term, or search keyword.
-Answer with:
-- 결론
-- 이유
-- 지금 할 일
-- 주의할 점
-- 검색 추천어, if useful`;
+  const SYSTEM_PROMPT = `You are ThisOne 즉답.
+You answer practical everyday questions immediately.
+
+즉답 is not only for product names or search keywords.
+It is a general instant Q&A helper, similar to a better version of 지식인.
+
+The user may ask about life problems, shopping, product names, legal situations, health/medicine, repairs, terms, documents, or what to do next.
+
+Answer directly and practically.
+
+Prefer this structure when useful:
+1. 결론
+2. 이유
+3. 지금 할 일
+4. 주의할 점
+5. 더 확인할 것
+
+Only include ‘검색 추천어’ when it is actually useful.
+Do not force search keywords into every answer.
+
+For medical, legal, financial, or safety topics:
+- provide general guidance
+- avoid definitive diagnosis or legal judgment
+- mention when pharmacist/doctor/lawyer/public office confirmation is needed
+- include red flags or urgent cases when appropriate.
+
+Do not give long lectures.
+Do not answer with irrelevant shopping/product framing.
+Focus on what the user should understand or do next.`;
   const EXAMPLES = [
-    '이거 뭐라고 검색해야 해?',
+    '배 아플 때 어떤 약 먹어야 해?',
     '월세 보증금 안 돌려주면 어떻게 해?',
     '문 닫힐 때 쾅 안 닫히게 하는 부품 뭐야?',
-    '이 증상은 무슨 문제야?'
+    '폐기물 스티커 어디서 사?',
+    '회사에서 이 서류에 사인하라는데 괜찮아?'
   ];
 
   function escapeHtml(value) {
@@ -54,11 +76,13 @@ Answer with:
   function extractSearchTerms(answerText) {
     const source = String(answerText || '');
     const terms = [];
-    const markerMatch = source.match(/검색\s*추천어\s*[:：]?([\s\S]{0,240})/i);
-    const candidateText = markerMatch ? markerMatch[1] : '';
+    const markerMatch = source.match(/(?:^|\n)\s*(?:#{1,3}\s*)?검색\s*추천어\s*[:：]?\s*\n?([\s\S]{0,240})/i);
+    if (!markerMatch) return terms;
+
+    const candidateText = markerMatch[1].split(/\n\s*(?:#{1,3}\s*)?(?:결론|이유|지금 할 일|주의할 점|더 확인할 것)\s*[:：]?/)[0];
     candidateText.split(/[\n,·•]/).forEach((part) => {
       const term = part.replace(/^[-*\d.\s]+/, '').replace(/검색하기/g, '').trim();
-      if (term.length >= 2 && term.length <= 30 && !terms.includes(term)) terms.push(term);
+      if (term.length >= 2 && term.length <= 30 && !/필요\s*없|없습니다|생략/.test(term) && !terms.includes(term)) terms.push(term);
     });
     return terms.slice(0, 3);
   }
@@ -148,7 +172,7 @@ Answer with:
           <p class="instant-answer-eyebrow">즉답</p>
           <h2 id="instantAnswerTitle">디스원 즉답</h2>
           <p class="instant-answer-main-copy">검색하지 말고 바로 물어보세요.</p>
-          <p class="instant-answer-sub-copy">이름을 몰라도, 상황만 말하면 지금 필요한 답을 정리해드립니다.</p>
+          <p class="instant-answer-sub-copy">생활, 제품, 문서, 상황까지 궁금한 점을 바로 정리해드립니다.</p>
         </div>
 
         <div class="instant-answer-examples" aria-label="즉답 예시 질문">
@@ -156,7 +180,7 @@ Answer with:
         </div>
 
         <label class="instant-answer-question-label" for="instantAnswerQuestion">질문 입력창</label>
-        <textarea class="instant-answer-question" id="instantAnswerQuestion" rows="4" placeholder="예: 문 닫힐 때 쾅 안 닫히게 하는 부품 이름이 뭐야?"></textarea>
+        <textarea class="instant-answer-question" id="instantAnswerQuestion" rows="4" placeholder="예: 배 아플 때 어떤 약 먹어야 해?"></textarea>
 
         <button class="instant-answer-submit" id="instantAnswerSubmit" type="button">바로 답변</button>
         <p class="instant-answer-status" id="instantAnswerStatus" role="status" aria-live="polite" hidden></p>

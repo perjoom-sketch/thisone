@@ -1,5 +1,9 @@
 (function (global) {
   const WEB_SEARCH_MODE = 'web-search';
+  const SUPPORTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+  const UNSUPPORTED_IMAGE_MESSAGE = 'JPG, PNG, WebP 이미지 1장만 사용할 수 있습니다.';
+  const INFERENCE_UNAVAILABLE_MESSAGE = '이미지에서 검색어를 추출하는 기능은 다음 단계에서 지원됩니다.';
+  let removePasteListener = null;
 
   function escapeHtml(value) {
     return String(value || '')
@@ -36,6 +40,65 @@
     element.hidden = !message;
   }
 
+  function isSupportedImage(file) {
+    return Boolean(file && SUPPORTED_IMAGE_TYPES.has(file.type));
+  }
+
+  function getClipboardFiles(clipboardData) {
+    if (!clipboardData) return [];
+
+    const files = Array.from(clipboardData.files || []);
+    if (files.length > 0) return files;
+
+    return Array.from(clipboardData.items || [])
+      .filter((item) => item.kind === 'file')
+      .map((item) => item.getAsFile())
+      .filter(Boolean);
+  }
+
+  function hasClipboardImage(clipboardData) {
+    return getClipboardFiles(clipboardData).some((file) => file.type?.startsWith('image/'));
+  }
+
+  function readImageFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const src = String(event.target?.result || '');
+        const data = src.includes(',') ? src.split(',')[1] : '';
+        if (!data) {
+          reject(new Error('이미지를 읽을 수 없습니다.'));
+          return;
+        }
+        resolve({ data, src, type: file.type || 'image/jpeg', name: file.name || '붙여넣은 이미지' });
+      };
+      reader.onerror = () => reject(new Error('이미지를 읽을 수 없습니다.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function uniqueTerms(terms) {
+    const seen = new Set();
+    return terms
+      .map((term) => String(term || '').replace(/\s+/g, ' ').trim())
+      .filter((term) => {
+        if (!term || seen.has(term)) return false;
+        seen.add(term);
+        return true;
+      })
+      .slice(0, 4);
+  }
+
+  function buildSuggestedTerms(intentProfile) {
+    const refined = String(intentProfile?.refinedSearchTerm || '').trim();
+    const category = String(intentProfile?.categoryHint || '').trim();
+    const categoryTail = category.split('/').map((part) => part.trim()).filter(Boolean).pop() || '';
+    const terms = [refined];
+
+    if (categoryTail && categoryTail !== refined) terms.push(categoryTail);
+    return uniqueTerms(terms);
+  }
+
   function enterWebSearchMode() {
     document.body.classList.add('ai-tool-mode', 'web-search-mode');
     document.body.classList.remove('document-ai-mode', 'instant-answer-mode');
@@ -43,6 +106,10 @@
 
   function exitWebSearchMode() {
     document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode', 'web-search-mode');
+    if (removePasteListener) {
+      removePasteListener();
+      removePasteListener = null;
+    }
     const container = document.getElementById('msgContainer');
     if (container) container.innerHTML = '';
   }
@@ -67,6 +134,15 @@
     }
 
     return Array.isArray(data?.results) ? data.results : [];
+  }
+
+  async function inferImageTerms(imagePayload) {
+    if (!imagePayload || typeof global.ThisOneAPI?.requestIntentInfer !== 'function') {
+      return [];
+    }
+
+    const intentProfile = await global.ThisOneAPI.requestIntentInfer('', { queries: [], clickEvents: [], refinements: 0 }, imagePayload);
+    return buildSuggestedTerms(intentProfile);
   }
 
   function renderResults(root, results) {
@@ -95,9 +171,67 @@
     }).join('');
   }
 
+  function renderSuggestedTerms(root, terms) {
+    const suggestions = root.querySelector('#webSearchImageSuggestions');
+    if (!suggestions) return;
+
+    if (!terms.length) {
+      suggestions.hidden = false;
+      suggestions.innerHTML = `<p class="web-search-image-fallback">${INFERENCE_UNAVAILABLE_MESSAGE}</p>`;
+      return;
+    }
+
+    suggestions.hidden = false;
+    suggestions.innerHTML = `
+      <p class="web-search-suggestion-title">추천 검색어</p>
+      <div class="web-search-suggestion-list">
+        ${terms.map((term) => `
+          <button class="web-search-suggestion-chip" type="button" data-web-search-term="${escapeHtml(term)}">
+            ${escapeHtml(term)}로 서치
+          </button>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function clearImagePreview(root) {
+    const preview = root.querySelector('#webSearchImagePreview');
+    const previewImg = root.querySelector('#webSearchPreviewImg');
+    const suggestions = root.querySelector('#webSearchImageSuggestions');
+    const fileInput = root.querySelector('#webSearchImageInput');
+
+    if (preview) {
+      preview.hidden = true;
+      preview.removeAttribute('data-has-image');
+    }
+    if (previewImg) previewImg.removeAttribute('src');
+    if (suggestions) {
+      suggestions.hidden = true;
+      suggestions.innerHTML = '';
+    }
+    if (fileInput) fileInput.value = '';
+  }
+
+  function renderImagePreview(root, imagePayload) {
+    const preview = root.querySelector('#webSearchImagePreview');
+    const previewImg = root.querySelector('#webSearchPreviewImg');
+    const previewName = root.querySelector('#webSearchPreviewName');
+
+    if (!preview || !previewImg) return;
+    previewImg.src = imagePayload.src;
+    if (previewName) previewName.textContent = imagePayload.name || '선택한 이미지';
+    preview.hidden = false;
+    preview.setAttribute('data-has-image', 'true');
+  }
+
   function renderWebSearchShell() {
     const container = document.getElementById('msgContainer');
     if (!container) return;
+
+    if (removePasteListener) {
+      removePasteListener();
+      removePasteListener = null;
+    }
 
     container.innerHTML = `
       <section class="web-search-panel" data-mode="${WEB_SEARCH_MODE}" aria-labelledby="webSearchTitle">
@@ -115,6 +249,26 @@
           <button class="web-search-submit" id="webSearchSubmit" type="button">검색</button>
         </div>
 
+        <section class="web-search-image-start" aria-labelledby="webSearchImageTitle">
+          <div class="web-search-image-copy">
+            <h3 id="webSearchImageTitle">이미지로 시작하기</h3>
+            <p>이름을 몰라도 사진을 올리면 검색어를 찾는 데 도움을 줍니다.</p>
+          </div>
+          <div class="web-search-image-actions">
+            <button class="web-search-image-action" id="webSearchUploadButton" type="button">이미지 올리기</button>
+            <button class="web-search-image-action" id="webSearchCameraButton" type="button">사진 찍기</button>
+          </div>
+          <input class="web-search-image-input" id="webSearchImageInput" type="file" accept="image/jpeg,image/png,image/webp" aria-label="서치 이미지 업로드">
+          <div class="web-search-image-preview" id="webSearchImagePreview" hidden>
+            <img id="webSearchPreviewImg" alt="서치 시작 이미지 미리보기">
+            <div class="web-search-image-preview-info">
+              <p id="webSearchPreviewName">선택한 이미지</p>
+              <button class="web-search-image-remove" id="webSearchImageRemove" type="button">이미지 삭제</button>
+            </div>
+          </div>
+          <div class="web-search-image-suggestions" id="webSearchImageSuggestions" aria-live="polite" hidden></div>
+        </section>
+
         <p class="web-search-status" id="webSearchStatus" role="status" aria-live="polite" hidden></p>
         <div class="web-search-results" id="webSearchResults" aria-live="polite"></div>
       </section>
@@ -125,17 +279,22 @@
     const input = root.querySelector('#webSearchInput');
     const submit = root.querySelector('#webSearchSubmit');
     const status = root.querySelector('#webSearchStatus');
+    const fileInput = root.querySelector('#webSearchImageInput');
+    const uploadButton = root.querySelector('#webSearchUploadButton');
+    const cameraButton = root.querySelector('#webSearchCameraButton');
+    const removeButton = root.querySelector('#webSearchImageRemove');
 
     returnButton?.addEventListener('click', exitWebSearchMode);
 
-    async function runSearch() {
-      const query = input.value.trim();
+    async function runSearch(queryOverride) {
+      const query = String(queryOverride || input.value || '').trim();
       if (!query) {
         setStatus(status, '검색어를 입력해주세요.');
         input.focus();
         return;
       }
 
+      input.value = query;
       submit.disabled = true;
       renderResults(root, []);
       setStatus(status, '웹에서 검색하고 있습니다...');
@@ -152,13 +311,94 @@
       }
     }
 
-    submit.addEventListener('click', runSearch);
+    async function handleImageFile(file) {
+      if (!isSupportedImage(file)) {
+        setStatus(status, UNSUPPORTED_IMAGE_MESSAGE);
+        if (fileInput) fileInput.value = '';
+        return;
+      }
+
+      setStatus(status, '이미지를 확인하고 검색어를 찾고 있습니다...');
+      let imagePayload;
+      try {
+        imagePayload = await readImageFile(file);
+      } catch (error) {
+        setStatus(status, error.message || '이미지를 읽을 수 없습니다.');
+        return;
+      }
+      renderImagePreview(root, imagePayload);
+
+      try {
+        const terms = await inferImageTerms(imagePayload);
+        renderSuggestedTerms(root, terms);
+        setStatus(status, terms.length ? '이미지에서 추천 검색어를 찾았습니다.' : INFERENCE_UNAVAILABLE_MESSAGE);
+      } catch (error) {
+        renderSuggestedTerms(root, []);
+        setStatus(status, INFERENCE_UNAVAILABLE_MESSAGE);
+      }
+    }
+
+    submit.addEventListener('click', () => runSearch());
     input.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
         event.preventDefault();
         runSearch();
       }
     });
+
+    uploadButton?.addEventListener('click', () => {
+      if (!fileInput) return;
+      fileInput.removeAttribute('capture');
+      fileInput.value = '';
+      fileInput.click();
+    });
+
+    cameraButton?.addEventListener('click', () => {
+      if (!fileInput) return;
+      fileInput.setAttribute('capture', 'environment');
+      fileInput.value = '';
+      fileInput.click();
+    });
+
+    fileInput?.addEventListener('change', (event) => {
+      const files = Array.from(event.target.files || []);
+      if (files.length !== 1) {
+        setStatus(status, UNSUPPORTED_IMAGE_MESSAGE);
+        event.target.value = '';
+        return;
+      }
+      handleImageFile(files[0]);
+    });
+
+    removeButton?.addEventListener('click', () => {
+      clearImagePreview(root);
+      setStatus(status, '이미지를 삭제했습니다.');
+    });
+
+    root.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-web-search-term]');
+      if (!button) return;
+      runSearch(button.dataset.webSearchTerm || '');
+    });
+
+    function handlePaste(event) {
+      if (!document.querySelector(`.web-search-panel[data-mode="${WEB_SEARCH_MODE}"]`)) return;
+      if (event.target === input) return;
+
+      const clipboardData = event.clipboardData;
+      if (!hasClipboardImage(clipboardData)) return;
+
+      event.preventDefault();
+      const imageFiles = getClipboardFiles(clipboardData).filter((file) => file.type?.startsWith('image/'));
+      if (imageFiles.length !== 1) {
+        setStatus(status, UNSUPPORTED_IMAGE_MESSAGE);
+        return;
+      }
+      handleImageFile(imageFiles[0]);
+    }
+
+    document.addEventListener('paste', handlePaste);
+    removePasteListener = () => document.removeEventListener('paste', handlePaste);
     input.focus();
   }
 

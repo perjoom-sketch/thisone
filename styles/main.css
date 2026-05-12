@@ -2941,3 +2941,152 @@ body.ai-tool-mode #msgContainer {
     padding-left: clamp(0.85rem, 3vw, 1rem);
   }
 }
+/* Image-based starting point for 디스원 서치 */
+.web-search-image-start {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 2vw, 1rem);
+  width: 100%;
+  padding: clamp(0.875rem, 2.6vw, 1.25rem);
+  border: 0.0625rem solid #dbeafe;
+  border-radius: clamp(1rem, 3vw, 1.4rem);
+  background: linear-gradient(135deg, #f8fbff 0%, #f1f5f9 100%);
+}
+
+.web-search-image-copy {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.25rem, 1vw, 0.4rem);
+}
+
+.web-search-image-copy h3,
+.web-search-image-copy p,
+.web-search-suggestion-title,
+.web-search-image-fallback,
+.web-search-image-preview-info p,
+.web-search-image-action,
+.web-search-suggestion-chip,
+.web-search-image-remove {
+  margin: 0;
+  font-size: clamp(0.82rem, 2.4vw, 0.96rem);
+}
+
+.web-search-image-copy h3 {
+  color: #1e40af;
+  font-weight: 750;
+}
+
+.web-search-image-copy p,
+.web-search-image-preview-info p,
+.web-search-image-fallback {
+  color: #64748b;
+  line-height: 1.55;
+}
+
+.web-search-image-actions,
+.web-search-suggestion-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.5rem, 1.6vw, 0.75rem);
+}
+
+.web-search-image-action,
+.web-search-suggestion-chip,
+.web-search-image-remove {
+  border: 0.0625rem solid #bfdbfe;
+  border-radius: 999rem;
+  background: #ffffff;
+  color: #1d4ed8;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.web-search-image-action,
+.web-search-suggestion-chip {
+  padding: clamp(0.58rem, 1.6vw, 0.72rem) clamp(0.8rem, 2.2vw, 1rem);
+}
+
+.web-search-image-action:hover,
+.web-search-image-action:focus-visible,
+.web-search-suggestion-chip:hover,
+.web-search-suggestion-chip:focus-visible,
+.web-search-image-remove:hover,
+.web-search-image-remove:focus-visible {
+  background: #eff6ff;
+  border-color: #60a5fa;
+  color: #1e3a8a;
+}
+
+.web-search-image-input {
+  display: none;
+}
+
+.web-search-image-preview {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.75rem, 2vw, 1rem);
+  width: 100%;
+  padding: clamp(0.65rem, 2vw, 0.9rem);
+  border: 0.0625rem solid #e2e8f0;
+  border-radius: clamp(0.8rem, 2.4vw, 1rem);
+  background: #ffffff;
+}
+
+.web-search-image-preview[hidden],
+.web-search-image-suggestions[hidden] {
+  display: none;
+}
+
+.web-search-image-preview img {
+  flex: 0 0 clamp(4.75rem, 15vw, 6.5rem);
+  width: clamp(4.75rem, 15vw, 6.5rem);
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: clamp(0.65rem, 2vw, 0.85rem);
+  background: #e2e8f0;
+}
+
+.web-search-image-preview-info {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(0.5rem, 1.6vw, 0.75rem);
+}
+
+.web-search-image-preview-info p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.web-search-image-remove {
+  flex: 0 0 auto;
+  padding: clamp(0.42rem, 1.4vw, 0.55rem) clamp(0.62rem, 1.8vw, 0.8rem);
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+.web-search-image-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 1.5vw, 0.7rem);
+}
+
+.web-search-suggestion-title {
+  color: #334155;
+  font-weight: 750;
+}
+
+@media (max-width: 640px) {
+  .web-search-image-preview {
+    align-items: flex-start;
+  }
+
+  .web-search-image-preview-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

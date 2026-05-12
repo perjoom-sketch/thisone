@@ -110,7 +110,7 @@
         </div>
 
         <label class="document-ai-question-label" for="documentAiQuestion">질문 입력창</label>
-        <textarea class="document-ai-question" id="documentAiQuestion" rows="3" placeholder="이 문서에서 궁금한 점을 물어보세요. 예: 내가 해야 할 일만 알려줘"></textarea>
+        <textarea class="document-ai-question" id="documentAiQuestion" rows="4" placeholder="이 문서에서 궁금한 점을 물어보세요. 예: 내가 해야 할 일만 알려줘"></textarea>
         <p class="ai-tool-voice-status" id="documentAiVoiceStatus" aria-live="polite" hidden></p>
 
         <div class="ai-tool-action-row">

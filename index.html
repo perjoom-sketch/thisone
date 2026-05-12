@@ -167,6 +167,7 @@
   <main class="app-main">
     <section class="landing-view" id="landing">
       <div id="welcome" class="welcome-section">
+        <p class="shopping-identity-title">AI 쇼핑검색</p>
         <h2 class="rounded-headline">이것저것 찾지 말고,<br><span class="point-text">하나만</span> 잘 고르자!</h2>
       </div>
 
@@ -180,7 +181,7 @@
           </div>
 
           <div class="input-row">
-            <textarea class="msg-input" id="msgInput" placeholder="검색어 또는 이미지 붙여넣기..." rows="1" oninput="autoResize(this)" onkeydown="handleKey(event)" onpaste="handlePaste(event)"></textarea>
+            <textarea class="msg-input" id="msgInput" placeholder="상품명, 용도, 이미지를 입력하세요..." rows="1" oninput="autoResize(this)" onkeydown="handleKey(event)" onpaste="handlePaste(event)"></textarea>
             <div class="footer-right">
               <button class="icon-btn img-btn" type="button" onclick="document.getElementById('fileInput').click()" title="이미지 업로드">
                 <span class="new-badge">NEW</span>

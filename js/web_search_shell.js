@@ -97,6 +97,15 @@
     }).join('');
   }
 
+  function shouldAutoFocusWebSearchInput() {
+    return !global.matchMedia?.('(max-width: 640px)')?.matches;
+  }
+
+  function focusWebSearchInputIfDesktop(input) {
+    if (!input || !shouldAutoFocusWebSearchInput()) return;
+    input.focus();
+  }
+
   function renderWebSearchShell() {
     const container = document.getElementById('msgContainer');
     if (!container) return;
@@ -204,7 +213,7 @@
       const query = String(queryOverride || input.value || '').trim();
       if (!query) {
         setStatus(status, '검색어를 입력해주세요.');
-        input.focus();
+        focusWebSearchInputIfDesktop(input);
         return;
       }
 
@@ -233,7 +242,7 @@
       }
     });
 
-    input.focus();
+    focusWebSearchInputIfDesktop(input);
   }
 
   function openWebSearch() {

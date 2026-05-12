@@ -3023,11 +3023,13 @@ body.ai-tool-mode #msgContainer {
   }
 
   .web-search-panel .ai-tool-return {
+    position: -webkit-sticky;
     position: sticky;
     top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
-    z-index: 5;
+    z-index: 10;
     margin-bottom: 1rem;
     background: #eff6ff;
+    box-shadow: 0 clamp(0.25rem, 1vw, 0.45rem) clamp(0.75rem, 2vw, 1rem) rgba(14, 165, 233, 0.12);
   }
 
   .web-search-form {

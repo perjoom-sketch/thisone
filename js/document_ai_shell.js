@@ -4,7 +4,12 @@
 
   const DOCUMENT_AI_MODE = 'document-ai';
   const READY_MESSAGE = '해석 기능은 준비 중입니다.\n곧 어려운 내용을 쉽게 해석해드릴게요.';
-  const UNSUPPORTED_FILE_MESSAGE = '현재는 PDF, 이미지, 텍스트만 해석할 수 있습니다.';
+  const UNSUPPORTED_FILE_MESSAGE = '현재는 PDF, JPG, PNG, WebP, 텍스트만 해석할 수 있습니다.';
+  const UNSUPPORTED_PASTE_MESSAGE = 'PDF, 이미지, 텍스트만 붙여넣을 수 있습니다.';
+  const PASTED_IMAGE_MESSAGE = '붙여넣은 이미지가 추가되었습니다.';
+  const PASTED_TEXT_MESSAGE = '붙여넣은 텍스트가 추가되었습니다.';
+  let removePasteListener = null;
+
   const SUPPORTED_FILE_TYPES = new Set([
     'application/pdf',
     'image/jpeg',
@@ -18,6 +23,33 @@
 
   function getFirstSupportedFile(fileList) {
     return Array.from(fileList || []).find(isSupportedFile) || null;
+  }
+
+  function getClipboardText(clipboardData) {
+    return clipboardData?.getData('text/plain')?.trim() || '';
+  }
+
+  function getClipboardFiles(clipboardData) {
+    if (!clipboardData) return [];
+
+    const files = Array.from(clipboardData.files || []);
+    if (files.length > 0) return files;
+
+    return Array.from(clipboardData.items || [])
+      .filter((item) => item.kind === 'file')
+      .map((item) => item.getAsFile())
+      .filter(Boolean);
+  }
+
+  function hasClipboardContent(clipboardData) {
+    if (!clipboardData) return false;
+    return getClipboardFiles(clipboardData).length > 0
+      || (clipboardData.items && clipboardData.items.length > 0)
+      || Boolean(getClipboardText(clipboardData));
+  }
+
+  function isQuestionTextarea(target, question) {
+    return Boolean(question && target === question);
   }
 
   function setStatus(element, message) {
@@ -38,6 +70,11 @@
     const container = document.getElementById('msgContainer');
     if (!container) return;
 
+    if (removePasteListener) {
+      removePasteListener();
+      removePasteListener = null;
+    }
+
     container.innerHTML = `
       <section class="document-ai-panel" data-mode="${DOCUMENT_AI_MODE}" aria-labelledby="documentAiTitle">
         <div class="document-ai-copy">
@@ -48,11 +85,12 @@
         </div>
 
         <label class="document-ai-upload" id="documentAiUpload" for="documentAiFileInput">
-          <span class="document-ai-upload-title">파일 업로드 영역</span>
-          <span class="document-ai-upload-copy">PDF, JPG, PNG, WebP 이미지를 하나만 올려주세요.</span>
+          <span class="document-ai-upload-title">PDF나 사진을 올려주세요</span>
+          <span class="document-ai-upload-copy">파일 선택, 드래그앤드롭, 붙여넣기를 지원합니다.</span>
           <span class="document-ai-upload-action">파일 선택</span>
         </label>
         <input class="document-ai-file-input" id="documentAiFileInput" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" aria-label="문서 파일 업로드">
+        <p class="document-ai-upload-status" id="documentAiUploadStatus" aria-live="polite" hidden></p>
 
         <div class="document-ai-privacy" role="note" aria-label="개인정보 안내">
           <strong>개인정보 안내</strong>
@@ -71,20 +109,60 @@
 
     const button = document.getElementById('documentAiSubmit');
     const placeholder = document.getElementById('documentAiPlaceholder');
+    const uploadStatus = document.getElementById('documentAiUploadStatus');
     const fileInput = document.getElementById('documentAiFileInput');
     const upload = document.getElementById('documentAiUpload');
     const question = document.getElementById('documentAiQuestion');
-    function handleFiles(fileList) {
-      if (!fileList || fileList.length === 0) return;
+    function setDragOver(isDragOver) {
+      upload?.classList.toggle('is-drag-over', isDragOver);
+    }
+
+    function handleFiles(fileList, options = {}) {
+      if (!fileList || fileList.length === 0) return false;
 
       const file = getFirstSupportedFile(fileList);
       if (!file) {
-        setStatus(placeholder, UNSUPPORTED_FILE_MESSAGE);
+        setStatus(uploadStatus, UNSUPPORTED_FILE_MESSAGE);
         if (fileInput) fileInput.value = '';
+        return false;
+      }
+
+      setStatus(uploadStatus, options.pasted ? PASTED_IMAGE_MESSAGE : `선택된 파일: ${file.name || '이미지'}`);
+      return true;
+    }
+
+    function handlePaste(event) {
+      const clipboardData = event.clipboardData;
+      if (!document.querySelector(`.document-ai-panel[data-mode="${DOCUMENT_AI_MODE}"]`) || !hasClipboardContent(clipboardData)) {
         return;
       }
 
-      setStatus(placeholder, `${file.name || '붙여넣은 이미지'} 파일을 선택했습니다.`);
+      const files = getClipboardFiles(clipboardData);
+      const supportedFile = getFirstSupportedFile(files);
+      if (supportedFile) {
+        event.preventDefault();
+        handleFiles([supportedFile], { pasted: true });
+        return;
+      }
+
+      if (files.length > 0) {
+        if (isQuestionTextarea(event.target, question)) return;
+        event.preventDefault();
+        setStatus(uploadStatus, UNSUPPORTED_PASTE_MESSAGE);
+        return;
+      }
+
+      const pastedText = getClipboardText(clipboardData);
+      if (pastedText) {
+        if (isQuestionTextarea(event.target, question)) return;
+        event.preventDefault();
+        setStatus(uploadStatus, PASTED_TEXT_MESSAGE);
+        return;
+      }
+
+      if (isQuestionTextarea(event.target, question)) return;
+      event.preventDefault();
+      setStatus(uploadStatus, UNSUPPORTED_PASTE_MESSAGE);
     }
 
     button?.addEventListener('click', () => {
@@ -95,22 +173,32 @@
       handleFiles(event.target.files);
     });
 
+    upload?.addEventListener('dragenter', (event) => {
+      event.preventDefault();
+      setDragOver(true);
+    });
+
     upload?.addEventListener('dragover', (event) => {
       event.preventDefault();
+      setDragOver(true);
+    });
+
+    upload?.addEventListener('dragleave', () => {
+      setDragOver(false);
+    });
+
+    upload?.addEventListener('dragend', () => {
+      setDragOver(false);
     });
 
     upload?.addEventListener('drop', (event) => {
       event.preventDefault();
+      setDragOver(false);
       handleFiles(event.dataTransfer?.files);
     });
 
-    question?.addEventListener('paste', (event) => {
-      const files = Array.from(event.clipboardData?.files || []);
-      if (files.length === 0) return;
-
-      event.preventDefault();
-      handleFiles(files);
-    });
+    document.addEventListener('paste', handlePaste);
+    removePasteListener = () => document.removeEventListener('paste', handlePaste);
   }
 
   function openDocumentAI() {

@@ -2353,20 +2353,33 @@ body.search-mode .results-view {
 .document-ai-privacy p,
 .document-ai-upload-copy,
 .document-ai-question-label,
+.document-ai-upload-status,
 .document-ai-placeholder {
   font-size: clamp(0.88rem, 2vw, 1rem);
 }
 
 .document-ai-upload {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: clamp(0.75rem, 2vw, 1rem);
-  padding: clamp(0.9rem, 3vw, 1.25rem);
+  justify-content: center;
+  width: 100%;
+  min-height: clamp(8.75rem, 18vw, 11.25rem);
+  gap: clamp(0.65rem, 2vw, 0.9rem);
+  padding: clamp(1.1rem, 4vw, 1.5rem);
   border: 0.09375rem dashed #93c5fd;
-  border-radius: clamp(0.85rem, 2vw, 1.15rem);
-  background: #eff6ff;
+  border-radius: clamp(1rem, 3vw, 1.35rem);
+  background: linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%);
+  text-align: center;
   cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.document-ai-upload.is-drag-over {
+  border-color: #2563eb;
+  background: #dbeafe;
+  box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.14);
+  transform: translateY(-0.125rem);
 }
 
 .document-ai-upload-title {
@@ -2376,8 +2389,9 @@ body.search-mode .results-view {
 }
 
 .document-ai-upload-copy {
-  flex: 1;
+  max-width: min(100%, clamp(18rem, 60vw, 32rem));
   color: #475569;
+  line-height: 1.55;
 }
 
 .document-ai-upload-action,
@@ -2391,7 +2405,7 @@ body.search-mode .results-view {
 }
 
 .document-ai-upload-action {
-  padding: clamp(0.5rem, 1.5vw, 0.7rem) clamp(0.8rem, 2vw, 1rem);
+  padding: clamp(0.6rem, 1.6vw, 0.8rem) clamp(1rem, 3vw, 1.35rem);
   white-space: nowrap;
 }
 
@@ -2401,6 +2415,13 @@ body.search-mode .results-view {
   block-size: 0.0625rem;
   opacity: 0;
   pointer-events: none;
+}
+
+.document-ai-upload-status {
+  margin: calc(clamp(0.75rem, 2vw, 1rem) * -0.35) 0 0;
+  color: #2563eb;
+  font-weight: 700;
+  line-height: 1.55;
 }
 
 .document-ai-privacy {
@@ -2470,6 +2491,7 @@ body.search-mode .results-view {
   }
 
   .document-ai-upload {
+    min-height: clamp(7.5rem, 32vw, 8.5rem);
     gap: clamp(0.5rem, 2vw, 0.75rem);
   }
 

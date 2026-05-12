@@ -72,6 +72,7 @@ Focus on what the user should understand or do next.`;
       .replace(/^###\s+(.+)$/gm, '<strong>$1</strong>')
       .replace(/^##\s+(.+)$/gm, '<strong>$1</strong>')
       .replace(/^#\s+(.+)$/gm, '<strong>$1</strong>')
+      .replace(/\*\*([^\n*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\n/g, '<br>');
   }
 

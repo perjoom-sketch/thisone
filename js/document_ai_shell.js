@@ -58,12 +58,19 @@
     element.hidden = false;
   }
 
-  function setSearchModeShell() {
-    document.body.classList.add('search-mode');
-    const welcome = document.getElementById('welcome');
-    if (welcome) welcome.classList.add('hidden');
-    const landingSearch = document.getElementById('landingSearch');
-    if (landingSearch) landingSearch.scrollIntoView({ block: 'start' });
+  function enterDocumentAIMode() {
+    document.body.classList.add('ai-tool-mode', 'document-ai-mode');
+    document.body.classList.remove('instant-answer-mode');
+  }
+
+  function exitAIToolMode() {
+    document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode');
+    if (removePasteListener) {
+      removePasteListener();
+      removePasteListener = null;
+    }
+    const container = document.getElementById('msgContainer');
+    if (container) container.innerHTML = '';
   }
 
   function renderDocumentAIShell() {
@@ -77,6 +84,7 @@
 
     container.innerHTML = `
       <section class="document-ai-panel" data-mode="${DOCUMENT_AI_MODE}" aria-labelledby="documentAiTitle">
+        <button class="ai-tool-return" type="button" data-ai-tool-return>← 쇼핑검색으로 돌아가기</button>
         <div class="document-ai-copy">
           <p class="document-ai-eyebrow">해석</p>
           <h2 id="documentAiTitle">디스원 해석</h2>
@@ -107,6 +115,7 @@
       </section>
     `;
 
+    const returnButton = container.querySelector('[data-ai-tool-return]');
     const button = document.getElementById('documentAiSubmit');
     const placeholder = document.getElementById('documentAiPlaceholder');
     const uploadStatus = document.getElementById('documentAiUploadStatus');
@@ -165,6 +174,8 @@
       setStatus(uploadStatus, UNSUPPORTED_PASTE_MESSAGE);
     }
 
+    returnButton?.addEventListener('click', exitAIToolMode);
+
     button?.addEventListener('click', () => {
       setStatus(placeholder, READY_MESSAGE);
     });
@@ -202,7 +213,7 @@
   }
 
   function openDocumentAI() {
-    setSearchModeShell();
+    enterDocumentAIMode();
     renderDocumentAIShell();
   }
 

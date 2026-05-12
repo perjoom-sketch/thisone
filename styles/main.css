@@ -2928,8 +2928,37 @@ body.ai-tool-mode #msgContainer {
 
 .web-search-form {
   display: flex;
-  align-items: stretch;
-  gap: clamp(0.45rem, 1.5vw, 0.7rem);
+  flex-direction: column;
+  gap: clamp(0.5rem, 1.5vw, 0.75rem);
+  width: 100%;
+  padding: clamp(0.75rem, 2vw, 1rem);
+  border: 0.0625rem solid #dbeafe;
+  border-radius: clamp(1.1rem, 3vw, 1.5rem);
+  background: #ffffff;
+  box-shadow: 0 clamp(0.35rem, 1vw, 0.55rem) clamp(1rem, 3vw, 1.4rem) rgba(14, 165, 233, 0.08);
+}
+
+.web-search-composer-top,
+.web-search-composer-bottom,
+.web-search-composer-actions {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.web-search-composer-top {
+  min-width: 0;
+}
+
+.web-search-composer-bottom {
+  justify-content: space-between;
+  gap: clamp(0.5rem, 1.5vw, 0.75rem);
+}
+
+.web-search-composer-actions {
+  justify-content: flex-end;
+  gap: clamp(0.5rem, 1.6vw, 0.75rem);
+  width: auto;
 }
 
 .web-search-label {
@@ -2946,19 +2975,46 @@ body.ai-tool-mode #msgContainer {
 .web-search-input {
   flex: 1;
   min-width: 0;
-  padding: clamp(0.75rem, 2vw, 0.95rem) clamp(0.85rem, 2vw, 1rem);
-  border: 0.0625rem solid #cbd5e1;
-  border-radius: clamp(0.85rem, 2vw, 1rem);
-  background: #ffffff;
+  padding: clamp(0.7rem, 2vw, 0.9rem) 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: #1e293b;
   font-family: inherit;
   font-size: clamp(0.95rem, 2.2vw, 1.05rem);
 }
 
 .web-search-input:focus {
-  border-color: #0284c7;
-  box-shadow: 0 0 0 clamp(0.12rem, 0.5vw, 0.2rem) rgba(14, 165, 233, 0.14);
   outline: none;
+}
+
+.web-search-form:focus-within {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 clamp(0.12rem, 0.5vw, 0.2rem) rgba(14, 165, 233, 0.14),
+    0 clamp(0.35rem, 1vw, 0.55rem) clamp(1rem, 3vw, 1.4rem) rgba(14, 165, 233, 0.08);
+}
+
+.web-search-plus-button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: clamp(2.45rem, 8vw, 2.85rem);
+  block-size: clamp(2.45rem, 8vw, 2.85rem);
+  padding: 0;
+  border: 0;
+  border-radius: 999rem;
+  background: #f1f5f9;
+  color: #64748b;
+  font-family: inherit;
+  font-size: clamp(1.45rem, 4vw, 1.8rem);
+  font-weight: 400;
+  line-height: 1;
+  cursor: not-allowed;
+}
+
+.web-search-plus-button:disabled {
+  opacity: 0.8;
 }
 
 .web-search-submit {
@@ -3031,8 +3087,16 @@ body.ai-tool-mode #msgContainer {
   }
 
   .web-search-form {
-    align-items: stretch;
-    gap: clamp(0.35rem, 1.8vw, 0.55rem);
+    gap: clamp(0.45rem, 1.8vw, 0.6rem);
+    padding: clamp(0.65rem, 3vw, 0.85rem);
+  }
+
+  .web-search-composer-bottom {
+    gap: clamp(0.4rem, 2vw, 0.6rem);
+  }
+
+  .web-search-composer-actions {
+    gap: clamp(0.4rem, 2vw, 0.6rem);
   }
 
   .web-search-submit {
@@ -3040,9 +3104,10 @@ body.ai-tool-mode #msgContainer {
     padding-left: clamp(0.75rem, 3vw, 1rem);
   }
 
-  .web-search-form .ai-tool-mic-button {
-    inline-size: clamp(2.45rem, 11vw, 2.75rem);
-    block-size: clamp(2.45rem, 11vw, 2.75rem);
+  .web-search-form .ai-tool-mic-button,
+  .web-search-plus-button {
+    inline-size: clamp(2.35rem, 11vw, 2.7rem);
+    block-size: clamp(2.35rem, 11vw, 2.7rem);
   }
 }
 /* Image-based starting point for 디스원 서치 */

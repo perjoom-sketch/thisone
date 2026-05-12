@@ -248,7 +248,7 @@
         <div class="web-search-form" role="search">
           <label class="web-search-label" for="webSearchInput">검색어 입력창</label>
           <input class="web-search-input" id="webSearchInput" type="search" placeholder="검색어를 입력하세요" autocomplete="off">
-          <button class="ai-tool-mic-button" id="webSearchMicButton" type="button" aria-label="음성으로 입력" title="브라우저 음성 인식을 사용합니다. 음성 파일은 저장하지 않습니다.">🎙️</button>
+          <button class="ai-tool-mic-button" id="webSearchMicButton" type="button" aria-label="음성으로 입력" title="브라우저 음성 인식을 사용합니다. 음성 파일은 저장하지 않습니다."></button>
           <button class="web-search-submit" id="webSearchSubmit" type="button">검색</button>
         </div>
 

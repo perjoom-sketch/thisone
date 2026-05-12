@@ -4,6 +4,14 @@
   const UNSUPPORTED_MESSAGE = '이 브라우저에서는 음성 입력을 지원하지 않습니다.';
   const LISTENING_MESSAGE = '듣고 있습니다...';
   const TITLE = '브라우저 음성 인식을 사용합니다. 음성 파일은 저장하지 않습니다.';
+  const MIC_ICON = `
+    <svg class="ai-tool-mic-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+      <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"></path>
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+      <path d="M12 19v3"></path>
+      <path d="M8 22h8"></path>
+    </svg>
+  `;
   const controllers = new Set();
   let activeController = null;
 
@@ -15,6 +23,12 @@
     if (!status) return;
     status.textContent = message || '';
     status.hidden = !message;
+  }
+
+  function setButtonContent(button, isListening) {
+    if (!button) return;
+    const label = isListening ? '듣는 중...' : '음성입력';
+    button.innerHTML = `${MIC_ICON}<span class="ai-tool-mic-text">${label}</span>`;
   }
 
   function dispatchInput(input) {
@@ -62,6 +76,7 @@
     button.title = TITLE;
     button.setAttribute('aria-label', '음성으로 입력');
     button.setAttribute('aria-pressed', 'false');
+    setButtonContent(button, false);
 
     if (!SpeechRecognition) {
       button.disabled = true;
@@ -90,6 +105,7 @@
       controller.isListening = Boolean(isListening);
       button.classList.toggle('is-listening', controller.isListening);
       button.setAttribute('aria-pressed', controller.isListening ? 'true' : 'false');
+      setButtonContent(button, controller.isListening);
       if (controller.isListening) setStatus(status, LISTENING_MESSAGE);
       else setStatus(status, '');
     }

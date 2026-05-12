@@ -2738,7 +2738,19 @@ body.search-mode .document-ai-entry-wrap {
   }
 
   .instant-answer-submit {
-    width: 100%;
+    width: auto;
+  }
+
+  .instant-answer-panel .ai-tool-action-row,
+  .document-ai-panel .ai-tool-action-row {
+    justify-content: stretch;
+  }
+
+  .instant-answer-panel .ai-tool-mic-button,
+  .instant-answer-panel .instant-answer-submit,
+  .document-ai-panel .ai-tool-mic-button,
+  .document-ai-panel .document-ai-submit {
+    flex: 1 1 0;
   }
 }
 
@@ -2781,11 +2793,11 @@ body.ai-tool-mode #msgContainer {
 }
 
 
-.ai-tool-input-heading {
+.ai-tool-action-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: clamp(0.5rem, 1.8vw, 0.75rem);
+  justify-content: flex-end;
+  gap: clamp(0.5rem, 1.6vw, 0.75rem);
   width: 100%;
 }
 
@@ -2794,17 +2806,32 @@ body.ai-tool-mode #msgContainer {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  inline-size: clamp(2.5rem, 8vw, 2.9rem);
-  block-size: clamp(2.5rem, 8vw, 2.9rem);
+  gap: clamp(0.35rem, 1vw, 0.5rem);
+  min-block-size: clamp(2.5rem, 8vw, 2.9rem);
+  padding: clamp(0.62rem, 1.8vw, 0.82rem) clamp(0.85rem, 2.5vw, 1.1rem);
   border: 0.0625rem solid #bfdbfe;
   border-radius: 999rem;
   background: #ffffff;
   color: #1d4ed8;
   font-family: inherit;
-  font-size: clamp(1rem, 3vw, 1.18rem);
+  font-size: clamp(0.88rem, 2vw, 1rem);
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
   touch-action: manipulation;
   transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.ai-tool-mic-icon {
+  flex: 0 0 auto;
+  inline-size: clamp(1rem, 3vw, 1.125rem);
+  block-size: clamp(1rem, 3vw, 1.125rem);
+  color: currentColor;
+}
+
+.ai-tool-mic-text {
+  display: inline-block;
 }
 
 .ai-tool-mic-button:hover,
@@ -3007,8 +3034,8 @@ body.ai-tool-mode #msgContainer {
   }
 
   .web-search-form .ai-tool-mic-button {
-    inline-size: clamp(2.35rem, 10vw, 2.65rem);
-    block-size: clamp(2.35rem, 10vw, 2.65rem);
+    padding-right: clamp(0.65rem, 2.4vw, 0.85rem);
+    padding-left: clamp(0.65rem, 2.4vw, 0.85rem);
   }
 }
 /* Image-based starting point for 디스원 서치 */

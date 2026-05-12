@@ -181,14 +181,14 @@ Focus on what the user should understand or do next.`;
           ${EXAMPLES.map((example) => `<button class="instant-answer-example-chip" type="button" data-example="${escapeHtml(example)}">${escapeHtml(example)}</button>`).join('')}
         </div>
 
-        <div class="ai-tool-input-heading">
-          <label class="instant-answer-question-label" for="instantAnswerQuestion">질문 입력창</label>
-          <button class="ai-tool-mic-button" id="instantAnswerMicButton" type="button" aria-label="음성으로 입력" title="브라우저 음성 인식을 사용합니다. 음성 파일은 저장하지 않습니다.">🎙️</button>
-        </div>
+        <label class="instant-answer-question-label" for="instantAnswerQuestion">질문 입력창</label>
         <textarea class="instant-answer-question" id="instantAnswerQuestion" rows="4" placeholder="예: 배 아플 때 어떤 약 먹어야 해?"></textarea>
         <p class="ai-tool-voice-status" id="instantAnswerVoiceStatus" aria-live="polite" hidden></p>
 
-        <button class="instant-answer-submit" id="instantAnswerSubmit" type="button">바로 답변</button>
+        <div class="ai-tool-action-row">
+          <button class="ai-tool-mic-button" id="instantAnswerMicButton" type="button" aria-label="음성으로 입력" title="브라우저 음성 인식을 사용합니다. 음성 파일은 저장하지 않습니다."></button>
+          <button class="instant-answer-submit" id="instantAnswerSubmit" type="button">바로 답변</button>
+        </div>
         <p class="instant-answer-status" id="instantAnswerStatus" role="status" aria-live="polite" hidden></p>
         <div class="instant-answer-result" id="instantAnswerResult" aria-live="polite" hidden></div>
         <div class="instant-answer-suggestions" id="instantAnswerSuggestions" aria-label="검색 추천어" hidden></div>

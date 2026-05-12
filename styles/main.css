@@ -3010,11 +3010,61 @@ body.ai-tool-mode #msgContainer {
   font-size: clamp(1.45rem, 4vw, 1.8rem);
   font-weight: 400;
   line-height: 1;
-  cursor: not-allowed;
+  cursor: pointer;
 }
 
-.web-search-plus-button:disabled {
-  opacity: 0.8;
+.web-search-plus-button:hover,
+.web-search-plus-button:focus-visible {
+  background: #e0f2fe;
+  color: #0369a1;
+  outline: none;
+}
+
+.web-search-plus-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.web-search-plus-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + clamp(0.4rem, 1.2vw, 0.55rem));
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.25rem, 1vw, 0.35rem);
+  min-width: min(55vw, 10.5rem);
+  padding: clamp(0.35rem, 1.2vw, 0.45rem);
+  border: 0.0625rem solid #dbeafe;
+  border-radius: clamp(0.75rem, 2vw, 0.95rem);
+  background: #ffffff;
+  box-shadow: 0 clamp(0.35rem, 1vw, 0.55rem) clamp(1rem, 3vw, 1.4rem) rgba(14, 165, 233, 0.14);
+}
+
+.web-search-plus-menu[hidden] {
+  display: none;
+}
+
+.web-search-plus-menu button {
+  width: 100%;
+  padding: clamp(0.55rem, 1.8vw, 0.7rem) clamp(0.7rem, 2vw, 0.85rem);
+  border: 0;
+  border-radius: clamp(0.55rem, 1.6vw, 0.7rem);
+  background: transparent;
+  color: #334155;
+  font-family: inherit;
+  font-size: clamp(0.86rem, 2vw, 0.95rem);
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.web-search-plus-menu button:hover,
+.web-search-plus-menu button:focus-visible {
+  background: #eff6ff;
+  color: #075985;
+  outline: none;
 }
 
 .web-search-submit {

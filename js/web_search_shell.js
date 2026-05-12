@@ -117,7 +117,15 @@
             <input class="web-search-input" id="webSearchInput" type="search" placeholder="검색어를 입력하세요" autocomplete="off">
           </div>
           <div class="web-search-composer-bottom">
-            <button class="web-search-plus-button" id="webSearchPlusButton" type="button" aria-label="이미지 기능 준비 중" title="준비 중" disabled>+</button>
+            <div class="web-search-plus-wrap">
+              <button class="web-search-plus-button" id="webSearchPlusButton" type="button" aria-label="이미지 메뉴 열기" aria-haspopup="menu" aria-expanded="false">+</button>
+              <div class="web-search-plus-menu" id="webSearchPlusMenu" role="menu" hidden>
+                <button type="button" role="menuitem" data-web-search-image-action="upload">이미지 업로드</button>
+                <button type="button" role="menuitem" data-web-search-image-action="camera">사진 찍기</button>
+              </div>
+              <input class="web-search-image-input" id="webSearchImageUpload" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+              <input class="web-search-image-input" id="webSearchImageCamera" type="file" accept="image/*" capture="environment" hidden>
+            </div>
             <div class="web-search-composer-actions">
               <button class="ai-tool-mic-button" id="webSearchMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
               <button class="web-search-submit" id="webSearchSubmit" type="button">검색</button>
@@ -136,8 +144,13 @@
     const input = root.querySelector('#webSearchInput');
     const submit = root.querySelector('#webSearchSubmit');
     const status = root.querySelector('#webSearchStatus');
+    const plusButton = root.querySelector('#webSearchPlusButton');
+    const plusMenu = root.querySelector('#webSearchPlusMenu');
+    const uploadInput = root.querySelector('#webSearchImageUpload');
+    const cameraInput = root.querySelector('#webSearchImageCamera');
     const micButton = root.querySelector('#webSearchMicButton');
     const voiceStatus = root.querySelector('#webSearchVoiceStatus');
+    let selectedImageFile = null;
     global.ThisOneAIToolVoice?.attach?.({
       button: micButton,
       input,
@@ -146,10 +159,53 @@
     });
     returnButton?.addEventListener('click', exitWebSearchMode);
 
+    function setPlusMenuOpen(isOpen) {
+      if (!plusButton || !plusMenu) return;
+      plusButton.setAttribute('aria-expanded', String(isOpen));
+      plusMenu.hidden = !isOpen;
+    }
+
+    function handleImageSelection(fileInput, label) {
+      const file = fileInput?.files?.[0] || null;
+      if (!file) return;
+      selectedImageFile = file;
+      setStatus(status, `선택된 ${label}: ${file.name}`);
+    }
+
+    plusButton?.addEventListener('click', () => {
+      setPlusMenuOpen(plusMenu?.hidden !== false);
+    });
+
+    plusMenu?.addEventListener('click', (event) => {
+      const actionButton = event.target.closest('[data-web-search-image-action]');
+      if (!actionButton) return;
+      setPlusMenuOpen(false);
+      if (actionButton.dataset.webSearchImageAction === 'upload') {
+        uploadInput.value = '';
+        uploadInput.click();
+      } else if (actionButton.dataset.webSearchImageAction === 'camera') {
+        cameraInput.value = '';
+        cameraInput.click();
+      }
+    });
+
+    uploadInput?.addEventListener('change', () => handleImageSelection(uploadInput, '이미지'));
+    cameraInput?.addEventListener('change', () => handleImageSelection(cameraInput, '사진'));
+
+    root.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') setPlusMenuOpen(false);
+    });
+
+    root.addEventListener('click', (event) => {
+      if (!event.target.closest('.web-search-plus-wrap')) setPlusMenuOpen(false);
+    });
+
     async function runSearch(queryOverride) {
       const query = String(queryOverride || input.value || '').trim();
       if (!query) {
-        setStatus(status, '검색어를 입력해주세요.');
+        setStatus(status, selectedImageFile
+          ? '이미지에서 검색어를 추출하는 기능은 다음 단계에서 지원됩니다. 검색어를 함께 입력해주세요.'
+          : '검색어를 입력해주세요.');
         input.focus();
         return;
       }

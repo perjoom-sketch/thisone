@@ -100,11 +100,13 @@
   }
 
   function enterWebSearchMode() {
+    global.ThisOneAIToolVoice?.stopAll?.();
     document.body.classList.add('ai-tool-mode', 'web-search-mode');
     document.body.classList.remove('document-ai-mode', 'instant-answer-mode');
   }
 
   function exitWebSearchMode() {
+    global.ThisOneAIToolVoice?.stopAll?.();
     document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode', 'web-search-mode');
     if (removePasteListener) {
       removePasteListener();
@@ -246,6 +248,7 @@
         <div class="web-search-form" role="search">
           <label class="web-search-label" for="webSearchInput">검색어 입력창</label>
           <input class="web-search-input" id="webSearchInput" type="search" placeholder="검색어를 입력하세요" autocomplete="off">
+          <button class="ai-tool-mic-button" id="webSearchMicButton" type="button" aria-label="음성으로 입력" title="브라우저 음성 인식을 사용합니다. 음성 파일은 저장하지 않습니다.">🎙️</button>
           <button class="web-search-submit" id="webSearchSubmit" type="button">검색</button>
         </div>
 
@@ -269,6 +272,7 @@
           <div class="web-search-image-suggestions" id="webSearchImageSuggestions" aria-live="polite" hidden></div>
         </section>
 
+        <p class="ai-tool-voice-status" id="webSearchVoiceStatus" aria-live="polite" hidden></p>
         <p class="web-search-status" id="webSearchStatus" role="status" aria-live="polite" hidden></p>
         <div class="web-search-results" id="webSearchResults" aria-live="polite"></div>
       </section>
@@ -279,6 +283,14 @@
     const input = root.querySelector('#webSearchInput');
     const submit = root.querySelector('#webSearchSubmit');
     const status = root.querySelector('#webSearchStatus');
+    const micButton = root.querySelector('#webSearchMicButton');
+    const voiceStatus = root.querySelector('#webSearchVoiceStatus');
+    global.ThisOneAIToolVoice?.attach?.({
+      button: micButton,
+      input,
+      status: voiceStatus,
+      appendMode: 'space'
+    });
     const fileInput = root.querySelector('#webSearchImageInput');
     const uploadButton = root.querySelector('#webSearchUploadButton');
     const cameraButton = root.querySelector('#webSearchCameraButton');

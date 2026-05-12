@@ -59,11 +59,13 @@
   }
 
   function enterDocumentAIMode() {
+    global.ThisOneAIToolVoice?.stopAll?.();
     document.body.classList.add('ai-tool-mode', 'document-ai-mode');
     document.body.classList.remove('instant-answer-mode', 'web-search-mode');
   }
 
   function exitAIToolMode() {
+    global.ThisOneAIToolVoice?.stopAll?.();
     document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode', 'web-search-mode');
     if (removePasteListener) {
       removePasteListener();
@@ -107,8 +109,12 @@
           <p>이름, 주민번호, 주소, 전화번호, 계좌번호, 카드번호는 해석에 필요하지 않습니다.</p>
         </div>
 
-        <label class="document-ai-question-label" for="documentAiQuestion">질문 입력창</label>
+        <div class="ai-tool-input-heading">
+          <label class="document-ai-question-label" for="documentAiQuestion">질문 입력창</label>
+          <button class="ai-tool-mic-button" id="documentAiMicButton" type="button" aria-label="음성으로 입력" title="브라우저 음성 인식을 사용합니다. 음성 파일은 저장하지 않습니다.">🎙️</button>
+        </div>
         <textarea class="document-ai-question" id="documentAiQuestion" rows="3" placeholder="이 문서에서 궁금한 점을 물어보세요. 예: 내가 해야 할 일만 알려줘"></textarea>
+        <p class="ai-tool-voice-status" id="documentAiVoiceStatus" aria-live="polite" hidden></p>
 
         <button class="document-ai-submit" id="documentAiSubmit" type="button">해석하기</button>
         <p class="document-ai-placeholder" id="documentAiPlaceholder" role="status" aria-live="polite" hidden></p>
@@ -122,6 +128,14 @@
     const fileInput = document.getElementById('documentAiFileInput');
     const upload = document.getElementById('documentAiUpload');
     const question = document.getElementById('documentAiQuestion');
+    const micButton = document.getElementById('documentAiMicButton');
+    const voiceStatus = document.getElementById('documentAiVoiceStatus');
+    global.ThisOneAIToolVoice?.attach?.({
+      button: micButton,
+      input: question,
+      status: voiceStatus,
+      appendMode: 'newline'
+    });
     function setDragOver(isDragOver) {
       upload?.classList.toggle('is-drag-over', isDragOver);
     }

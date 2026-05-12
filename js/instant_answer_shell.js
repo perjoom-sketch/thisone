@@ -47,11 +47,13 @@ Focus on what the user should understand or do next.`;
   }
 
   function enterInstantAnswerMode() {
+    global.ThisOneAIToolVoice?.stopAll?.();
     document.body.classList.add('ai-tool-mode', 'instant-answer-mode');
     document.body.classList.remove('document-ai-mode', 'web-search-mode');
   }
 
   function exitAIToolMode() {
+    global.ThisOneAIToolVoice?.stopAll?.();
     document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode', 'web-search-mode');
     const container = document.getElementById('msgContainer');
     if (container) container.innerHTML = '';
@@ -179,8 +181,12 @@ Focus on what the user should understand or do next.`;
           ${EXAMPLES.map((example) => `<button class="instant-answer-example-chip" type="button" data-example="${escapeHtml(example)}">${escapeHtml(example)}</button>`).join('')}
         </div>
 
-        <label class="instant-answer-question-label" for="instantAnswerQuestion">질문 입력창</label>
+        <div class="ai-tool-input-heading">
+          <label class="instant-answer-question-label" for="instantAnswerQuestion">질문 입력창</label>
+          <button class="ai-tool-mic-button" id="instantAnswerMicButton" type="button" aria-label="음성으로 입력" title="브라우저 음성 인식을 사용합니다. 음성 파일은 저장하지 않습니다.">🎙️</button>
+        </div>
         <textarea class="instant-answer-question" id="instantAnswerQuestion" rows="4" placeholder="예: 배 아플 때 어떤 약 먹어야 해?"></textarea>
+        <p class="ai-tool-voice-status" id="instantAnswerVoiceStatus" aria-live="polite" hidden></p>
 
         <button class="instant-answer-submit" id="instantAnswerSubmit" type="button">바로 답변</button>
         <p class="instant-answer-status" id="instantAnswerStatus" role="status" aria-live="polite" hidden></p>
@@ -195,6 +201,14 @@ Focus on what the user should understand or do next.`;
     const submit = root.querySelector('#instantAnswerSubmit');
     const status = root.querySelector('#instantAnswerStatus');
     const result = root.querySelector('#instantAnswerResult');
+    const micButton = root.querySelector('#instantAnswerMicButton');
+    const voiceStatus = root.querySelector('#instantAnswerVoiceStatus');
+    global.ThisOneAIToolVoice?.attach?.({
+      button: micButton,
+      input: question,
+      status: voiceStatus,
+      appendMode: 'newline'
+    });
 
     returnButton?.addEventListener('click', exitAIToolMode);
 

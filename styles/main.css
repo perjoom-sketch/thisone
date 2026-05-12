@@ -2780,6 +2780,62 @@ body.ai-tool-mode #msgContainer {
   outline: none;
 }
 
+
+.ai-tool-input-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(0.5rem, 1.8vw, 0.75rem);
+  width: 100%;
+}
+
+.ai-tool-mic-button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: clamp(2.5rem, 8vw, 2.9rem);
+  block-size: clamp(2.5rem, 8vw, 2.9rem);
+  border: 0.0625rem solid #bfdbfe;
+  border-radius: 999rem;
+  background: #ffffff;
+  color: #1d4ed8;
+  font-family: inherit;
+  font-size: clamp(1rem, 3vw, 1.18rem);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.ai-tool-mic-button:hover,
+.ai-tool-mic-button:focus-visible {
+  border-color: #60a5fa;
+  background: #eff6ff;
+  box-shadow: 0 0 0 clamp(0.12rem, 0.5vw, 0.2rem) rgba(37, 99, 235, 0.12);
+  outline: none;
+}
+
+.ai-tool-mic-button.is-listening {
+  border-color: #2563eb;
+  background: #dbeafe;
+  color: #1e40af;
+  box-shadow: 0 0 0 clamp(0.14rem, 0.6vw, 0.24rem) rgba(37, 99, 235, 0.16);
+  transform: translateY(clamp(-0.08rem, -0.2vw, -0.04rem));
+}
+
+.ai-tool-mic-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.ai-tool-voice-status {
+  margin: calc(clamp(0.75rem, 2vw, 1rem) * -0.45) 0 0;
+  color: #1d4ed8;
+  font-size: clamp(0.82rem, 2vw, 0.95rem);
+  font-weight: 700;
+  line-height: 1.55;
+}
+
 /* General web search tool MVP */
 .web-search-entry-chip {
   border-color: #bae6fd;
@@ -2942,11 +2998,17 @@ body.ai-tool-mode #msgContainer {
 
   .web-search-form {
     align-items: stretch;
+    gap: clamp(0.35rem, 1.8vw, 0.55rem);
   }
 
   .web-search-submit {
-    padding-right: clamp(0.85rem, 3vw, 1rem);
-    padding-left: clamp(0.85rem, 3vw, 1rem);
+    padding-right: clamp(0.75rem, 3vw, 1rem);
+    padding-left: clamp(0.75rem, 3vw, 1rem);
+  }
+
+  .web-search-form .ai-tool-mic-button {
+    inline-size: clamp(2.35rem, 10vw, 2.65rem);
+    block-size: clamp(2.35rem, 10vw, 2.65rem);
   }
 }
 /* Image-based starting point for 디스원 서치 */

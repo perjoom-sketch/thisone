@@ -81,7 +81,8 @@ body {
 .header-content {
   width: 100%;
   max-width: var(--main-max-width);
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
 }
 
@@ -91,6 +92,7 @@ body {
   gap: clamp(8px, 1.5vw, 16px);
   text-decoration: none;
   color: inherit;
+  justify-self: start;
 }
 
 .logo-img {
@@ -155,11 +157,22 @@ body.search-mode .results-view {
 }
 
 /* ===== 랜딩 페이지 콘텐츠 (레벨 4) ===== */
+.shopping-identity-title {
+  justify-self: center;
+  margin: 0;
+  color: #2563eb;
+  font-size: clamp(1.1rem, 2.2vw, 1.5rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .rounded-headline {
   font-size: clamp(1.5rem, 3vw, 2.25rem);
   font-weight: 700;
   color: #334155;
-  margin: 40px 0 20px 0;
+  margin: clamp(2rem, 6vh, 3.5rem) 0 clamp(1rem, 2.5vw, 1.25rem);
   line-height: 1.2;
 }
 
@@ -811,9 +824,13 @@ body.search-mode .results-view {
     padding: 20px 12px;
   }
 
+  .shopping-identity-title {
+    font-size: clamp(0.95rem, 4vw, 1.15rem);
+  }
+
   .rounded-headline {
-    font-size: 24px;
-    margin: 20px 0 16px 0;
+    font-size: clamp(1.45rem, 6vw, 1.6rem);
+    margin: clamp(1.5rem, 5vh, 2.25rem) 0 clamp(0.75rem, 3vw, 1rem);
   }
 
   .search-wrap {

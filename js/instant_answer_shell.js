@@ -160,11 +160,9 @@ Focus on what the user should understand or do next.`;
     if (!container) return;
 
     container.innerHTML = `
-      <section class="instant-answer-panel" data-mode="${INSTANT_ANSWER_MODE}" aria-labelledby="instantAnswerTitle">
+      <section class="instant-answer-panel" data-mode="${INSTANT_ANSWER_MODE}" aria-label="디스원 즉답">
         ${global.ThisOneModeTabs?.render?.(INSTANT_ANSWER_MODE) || ''}
         <div class="instant-answer-copy">
-          <p class="instant-answer-eyebrow">즉답</p>
-          <h2 id="instantAnswerTitle">디스원 즉답</h2>
           <p class="instant-answer-main-copy">검색하지 말고 바로 물어보세요.</p>
           <p class="instant-answer-sub-copy">생활, 제품, 문서, 상황까지 궁금한 점을 바로 정리해드립니다.</p>
         </div>

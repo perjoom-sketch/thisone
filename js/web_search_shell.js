@@ -115,13 +115,11 @@
     if (!container) return;
 
     container.innerHTML = `
-      <section class="web-search-panel" data-mode="${WEB_SEARCH_MODE}" aria-labelledby="webSearchTitle">
+      <section class="web-search-panel" data-mode="${WEB_SEARCH_MODE}" aria-label="디스원 서치">
         ${global.ThisOneModeTabs?.render?.(WEB_SEARCH_MODE) || ''}
         <div class="web-search-copy">
-          <p class="web-search-eyebrow">서치</p>
-          <h2 id="webSearchTitle">디스원 서치</h2>
           <p class="web-search-main-copy">웹에서 바로 검색합니다.</p>
-          <p class="web-search-sub-copy">상품이 아니라 일반 정보를 찾을 때 사용하세요.</p>
+          <p class="web-search-sub-copy">상품이 아니라 일반 정보 글 찾을 때 사용하세요.</p>
         </div>
 
         <div class="web-search-form" role="search">

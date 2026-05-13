@@ -51,6 +51,13 @@ function generateTopStyleMd5Signature(params, secret) {
     .toUpperCase();
 }
 
+function generateMethodPrefixedTopStyleMd5Signature(params, secret) {
+  return crypto.createHash('md5')
+    .update(`${secret}${params.method || ''}${buildAliExpressSignBaseString(params)}${secret}`, 'utf8')
+    .digest('hex')
+    .toUpperCase();
+}
+
 
 function firstDefined(...values) {
   return values.find((value) => value !== undefined && value !== null && value !== '');
@@ -294,7 +301,9 @@ function buildMinimalAliExpressParams(baseParams) {
 function signAliExpressSignatureProbeParams(params, appSecret, signatureVariant) {
   const signedParams = { ...params };
 
-  if (signatureVariant.includes('md5')) {
+  if (signatureVariant === 'top_style_md5_with_method_prefix') {
+    signedParams.sign = generateMethodPrefixedTopStyleMd5Signature(signedParams, appSecret);
+  } else if (signatureVariant.includes('md5')) {
     signedParams.sign = generateTopStyleMd5Signature(signedParams, appSecret);
   } else if (signatureVariant.includes('with_method_prefix')) {
     signedParams.sign = generateMethodPrefixedSha256Signature(signedParams, appSecret);
@@ -417,6 +426,94 @@ async function runAliExpressSignatureProbe(baseParams, appSecret) {
   }
 
   return results;
+}
+
+function buildAliExpressSignatureProbeMode(sigprobe, baseParams) {
+  const mode = String(sigprobe || '');
+
+  if (mode === '1') {
+    return {
+      probe: 1,
+      method: 'sha256 current',
+      signatureVariant: 'current',
+      params: { ...baseParams, sign_method: 'sha256' }
+    };
+  }
+
+  if (mode === '2') {
+    return {
+      probe: 2,
+      method: 'sha256+prefix',
+      signatureVariant: 'with_method_prefix',
+      params: { ...baseParams, sign_method: 'sha256' }
+    };
+  }
+
+  if (mode === '3') {
+    return {
+      probe: 3,
+      method: 'md5',
+      signatureVariant: 'top_style_md5',
+      params: { ...baseParams, sign_method: 'md5' }
+    };
+  }
+
+  if (mode === '4') {
+    return {
+      probe: 4,
+      method: 'md5+prefix',
+      signatureVariant: 'top_style_md5_with_method_prefix',
+      params: { ...baseParams, sign_method: 'md5' }
+    };
+  }
+
+  return undefined;
+}
+
+function buildCompactAliExpressSignatureProbeResult(data, params, response) {
+  const debug = buildAliExpressDebug(data, params, response);
+  const products = getAliExpressProducts(data);
+
+  return {
+    bizSuccess: debug.bizSuccess,
+    itemCount: products.length,
+    code: debug.code,
+    msg: debug.msg,
+    subCode: debug.subCode,
+    subMsg: debug.subMsg,
+    errorCode: debug.errorCode,
+    errorMessage: debug.errorMessage,
+    requestId: debug.requestId
+  };
+}
+
+function buildCompactAliExpressSignatureProbeError(error) {
+  return {
+    bizSuccess: false,
+    itemCount: 0,
+    code: undefined,
+    msg: undefined,
+    subCode: undefined,
+    subMsg: undefined,
+    errorCode: error.name || 'AliExpressSignatureProbeRequestError',
+    errorMessage: error.message || 'AliExpress signature probe request failed',
+    requestId: undefined
+  };
+}
+
+async function runAliExpressSignatureProbeMode(probeCase, appSecret) {
+  try {
+    const signedParams = signAliExpressSignatureProbeParams(
+      probeCase.params,
+      appSecret,
+      probeCase.signatureVariant
+    );
+    const { response, data } = await requestAliExpress(signedParams);
+
+    return buildCompactAliExpressSignatureProbeResult(data, signedParams, response);
+  } catch (error) {
+    return buildCompactAliExpressSignatureProbeError(error);
+  }
 }
 
 function buildAliExpressDebug(data, params, response) {
@@ -568,13 +665,25 @@ export default async function handler(req, res) {
       });
     }
 
-    if (req.query?.sigprobe === '1') {
-      const results = await runAliExpressSignatureProbe(baseParams, APP_SECRET);
+    if (req.query?.sigprobe !== undefined) {
+      const signatureProbeCase = buildAliExpressSignatureProbeMode(req.query.sigprobe, baseParams);
+
+      if (!signatureProbeCase) {
+        return res.status(200).json({
+          status: 'SignatureProbeError',
+          message: 'Unsupported sigprobe mode. Use sigprobe=1, 2, 3, or 4.',
+          search_query: searchQuery
+        });
+      }
+
+      const result = await runAliExpressSignatureProbeMode(signatureProbeCase, APP_SECRET);
 
       return res.status(200).json({
         status: 'SignatureProbeComplete',
+        probe: signatureProbeCase.probe,
+        method: signatureProbeCase.method,
         search_query: searchQuery,
-        results
+        result
       });
     }
 

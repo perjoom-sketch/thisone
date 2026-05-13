@@ -106,8 +106,7 @@
 
         <div class="document-ai-composer" id="documentAiUpload">
           <div class="document-ai-composer-top">
-            <label class="document-ai-question-label" for="documentAiQuestion">질문 입력창</label>
-            <textarea class="document-ai-question" id="documentAiQuestion" rows="4" placeholder="문서나 사진을 올리면 쉽게 풀어드려요"></textarea>
+            <textarea class="document-ai-question" id="documentAiQuestion" rows="4" aria-label="해석 질문 입력창" placeholder="문서나 사진을 올리면 쉽게 풀어드려요"></textarea>
             <div class="document-ai-upload-status-row" id="documentAiUploadStatusRow" hidden>
               <p class="document-ai-upload-status" id="documentAiUploadStatus" aria-live="polite"></p>
               <img class="document-ai-image-preview" id="documentAiImagePreview" alt="선택한 이미지 미리보기" hidden>

@@ -138,7 +138,7 @@ Keep it practical and kind. Avoid long lectures.`;
       <section class="loveme-panel" aria-label="럽미">
         ${global.ThisOneModeTabs?.render?.(LOVEME_MODE) || ''}
         <div class="loveme-copy">
-          <p class="loveme-main-copy">아무 걱정하지 마세요.<br>자연스럽게 연출해드릴게요.</p>
+          <p class="loveme-main-copy">수술은 병원에서<br>연출은 럽미에서</p>
         </div>
 
         <div class="ai-tool-composer loveme-composer">

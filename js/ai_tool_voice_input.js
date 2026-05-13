@@ -39,21 +39,46 @@
     input.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
-  function appendTranscript(input, transcript, appendMode) {
-    const cleanTranscript = String(transcript || '').replace(/\s+/g, ' ').trim();
-    if (!input || !cleanTranscript) return;
+  function normalizeTranscript(transcript) {
+    return String(transcript || '').replace(/\s+/g, ' ').trim();
+  }
 
-    const currentValue = String(input.value || '').trimEnd();
-    if (!currentValue) {
-      input.value = cleanTranscript;
+  function renderTranscriptSession(input, appendMode, controller) {
+    const baseValue = String(controller?.initialInputValue || '').trimEnd();
+    const sessionTranscript = (controller?.finalTranscriptChunks || []).join(' ').trim();
+    if (!input || !sessionTranscript) return;
+
+    if (!baseValue) {
+      input.value = sessionTranscript;
     } else if (appendMode === 'newline') {
-      input.value = `${currentValue}\n${cleanTranscript}`;
+      input.value = `${baseValue}\n${sessionTranscript}`;
     } else {
-      input.value = `${currentValue} ${cleanTranscript}`;
+      input.value = `${baseValue} ${sessionTranscript}`;
     }
 
     dispatchInput(input);
     input.focus();
+  }
+
+  function appendTranscript(input, transcript, appendMode, controller) {
+    const cleanTranscript = normalizeTranscript(transcript);
+    if (!input || !cleanTranscript || !controller) return;
+
+    const key = cleanTranscript.replace(/\s+/g, '').toLowerCase();
+    if (!key || controller.finalTranscriptKeys.has(key)) return;
+
+    const previousChunk = controller.finalTranscriptChunks[controller.finalTranscriptChunks.length - 1] || '';
+    const previousKey = previousChunk.replace(/\s+/g, '').toLowerCase();
+    if (previousKey && previousKey.includes(key)) return;
+    if (previousKey && key.includes(previousKey)) {
+      controller.finalTranscriptKeys.delete(previousKey);
+      controller.finalTranscriptChunks[controller.finalTranscriptChunks.length - 1] = cleanTranscript;
+    } else {
+      controller.finalTranscriptChunks.push(cleanTranscript);
+    }
+    controller.finalTranscriptKeys.add(key);
+
+    renderTranscriptSession(input, appendMode, controller);
   }
 
   function clearSilenceTimer(controller) {
@@ -117,11 +142,14 @@
       shouldRefocus: false,
       silenceTimerId: null,
       hasFinalTranscript: false,
-      pendingStatusMessage: ''
+      pendingStatusMessage: '',
+      initialInputValue: '',
+      finalTranscriptChunks: [],
+      finalTranscriptKeys: new Set()
     };
 
     recognition.lang = 'ko-KR';
-    recognition.continuous = false;
+    try { recognition.continuous = true; } catch (e) { recognition.continuous = false; }
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
@@ -140,20 +168,20 @@
       controller.shouldRefocus = true;
       controller.hasFinalTranscript = false;
       controller.pendingStatusMessage = '';
+      controller.initialInputValue = String(input.value || '').trimEnd();
+      controller.finalTranscriptChunks = [];
+      controller.finalTranscriptKeys = new Set();
       setListening(true);
       startSilenceTimer(controller);
     };
 
     recognition.onresult = (event) => {
-      let finalTranscript = '';
       for (let index = event.resultIndex; index < event.results.length; index += 1) {
         const result = event.results[index];
-        if (result?.isFinal) finalTranscript += result[0]?.transcript || '';
-      }
-      if (finalTranscript) {
+        if (!result?.isFinal) continue;
         controller.hasFinalTranscript = true;
         clearSilenceTimer(controller);
-        appendTranscript(input, finalTranscript, appendMode);
+        appendTranscript(input, result[0]?.transcript || '', appendMode, controller);
       }
     };
 

@@ -6,6 +6,9 @@
   let isRecording = false;
   let voiceToastEl = null;
   let voiceToastTimer = null;
+  let initialInputValue = '';
+  let finalTranscriptChunks = [];
+  let finalTranscriptKeys = new Set();
 
   function ensureStyle() {
     if (document.getElementById('thisoneVoiceSearchStyle')) return;
@@ -128,32 +131,63 @@
     clearTimeout(voiceToastTimer);
   }
 
+  function normalizeTranscript(transcript) {
+    return String(transcript || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function resetTranscriptSession(input) {
+    initialInputValue = String(input?.value || '').trimEnd();
+    finalTranscriptChunks = [];
+    finalTranscriptKeys = new Set();
+  }
+
+  function appendFinalTranscriptChunk(input, transcript) {
+    const cleanTranscript = normalizeTranscript(transcript);
+    if (!input || !cleanTranscript) return;
+
+    const key = cleanTranscript.replace(/\s+/g, '').toLowerCase();
+    if (!key || finalTranscriptKeys.has(key)) return;
+
+    const previousChunk = finalTranscriptChunks[finalTranscriptChunks.length - 1] || '';
+    const previousKey = previousChunk.replace(/\s+/g, '').toLowerCase();
+    if (previousKey && previousKey.includes(key)) return;
+    if (previousKey && key.includes(previousKey)) {
+      finalTranscriptKeys.delete(previousKey);
+      finalTranscriptChunks[finalTranscriptChunks.length - 1] = cleanTranscript;
+    } else {
+      finalTranscriptChunks.push(cleanTranscript);
+    }
+    finalTranscriptKeys.add(key);
+
+    const sessionTranscript = finalTranscriptChunks.join(' ').trim();
+    input.value = initialInputValue ? `${initialInputValue} ${sessionTranscript}` : sessionTranscript;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    try { global.autoResize?.(input); } catch (e) {}
+  }
+
   function initVoiceRecognition() {
     const SpeechRecognition = getSpeechRecognition();
     if (!SpeechRecognition) return null;
 
     const recog = new SpeechRecognition();
     recog.lang = 'ko-KR';
-    recog.continuous = false;
+    try { recog.continuous = true; } catch (e) { recog.continuous = false; }
     recog.interimResults = true;
     recog.maxAlternatives = 1;
 
     recog.onstart = () => {
+      resetTranscriptSession(getInput());
       setRecordingState(true);
-      showVoiceToast('🎤 말씀해주세요...');
+      showVoiceToast('🎤 문장으로 편하게 말씀해주세요...');
     };
 
     recog.onresult = (event) => {
-      let transcript = '';
-      for (let i = event.resultIndex; i < event.results.length; i += 1) {
-        transcript += event.results[i][0]?.transcript || '';
-      }
-
       const input = getInput();
-      if (input) {
-        input.value = transcript.trim();
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-        try { global.autoResize?.(input); } catch (e) {}
+      if (!input) return;
+
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const result = event.results[i];
+        if (result?.isFinal) appendFinalTranscriptChunk(input, result[0]?.transcript || '');
       }
     };
 
@@ -193,6 +227,7 @@
     }
 
     try {
+      resetTranscriptSession(getInput());
       recognition.start();
     } catch (error) {
       console.warn('[ThisOne][voice] start failed:', error);

@@ -181,6 +181,10 @@ body.search-mode .results-view {
   justify-self: center;
   margin: 0;
   padding: 0.35rem 0.85rem;
+  appearance: none;
+  font-family: inherit;
+  line-height: 1.2;
+  cursor: pointer;
   border: 1px solid #dc2626;
   border-radius: 999rem;
   background: #ef4444;

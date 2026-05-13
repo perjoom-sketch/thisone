@@ -382,8 +382,29 @@ async function applyCategoryRoleToFinalCards(finalCards, query, allCandidates) {
 function getInput() { return document.getElementById('msgInput'); }
 function getSendBtn() { return document.getElementById('sendBtn'); }
 
+function resetShoppingHomeState() {
+  window.ThisOneAIToolVoice?.stopAll?.();
+  isSearchMode = false;
+  document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode', 'web-search-mode', 'loveme-mode', 'search-mode');
+  const container = document.getElementById('msgContainer');
+  if (container) container.innerHTML = '';
+}
+
+function openShoppingHome() {
+  if (window.ThisOneModeTabs?.open && window.ThisOneModeTabs.getActiveMode?.() !== 'shopping') {
+    window.ThisOneModeTabs.open('shopping');
+    return;
+  }
+  resetShoppingHomeState();
+}
+
+window.ThisOneShoppingHome = {
+  open: openShoppingHome,
+  reset: resetShoppingHomeState
+};
+
 function goHome() {
-  location.href = '/';
+  openShoppingHome();
 }
 
 function switchToSearchMode() {

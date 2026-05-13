@@ -58,6 +58,13 @@ function generateMethodPrefixedTopStyleMd5Signature(params, secret) {
     .toUpperCase();
 }
 
+function generateTopStyleHmacMd5Signature(params, secret) {
+  return crypto.createHmac('md5', secret)
+    .update(buildAliExpressSignBaseString(params), 'utf8')
+    .digest('hex')
+    .toUpperCase();
+}
+
 
 function firstDefined(...values) {
   return values.find((value) => value !== undefined && value !== null && value !== '');
@@ -105,10 +112,10 @@ function signAliExpressParams(params, appSecret) {
   return signedParams;
 }
 
-async function requestAliExpress(params, transport = 'POST') {
+async function requestAliExpress(params, transport = 'POST', endpoint = 'https://api-sg.aliexpress.com/sync') {
   const encodedParams = new URLSearchParams(params).toString();
   const isGet = transport === 'GET';
-  const response = await fetch(`https://api-sg.aliexpress.com/sync${isGet ? `?${encodedParams}` : ''}`, {
+  const response = await fetch(`${endpoint}${isGet ? `?${encodedParams}` : ''}`, {
     method: isGet ? 'GET' : 'POST',
     headers: isGet ? undefined : {
       'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
@@ -516,6 +523,145 @@ async function runAliExpressSignatureProbeMode(probeCase, appSecret) {
   }
 }
 
+
+function buildTopProbeMinimalParams(appKey, signMethod) {
+  return {
+    app_key: appKey,
+    format: 'json',
+    keywords: 'iphone',
+    method: 'aliexpress.affiliate.product.query',
+    page_no: '1',
+    page_size: '20',
+    sign_method: signMethod,
+    timestamp: getAliTimestamp(),
+    v: '2.0'
+  };
+}
+
+function buildAliExpressTopProbeMode(topprobe, appKey) {
+  const mode = String(topprobe || '');
+
+  if (mode === '1') {
+    return {
+      probe: 1,
+      endpoint: 'https://api-sg.aliexpress.com/sync',
+      signMethod: 'md5',
+      signatureVariant: 'top_style_md5',
+      params: buildTopProbeMinimalParams(appKey, 'md5')
+    };
+  }
+
+  if (mode === '2') {
+    return {
+      probe: 2,
+      endpoint: 'https://eco.taobao.com/router/rest',
+      signMethod: 'md5',
+      signatureVariant: 'top_style_md5',
+      params: buildTopProbeMinimalParams(appKey, 'md5')
+    };
+  }
+
+  if (mode === '3') {
+    return {
+      probe: 3,
+      endpoint: 'https://eco.taobao.com/router/rest',
+      signMethod: 'hmac',
+      signatureVariant: 'top_style_hmac_md5',
+      params: buildTopProbeMinimalParams(appKey, 'hmac')
+    };
+  }
+
+  return undefined;
+}
+
+function signAliExpressTopProbeParams(params, appSecret, signatureVariant) {
+  const signedParams = { ...params };
+
+  if (signatureVariant === 'top_style_hmac_md5') {
+    signedParams.sign = generateTopStyleHmacMd5Signature(signedParams, appSecret);
+  } else {
+    signedParams.sign = generateTopStyleMd5Signature(signedParams, appSecret);
+  }
+
+  return signedParams;
+}
+
+function buildAliExpressTopProbeResult(data, params, response) {
+  const debug = buildAliExpressDebug(data, params, response);
+  const products = getAliExpressProducts(data);
+
+  return {
+    httpStatus: debug.httpStatus,
+    code: debug.code,
+    msg: debug.msg,
+    subCode: debug.subCode,
+    subMsg: debug.subMsg,
+    errorCode: debug.errorCode,
+    errorMessage: debug.errorMessage,
+    bizSuccess: debug.bizSuccess,
+    itemCount: products.length,
+    requestId: debug.requestId,
+    responseKeys: debug.responseKeys
+  };
+}
+
+function buildAliExpressTopProbeError(error) {
+  return {
+    httpStatus: undefined,
+    code: undefined,
+    msg: undefined,
+    subCode: undefined,
+    subMsg: undefined,
+    errorCode: error.name || 'AliExpressTopProbeRequestError',
+    errorMessage: error.message || 'AliExpress TOP probe request failed',
+    bizSuccess: false,
+    itemCount: 0,
+    requestId: undefined,
+    responseKeys: []
+  };
+}
+
+async function requestAliExpressTopProbe(params, endpoint) {
+  const encodedParams = new URLSearchParams(params).toString();
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
+    },
+    body: encodedParams
+  });
+  const responseText = await response.text();
+
+  try {
+    return { response, data: JSON.parse(responseText) };
+  } catch (error) {
+    return {
+      response,
+      data: {
+        error_response: {
+          code: 'NonJsonTopProbeResponse',
+          msg: responseText.slice(0, 500)
+        }
+      }
+    };
+  }
+}
+
+async function runAliExpressTopProbeMode(probeCase, appSecret) {
+  try {
+    const signedParams = signAliExpressTopProbeParams(
+      probeCase.params,
+      appSecret,
+      probeCase.signatureVariant
+    );
+    const { response, data } = await requestAliExpressTopProbe(signedParams, probeCase.endpoint);
+
+    return buildAliExpressTopProbeResult(data, signedParams, response);
+  } catch (error) {
+    return buildAliExpressTopProbeError(error);
+  }
+}
+
 function buildAliExpressDebug(data, params, response) {
   const responseRoot = data && typeof data === 'object' ? data : {};
   const aliResponse = responseRoot.aliexpress_affiliate_product_query_response || {};
@@ -654,6 +800,28 @@ export default async function handler(req, res) {
 
     // ThisOne 엔진용 알리익스프레스 파라미터 세팅
     const baseParams = buildBaseAliExpressParams(APP_KEY, searchQuery);
+
+    if (req.query?.topprobe !== undefined) {
+      const topProbeCase = buildAliExpressTopProbeMode(req.query.topprobe, APP_KEY);
+
+      if (!topProbeCase) {
+        return res.status(200).json({
+          status: 'TopProbeError',
+          message: 'Unsupported topprobe mode. Use topprobe=1, 2, or 3.',
+          search_query: searchQuery
+        });
+      }
+
+      const result = await runAliExpressTopProbeMode(topProbeCase, APP_SECRET);
+
+      return res.status(200).json({
+        status: 'TopProbeComplete',
+        probe: topProbeCase.probe,
+        endpoint: topProbeCase.endpoint,
+        signMethod: topProbeCase.signMethod,
+        result
+      });
+    }
 
     if (req.query?.probe === '1') {
       const results = await runAliExpressProbe(baseParams, APP_SECRET);

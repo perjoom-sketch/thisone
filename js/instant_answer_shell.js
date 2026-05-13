@@ -52,12 +52,6 @@ Focus on what the user should understand or do next.`;
     document.body.classList.remove('document-ai-mode', 'web-search-mode');
   }
 
-  function exitAIToolMode() {
-    global.ThisOneAIToolVoice?.stopAll?.();
-    document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode', 'web-search-mode');
-    const container = document.getElementById('msgContainer');
-    if (container) container.innerHTML = '';
-  }
 
   function setStatus(element, message) {
     if (!element) return;
@@ -128,7 +122,7 @@ Focus on what the user should understand or do next.`;
   }
 
   function triggerSearch(term) {
-    exitAIToolMode();
+    global.ThisOneModeTabs?.open?.('shopping');
     const input = document.getElementById('msgInput');
     if (input) {
       input.value = term;
@@ -167,7 +161,7 @@ Focus on what the user should understand or do next.`;
 
     container.innerHTML = `
       <section class="instant-answer-panel" data-mode="${INSTANT_ANSWER_MODE}" aria-labelledby="instantAnswerTitle">
-        <button class="ai-tool-return" type="button" data-ai-tool-return>← 쇼핑검색으로 돌아가기</button>
+        ${global.ThisOneModeTabs?.render?.(INSTANT_ANSWER_MODE) || ''}
         <div class="instant-answer-copy">
           <p class="instant-answer-eyebrow">즉답</p>
           <h2 id="instantAnswerTitle">디스원 즉답</h2>
@@ -219,7 +213,6 @@ Focus on what the user should understand or do next.`;
     `;
 
     const root = container.querySelector('.instant-answer-panel');
-    const returnButton = root.querySelector('[data-ai-tool-return]');
     const question = root.querySelector('#instantAnswerQuestion');
     const submit = root.querySelector('#instantAnswerSubmit');
     const helpButton = root.querySelector('#instantAnswerHelpButton');
@@ -245,10 +238,7 @@ Focus on what the user should understand or do next.`;
       appendMode: 'newline'
     });
 
-    returnButton?.addEventListener('click', () => {
-      clearSelectedFileStatus();
-      exitAIToolMode();
-    });
+    global.ThisOneModeTabs?.bind?.(root);
 
     function setPlusMenuOpen(isOpen) {
       if (!plusButton || !plusMenu) return;
@@ -275,6 +265,8 @@ Focus on what the user should understand or do next.`;
       if (selectedFileText) selectedFileText.textContent = '';
       if (selectedFileStatus) selectedFileStatus.hidden = true;
     }
+
+    global.ThisOneModeTabs?.registerCleanup?.(INSTANT_ANSWER_MODE, clearSelectedFileStatus);
 
     function setSelectedFileStatus(fileInput, label) {
       const fileName = fileInput?.files?.[0]?.name;

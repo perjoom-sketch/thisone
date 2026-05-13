@@ -144,26 +144,26 @@ Keep it practical and kind. Avoid long lectures.`;
           <p class="loveme-sub-copy">수술은 병원에서<br>연출은 럽미에서</p>
         </div>
 
-        <div class="loveme-composer">
-          <div class="loveme-composer-top">
+        <div class="ai-tool-composer loveme-composer">
+          <div class="ai-tool-input loveme-composer-top">
             <label class="loveme-question-label" for="loveMeConcern">스타일링 고민 입력창</label>
             <textarea class="loveme-question" id="loveMeConcern" rows="1" aria-label="럽미 스타일링 고민 입력창" placeholder="예: 얼굴이 큰 편입니다, 이마가 넓어요, 반곱슬이라 비 오는 날 머리가 부스스해요"></textarea>
           </div>
           <p class="ai-tool-voice-status" id="loveMeVoiceStatus" aria-live="polite" hidden></p>
-          <div class="loveme-composer-bottom">
-            <div class="loveme-composer-left-actions">
+          <div class="ai-tool-control-row loveme-composer-bottom">
+            <div class="ai-tool-left-controls loveme-composer-left-actions">
               <div class="loveme-plus-wrap">
-                <button class="loveme-plus-button" id="loveMePlusButton" type="button" aria-label="입력 메뉴 열기" aria-expanded="false" aria-controls="loveMePlusMenu" title="입력 메뉴 열기">+</button>
+                <button class="ai-tool-icon-button ai-tool-plus-button loveme-plus-button" id="loveMePlusButton" type="button" aria-label="입력 메뉴 열기" aria-expanded="false" aria-controls="loveMePlusMenu" title="입력 메뉴 열기">+</button>
                 <div class="loveme-plus-menu" id="loveMePlusMenu" role="menu" hidden>
                   <button class="loveme-plus-menu-item" type="button" role="menuitem" disabled>파일 추가 준비 중</button>
                   <button class="loveme-plus-menu-item" type="button" role="menuitem" disabled>사진 기능 준비 중</button>
                 </div>
               </div>
             </div>
-            <div class="loveme-composer-actions">
-              <button class="loveme-help-button" id="loveMeHelpButton" type="button" aria-label="럽미 상담 예시 보기" aria-expanded="false" aria-controls="loveMeHelpPanel" title="럽미 상담 예시 보기">?</button>
-              <button class="ai-tool-mic-button" id="loveMeMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
-              <button class="loveme-submit" id="loveMeSubmit" type="button">상담하기</button>
+            <div class="ai-tool-right-controls loveme-composer-actions">
+              <button class="ai-tool-icon-button ai-tool-help-button loveme-help-button" id="loveMeHelpButton" type="button" aria-label="럽미 상담 예시 보기" aria-expanded="false" aria-controls="loveMeHelpPanel" title="럽미 상담 예시 보기">?</button>
+              <button class="ai-tool-icon-button ai-tool-mic-button" id="loveMeMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
+              <button class="ai-tool-action-button loveme-submit" id="loveMeSubmit" type="button">상담하기</button>
             </div>
           </div>
         </div>

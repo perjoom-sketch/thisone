@@ -1043,7 +1043,18 @@ function signAliExpressRestProbeParams(params, appSecret, probeCase) {
   return signedParams;
 }
 
-function sanitizeAliExpressRawResponse(value) {
+function redactAliExpressSensitiveString(value, sensitiveValues = []) {
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  return sensitiveValues
+    .filter((item) => item !== undefined && item !== null && item !== '')
+    .reduce((text, item) => text.split(String(item)).join('[REDACTED]'), value)
+    .replace(/((?:app_key|app_secret|sign|sign_source|signSource|signatureSource|signature_source)=)[^&\s\"'<>]+/gi, '$1[REDACTED]');
+}
+
+function sanitizeAliExpressRawResponse(value, sensitiveValues = []) {
   const blockedKeys = new Set([
     'app_key',
     'app_secret',
@@ -1055,17 +1066,17 @@ function sanitizeAliExpressRawResponse(value) {
   ]);
 
   if (Array.isArray(value)) {
-    return value.map((item) => sanitizeAliExpressRawResponse(item));
+    return value.map((item) => sanitizeAliExpressRawResponse(item, sensitiveValues));
   }
 
   if (!value || typeof value !== 'object') {
-    return value;
+    return redactAliExpressSensitiveString(value, sensitiveValues);
   }
 
   return Object.fromEntries(
     Object.entries(value)
       .filter(([key]) => !blockedKeys.has(key))
-      .map(([key, item]) => [key, sanitizeAliExpressRawResponse(item)])
+      .map(([key, item]) => [key, sanitizeAliExpressRawResponse(item, sensitiveValues)])
   );
 }
 
@@ -1143,6 +1154,195 @@ async function runAliExpressRestProbeMode(probeCase, appSecret) {
     return buildAliExpressRestProbeResult(data, signedParams, response);
   } catch (error) {
     return buildAliExpressRestProbeError(error);
+  }
+}
+
+
+function buildAliExpressSyncProbeSystemParams(appKey, signMethod) {
+  return {
+    app_key: appKey,
+    method: 'aliexpress.affiliate.product.query',
+    format: 'json',
+    v: '2.0',
+    timestamp: getAliTimestampMillis(),
+    sign_method: signMethod
+  };
+}
+
+function buildAliExpressSyncProbeBusinessParams() {
+  return {
+    keywords: 'mp3',
+    fields: 'commission_rate,sale_price',
+    page_no: '1',
+    page_size: '20',
+    platform_product_type: 'ALL',
+    sort: 'SALE_PRICE_ASC',
+    target_currency: 'USD',
+    target_language: 'EN',
+    ship_to_country: 'US'
+  };
+}
+
+function buildAliExpressSyncProbeMode(syncprobe, appKey) {
+  const mode = String(syncprobe || '');
+  const endpoint = 'https://api-sg.aliexpress.com/sync';
+
+  if (mode === '1') {
+    return {
+      probe: 1,
+      endpoint,
+      requestLayout: 'system_query_business_body',
+      transport: 'POST',
+      signMethod: 'sha256',
+      timestampFormat: 'unix_milliseconds',
+      signatureVariant: 'method_prefixed_sha256',
+      systemParams: buildAliExpressSyncProbeSystemParams(appKey, 'sha256'),
+      businessParams: buildAliExpressSyncProbeBusinessParams()
+    };
+  }
+
+  if (mode === '2') {
+    return {
+      probe: 2,
+      endpoint,
+      requestLayout: 'system_query_business_body',
+      transport: 'POST',
+      signMethod: 'sha256',
+      timestampFormat: 'unix_milliseconds',
+      signatureVariant: 'sha256',
+      systemParams: buildAliExpressSyncProbeSystemParams(appKey, 'sha256'),
+      businessParams: buildAliExpressSyncProbeBusinessParams()
+    };
+  }
+
+  if (mode === '3') {
+    return {
+      probe: 3,
+      endpoint,
+      requestLayout: 'all_query_no_body',
+      transport: 'GET',
+      signMethod: 'sha256',
+      timestampFormat: 'unix_milliseconds',
+      signatureVariant: 'method_prefixed_sha256',
+      systemParams: buildAliExpressSyncProbeSystemParams(appKey, 'sha256'),
+      businessParams: buildAliExpressSyncProbeBusinessParams()
+    };
+  }
+
+  if (mode === '4') {
+    return {
+      probe: 4,
+      endpoint,
+      requestLayout: 'system_query_business_body',
+      transport: 'POST',
+      signMethod: 'md5',
+      timestampFormat: 'unix_milliseconds',
+      signatureVariant: 'top_style_md5',
+      systemParams: buildAliExpressSyncProbeSystemParams(appKey, 'md5'),
+      businessParams: buildAliExpressSyncProbeBusinessParams()
+    };
+  }
+
+  return undefined;
+}
+
+function signAliExpressSyncProbeParams(probeCase, appSecret) {
+  const signingParams = {
+    ...probeCase.systemParams,
+    ...probeCase.businessParams
+  };
+
+  if (probeCase.signatureVariant === 'method_prefixed_sha256') {
+    return generateMethodPrefixedSha256Signature(signingParams, appSecret);
+  }
+
+  if (probeCase.signatureVariant === 'top_style_md5') {
+    return generateTopStyleMd5Signature(signingParams, appSecret);
+  }
+
+  return generateSignature(signingParams, appSecret);
+}
+
+async function requestAliExpressSyncProbe(probeCase, signedSystemParams) {
+  const queryParams = probeCase.transport === 'GET'
+    ? { ...signedSystemParams, ...probeCase.businessParams }
+    : signedSystemParams;
+  const encodedQuery = new URLSearchParams(queryParams).toString();
+  const requestUrl = `${probeCase.endpoint}?${encodedQuery}`;
+  const isGet = probeCase.transport === 'GET';
+
+  const response = await fetch(requestUrl, {
+    method: isGet ? 'GET' : 'POST',
+    headers: isGet ? undefined : {
+      'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
+    },
+    body: isGet ? undefined : new URLSearchParams(probeCase.businessParams).toString()
+  });
+  const responseText = await response.text();
+
+  try {
+    return { response, data: JSON.parse(responseText) };
+  } catch (error) {
+    return {
+      response,
+      data: {
+        error_response: {
+          code: 'NonJsonSyncProbeResponse',
+          msg: responseText.slice(0, 500)
+        }
+      }
+    };
+  }
+}
+
+function buildAliExpressSyncProbeResult(data, params, response, sensitiveValues = []) {
+  const debug = buildAliExpressDebug(data, params, response);
+  const products = getAliExpressProducts(data);
+  const rawResponse = sanitizeAliExpressRawResponse(data, sensitiveValues);
+
+  return {
+    httpStatus: debug.httpStatus,
+    code: redactAliExpressSensitiveString(debug.code, sensitiveValues),
+    msg: redactAliExpressSensitiveString(debug.msg, sensitiveValues),
+    subCode: redactAliExpressSensitiveString(debug.subCode, sensitiveValues),
+    subMsg: redactAliExpressSensitiveString(debug.subMsg, sensitiveValues),
+    errorCode: redactAliExpressSensitiveString(debug.errorCode, sensitiveValues),
+    errorMessage: redactAliExpressSensitiveString(debug.errorMessage, sensitiveValues),
+    bizSuccess: debug.bizSuccess,
+    itemCount: products.length,
+    requestId: debug.requestId,
+    responseKeys: Object.keys(rawResponse && typeof rawResponse === 'object' && !Array.isArray(rawResponse) ? rawResponse : {}),
+    rawResponse
+  };
+}
+
+function buildAliExpressSyncProbeError(error) {
+  return {
+    httpStatus: undefined,
+    code: undefined,
+    msg: undefined,
+    subCode: undefined,
+    subMsg: undefined,
+    errorCode: error.name || 'AliExpressSyncProbeRequestError',
+    errorMessage: error.message || 'AliExpress sync probe request failed',
+    bizSuccess: false,
+    itemCount: 0,
+    requestId: undefined,
+    responseKeys: [],
+    rawResponse: null
+  };
+}
+
+async function runAliExpressSyncProbeMode(probeCase, appSecret) {
+  try {
+    const sign = signAliExpressSyncProbeParams(probeCase, appSecret);
+    const signedSystemParams = { ...probeCase.systemParams, sign };
+    const debugParams = { ...probeCase.systemParams, ...probeCase.businessParams };
+    const { response, data } = await requestAliExpressSyncProbe(probeCase, signedSystemParams);
+
+    return buildAliExpressSyncProbeResult(data, debugParams, response, [probeCase.systemParams.app_key, sign]);
+  } catch (error) {
+    return buildAliExpressSyncProbeError(error);
   }
 }
 
@@ -1284,6 +1484,30 @@ export default async function handler(req, res) {
 
     // ThisOne 엔진용 알리익스프레스 파라미터 세팅
     const baseParams = buildBaseAliExpressParams(APP_KEY, searchQuery);
+
+    if (req.query?.syncprobe !== undefined) {
+      const syncProbeCase = buildAliExpressSyncProbeMode(req.query.syncprobe, APP_KEY);
+
+      if (!syncProbeCase) {
+        return res.status(200).json({
+          status: 'SyncProbeError',
+          message: 'Unsupported syncprobe mode. Use syncprobe=1, 2, 3, or 4.',
+          search_query: searchQuery
+        });
+      }
+
+      const result = await runAliExpressSyncProbeMode(syncProbeCase, APP_SECRET);
+
+      return res.status(200).json({
+        status: 'SyncProbeComplete',
+        probe: syncProbeCase.probe,
+        endpoint: syncProbeCase.endpoint,
+        requestLayout: syncProbeCase.requestLayout,
+        signMethod: syncProbeCase.signMethod,
+        timestampFormat: syncProbeCase.timestampFormat,
+        result
+      });
+    }
 
     if (req.query?.restprobe !== undefined) {
       const restProbeCase = buildAliExpressRestProbeMode(req.query.restprobe, APP_KEY);

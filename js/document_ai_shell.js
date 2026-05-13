@@ -92,11 +92,9 @@
     }
 
     container.innerHTML = `
-      <section class="document-ai-panel" data-mode="${DOCUMENT_AI_MODE}" aria-labelledby="documentAiTitle">
+      <section class="document-ai-panel" data-mode="${DOCUMENT_AI_MODE}" aria-label="디스원 해석">
         ${global.ThisOneModeTabs?.render?.(DOCUMENT_AI_MODE) || ''}
         <div class="document-ai-copy">
-          <p class="document-ai-eyebrow">해석</p>
-          <h2 id="documentAiTitle">디스원 해석</h2>
           <p class="document-ai-main-copy">어려운 글, 읽지 말고 물어보세요.</p>
           <p class="document-ai-sub-copy">PDF나 사진을 올리면 AI가 쉽게 해석하고, 궁금한 점에 답해드립니다.</p>
         </div>

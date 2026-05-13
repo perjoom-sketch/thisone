@@ -138,10 +138,9 @@ Keep it practical and kind. Avoid long lectures.`;
       <section class="loveme-panel" aria-label="럽미 스타일링 상담">
         ${global.ThisOneModeTabs?.render?.(LOVEME_MODE) || ''}
         <div class="loveme-copy">
-          <p class="loveme-eyebrow">스타일링 상담</p>
           <h2 class="loveme-title">럽미</h2>
-          <p class="loveme-main-copy">아무 걱정하지 마세요.<br>고치지 않고, 어울리게 연출해드립니다.</p>
-          <p class="loveme-description">신경 쓰이는 부분을 편하게 말해보세요.<br>헤어, 메이크업, 의상, 색상으로 자연스럽게 보완해드릴게요.</p>
+          <p class="loveme-main-copy">아무 걱정하지 마세요.<br>자연스럽게 연출해드릴게요.</p>
+          <p class="loveme-description">신경 쓰이는 부분을 편하게 말해보세요.</p>
           <p class="loveme-sub-copy">수술은 병원에서<br>연출은 럽미에서</p>
         </div>
 
@@ -171,8 +170,9 @@ Keep it practical and kind. Avoid long lectures.`;
 
         <div class="loveme-help-panel" id="loveMeHelpPanel" hidden>
           <p class="loveme-help-title">이렇게 말해보세요</p>
+          <p class="loveme-help-copy">신경 쓰이는 상황을 한 문장으로 편하게 적어도 괜찮아요.</p>
           <div class="loveme-help-examples">
-            <button type="button" data-loveme-example="얼굴이 커 보여요">얼굴이 커 보여요</button>
+            <button type="button" data-loveme-example="얼굴이 큰 편입니다">얼굴이 큰 편입니다</button>
             <button type="button" data-loveme-example="이마가 넓어 보여요">이마가 넓어 보여요</button>
             <button type="button" data-loveme-example="반곱슬이라 비 오는 날 머리가 부스스해요">반곱슬이라 비 오는 날 머리가 부스스해요</button>
             <button type="button" data-loveme-example="키가 작아서 코디가 고민이에요">키가 작아서 코디가 고민이에요</button>
@@ -180,7 +180,6 @@ Keep it practical and kind. Avoid long lectures.`;
           </div>
         </div>
 
-        <p class="loveme-helper">사진 없이도 괜찮아요. 고민만 말해주시면 바로 스타일링해드릴게요.</p>
         <p class="loveme-status" id="loveMeStatus" role="status" aria-live="polite" hidden></p>
         <div class="loveme-result" id="loveMeResult" aria-live="polite" hidden></div>
       </section>

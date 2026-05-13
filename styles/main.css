@@ -4017,7 +4017,6 @@ body.ai-tool-mode #msgContainer {
   gap: clamp(0.35rem, 1vw, 0.5rem);
 }
 
-.loveme-title,
 .loveme-main-copy,
 .loveme-status,
 .loveme-result {
@@ -4027,12 +4026,6 @@ body.ai-tool-mode #msgContainer {
   font-size: clamp(0.88rem, 2vw, 1rem);
 }
 
-.loveme-title {
-  color: #1e3a8a;
-  font-size: clamp(1.25rem, 3vw, 1.65rem);
-  font-weight: 700;
-  line-height: 1.35;
-}
 
 .loveme-main-copy {
   color: #334155;

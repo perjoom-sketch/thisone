@@ -3388,7 +3388,7 @@ body.ai-tool-mode #msgContainer {
   border: 0.0625rem solid #dbeafe;
   border-radius: var(--shopping-composer-radius);
   background: #ffffff;
-  box-shadow: 0 clamp(0.35rem, 1vw, 0.55rem) clamp(1rem, 3vw, 1.4rem) rgba(14, 165, 233, 0.08);
+  box-shadow: 0 clamp(0.35rem, 1vw, 0.55rem) clamp(1rem, 3vw, 1.4rem) rgba(37, 99, 235, 0.08);
 }
 
 .web-search-composer-top,

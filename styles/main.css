@@ -29,6 +29,8 @@
   --shopping-composer-control-gap: clamp(0.375rem, 1vw, 1.5rem);
   --shopping-composer-left-button-size: clamp(2.5rem, 8vw, 2.8125rem);
   --shopping-composer-right-button-size: clamp(2.5rem, 8vw, 3.125rem);
+  --composer-focus-border: #bfdbfe;
+  --composer-focus-shadow: 0 clamp(0.25rem, 1vw, 0.5rem) clamp(1rem, 3vw, 1.5rem) rgba(37, 99, 235, 0.08);
 }
 
 /* 상태 제어 클래스 */
@@ -216,9 +218,12 @@ body.search-mode .results-view {
   transition: all 0.2s ease;
 }
 
-.search-box:focus-within {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08);
+.search-box:focus-within,
+.document-ai-composer:focus-within,
+.instant-answer-composer:focus-within,
+.web-search-form:focus-within {
+  border-color: var(--composer-focus-border);
+  box-shadow: var(--composer-focus-shadow);
 }
 
 .input-row {
@@ -2389,7 +2394,7 @@ body.search-mode .results-view {
   border: 0.09375rem solid #bfdbfe;
   border-radius: var(--shopping-composer-radius);
   background: #ffffff;
-  box-shadow: 0 clamp(0.25rem, 1vw, 0.5rem) clamp(1rem, 3vw, 1.5rem) rgba(37, 99, 235, 0.08);
+  box-shadow: var(--composer-focus-shadow);
   transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 

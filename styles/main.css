@@ -3098,16 +3098,18 @@ body.search-mode .document-ai-entry-wrap {
   flex: 1;
   width: 100%;
   min-width: 0;
-  min-height: clamp(8rem, 20vw, 11rem);
+  min-height: auto;
+  block-size: auto;
   padding: clamp(0.7rem, 2vw, 0.9rem) 0;
+  overflow: hidden;
   border: 0;
   border-radius: 0;
   background: transparent;
   color: #1e293b;
   font-family: inherit;
   font-size: clamp(0.95rem, 2.2vw, 1.05rem);
-  line-height: 1.6;
-  resize: vertical;
+  line-height: normal;
+  resize: none;
 }
 
 .instant-answer-question:focus {

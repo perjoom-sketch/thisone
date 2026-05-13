@@ -135,19 +135,17 @@ Keep it practical and kind. Avoid long lectures.`;
     if (!container) return;
 
     container.innerHTML = `
-      <section class="loveme-panel" aria-label="럽미 스타일링 상담">
+      <section class="loveme-panel" aria-label="럽미">
         ${global.ThisOneModeTabs?.render?.(LOVEME_MODE) || ''}
         <div class="loveme-copy">
           <h2 class="loveme-title">럽미</h2>
           <p class="loveme-main-copy">아무 걱정하지 마세요.<br>자연스럽게 연출해드릴게요.</p>
-          <p class="loveme-description">신경 쓰이는 부분을 편하게 말해보세요.</p>
-          <p class="loveme-sub-copy">수술은 병원에서<br>연출은 럽미에서</p>
         </div>
 
         <div class="ai-tool-composer loveme-composer">
           <div class="ai-tool-input loveme-composer-top">
-            <label class="loveme-question-label" for="loveMeConcern">스타일링 고민 입력창</label>
-            <textarea class="loveme-question" id="loveMeConcern" rows="1" aria-label="럽미 스타일링 고민 입력창" placeholder="예: 얼굴이 큰 편입니다, 이마가 넓어요, 반곱슬이라 비 오는 날 머리가 부스스해요"></textarea>
+            <label class="loveme-question-label" for="loveMeConcern">럽미 상담 입력창</label>
+            <textarea class="loveme-question" id="loveMeConcern" rows="1" aria-label="럽미 상담 입력창" placeholder="신경 쓰이는 부분을 편하게 말해보세요."></textarea>
           </div>
           <p class="ai-tool-voice-status" id="loveMeVoiceStatus" aria-live="polite" hidden></p>
           <div class="ai-tool-control-row loveme-composer-bottom">
@@ -169,8 +167,8 @@ Keep it practical and kind. Avoid long lectures.`;
         </div>
 
         <div class="loveme-help-panel" id="loveMeHelpPanel" hidden>
-          <p class="loveme-help-title">이렇게 말해보세요</p>
-          <p class="loveme-help-copy">신경 쓰이는 상황을 한 문장으로 편하게 적어도 괜찮아요.</p>
+          <p class="loveme-help-principle">수술은 병원에서<br>연출은 럽미에서</p>
+          <p class="loveme-help-title">예시:</p>
           <div class="loveme-help-examples">
             <button type="button" data-loveme-example="얼굴이 큰 편입니다">얼굴이 큰 편입니다</button>
             <button type="button" data-loveme-example="이마가 넓어 보여요">이마가 넓어 보여요</button>

@@ -152,7 +152,7 @@ Keep it practical and kind. Avoid long lectures.`;
           </div>
           <div class="loveme-composer-bottom">
             <p class="loveme-helper">사진 없이도 괜찮아요. 고민만 말해주시면 바로 스타일링해드릴게요.</p>
-            <button class="loveme-submit" id="loveMeSubmit" type="button">럽미 시작</button>
+            <button class="loveme-submit" id="loveMeSubmit" type="button">상담하기</button>
           </div>
         </div>
 

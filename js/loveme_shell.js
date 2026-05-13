@@ -144,7 +144,7 @@ Keep it practical and kind. Avoid long lectures.`;
         <div class="ai-tool-composer loveme-composer">
           <div class="ai-tool-input loveme-composer-top">
             <label class="loveme-question-label" for="loveMeConcern">럽미 상담 입력창</label>
-            <textarea class="loveme-question" id="loveMeConcern" rows="1" aria-label="럽미 상담 입력창" placeholder="신경 쓰이는 부분을 편하게 말해보세요."></textarea>
+            <textarea class="loveme-question" id="loveMeConcern" rows="1" aria-label="럽미 상담 입력창" placeholder="콤플렉스나 원하는 커버 스타일을 말씀해 보세요."></textarea>
           </div>
           <p class="ai-tool-voice-status" id="loveMeVoiceStatus" aria-live="polite" hidden></p>
           <div class="ai-tool-control-row loveme-composer-bottom">

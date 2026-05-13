@@ -169,8 +169,12 @@
 
       function showShopping() {
         cleanupExcept('shopping');
+        if (window.ThisOneShoppingHome?.reset) {
+          window.ThisOneShoppingHome.reset();
+          return;
+        }
         window.ThisOneAIToolVoice?.stopAll?.();
-        document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode', 'web-search-mode', 'loveme-mode');
+        document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode', 'web-search-mode', 'loveme-mode', 'search-mode');
         const container = document.getElementById('msgContainer');
         if (container) container.innerHTML = '';
       }
@@ -235,7 +239,7 @@
       <a href="/" class="logo" onclick="event.preventDefault(); goHome();">
         <img src="assets/thisone-logo-rough.png" alt="ThisOne" class="logo-img" />
       </a>
-      <p class="shopping-identity-title">AI 쇼핑검색</p>
+      <button class="shopping-identity-title" type="button" aria-label="쇼핑 홈으로 이동" onclick="window.ThisOneShoppingHome?.open ? window.ThisOneShoppingHome.open() : window.ThisOneModeTabs?.open?.('shopping')">AI 쇼핑검색</button>
     </div>
   </header>
 

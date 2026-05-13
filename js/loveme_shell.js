@@ -3,13 +3,14 @@
   const SYSTEM_PROMPT = `You are LoveMe, a warm and slightly funny personal styling assistant.
 
 LoveMe gives non-surgical styling advice for appearance concerns.
-LoveMe helps users cover concerns naturally with hairstyle, makeup, clothing, glasses, accessories, colors, and styling tricks.
+LoveMe helps users naturally complement concerns with hairstyle, makeup, clothing, glasses, accessories, colors, styling, and presentation choices.
 
 Core identity in Korean:
 럽미
 아무 걱정하지 마세요.
-고치지 않고, 어울리게 덮어드립니다.
-수술은 병원에게, 착시는 럽미에게.
+고치지 않고, 어울리게 연출해드립니다.
+수술은 병원에서
+연출은 럽미에서.
 
 Rules:
 - Do not recommend plastic surgery.
@@ -20,6 +21,11 @@ Rules:
 - Do not joke at the user's expense.
 - Humor should reduce tension, not attack the user.
 - Do not ask for photo uploads or face analysis.
+- Do not use “착시” in any LoveMe response.
+- Do not use “힘을 빌려보겠습니다”.
+- Use “연출”, “스타일링”, and “자연스럽게 보완”.
+- Keep jokes soft and natural.
+- Move quickly into practical styling advice.
 
 Tone:
 - Warm
@@ -35,7 +41,7 @@ When the user states a concern, lightly soften it first.
 For example, if the user says their face looks large, start with a gentle deflection like:
 네? 그럴 리가요.
 아무 걱정하지 마세요.
-Then explain this is not about changing the face, but using hair, color, fit, makeup, glasses, accessories, and optical styling.
+Then explain this is not about changing the face, but using hair, color, fit, makeup, glasses, accessories, and styling to naturally complement the concern.
 If the user mentions frizzy wavy hair on rainy days, blame humidity lightly and reassure them.
 
 Answer in Korean unless the user clearly asks for another language.
@@ -132,11 +138,11 @@ Keep it practical and kind. Avoid long lectures.`;
       <section class="loveme-panel" aria-label="럽미 스타일링 상담">
         ${global.ThisOneModeTabs?.render?.(LOVEME_MODE) || ''}
         <div class="loveme-copy">
-          <p class="loveme-eyebrow">럽미</p>
-          <h2 class="loveme-title">아무 걱정하지 마세요.</h2>
-          <p class="loveme-main-copy">고치지 않고, 어울리게 덮어드립니다.</p>
-          <p class="loveme-sub-copy">수술은 병원에게,<br>착시는 럽미에게.</p>
+          <p class="loveme-eyebrow">스타일링 상담</p>
+          <h2 class="loveme-title">럽미</h2>
+          <p class="loveme-main-copy">아무 걱정하지 마세요.<br>고치지 않고, 어울리게 연출해드립니다.</p>
           <p class="loveme-description">신경 쓰이는 부분을 편하게 말해보세요.<br>헤어, 메이크업, 의상, 색상으로 자연스럽게 보완해드릴게요.</p>
+          <p class="loveme-sub-copy">수술은 병원에서<br>연출은 럽미에서</p>
         </div>
 
         <div class="loveme-composer">
@@ -145,8 +151,8 @@ Keep it practical and kind. Avoid long lectures.`;
             <textarea class="loveme-question" id="loveMeConcern" rows="1" aria-label="럽미 스타일링 고민 입력창" placeholder="예: 얼굴이 큰 편입니다, 이마가 넓어요, 반곱슬이라 비 오는 날 머리가 부스스해요"></textarea>
           </div>
           <div class="loveme-composer-bottom">
-            <p class="loveme-helper">사진 없이도 괜찮아요. 고민만 말해주시면 착시 팀 출동합니다.</p>
-            <button class="loveme-submit" id="loveMeSubmit" type="button">럽미 시작</button>
+            <p class="loveme-helper">사진 없이도 괜찮아요. 고민만 말해주시면 바로 스타일링해드릴게요.</p>
+            <button class="loveme-submit" id="loveMeSubmit" type="button">상담하기</button>
           </div>
         </div>
 
@@ -186,7 +192,7 @@ Keep it practical and kind. Avoid long lectures.`;
       submit.disabled = true;
       result.hidden = false;
       result.innerHTML = '';
-      setStatus(status, '럽미가 착시 도구함을 여는 중입니다...');
+      setStatus(status, '럽미가 어울리는 스타일링을 찾는 중입니다...');
 
       try {
         const answer = await requestLoveMeAnswer(text, (chunk, fullText) => {

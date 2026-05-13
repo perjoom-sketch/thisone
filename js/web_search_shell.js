@@ -116,7 +116,7 @@
 
     container.innerHTML = `
       <section class="web-search-panel" data-mode="${WEB_SEARCH_MODE}" aria-labelledby="webSearchTitle">
-        <button class="ai-tool-return" type="button" data-ai-tool-return>← 쇼핑검색으로 돌아가기</button>
+        ${global.ThisOneModeTabs?.render?.(WEB_SEARCH_MODE) || ''}
         <div class="web-search-copy">
           <p class="web-search-eyebrow">서치</p>
           <h2 id="webSearchTitle">디스원 서치</h2>
@@ -168,7 +168,6 @@
     `;
 
     const root = container.querySelector('.web-search-panel');
-    const returnButton = root.querySelector('[data-ai-tool-return]');
     const input = root.querySelector('#webSearchInput');
     const submit = root.querySelector('#webSearchSubmit');
     const status = root.querySelector('#webSearchStatus');
@@ -194,10 +193,7 @@
       status: voiceStatus,
       appendMode: 'space'
     });
-    returnButton?.addEventListener('click', () => {
-      clearSelectedFileStatus();
-      exitWebSearchMode();
-    });
+    global.ThisOneModeTabs?.bind?.(root);
 
     function setPlusMenuOpen(isOpen) {
       if (!plusButton || !plusMenu) return;
@@ -249,6 +245,8 @@
       if (selectedFileText) selectedFileText.textContent = '';
       if (selectedFileStatus) selectedFileStatus.hidden = true;
     }
+
+    global.ThisOneModeTabs?.registerCleanup?.(WEB_SEARCH_MODE, clearSelectedFileStatus);
 
     function setSelectedFileStatus(fileInput, label) {
       const file = fileInput?.files?.[0];

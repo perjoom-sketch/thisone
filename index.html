@@ -140,6 +140,76 @@
       const content = document.getElementById('inqContent_' + id);
       if (content) content.classList.toggle('show');
     };
+
+
+    window.ThisOneModeTabs = window.ThisOneModeTabs || (() => {
+      const MODES = [
+        { id: 'shopping', label: '쇼핑' },
+        { id: 'document-ai', label: '해석' },
+        { id: 'instant-answer', label: '즉답' },
+        { id: 'web-search', label: '서치' }
+      ];
+      const cleanupHandlers = new Map();
+
+      function getActiveMode() {
+        if (document.body.classList.contains('document-ai-mode')) return 'document-ai';
+        if (document.body.classList.contains('instant-answer-mode')) return 'instant-answer';
+        if (document.body.classList.contains('web-search-mode')) return 'web-search';
+        return 'shopping';
+      }
+
+      function cleanupExcept(nextMode) {
+        cleanupHandlers.forEach((handler, mode) => {
+          if (mode === nextMode || typeof handler !== 'function') return;
+          handler();
+        });
+      }
+
+      function showShopping() {
+        cleanupExcept('shopping');
+        window.ThisOneAIToolVoice?.stopAll?.();
+        document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode', 'web-search-mode');
+        const container = document.getElementById('msgContainer');
+        if (container) container.innerHTML = '';
+      }
+
+      function openMode(mode) {
+        if (getActiveMode() === mode) return;
+        if (mode === 'shopping') {
+          showShopping();
+          return;
+        }
+
+        cleanupExcept(mode);
+        if (mode === 'document-ai') window.ThisOneDocumentAI?.open?.();
+        if (mode === 'instant-answer') window.ThisOneInstantAnswer?.open?.();
+        if (mode === 'web-search') window.ThisOneWebSearch?.open?.();
+      }
+
+      function render(activeMode) {
+        return `
+          <nav class="ai-mode-tabs" aria-label="모드 전환">
+            ${MODES.map((mode) => `
+              <button class="ai-mode-tab" type="button" data-ai-mode-tab="${mode.id}" aria-current="${mode.id === activeMode ? 'page' : 'false'}">${mode.label}</button>
+            `).join('')}
+          </nav>
+        `;
+      }
+
+      function bind(root) {
+        root?.querySelector('.ai-mode-tabs')?.addEventListener('click', (event) => {
+          const tab = event.target instanceof Element ? event.target.closest('[data-ai-mode-tab]') : null;
+          if (!tab) return;
+          openMode(tab.dataset.aiModeTab || 'shopping');
+        });
+      }
+
+      function registerCleanup(mode, handler) {
+        cleanupHandlers.set(mode, handler);
+      }
+
+      return { bind, getActiveMode, open: openMode, registerCleanup, render };
+    })();
   </script>
   
   <meta name="apple-mobile-web-app-title" content="쇼핑검색 디스원" />

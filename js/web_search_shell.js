@@ -1,18 +1,6 @@
 (function (global) {
   const WEB_SEARCH_MODE = 'web-search';
 
-  const WEB_SEARCH_EXAMPLES = [
-    '서울 날씨 미세먼지',
-    '2026 최저임금',
-    '인천공항 2터미널 주차요금',
-    'HERA HR-2370 설명서',
-    '카카오뱅크 통장사본',
-    '가족관계증명서 발급',
-    '에어컨 물 떨어짐',
-    '문 쾅 닫힘 방지',
-    '프린터 인쇄 안됨'
-  ];
-
   function escapeHtml(value) {
     return String(value || '')
       .replace(/&/g, '&amp;')
@@ -152,7 +140,7 @@
                 <input class="web-search-file-input" id="webSearchUploadInput" type="file" accept="image/*" hidden>
                 <input class="web-search-file-input" id="webSearchCameraInput" type="file" accept="image/*" capture="environment" hidden>
               </div>
-              <button class="web-search-help-button" id="webSearchHelpButton" type="button" aria-label="서치 검색 예시 보기" aria-expanded="false" aria-controls="webSearchHelpPanel" title="검색 예시">?</button>
+              <button class="web-search-help-button" id="webSearchHelpButton" type="button" aria-label="서치 안내 보기" aria-expanded="false" aria-controls="webSearchHelpPanel" title="서치 안내">?</button>
             </div>
             <div class="web-search-composer-actions">
               <button class="ai-tool-mic-button" id="webSearchMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
@@ -162,10 +150,10 @@
         </div>
 
         <div class="web-search-help-panel" id="webSearchHelpPanel" hidden>
-          <p class="web-search-help-title">서치 검색 예시</p>
-          <div class="web-search-help-examples">
-            ${WEB_SEARCH_EXAMPLES.map((example) => `<button type="button" data-web-search-example="${escapeHtml(example)}">${escapeHtml(example)}</button>`).join('')}
-          </div>
+          <p class="web-search-help-title">서치 안내</p>
+          <p class="web-search-help-copy">일반 웹검색입니다.</p>
+          <p class="web-search-help-copy">상품 추천이 아니라 웹페이지 검색 결과를 보여줍니다.</p>
+          <p class="web-search-help-copy">검색어를 짧게 입력하면 더 자연스럽게 검색할 수 있습니다.</p>
         </div>
 
         <p class="ai-tool-voice-status" id="webSearchVoiceStatus" aria-live="polite" hidden></p>
@@ -239,16 +227,6 @@
     helpButton?.addEventListener('click', () => {
       setPlusMenuOpen(false);
       setHelpPanelOpen(!!helpPanel?.hidden);
-    });
-
-    helpPanel?.addEventListener('click', (event) => {
-      const exampleButton = event.target instanceof Element
-        ? event.target.closest('[data-web-search-example]')
-        : null;
-      if (!exampleButton || !input) return;
-      input.value = exampleButton.dataset.webSearchExample || '';
-      setHelpPanelOpen(false);
-      focusWebSearchInputIfDesktop(input);
     });
 
     uploadButton?.addEventListener('click', () => openFilePicker(uploadInput));

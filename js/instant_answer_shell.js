@@ -183,6 +183,15 @@ Focus on what the user should understand or do next.`;
           <p class="ai-tool-voice-status" id="instantAnswerVoiceStatus" aria-live="polite" hidden></p>
           <div class="instant-answer-composer-bottom">
             <div class="instant-answer-composer-left-actions">
+              <div class="instant-answer-plus-wrap">
+                <button class="instant-answer-plus-button" id="instantAnswerPlusButton" type="button" aria-label="이미지 메뉴 열기" aria-expanded="false" aria-controls="instantAnswerPlusMenu" title="이미지 메뉴 열기">+</button>
+                <div class="instant-answer-plus-menu" id="instantAnswerPlusMenu" role="menu" hidden>
+                  <button class="instant-answer-plus-menu-item" id="instantAnswerUploadButton" type="button" role="menuitem">이미지 업로드</button>
+                  <button class="instant-answer-plus-menu-item" id="instantAnswerCameraButton" type="button" role="menuitem">사진 찍기</button>
+                </div>
+                <input class="instant-answer-file-input" id="instantAnswerUploadInput" type="file" accept="image/*" hidden>
+                <input class="instant-answer-file-input" id="instantAnswerCameraInput" type="file" accept="image/*" capture="environment" hidden>
+              </div>
               <button class="instant-answer-help-button" id="instantAnswerHelpButton" type="button" aria-label="즉답 예시 보기" aria-controls="instantAnswerExamples" aria-expanded="false" title="즉답 예시 보기">?</button>
             </div>
             <div class="instant-answer-composer-actions">
@@ -190,6 +199,11 @@ Focus on what the user should understand or do next.`;
               <button class="instant-answer-submit" id="instantAnswerSubmit" type="button">바로 답변</button>
             </div>
           </div>
+        </div>
+
+        <div class="instant-answer-selected-file" id="instantAnswerSelectedFile" hidden>
+          <span class="instant-answer-selected-file-text" id="instantAnswerSelectedFileText" role="status" aria-live="polite"></span>
+          <button class="instant-answer-selected-file-remove" id="instantAnswerSelectedFileRemove" type="button" aria-label="선택한 이미지 제거" title="선택한 이미지 제거">×</button>
         </div>
 
         <div class="instant-answer-examples" id="instantAnswerExamples" aria-label="즉답 예시 질문" hidden>
@@ -214,6 +228,16 @@ Focus on what the user should understand or do next.`;
     const result = root.querySelector('#instantAnswerResult');
     const micButton = root.querySelector('#instantAnswerMicButton');
     const voiceStatus = root.querySelector('#instantAnswerVoiceStatus');
+    const plusButton = root.querySelector('#instantAnswerPlusButton');
+    const plusMenu = root.querySelector('#instantAnswerPlusMenu');
+    const uploadButton = root.querySelector('#instantAnswerUploadButton');
+    const cameraButton = root.querySelector('#instantAnswerCameraButton');
+    const uploadInput = root.querySelector('#instantAnswerUploadInput');
+    const cameraInput = root.querySelector('#instantAnswerCameraInput');
+    const selectedFileStatus = root.querySelector('#instantAnswerSelectedFile');
+    const selectedFileText = root.querySelector('#instantAnswerSelectedFileText');
+    const selectedFileRemove = root.querySelector('#instantAnswerSelectedFileRemove');
+    let selectedFileInput = null;
     global.ThisOneAIToolVoice?.attach?.({
       button: micButton,
       input: question,
@@ -221,20 +245,93 @@ Focus on what the user should understand or do next.`;
       appendMode: 'newline'
     });
 
-    returnButton?.addEventListener('click', exitAIToolMode);
+    returnButton?.addEventListener('click', () => {
+      clearSelectedFileStatus();
+      exitAIToolMode();
+    });
+
+    function setPlusMenuOpen(isOpen) {
+      if (!plusButton || !plusMenu) return;
+      plusMenu.hidden = !isOpen;
+      plusButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+
+    function setExamplesPanelOpen(isOpen) {
+      if (!helpButton || !examplesPanel) return;
+      examplesPanel.hidden = !isOpen;
+      helpButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+
+    function openFilePicker(fileInput) {
+      setPlusMenuOpen(false);
+      if (!fileInput) return;
+      fileInput.value = '';
+      fileInput.click();
+    }
+
+    function clearSelectedFileStatus() {
+      if (selectedFileInput) selectedFileInput.value = '';
+      selectedFileInput = null;
+      if (selectedFileText) selectedFileText.textContent = '';
+      if (selectedFileStatus) selectedFileStatus.hidden = true;
+    }
+
+    function setSelectedFileStatus(fileInput, label) {
+      const fileName = fileInput?.files?.[0]?.name;
+      if (!fileName) {
+        clearSelectedFileStatus();
+        return;
+      }
+
+      if (fileInput === uploadInput && cameraInput) cameraInput.value = '';
+      if (fileInput === cameraInput && uploadInput) uploadInput.value = '';
+      selectedFileInput = fileInput;
+      if (selectedFileText) selectedFileText.textContent = `${label}: ${fileName}`;
+      if (selectedFileStatus) selectedFileStatus.hidden = false;
+    }
+
+    plusButton?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      setExamplesPanelOpen(false);
+      setPlusMenuOpen(!!plusMenu?.hidden);
+    });
+
+    uploadButton?.addEventListener('click', () => openFilePicker(uploadInput));
+    cameraButton?.addEventListener('click', () => openFilePicker(cameraInput));
+
+    uploadInput?.addEventListener('change', () => {
+      setSelectedFileStatus(uploadInput, '선택된 이미지');
+    });
+
+    cameraInput?.addEventListener('change', () => {
+      setSelectedFileStatus(cameraInput, '선택된 사진');
+    });
+
+    selectedFileRemove?.addEventListener('click', clearSelectedFileStatus);
+
+    document.addEventListener('click', (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (!target || !root.contains(target)) return;
+      if (!plusMenu?.hidden && !target.closest('.instant-answer-plus-wrap')) setPlusMenuOpen(false);
+    });
+
+    root.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        setPlusMenuOpen(false);
+        setExamplesPanelOpen(false);
+      }
+    });
 
     helpButton?.addEventListener('click', () => {
-      const willOpen = Boolean(examplesPanel?.hidden);
-      if (examplesPanel) examplesPanel.hidden = !willOpen;
-      helpButton.setAttribute('aria-expanded', String(willOpen));
+      setPlusMenuOpen(false);
+      setExamplesPanelOpen(Boolean(examplesPanel?.hidden));
     });
 
     root.querySelectorAll('[data-example]').forEach((button) => {
       button.addEventListener('click', () => {
         question.value = button.dataset.example || '';
         question.focus();
-        if (examplesPanel) examplesPanel.hidden = true;
-        helpButton?.setAttribute('aria-expanded', 'false');
+        setExamplesPanelOpen(false);
       });
     });
 

@@ -3136,6 +3136,7 @@ body.ai-tool-mode #msgContainer {
 
 .web-search-composer-top,
 .web-search-composer-bottom,
+.web-search-composer-left-actions,
 .web-search-composer-actions {
   display: flex;
   align-items: center;
@@ -3151,10 +3152,18 @@ body.ai-tool-mode #msgContainer {
   gap: clamp(0.5rem, 1.5vw, 0.75rem);
 }
 
+.web-search-composer-left-actions,
 .web-search-composer-actions {
-  justify-content: flex-end;
   gap: clamp(0.5rem, 1.6vw, 0.75rem);
   width: auto;
+}
+
+.web-search-composer-left-actions {
+  justify-content: flex-start;
+}
+
+.web-search-composer-actions {
+  justify-content: flex-end;
 }
 
 .web-search-label {
@@ -3195,7 +3204,8 @@ body.ai-tool-mode #msgContainer {
   flex: 0 0 auto;
 }
 
-.web-search-plus-button {
+.web-search-plus-button,
+.web-search-help-button {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -3215,10 +3225,21 @@ body.ai-tool-mode #msgContainer {
 }
 
 .web-search-plus-button:hover,
-.web-search-plus-button:focus-visible {
+.web-search-plus-button:focus-visible,
+.web-search-help-button:hover,
+.web-search-help-button:focus-visible,
+.web-search-help-button[aria-expanded="true"] {
   background: #e0f2fe;
   color: #0369a1;
   outline: none;
+}
+
+.web-search-help-button {
+  border: 0.0625rem solid #bfdbfe;
+  background: #ffffff;
+  color: #2563eb;
+  font-size: clamp(1rem, 2.8vw, 1.2rem);
+  font-weight: 800;
 }
 
 .web-search-plus-button:disabled {
@@ -3270,6 +3291,55 @@ body.ai-tool-mode #msgContainer {
 
 .web-search-file-input {
   display: none;
+}
+
+.web-search-help-panel {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 1.4vw, 0.75rem);
+  padding: clamp(0.75rem, 2vw, 1rem);
+  border: 0.0625rem solid #dbeafe;
+  border-radius: clamp(0.85rem, 2vw, 1rem);
+  background: #ffffff;
+}
+
+.web-search-help-panel[hidden] {
+  display: none;
+}
+
+.web-search-help-title {
+  margin: 0;
+  color: #0369a1;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  font-weight: 800;
+}
+
+.web-search-help-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.45rem, 1.2vw, 0.65rem);
+}
+
+.web-search-help-examples button {
+  padding: clamp(0.5rem, 1.4vw, 0.65rem) clamp(0.7rem, 2vw, 0.9rem);
+  border: 0.0625rem solid #bae6fd;
+  border-radius: 999rem;
+  background: #f0f9ff;
+  color: #075985;
+  font-family: inherit;
+  font-size: clamp(0.82rem, 1.8vw, 0.95rem);
+  font-weight: 700;
+  line-height: 1.35;
+  cursor: pointer;
+  text-align: left;
+}
+
+.web-search-help-examples button:hover,
+.web-search-help-examples button:focus-visible {
+  border-color: #38bdf8;
+  background: #e0f2fe;
+  color: #0369a1;
+  outline: none;
 }
 
 .web-search-selected-file {
@@ -3427,7 +3497,8 @@ body.ai-tool-mode #msgContainer {
   }
 
   .web-search-form .ai-tool-mic-button,
-  .web-search-plus-button {
+  .web-search-plus-button,
+  .web-search-help-button {
     inline-size: clamp(2.35rem, 11vw, 2.7rem);
     block-size: clamp(2.35rem, 11vw, 2.7rem);
   }

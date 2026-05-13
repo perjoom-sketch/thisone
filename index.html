@@ -147,7 +147,8 @@
         { id: 'shopping', label: '쇼핑' },
         { id: 'document-ai', label: '해석' },
         { id: 'instant-answer', label: '즉답' },
-        { id: 'web-search', label: '서치' }
+        { id: 'web-search', label: '서치' },
+        { id: 'loveme', label: '럽미' }
       ];
       const cleanupHandlers = new Map();
 
@@ -155,6 +156,7 @@
         if (document.body.classList.contains('document-ai-mode')) return 'document-ai';
         if (document.body.classList.contains('instant-answer-mode')) return 'instant-answer';
         if (document.body.classList.contains('web-search-mode')) return 'web-search';
+        if (document.body.classList.contains('loveme-mode')) return 'loveme';
         return 'shopping';
       }
 
@@ -168,7 +170,7 @@
       function showShopping() {
         cleanupExcept('shopping');
         window.ThisOneAIToolVoice?.stopAll?.();
-        document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode', 'web-search-mode');
+        document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode', 'web-search-mode', 'loveme-mode');
         const container = document.getElementById('msgContainer');
         if (container) container.innerHTML = '';
       }
@@ -181,9 +183,11 @@
         }
 
         cleanupExcept(mode);
+        document.body.classList.remove('document-ai-mode', 'instant-answer-mode', 'web-search-mode', 'loveme-mode');
         if (mode === 'document-ai') window.ThisOneDocumentAI?.open?.();
         if (mode === 'instant-answer') window.ThisOneInstantAnswer?.open?.();
         if (mode === 'web-search') window.ThisOneWebSearch?.open?.();
+        if (mode === 'loveme') window.ThisOneLoveMe?.open?.();
       }
 
       function render(activeMode) {
@@ -375,6 +379,7 @@ PDF나 사진을 올리면 AI가 쉽게 해석하고 궁금한 점에 답해드�
   <script src="js/document_ai_shell.js?v=1.0.0" defer></script>
   <script src="js/instant_answer_shell.js?v=1.0.0" defer></script>
   <script src="js/web_search_shell.js?v=1.0.2" defer></script>
+  <script src="js/loveme_shell.js?v=1.0.0" defer></script>
   <script src="js/rental_policy.js?v=3.5.0"></script>
   <script src="js/api.js?v=3.5.0"></script>
   <script src="js/productFamilies.js?v=3.5.0"></script>

@@ -132,7 +132,7 @@
 
         <p class="ai-tool-voice-status" id="documentAiVoiceStatus" aria-live="polite" hidden></p>
 
-        <div class="document-ai-privacy" role="note" aria-label="개인정보 안내">
+        <div class="document-ai-privacy" role="note" aria-label="개인정보 안내" style="text-align: center;">
           <strong>개인정보 안내</strong>
           <p>개인정보는 가리고 올려주세요.</p>
           <p>디스원은 이름이 아니라 문서의 뜻을 풀어드립니다.</p>

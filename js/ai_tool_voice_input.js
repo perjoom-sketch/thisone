@@ -39,8 +39,12 @@
     input.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
+  function normalizeTranscript(transcript) {
+    return String(transcript || '').replace(/\s+/g, ' ').trim();
+  }
+
   function appendTranscript(input, transcript, appendMode) {
-    const cleanTranscript = String(transcript || '').replace(/\s+/g, ' ').trim();
+    const cleanTranscript = normalizeTranscript(transcript);
     if (!input || !cleanTranscript) return;
 
     const currentValue = String(input.value || '').trimEnd();
@@ -54,6 +58,28 @@
 
     dispatchInput(input);
     input.focus();
+  }
+
+  function mergeFinalTranscriptSegments(segments, nextSegment) {
+    const cleanSegment = normalizeTranscript(nextSegment);
+    if (!cleanSegment) return segments;
+
+    const previousSegment = segments[segments.length - 1] || '';
+    if (previousSegment === cleanSegment) return segments;
+
+    if (previousSegment && cleanSegment.startsWith(previousSegment)) {
+      segments[segments.length - 1] = cleanSegment;
+      return segments;
+    }
+
+    if (previousSegment && previousSegment.endsWith(cleanSegment)) return segments;
+
+    segments.push(cleanSegment);
+    return segments;
+  }
+
+  function getSessionTranscript(controller) {
+    return normalizeTranscript(controller.finalTranscriptSegments.join(' '));
   }
 
   function clearSilenceTimer(controller) {
@@ -117,11 +143,13 @@
       shouldRefocus: false,
       silenceTimerId: null,
       hasFinalTranscript: false,
+      finalTranscriptSegments: [],
+      processedFinalResultIndexes: new Set(),
       pendingStatusMessage: ''
     };
 
     recognition.lang = 'ko-KR';
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
@@ -139,21 +167,34 @@
       activeController = controller;
       controller.shouldRefocus = true;
       controller.hasFinalTranscript = false;
+      controller.finalTranscriptSegments = [];
+      controller.processedFinalResultIndexes.clear();
       controller.pendingStatusMessage = '';
       setListening(true);
       startSilenceTimer(controller);
     };
 
     recognition.onresult = (event) => {
-      let finalTranscript = '';
+      let hasNewFinalTranscript = false;
       for (let index = event.resultIndex; index < event.results.length; index += 1) {
         const result = event.results[index];
-        if (result?.isFinal) finalTranscript += result[0]?.transcript || '';
+        if (!result?.isFinal || controller.processedFinalResultIndexes.has(index)) continue;
+
+        const beforeCount = controller.finalTranscriptSegments.length;
+        const beforeLastSegment = controller.finalTranscriptSegments[beforeCount - 1] || '';
+        mergeFinalTranscriptSegments(controller.finalTranscriptSegments, result[0]?.transcript || '');
+        const afterCount = controller.finalTranscriptSegments.length;
+        const afterLastSegment = controller.finalTranscriptSegments[afterCount - 1] || '';
+
+        controller.processedFinalResultIndexes.add(index);
+        if (afterCount !== beforeCount || afterLastSegment !== beforeLastSegment) {
+          hasNewFinalTranscript = true;
+        }
       }
-      if (finalTranscript) {
+
+      if (hasNewFinalTranscript) {
         controller.hasFinalTranscript = true;
         clearSilenceTimer(controller);
-        appendTranscript(input, finalTranscript, appendMode);
       }
     };
 
@@ -174,12 +215,16 @@
     recognition.onend = () => {
       const shouldFocus = controller.shouldRefocus;
       const pendingStatusMessage = controller.pendingStatusMessage;
+      const finalTranscript = getSessionTranscript(controller);
       clearSilenceTimer(controller);
       setListening(false);
+      if (finalTranscript) appendTranscript(input, finalTranscript, appendMode);
       if (pendingStatusMessage) setStatus(status, pendingStatusMessage);
       if (activeController === controller) activeController = null;
       if (shouldFocus) input.focus();
       controller.shouldRefocus = false;
+      controller.finalTranscriptSegments = [];
+      controller.processedFinalResultIndexes.clear();
       controller.pendingStatusMessage = '';
     };
 

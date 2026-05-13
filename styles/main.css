@@ -3750,6 +3750,70 @@ body.ai-tool-mode #msgContainer {
     block-size: var(--shopping-composer-left-button-size);
   }
 }
+
+/* Match AI tool utility icons to the main shopping search composer's clean inline controls. */
+.document-ai-upload-action,
+.document-ai-help-button,
+.instant-answer-plus-button,
+.instant-answer-help-button,
+.web-search-plus-button,
+.web-search-help-button,
+.document-ai-panel .ai-tool-mic-button,
+.instant-answer-panel .ai-tool-mic-button,
+.web-search-form .ai-tool-mic-button {
+  border: 0;
+  border-radius: clamp(0.5rem, 1.5vw, 0.875rem);
+  background: transparent;
+  color: var(--color-text-light);
+  box-shadow: none;
+  transition: color 160ms ease, transform 160ms ease;
+}
+
+.document-ai-upload-action,
+.instant-answer-plus-button,
+.web-search-plus-button {
+  font-size: clamp(1.35rem, 3.5vw, 1.65rem);
+  font-weight: 400;
+}
+
+.document-ai-help-button,
+.instant-answer-help-button,
+.web-search-help-button {
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  font-weight: 800;
+}
+
+.document-ai-upload-action:hover,
+.document-ai-upload-action:focus-visible,
+.document-ai-help-button:hover,
+.document-ai-help-button:focus-visible,
+.document-ai-help-button[aria-expanded="true"],
+.instant-answer-plus-button:hover,
+.instant-answer-plus-button:focus-visible,
+.instant-answer-plus-button[aria-expanded="true"],
+.instant-answer-help-button:hover,
+.instant-answer-help-button:focus-visible,
+.instant-answer-help-button[aria-expanded="true"],
+.web-search-plus-button:hover,
+.web-search-plus-button:focus-visible,
+.web-search-plus-button[aria-expanded="true"],
+.web-search-help-button:hover,
+.web-search-help-button:focus-visible,
+.web-search-help-button[aria-expanded="true"],
+.document-ai-panel .ai-tool-mic-button:hover,
+.document-ai-panel .ai-tool-mic-button:focus-visible,
+.instant-answer-panel .ai-tool-mic-button:hover,
+.instant-answer-panel .ai-tool-mic-button:focus-visible,
+.web-search-form .ai-tool-mic-button:hover,
+.web-search-form .ai-tool-mic-button:focus-visible,
+.ai-tool-mic-button.is-listening {
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  box-shadow: none;
+  outline: none;
+}
+
 /* Image-based starting point for 디스원 서치 */
 .web-search-image-start {
   display: flex;

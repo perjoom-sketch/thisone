@@ -4015,6 +4015,7 @@ body.ai-tool-mode #msgContainer {
   display: flex;
   flex-direction: column;
   gap: clamp(0.35rem, 1vw, 0.5rem);
+  padding: 0 var(--shopping-composer-padding-inline);
 }
 
 .loveme-main-copy,
@@ -4026,13 +4027,11 @@ body.ai-tool-mode #msgContainer {
   font-size: clamp(0.88rem, 2vw, 1rem);
 }
 
-
 .loveme-main-copy {
   color: #2563eb;
   font-size: clamp(0.95rem, 2.1vw, 1.08rem);
   font-weight: 700;
 }
-
 
 .loveme-composer {
   display: flex;
@@ -4221,14 +4220,6 @@ body.ai-tool-mode #msgContainer {
   color: #1d4ed8;
   font-size: clamp(0.9rem, 2vw, 1rem);
   font-weight: 800;
-}
-
-.loveme-help-principle {
-  margin: 0;
-  color: #2563eb;
-  font-size: clamp(0.9rem, 2vw, 1rem);
-  font-weight: 800;
-  line-height: 1.5;
 }
 
 .loveme-help-examples {

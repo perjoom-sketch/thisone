@@ -44,6 +44,13 @@ function generateMethodPrefixedSha256Signature(params, secret) {
     .toUpperCase();
 }
 
+function generatePrefixedSha256Signature(params, secret, prefix) {
+  return crypto.createHmac('sha256', secret)
+    .update(`${prefix}${buildAliExpressSignBaseString(params)}`, 'utf8')
+    .digest('hex')
+    .toUpperCase();
+}
+
 function generateTopStyleMd5Signature(params, secret) {
   return crypto.createHash('md5')
     .update(`${secret}${buildAliExpressSignBaseString(params)}${secret}`, 'utf8')
@@ -798,6 +805,163 @@ async function runAliExpressDocProbeMode(probeCase, appSecret) {
   }
 }
 
+
+function getAliTimestampSeconds() {
+  return String(Math.floor(Date.now() / 1000));
+}
+
+function buildAliExpressFinalProbeBaseParams(appKey, signMethod, timestamp) {
+  return {
+    app_key: appKey,
+    method: 'aliexpress.affiliate.product.query',
+    format: 'json',
+    v: '2.0',
+    timestamp,
+    sign_method: signMethod,
+    keywords: 'mp3',
+    fields: 'commission_rate,sale_price',
+    page_no: '1',
+    page_size: '20',
+    platform_product_type: 'ALL',
+    sort: 'SALE_PRICE_ASC',
+    target_currency: 'USD',
+    target_language: 'EN',
+    ship_to_country: 'US'
+  };
+}
+
+function buildAliExpressFinalProbeMode(finalprobe, appKey) {
+  const mode = String(finalprobe || '');
+  const unixSeconds = getAliTimestampSeconds();
+
+  if (mode === '1') {
+    return {
+      probe: 1,
+      endpoint: 'https://api-sg.aliexpress.com/sync',
+      signMethod: 'md5',
+      timestampFormat: 'unix_seconds',
+      signatureVariant: 'top_style_md5',
+      params: buildAliExpressFinalProbeBaseParams(appKey, 'md5', unixSeconds)
+    };
+  }
+
+  if (mode === '2') {
+    return {
+      probe: 2,
+      endpoint: 'https://api-sg.aliexpress.com/sync',
+      signMethod: 'sha256',
+      timestampFormat: 'unix_seconds',
+      signatureVariant: 'current',
+      params: buildAliExpressFinalProbeBaseParams(appKey, 'sha256', unixSeconds)
+    };
+  }
+
+  if (mode === '3') {
+    return {
+      probe: 3,
+      endpoint: 'https://api-sg.aliexpress.com/sync',
+      signMethod: 'md5',
+      timestampFormat: 'unix_milliseconds',
+      signatureVariant: 'top_style_md5',
+      params: buildAliExpressFinalProbeBaseParams(appKey, 'md5', getAliTimestampMillis())
+    };
+  }
+
+  if (mode === '4') {
+    const { method: _method, ...params } = buildAliExpressFinalProbeBaseParams(appKey, 'sha256', unixSeconds);
+
+    return {
+      probe: 4,
+      endpoint: 'https://api-sg.aliexpress.com/rest/aliexpress.affiliate.product.query',
+      signMethod: 'sha256',
+      timestampFormat: 'unix_seconds',
+      signatureVariant: 'method_prefixed_sha256',
+      signaturePrefix: 'aliexpress.affiliate.product.query',
+      params
+    };
+  }
+
+  if (mode === '5') {
+    const { method: _method, ...params } = buildAliExpressFinalProbeBaseParams(appKey, 'sha256', unixSeconds);
+
+    return {
+      probe: 5,
+      endpoint: 'https://api-sg.aliexpress.com/rest/aliexpress/affiliate/product/query',
+      signMethod: 'sha256',
+      timestampFormat: 'unix_seconds',
+      signatureVariant: 'path_prefixed_sha256',
+      signaturePrefix: '/aliexpress/affiliate/product/query',
+      params
+    };
+  }
+
+  return undefined;
+}
+
+function signAliExpressFinalProbeParams(params, appSecret, probeCase) {
+  const signedParams = { ...params };
+
+  if (probeCase.signatureVariant === 'top_style_md5') {
+    signedParams.sign = generateTopStyleMd5Signature(signedParams, appSecret);
+  } else if (probeCase.signatureVariant === 'method_prefixed_sha256' || probeCase.signatureVariant === 'path_prefixed_sha256') {
+    signedParams.sign = generatePrefixedSha256Signature(signedParams, appSecret, probeCase.signaturePrefix);
+  } else {
+    signedParams.sign = generateSignature(signedParams, appSecret);
+  }
+
+  return signedParams;
+}
+
+function buildAliExpressFinalProbeResult(data, params, response) {
+  const debug = buildAliExpressDebug(data, params, response);
+  const products = getAliExpressProducts(data);
+
+  return {
+    httpStatus: debug.httpStatus,
+    code: debug.code,
+    msg: debug.msg,
+    subCode: debug.subCode,
+    subMsg: debug.subMsg,
+    errorCode: debug.errorCode,
+    errorMessage: debug.errorMessage,
+    bizSuccess: debug.bizSuccess,
+    itemCount: products.length,
+    requestId: debug.requestId,
+    responseKeys: debug.responseKeys
+  };
+}
+
+function buildAliExpressFinalProbeError(error) {
+  return {
+    httpStatus: undefined,
+    code: undefined,
+    msg: undefined,
+    subCode: undefined,
+    subMsg: undefined,
+    errorCode: error.name || 'AliExpressFinalProbeRequestError',
+    errorMessage: error.message || 'AliExpress final probe request failed',
+    bizSuccess: false,
+    itemCount: 0,
+    requestId: undefined,
+    responseKeys: []
+  };
+}
+
+async function runAliExpressFinalProbeMode(probeCase, appSecret) {
+  try {
+    const signedParams = signAliExpressFinalProbeParams(
+      probeCase.params,
+      appSecret,
+      probeCase
+    );
+    const { response, data } = await requestAliExpressTopProbe(signedParams, probeCase.endpoint);
+
+    return buildAliExpressFinalProbeResult(data, signedParams, response);
+  } catch (error) {
+    return buildAliExpressFinalProbeError(error);
+  }
+}
+
 function buildAliExpressDebug(data, params, response) {
   const responseRoot = data && typeof data === 'object' ? data : {};
   const aliResponse = responseRoot.aliexpress_affiliate_product_query_response || {};
@@ -936,6 +1100,29 @@ export default async function handler(req, res) {
 
     // ThisOne 엔진용 알리익스프레스 파라미터 세팅
     const baseParams = buildBaseAliExpressParams(APP_KEY, searchQuery);
+
+    if (req.query?.finalprobe !== undefined) {
+      const finalProbeCase = buildAliExpressFinalProbeMode(req.query.finalprobe, APP_KEY);
+
+      if (!finalProbeCase) {
+        return res.status(200).json({
+          status: 'FinalProbeError',
+          message: 'Unsupported finalprobe mode. Use finalprobe=1, 2, 3, 4, or 5.',
+          search_query: searchQuery
+        });
+      }
+
+      const result = await runAliExpressFinalProbeMode(finalProbeCase, APP_SECRET);
+
+      return res.status(200).json({
+        status: 'FinalProbeComplete',
+        probe: finalProbeCase.probe,
+        endpoint: finalProbeCase.endpoint,
+        signMethod: finalProbeCase.signMethod,
+        timestampFormat: finalProbeCase.timestampFormat,
+        result
+      });
+    }
 
     if (req.query?.docprobe !== undefined) {
       const docProbeCase = buildAliExpressDocProbeMode(req.query.docprobe, APP_KEY);

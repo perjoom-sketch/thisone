@@ -4307,6 +4307,40 @@ body.ai-tool-mode #msgContainer {
   }
 }
 
+/* Shared AI tool intro copy alignment: 해석 / 즉답 / 서치 / 럽미 */
+.document-ai-copy,
+.instant-answer-copy,
+.web-search-copy,
+.loveme-copy {
+  align-items: center;
+  width: 100%;
+  text-align: center;
+}
+
+.document-ai-main-copy,
+.instant-answer-main-copy,
+.web-search-main-copy,
+.loveme-main-copy,
+.document-ai-sub-copy,
+.instant-answer-sub-copy,
+.web-search-sub-copy {
+  text-align: center;
+  line-height: 1.65;
+}
+
+.document-ai-main-copy,
+.instant-answer-main-copy,
+.web-search-main-copy,
+.loveme-main-copy {
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+}
+
+.document-ai-sub-copy,
+.instant-answer-sub-copy,
+.web-search-sub-copy {
+  font-size: clamp(0.88rem, 2vw, 1rem);
+}
+
 /* Shared AI tool composer system: 해석 / 즉답 / 서치 / 럽미 */
 .ai-tool-composer {
   display: flex;

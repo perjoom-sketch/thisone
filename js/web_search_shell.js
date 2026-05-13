@@ -1,6 +1,13 @@
 (function (global) {
   const WEB_SEARCH_MODE = 'web-search';
 
+  const WEB_SEARCH_EXAMPLES = [
+    '오늘 서울 날씨와 미세먼지 알려줘',
+    '애플 WWDC 최신 발표 요약해줘',
+    '2026년 최저임금 얼마인지 찾아줘',
+    '인천공항 제2터미널 주차요금 알려줘'
+  ];
+
   function escapeHtml(value) {
     return String(value || '')
       .replace(/&/g, '&amp;')
@@ -130,19 +137,29 @@
             <input class="web-search-input" id="webSearchInput" type="search" placeholder="검색어를 입력하세요" autocomplete="off">
           </div>
           <div class="web-search-composer-bottom">
-            <div class="web-search-plus-wrap">
-              <button class="web-search-plus-button" id="webSearchPlusButton" type="button" aria-label="이미지 메뉴 열기" aria-expanded="false" aria-controls="webSearchPlusMenu" title="이미지 메뉴 열기">+</button>
-              <div class="web-search-plus-menu" id="webSearchPlusMenu" role="menu" hidden>
-                <button class="web-search-plus-menu-item" id="webSearchUploadButton" type="button" role="menuitem">이미지 업로드</button>
-                <button class="web-search-plus-menu-item" id="webSearchCameraButton" type="button" role="menuitem">사진 찍기</button>
+            <div class="web-search-composer-left-actions">
+              <div class="web-search-plus-wrap">
+                <button class="web-search-plus-button" id="webSearchPlusButton" type="button" aria-label="이미지 메뉴 열기" aria-expanded="false" aria-controls="webSearchPlusMenu" title="이미지 메뉴 열기">+</button>
+                <div class="web-search-plus-menu" id="webSearchPlusMenu" role="menu" hidden>
+                  <button class="web-search-plus-menu-item" id="webSearchUploadButton" type="button" role="menuitem">이미지 업로드</button>
+                  <button class="web-search-plus-menu-item" id="webSearchCameraButton" type="button" role="menuitem">사진 찍기</button>
+                </div>
+                <input class="web-search-file-input" id="webSearchUploadInput" type="file" accept="image/*" hidden>
+                <input class="web-search-file-input" id="webSearchCameraInput" type="file" accept="image/*" capture="environment" hidden>
               </div>
-              <input class="web-search-file-input" id="webSearchUploadInput" type="file" accept="image/*" hidden>
-              <input class="web-search-file-input" id="webSearchCameraInput" type="file" accept="image/*" capture="environment" hidden>
+              <button class="web-search-help-button" id="webSearchHelpButton" type="button" aria-label="서치 검색 예시 보기" aria-expanded="false" aria-controls="webSearchHelpPanel" title="검색 예시">?</button>
             </div>
             <div class="web-search-composer-actions">
               <button class="ai-tool-mic-button" id="webSearchMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
               <button class="web-search-submit" id="webSearchSubmit" type="button">검색</button>
             </div>
+          </div>
+        </div>
+
+        <div class="web-search-help-panel" id="webSearchHelpPanel" hidden>
+          <p class="web-search-help-title">서치 검색 예시</p>
+          <div class="web-search-help-examples">
+            ${WEB_SEARCH_EXAMPLES.map((example) => `<button type="button" data-web-search-example="${escapeHtml(example)}">${escapeHtml(example)}</button>`).join('')}
           </div>
         </div>
 
@@ -166,6 +183,8 @@
     const voiceStatus = root.querySelector('#webSearchVoiceStatus');
     const plusButton = root.querySelector('#webSearchPlusButton');
     const plusMenu = root.querySelector('#webSearchPlusMenu');
+    const helpButton = root.querySelector('#webSearchHelpButton');
+    const helpPanel = root.querySelector('#webSearchHelpPanel');
     const uploadButton = root.querySelector('#webSearchUploadButton');
     const cameraButton = root.querySelector('#webSearchCameraButton');
     const uploadInput = root.querySelector('#webSearchUploadInput');
@@ -193,6 +212,12 @@
       plusButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     }
 
+    function setHelpPanelOpen(isOpen) {
+      if (!helpButton || !helpPanel) return;
+      helpPanel.hidden = !isOpen;
+      helpButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+
     function openFilePicker(fileInput) {
       setPlusMenuOpen(false);
       if (!fileInput) return;
@@ -202,7 +227,23 @@
 
     plusButton?.addEventListener('click', (event) => {
       event.stopPropagation();
+      setHelpPanelOpen(false);
       setPlusMenuOpen(!!plusMenu?.hidden);
+    });
+
+    helpButton?.addEventListener('click', () => {
+      setPlusMenuOpen(false);
+      setHelpPanelOpen(!!helpPanel?.hidden);
+    });
+
+    helpPanel?.addEventListener('click', (event) => {
+      const exampleButton = event.target instanceof Element
+        ? event.target.closest('[data-web-search-example]')
+        : null;
+      if (!exampleButton || !input) return;
+      input.value = exampleButton.dataset.webSearchExample || '';
+      setHelpPanelOpen(false);
+      focusWebSearchInputIfDesktop(input);
     });
 
     uploadButton?.addEventListener('click', () => openFilePicker(uploadInput));
@@ -264,7 +305,10 @@
     });
 
     root.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') setPlusMenuOpen(false);
+      if (event.key === 'Escape') {
+        setPlusMenuOpen(false);
+        setHelpPanelOpen(false);
+      }
     });
 
     async function runSearch(queryOverride) {

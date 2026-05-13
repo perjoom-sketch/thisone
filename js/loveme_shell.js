@@ -138,7 +138,7 @@ Keep it practical and kind. Avoid long lectures.`;
       <section class="loveme-panel" aria-label="럽미">
         ${global.ThisOneModeTabs?.render?.(LOVEME_MODE) || ''}
         <div class="loveme-copy">
-          <p class="loveme-main-copy">수술은 병원에서<br>연출은 럽미에서</p>
+          <p class="loveme-main-copy">수술은 의사에게<br>연출은 럽미에게</p>
         </div>
 
         <div class="ai-tool-composer loveme-composer">
@@ -166,7 +166,7 @@ Keep it practical and kind. Avoid long lectures.`;
         </div>
 
         <div class="loveme-help-panel" id="loveMeHelpPanel" hidden>
-          <p class="loveme-help-principle">수술은 병원에서<br>연출은 럽미에서</p>
+          <p class="loveme-help-principle">수술은 의사에게<br>연출은 럽미에게</p>
           <p class="loveme-help-title">예시:</p>
           <div class="loveme-help-examples">
             <button type="button" data-loveme-example="얼굴이 큰 편입니다">얼굴이 큰 편입니다</button>

@@ -2421,11 +2421,23 @@ body.search-mode .results-view {
 .document-ai-composer-bottom {
   justify-content: space-between;
   width: 100%;
+  flex-wrap: nowrap;
 }
 
 .document-ai-composer-left-actions,
 .document-ai-composer-right-actions {
   min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.document-ai-composer-left-actions {
+  flex: 0 1 auto;
+  justify-content: flex-start;
+}
+
+.document-ai-composer-right-actions {
+  flex: 0 0 auto;
+  justify-content: flex-end;
 }
 
 .document-ai-upload-title {
@@ -2453,11 +2465,12 @@ body.search-mode .results-view {
 
 .document-ai-upload-action,
 .document-ai-help-button {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  inline-size: clamp(2.35rem, 7vw, 2.75rem);
-  block-size: clamp(2.35rem, 7vw, 2.75rem);
+  inline-size: clamp(2.45rem, 8vw, 2.85rem);
+  block-size: clamp(2.45rem, 8vw, 2.85rem);
   padding: 0;
   border: 0.0625rem solid #bfdbfe;
   background: #eff6ff;
@@ -2833,8 +2846,9 @@ body.search-mode .document-ai-entry-wrap {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: clamp(2.25rem, 6vw, 2.7rem);
-  height: clamp(2.25rem, 6vw, 2.7rem);
+  margin-right: auto;
+  inline-size: clamp(2.45rem, 8vw, 2.85rem);
+  block-size: clamp(2.45rem, 8vw, 2.85rem);
   border: 0.0625rem solid #dbeafe;
   border-radius: 999rem;
   background: #ffffff;
@@ -2936,14 +2950,14 @@ body.search-mode .document-ai-entry-wrap {
     width: auto;
   }
 
-  .instant-answer-panel .ai-tool-action-row,
-  .document-ai-panel .ai-tool-action-row {
-    justify-content: stretch;
+  .instant-answer-panel .ai-tool-action-row {
+    justify-content: flex-end;
+    gap: clamp(0.4rem, 2vw, 0.6rem);
   }
 
   .instant-answer-panel .instant-answer-submit,
   .document-ai-panel .document-ai-submit {
-    flex: 1 1 0;
+    flex: 0 0 auto;
   }
 
   .instant-answer-panel .ai-tool-mic-button,
@@ -2998,6 +3012,7 @@ body.ai-tool-mode #msgContainer {
   justify-content: flex-end;
   gap: clamp(0.5rem, 1.6vw, 0.75rem);
   width: 100%;
+  flex-wrap: nowrap;
 }
 
 .ai-tool-mic-button {
@@ -3150,19 +3165,24 @@ body.ai-tool-mode #msgContainer {
 .web-search-composer-bottom {
   justify-content: space-between;
   gap: clamp(0.5rem, 1.5vw, 0.75rem);
+  flex-wrap: nowrap;
 }
 
 .web-search-composer-left-actions,
 .web-search-composer-actions {
   gap: clamp(0.5rem, 1.6vw, 0.75rem);
   width: auto;
+  min-width: 0;
+  flex-wrap: nowrap;
 }
 
 .web-search-composer-left-actions {
+  flex: 0 1 auto;
   justify-content: flex-start;
 }
 
 .web-search-composer-actions {
+  flex: 0 0 auto;
   justify-content: flex-end;
 }
 
@@ -3498,7 +3518,10 @@ body.ai-tool-mode #msgContainer {
 
   .web-search-form .ai-tool-mic-button,
   .web-search-plus-button,
-  .web-search-help-button {
+  .web-search-help-button,
+  .document-ai-upload-action,
+  .document-ai-help-button,
+  .instant-answer-help-button {
     inline-size: clamp(2.35rem, 11vw, 2.7rem);
     block-size: clamp(2.35rem, 11vw, 2.7rem);
   }

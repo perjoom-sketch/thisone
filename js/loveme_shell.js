@@ -1,5 +1,13 @@
 (function (global) {
   const LOVEME_MODE = 'loveme';
+  const HELP_EXAMPLES = [
+    '얼굴이 큰 편입니다',
+    '이마가 넓어 보여요',
+    '반곱슬이라 비 오는 날 머리가 부스스해요',
+    '키가 작아서 코디가 고민이에요',
+    '어깨가 넓어 보여요'
+  ];
+
   const SYSTEM_PROMPT = `You are LoveMe, a warm and slightly funny personal styling assistant.
 
 LoveMe gives non-surgical styling advice for appearance concerns.
@@ -138,21 +146,34 @@ Keep it practical and kind. Avoid long lectures.`;
       <section class="loveme-panel" aria-label="럽미 스타일링 상담">
         ${global.ThisOneModeTabs?.render?.(LOVEME_MODE) || ''}
         <div class="loveme-copy">
-          <p class="loveme-eyebrow">스타일링 상담</p>
           <h2 class="loveme-title">럽미</h2>
-          <p class="loveme-main-copy">아무 걱정하지 마세요.<br>고치지 않고, 어울리게 연출해드립니다.</p>
-          <p class="loveme-description">신경 쓰이는 부분을 편하게 말해보세요.<br>헤어, 메이크업, 의상, 색상으로 자연스럽게 보완해드릴게요.</p>
+          <p class="loveme-main-copy">아무 걱정하지 마세요.<br>자연스럽게 연출해드릴게요.</p>
+          <p class="loveme-description">신경 쓰이는 부분을 편하게 말해보세요.</p>
           <p class="loveme-sub-copy">수술은 병원에서<br>연출은 럽미에서</p>
         </div>
 
         <div class="loveme-composer">
           <div class="loveme-composer-top">
-            <label class="loveme-question-label" for="loveMeConcern">스타일링 고민 입력창</label>
-            <textarea class="loveme-question" id="loveMeConcern" rows="1" aria-label="럽미 스타일링 고민 입력창" placeholder="예: 얼굴이 큰 편입니다, 이마가 넓어요, 반곱슬이라 비 오는 날 머리가 부스스해요"></textarea>
+            <label class="loveme-question-label" for="loveMeConcern">럽미 상담 입력창</label>
+            <textarea class="loveme-question" id="loveMeConcern" rows="1" aria-label="럽미 상담 입력창" placeholder="예: 얼굴이 큰 편입니다, 이마가 넓어요, 반곱슬이라 비 오는 날 머리가 부스스해요"></textarea>
           </div>
+          <p class="ai-tool-voice-status" id="loveMeVoiceStatus" aria-live="polite" hidden></p>
           <div class="loveme-composer-bottom">
-            <p class="loveme-helper">사진 없이도 괜찮아요. 고민만 말해주시면 바로 스타일링해드릴게요.</p>
-            <button class="loveme-submit" id="loveMeSubmit" type="button">상담하기</button>
+            <div class="loveme-composer-left-actions">
+              <button class="loveme-plus-button" id="loveMePlusButton" type="button" aria-label="럽미 추가 옵션" title="추가 옵션">+</button>
+            </div>
+            <div class="loveme-composer-actions">
+              <button class="loveme-help-button" id="loveMeHelpButton" type="button" aria-label="럽미 예시 보기" aria-controls="loveMeHelpPanel" aria-expanded="false" title="럽미 예시 보기">?</button>
+              <button class="ai-tool-mic-button" id="loveMeMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
+              <button class="loveme-submit" id="loveMeSubmit" type="button">상담하기</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="loveme-help-panel" id="loveMeHelpPanel" aria-label="럽미 상담 예시" hidden>
+          <p class="loveme-help-title">이렇게 말해보세요</p>
+          <div class="loveme-help-examples">
+            ${HELP_EXAMPLES.map((example) => `<button type="button" data-loveme-example="${escapeHtml(example)}">${escapeHtml(example)}</button>`).join('')}
           </div>
         </div>
 
@@ -166,8 +187,47 @@ Keep it practical and kind. Avoid long lectures.`;
     const submit = root.querySelector('#loveMeSubmit');
     const status = root.querySelector('#loveMeStatus');
     const result = root.querySelector('#loveMeResult');
+    const plusButton = root.querySelector('#loveMePlusButton');
+    const helpButton = root.querySelector('#loveMeHelpButton');
+    const helpPanel = root.querySelector('#loveMeHelpPanel');
+    const micButton = root.querySelector('#loveMeMicButton');
+    const voiceStatus = root.querySelector('#loveMeVoiceStatus');
 
+    global.ThisOneAIToolVoice?.attach?.({
+      button: micButton,
+      input: concern,
+      status: voiceStatus,
+      appendMode: 'newline'
+    });
     global.ThisOneModeTabs?.bind?.(root);
+
+    function setHelpPanelOpen(isOpen) {
+      if (!helpButton || !helpPanel) return;
+      helpPanel.hidden = !isOpen;
+      helpButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+
+    plusButton?.addEventListener('click', () => {
+      setHelpPanelOpen(false);
+      concern?.focus();
+    });
+
+    helpButton?.addEventListener('click', () => {
+      setHelpPanelOpen(Boolean(helpPanel?.hidden));
+    });
+
+    root.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') setHelpPanelOpen(false);
+    });
+
+    root.querySelectorAll('[data-loveme-example]').forEach((button) => {
+      button.addEventListener('click', () => {
+        concern.value = button.dataset.lovemeExample || '';
+        concern.dispatchEvent(new Event('input', { bubbles: true }));
+        concern.focus();
+        setHelpPanelOpen(false);
+      });
+    });
 
     concern?.addEventListener('input', () => {
       concern.style.height = 'auto';

@@ -175,14 +175,21 @@ Focus on what the user should understand or do next.`;
           <p class="instant-answer-sub-copy">생활, 제품, 문서, 상황까지 궁금한 점을 바로 정리해드립니다.</p>
         </div>
 
-        <label class="instant-answer-question-label" for="instantAnswerQuestion">질문 입력창</label>
-        <textarea class="instant-answer-question" id="instantAnswerQuestion" rows="5" placeholder="예: 배 아플 때 어떤 약 먹어야 해?"></textarea>
-        <p class="ai-tool-voice-status" id="instantAnswerVoiceStatus" aria-live="polite" hidden></p>
-
-        <div class="ai-tool-action-row">
-          <button class="instant-answer-help-button" id="instantAnswerHelpButton" type="button" aria-label="즉답 예시 보기" aria-controls="instantAnswerExamples" aria-expanded="false" title="즉답 예시 보기">?</button>
-          <button class="ai-tool-mic-button" id="instantAnswerMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
-          <button class="instant-answer-submit" id="instantAnswerSubmit" type="button">바로 답변</button>
+        <div class="instant-answer-composer">
+          <div class="instant-answer-composer-top">
+            <label class="instant-answer-question-label" for="instantAnswerQuestion">질문 입력창</label>
+            <textarea class="instant-answer-question" id="instantAnswerQuestion" rows="5" aria-label="즉답 질문 입력창" placeholder="예: 배 아플 때 어떤 약 먹어야 해?"></textarea>
+          </div>
+          <p class="ai-tool-voice-status" id="instantAnswerVoiceStatus" aria-live="polite" hidden></p>
+          <div class="instant-answer-composer-bottom">
+            <div class="instant-answer-composer-left-actions">
+              <button class="instant-answer-help-button" id="instantAnswerHelpButton" type="button" aria-label="즉답 예시 보기" aria-controls="instantAnswerExamples" aria-expanded="false" title="즉답 예시 보기">?</button>
+            </div>
+            <div class="instant-answer-composer-actions">
+              <button class="ai-tool-mic-button" id="instantAnswerMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
+              <button class="instant-answer-submit" id="instantAnswerSubmit" type="button">바로 답변</button>
+            </div>
+          </div>
         </div>
 
         <div class="instant-answer-examples" id="instantAnswerExamples" aria-label="즉답 예시 질문" hidden>

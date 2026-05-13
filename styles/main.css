@@ -2801,8 +2801,7 @@ body.search-mode .document-ai-entry-wrap {
 .instant-answer-main-copy,
 .instant-answer-sub-copy,
 .instant-answer-status,
-.instant-answer-result,
-.instant-answer-question-label {
+.instant-answer-result {
   margin: 0;
   color: #475569;
   line-height: 1.65;
@@ -2841,20 +2840,76 @@ body.search-mode .document-ai-entry-wrap {
   gap: clamp(0.45rem, 1.5vw, 0.7rem);
 }
 
+.instant-answer-composer {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 1.5vw, 0.75rem);
+  width: 100%;
+  padding: clamp(0.75rem, 2vw, 1rem);
+  border: 0.0625rem solid #dbeafe;
+  border-radius: clamp(1.1rem, 3vw, 1.5rem);
+  background: #ffffff;
+  box-shadow: 0 clamp(0.35rem, 1vw, 0.55rem) clamp(1rem, 3vw, 1.4rem) rgba(37, 99, 235, 0.08);
+}
+
+.instant-answer-composer:focus-within {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 clamp(0.12rem, 0.5vw, 0.2rem) rgba(14, 165, 233, 0.14),
+    0 clamp(0.35rem, 1vw, 0.55rem) clamp(1rem, 3vw, 1.4rem) rgba(37, 99, 235, 0.08);
+}
+
+.instant-answer-composer-top,
+.instant-answer-composer-bottom,
+.instant-answer-composer-left-actions,
+.instant-answer-composer-actions {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.instant-answer-composer-top {
+  min-width: 0;
+}
+
+.instant-answer-composer-bottom {
+  justify-content: space-between;
+  gap: clamp(0.5rem, 1.5vw, 0.75rem);
+  flex-wrap: nowrap;
+}
+
+.instant-answer-composer-left-actions,
+.instant-answer-composer-actions {
+  gap: clamp(0.5rem, 1.6vw, 0.75rem);
+  width: auto;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.instant-answer-composer-left-actions {
+  flex: 0 1 auto;
+  justify-content: flex-start;
+}
+
+.instant-answer-composer-actions {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
 .instant-answer-help-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  margin-right: auto;
   inline-size: clamp(2.45rem, 8vw, 2.85rem);
   block-size: clamp(2.45rem, 8vw, 2.85rem);
-  border: 0.0625rem solid #dbeafe;
+  padding: 0;
+  border: 0.0625rem solid #bfdbfe;
   border-radius: 999rem;
   background: #ffffff;
   color: #2563eb;
-  font-size: clamp(0.95rem, 2vw, 1.05rem);
+  font-size: clamp(1rem, 2.8vw, 1.2rem);
   font-weight: 900;
+  line-height: 1;
   cursor: pointer;
 }
 
@@ -2890,27 +2945,39 @@ body.search-mode .document-ai-entry-wrap {
   outline: none;
 }
 
+.instant-answer-question-label {
+  position: absolute;
+  width: 0.0625rem;
+  height: 0.0625rem;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .instant-answer-question {
+  flex: 1;
   width: 100%;
+  min-width: 0;
   min-height: clamp(8rem, 20vw, 11rem);
-  padding: clamp(0.85rem, 2vw, 1rem);
-  border: 0.0625rem solid #cbd5e1;
-  border-radius: clamp(0.85rem, 2vw, 1rem);
-  background: #ffffff;
+  padding: clamp(0.7rem, 2vw, 0.9rem) 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: #1e293b;
+  font-family: inherit;
   font-size: clamp(0.95rem, 2.2vw, 1.05rem);
   line-height: 1.6;
   resize: vertical;
 }
 
 .instant-answer-question:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 clamp(0.12rem, 0.5vw, 0.2rem) rgba(37, 99, 235, 0.14);
   outline: none;
 }
 
 .instant-answer-submit {
-  align-self: flex-start;
+  flex: 0 0 auto;
   padding: clamp(0.7rem, 2vw, 0.85rem) clamp(1rem, 3vw, 1.35rem);
   border: 0;
   border-radius: 999rem;
@@ -2918,6 +2985,7 @@ body.search-mode .document-ai-entry-wrap {
   color: #ffffff;
   font-size: clamp(0.95rem, 2vw, 1.05rem);
   font-weight: 800;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -2946,18 +3014,21 @@ body.search-mode .document-ai-entry-wrap {
     padding: clamp(0.9rem, 4vw, 1.15rem);
   }
 
-  .instant-answer-submit {
-    width: auto;
+  .instant-answer-composer {
+    gap: clamp(0.45rem, 1.8vw, 0.6rem);
+    padding: clamp(0.65rem, 3vw, 0.85rem);
   }
 
-  .instant-answer-panel .ai-tool-action-row {
-    justify-content: flex-end;
+  .instant-answer-composer-bottom,
+  .instant-answer-composer-actions {
     gap: clamp(0.4rem, 2vw, 0.6rem);
   }
 
-  .instant-answer-panel .instant-answer-submit,
-  .document-ai-panel .document-ai-submit {
+  .instant-answer-submit {
     flex: 0 0 auto;
+    width: auto;
+    padding-right: clamp(0.75rem, 3vw, 1rem);
+    padding-left: clamp(0.75rem, 3vw, 1rem);
   }
 
   .instant-answer-panel .ai-tool-mic-button,

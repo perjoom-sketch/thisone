@@ -1043,9 +1043,53 @@ function signAliExpressRestProbeParams(params, appSecret, probeCase) {
   return signedParams;
 }
 
+function sanitizeAliExpressRawResponse(value) {
+  const blockedKeys = new Set([
+    'app_key',
+    'app_secret',
+    'sign',
+    'sign_source',
+    'signSource',
+    'signatureSource',
+    'signature_source'
+  ]);
+
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeAliExpressRawResponse(item));
+  }
+
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !blockedKeys.has(key))
+      .map(([key, item]) => [key, sanitizeAliExpressRawResponse(item)])
+  );
+}
+
+function buildAliExpressRestProbeNestedKeys(rawResponse) {
+  const responseRoot = rawResponse && typeof rawResponse === 'object' && !Array.isArray(rawResponse) ? rawResponse : {};
+
+  return {
+    root: Object.keys(responseRoot),
+    data: responseRoot.data && typeof responseRoot.data === 'object' && !Array.isArray(responseRoot.data)
+      ? Object.keys(responseRoot.data)
+      : [],
+    result: responseRoot.result && typeof responseRoot.result === 'object' && !Array.isArray(responseRoot.result)
+      ? Object.keys(responseRoot.result)
+      : [],
+    error_response: responseRoot.error_response && typeof responseRoot.error_response === 'object' && !Array.isArray(responseRoot.error_response)
+      ? Object.keys(responseRoot.error_response)
+      : []
+  };
+}
+
 function buildAliExpressRestProbeResult(data, params, response) {
   const debug = buildAliExpressDebug(data, params, response);
   const products = getAliExpressProducts(data);
+  const rawResponse = sanitizeAliExpressRawResponse(data);
 
   return {
     httpStatus: debug.httpStatus,
@@ -1058,7 +1102,9 @@ function buildAliExpressRestProbeResult(data, params, response) {
     bizSuccess: debug.bizSuccess,
     itemCount: products.length,
     requestId: debug.requestId,
-    responseKeys: debug.responseKeys
+    responseKeys: Object.keys(rawResponse && typeof rawResponse === 'object' && !Array.isArray(rawResponse) ? rawResponse : {}),
+    nestedKeys: buildAliExpressRestProbeNestedKeys(rawResponse),
+    rawResponse
   };
 }
 
@@ -1074,7 +1120,14 @@ function buildAliExpressRestProbeError(error) {
     bizSuccess: false,
     itemCount: 0,
     requestId: undefined,
-    responseKeys: []
+    responseKeys: [],
+    nestedKeys: {
+      root: [],
+      data: [],
+      result: [],
+      error_response: []
+    },
+    rawResponse: null
   };
 }
 

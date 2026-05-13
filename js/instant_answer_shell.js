@@ -167,16 +167,16 @@ Focus on what the user should understand or do next.`;
           <p class="instant-answer-sub-copy">생활, 제품, 문서, 상황까지 궁금한 점을 바로 정리해드립니다.</p>
         </div>
 
-        <div class="instant-answer-composer">
-          <div class="instant-answer-composer-top">
+        <div class="ai-tool-composer instant-answer-composer">
+          <div class="ai-tool-input instant-answer-composer-top">
             <label class="instant-answer-question-label" for="instantAnswerQuestion">질문 입력창</label>
             <textarea class="instant-answer-question" id="instantAnswerQuestion" rows="1" aria-label="즉답 질문 입력창" placeholder="배 아플 때 어떤 약 먹어야 해?"></textarea>
           </div>
           <p class="ai-tool-voice-status" id="instantAnswerVoiceStatus" aria-live="polite" hidden></p>
-          <div class="instant-answer-composer-bottom">
-            <div class="instant-answer-composer-left-actions">
+          <div class="ai-tool-control-row instant-answer-composer-bottom">
+            <div class="ai-tool-left-controls instant-answer-composer-left-actions">
               <div class="instant-answer-plus-wrap">
-                <button class="instant-answer-plus-button" id="instantAnswerPlusButton" type="button" aria-label="이미지 메뉴 열기" aria-expanded="false" aria-controls="instantAnswerPlusMenu" title="이미지 메뉴 열기">+</button>
+                <button class="ai-tool-icon-button ai-tool-plus-button instant-answer-plus-button" id="instantAnswerPlusButton" type="button" aria-label="이미지 메뉴 열기" aria-expanded="false" aria-controls="instantAnswerPlusMenu" title="이미지 메뉴 열기">+</button>
                 <div class="instant-answer-plus-menu" id="instantAnswerPlusMenu" role="menu" hidden>
                   <button class="instant-answer-plus-menu-item" id="instantAnswerUploadButton" type="button" role="menuitem">이미지 업로드</button>
                   <button class="instant-answer-plus-menu-item" id="instantAnswerCameraButton" type="button" role="menuitem">사진 찍기</button>
@@ -184,11 +184,11 @@ Focus on what the user should understand or do next.`;
                 <input class="instant-answer-file-input" id="instantAnswerUploadInput" type="file" accept="image/*" hidden>
                 <input class="instant-answer-file-input" id="instantAnswerCameraInput" type="file" accept="image/*" capture="environment" hidden>
               </div>
-              <button class="instant-answer-help-button" id="instantAnswerHelpButton" type="button" aria-label="즉답 예시 보기" aria-controls="instantAnswerExamples" aria-expanded="false" title="즉답 예시 보기">?</button>
             </div>
-            <div class="instant-answer-composer-actions">
-              <button class="ai-tool-mic-button" id="instantAnswerMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
-              <button class="instant-answer-submit" id="instantAnswerSubmit" type="button">바로 답변</button>
+            <div class="ai-tool-right-controls instant-answer-composer-actions">
+              <button class="ai-tool-icon-button ai-tool-help-button instant-answer-help-button" id="instantAnswerHelpButton" type="button" aria-label="즉답 예시 보기" aria-controls="instantAnswerExamples" aria-expanded="false" title="즉답 예시 보기">?</button>
+              <button class="ai-tool-icon-button ai-tool-mic-button" id="instantAnswerMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
+              <button class="ai-tool-action-button instant-answer-submit" id="instantAnswerSubmit" type="button">바로 답변</button>
             </div>
           </div>
         </div>

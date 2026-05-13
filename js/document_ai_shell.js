@@ -99,8 +99,8 @@
           <p class="document-ai-sub-copy">PDF나 사진을 올리면 AI가 쉽게 해석하고, 궁금한 점에 답해드립니다.</p>
         </div>
 
-        <div class="document-ai-composer" id="documentAiUpload">
-          <div class="document-ai-composer-top">
+        <div class="ai-tool-composer document-ai-composer" id="documentAiUpload">
+          <div class="ai-tool-input document-ai-composer-top">
             <textarea class="document-ai-question" id="documentAiQuestion" rows="4" aria-label="해석 질문 입력창" placeholder="문서나 사진을 올리면 쉽게 풀어드려요"></textarea>
             <div class="document-ai-upload-status-row" id="documentAiUploadStatusRow" hidden>
               <p class="document-ai-upload-status" id="documentAiUploadStatus" aria-live="polite"></p>
@@ -108,14 +108,14 @@
               <button class="document-ai-file-remove" id="documentAiFileRemove" type="button" aria-label="선택한 파일 지우기" hidden>지우기</button>
             </div>
           </div>
-          <div class="document-ai-composer-bottom">
-            <div class="document-ai-composer-left-actions">
-              <button class="document-ai-upload-action" id="documentAiFileButton" type="button" aria-label="문서 파일 추가" title="파일 추가">+</button>
-              <button class="document-ai-help-button" id="documentAiHelpButton" type="button" aria-expanded="false" aria-controls="documentAiHelpPanel" aria-label="해석 질문 예시 보기" title="도움말">?</button>
+          <div class="ai-tool-control-row document-ai-composer-bottom">
+            <div class="ai-tool-left-controls document-ai-composer-left-actions">
+              <button class="ai-tool-icon-button ai-tool-plus-button document-ai-upload-action" id="documentAiFileButton" type="button" aria-label="문서 파일 추가" title="파일 추가">+</button>
             </div>
-            <div class="document-ai-composer-right-actions">
-              <button class="ai-tool-mic-button" id="documentAiMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
-              <button class="document-ai-submit" id="documentAiSubmit" type="button">해석하기</button>
+            <div class="ai-tool-right-controls document-ai-composer-right-actions">
+              <button class="ai-tool-icon-button ai-tool-help-button document-ai-help-button" id="documentAiHelpButton" type="button" aria-expanded="false" aria-controls="documentAiHelpPanel" aria-label="해석 질문 예시 보기" title="도움말">?</button>
+              <button class="ai-tool-icon-button ai-tool-mic-button" id="documentAiMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
+              <button class="ai-tool-action-button document-ai-submit" id="documentAiSubmit" type="button">해석하기</button>
             </div>
           </div>
         </div>

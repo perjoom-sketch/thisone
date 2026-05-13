@@ -122,15 +122,15 @@
           <p class="web-search-sub-copy">상품이 아니라 일반 정보 글 찾을 때 사용하세요.</p>
         </div>
 
-        <div class="web-search-form" role="search">
-          <div class="web-search-composer-top">
+        <div class="ai-tool-composer web-search-form" role="search">
+          <div class="ai-tool-input web-search-composer-top">
             <label class="web-search-label" for="webSearchInput">검색어 입력창</label>
             <input class="web-search-input" id="webSearchInput" type="search" placeholder="검색어를 입력하세요" autocomplete="off">
           </div>
-          <div class="web-search-composer-bottom">
-            <div class="web-search-composer-left-actions">
+          <div class="ai-tool-control-row web-search-composer-bottom">
+            <div class="ai-tool-left-controls web-search-composer-left-actions">
               <div class="web-search-plus-wrap">
-                <button class="web-search-plus-button" id="webSearchPlusButton" type="button" aria-label="이미지 메뉴 열기" aria-expanded="false" aria-controls="webSearchPlusMenu" title="이미지 메뉴 열기">+</button>
+                <button class="ai-tool-icon-button ai-tool-plus-button web-search-plus-button" id="webSearchPlusButton" type="button" aria-label="이미지 메뉴 열기" aria-expanded="false" aria-controls="webSearchPlusMenu" title="이미지 메뉴 열기">+</button>
                 <div class="web-search-plus-menu" id="webSearchPlusMenu" role="menu" hidden>
                   <button class="web-search-plus-menu-item" id="webSearchUploadButton" type="button" role="menuitem">이미지 업로드</button>
                   <button class="web-search-plus-menu-item" id="webSearchCameraButton" type="button" role="menuitem">사진 찍기</button>
@@ -138,11 +138,11 @@
                 <input class="web-search-file-input" id="webSearchUploadInput" type="file" accept="image/*" hidden>
                 <input class="web-search-file-input" id="webSearchCameraInput" type="file" accept="image/*" capture="environment" hidden>
               </div>
-              <button class="web-search-help-button" id="webSearchHelpButton" type="button" aria-label="서치 안내 보기" aria-expanded="false" aria-controls="webSearchHelpPanel" title="서치 안내">?</button>
             </div>
-            <div class="web-search-composer-actions">
-              <button class="ai-tool-mic-button" id="webSearchMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
-              <button class="web-search-submit" id="webSearchSubmit" type="button">검색</button>
+            <div class="ai-tool-right-controls web-search-composer-actions">
+              <button class="ai-tool-icon-button ai-tool-help-button web-search-help-button" id="webSearchHelpButton" type="button" aria-label="서치 안내 보기" aria-expanded="false" aria-controls="webSearchHelpPanel" title="서치 안내">?</button>
+              <button class="ai-tool-icon-button ai-tool-mic-button" id="webSearchMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
+              <button class="ai-tool-action-button web-search-submit" id="webSearchSubmit" type="button">검색</button>
             </div>
           </div>
         </div>

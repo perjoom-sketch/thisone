@@ -4019,8 +4019,6 @@ body.ai-tool-mode #msgContainer {
 
 .loveme-title,
 .loveme-main-copy,
-.loveme-sub-copy,
-.loveme-description,
 .loveme-status,
 .loveme-result {
   margin: 0;
@@ -4042,14 +4040,6 @@ body.ai-tool-mode #msgContainer {
   font-weight: 600;
 }
 
-.loveme-sub-copy {
-  color: #2563eb;
-  font-weight: 700;
-}
-
-.loveme-description {
-  color: #64748b;
-}
 
 .loveme-composer {
   display: flex;
@@ -4240,12 +4230,12 @@ body.ai-tool-mode #msgContainer {
   font-weight: 800;
 }
 
-.loveme-help-copy {
+.loveme-help-principle {
   margin: 0;
-  color: #64748b;
-  font-size: clamp(0.84rem, 1.8vw, 0.95rem);
-  font-weight: 600;
-  line-height: 1.55;
+  color: #2563eb;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  font-weight: 800;
+  line-height: 1.5;
 }
 
 .loveme-help-examples {

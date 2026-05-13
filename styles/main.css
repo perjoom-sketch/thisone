@@ -232,7 +232,8 @@ body.search-mode .results-view {
 
 .document-ai-composer:focus-within,
 .instant-answer-composer:focus-within,
-.web-search-form:focus-within {
+.web-search-form:focus-within,
+.loveme-composer:focus-within {
   border-color: var(--composer-focus-border);
   box-shadow: var(--composer-focus-shadow);
 }
@@ -2512,7 +2513,8 @@ body.search-mode .results-view {
 
 .document-ai-help-button,
 .instant-answer-help-button,
-.web-search-help-button {
+.web-search-help-button,
+.loveme-help-button {
   margin-left: auto;
   inline-size: var(--shopping-composer-right-button-size);
   block-size: var(--shopping-composer-right-button-size);
@@ -3476,7 +3478,8 @@ body.ai-tool-mode #msgContainer {
 /* Keep help controls with the right-side mic/action group while preserving the left + edge. */
 .document-ai-help-button,
 .instant-answer-help-button,
-.web-search-help-button {
+.web-search-help-button,
+.loveme-help-button {
   margin-left: auto;
   inline-size: var(--shopping-composer-right-button-size);
   block-size: var(--shopping-composer-right-button-size);
@@ -3734,6 +3737,8 @@ body.ai-tool-mode #msgContainer {
 
   .web-search-form .ai-tool-mic-button,
   .web-search-help-button,
+  .loveme-help-button,
+  .loveme-panel .ai-tool-mic-button,
   .document-ai-help-button,
   .instant-answer-help-button {
     inline-size: var(--shopping-composer-right-button-size);
@@ -3741,6 +3746,7 @@ body.ai-tool-mode #msgContainer {
   }
 
   .web-search-plus-button,
+  .loveme-plus-button,
   .document-ai-upload-action,
   .instant-answer-plus-button {
     inline-size: var(--shopping-composer-left-button-size);
@@ -3755,6 +3761,9 @@ body.ai-tool-mode #msgContainer {
 .instant-answer-help-button,
 .web-search-plus-button,
 .web-search-help-button,
+.loveme-plus-button,
+.loveme-help-button,
+.loveme-panel .ai-tool-mic-button,
 .document-ai-panel .ai-tool-mic-button,
 .instant-answer-panel .ai-tool-mic-button,
 .web-search-form .ai-tool-mic-button {
@@ -3768,7 +3777,8 @@ body.ai-tool-mode #msgContainer {
 
 .document-ai-upload-action,
 .instant-answer-plus-button,
-.web-search-plus-button {
+.web-search-plus-button,
+.loveme-plus-button {
   color: var(--color-primary);
   font-size: clamp(1.75rem, 4.8vw, 2.1rem);
   font-weight: 900;
@@ -3776,7 +3786,8 @@ body.ai-tool-mode #msgContainer {
 
 .document-ai-help-button,
 .instant-answer-help-button,
-.web-search-help-button {
+.web-search-help-button,
+.loveme-help-button {
   font-size: clamp(0.9rem, 2vw, 1rem);
   font-weight: 800;
 }
@@ -3798,6 +3809,14 @@ body.ai-tool-mode #msgContainer {
 .web-search-help-button:hover,
 .web-search-help-button:focus-visible,
 .web-search-help-button[aria-expanded="true"],
+.loveme-plus-button:hover,
+.loveme-plus-button:focus-visible,
+.loveme-plus-button[aria-expanded="true"],
+.loveme-help-button:hover,
+.loveme-help-button:focus-visible,
+.loveme-help-button[aria-expanded="true"],
+.loveme-panel .ai-tool-mic-button:hover,
+.loveme-panel .ai-tool-mic-button:focus-visible,
 .document-ai-panel .ai-tool-mic-button:hover,
 .document-ai-panel .ai-tool-mic-button:focus-visible,
 .instant-answer-panel .ai-tool-mic-button:hover,
@@ -4054,7 +4073,9 @@ body.ai-tool-mode #msgContainer {
 }
 
 .loveme-composer-top,
-.loveme-composer-bottom {
+.loveme-composer-bottom,
+.loveme-composer-left-actions,
+.loveme-composer-actions {
   display: flex;
   align-items: center;
   width: 100%;
@@ -4068,6 +4089,29 @@ body.ai-tool-mode #msgContainer {
   justify-content: space-between;
   gap: var(--shopping-composer-control-gap);
   flex-wrap: nowrap;
+}
+
+.loveme-composer-left-actions,
+.loveme-composer-actions {
+  gap: var(--shopping-composer-control-gap);
+  width: auto;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.loveme-composer-left-actions {
+  flex: 1 1 auto;
+  justify-content: flex-start;
+}
+
+.loveme-composer-actions {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
+.loveme-plus-wrap {
+  position: relative;
+  flex: 0 0 auto;
 }
 
 .loveme-question-label {
@@ -4100,6 +4144,135 @@ body.ai-tool-mode #msgContainer {
 }
 
 .loveme-question:focus {
+  outline: none;
+}
+
+.loveme-plus-button,
+.loveme-help-button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--shopping-composer-left-button-size);
+  block-size: var(--shopping-composer-left-button-size);
+  padding: 0;
+  border: 0;
+  border-radius: 999rem;
+  background: #f1f5f9;
+  color: #64748b;
+  font-family: inherit;
+  font-size: clamp(1.45rem, 4vw, 1.8rem);
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.loveme-help-button {
+  inline-size: var(--shopping-composer-right-button-size);
+  block-size: var(--shopping-composer-right-button-size);
+  border: 0.0625rem solid #bfdbfe;
+  background: #ffffff;
+  color: #2563eb;
+  font-size: clamp(1rem, 2.8vw, 1.2rem);
+  font-weight: 900;
+}
+
+.loveme-plus-button:hover,
+.loveme-plus-button:focus-visible,
+.loveme-plus-button[aria-expanded="true"],
+.loveme-help-button:hover,
+.loveme-help-button:focus-visible,
+.loveme-help-button[aria-expanded="true"] {
+  border-color: #60a5fa;
+  background: #eff6ff;
+  color: #2563eb;
+  outline: none;
+}
+
+.loveme-plus-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + clamp(0.4rem, 1.2vw, 0.6rem));
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.2rem, 0.8vw, 0.35rem);
+  min-inline-size: max-content;
+  padding: clamp(0.35rem, 1vw, 0.5rem);
+  border: 0.0625rem solid #dbeafe;
+  border-radius: clamp(0.75rem, 2vw, 0.95rem);
+  background: #ffffff;
+  box-shadow: 0 clamp(0.45rem, 1.4vw, 0.7rem) clamp(1.2rem, 3vw, 1.8rem) rgba(15, 23, 42, 0.14);
+}
+
+.loveme-plus-menu[hidden] {
+  display: none;
+}
+
+.loveme-plus-menu-item {
+  width: 100%;
+  padding: clamp(0.55rem, 1.6vw, 0.7rem) clamp(0.75rem, 2vw, 0.95rem);
+  border: 0;
+  border-radius: clamp(0.55rem, 1.5vw, 0.75rem);
+  background: transparent;
+  color: #1e293b;
+  font-family: inherit;
+  font-size: clamp(0.88rem, 2vw, 0.98rem);
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.loveme-plus-menu-item:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.loveme-help-panel {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 1.4vw, 0.75rem);
+  padding: clamp(0.75rem, 2vw, 1rem);
+  border: 0.0625rem solid #dbeafe;
+  border-radius: clamp(0.85rem, 2vw, 1rem);
+  background: #ffffff;
+}
+
+.loveme-help-panel[hidden] {
+  display: none;
+}
+
+.loveme-help-title {
+  margin: 0;
+  color: #1d4ed8;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  font-weight: 800;
+}
+
+.loveme-help-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.45rem, 1.2vw, 0.65rem);
+}
+
+.loveme-help-examples button {
+  padding: clamp(0.5rem, 1.4vw, 0.65rem) clamp(0.7rem, 2vw, 0.9rem);
+  border: 0.0625rem solid #bfdbfe;
+  border-radius: 999rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-family: inherit;
+  font-size: clamp(0.82rem, 1.8vw, 0.95rem);
+  font-weight: 700;
+  line-height: 1.35;
+  cursor: pointer;
+  text-align: left;
+}
+
+.loveme-help-examples button:hover,
+.loveme-help-examples button:focus-visible {
+  border-color: #60a5fa;
+  background: #dbeafe;
   outline: none;
 }
 
@@ -4159,7 +4332,8 @@ body.ai-tool-mode #msgContainer {
     padding: var(--shopping-composer-padding-block) var(--shopping-composer-padding-inline);
   }
 
-  .loveme-composer-bottom {
+  .loveme-composer-bottom,
+  .loveme-composer-actions {
     gap: var(--shopping-composer-control-gap);
   }
 
@@ -4168,7 +4342,7 @@ body.ai-tool-mode #msgContainer {
   }
 
   .loveme-submit {
-    margin-left: auto;
+    flex: 0 0 auto;
     padding-right: clamp(0.75rem, 3vw, 1rem);
     padding-left: clamp(0.75rem, 3vw, 1rem);
   }

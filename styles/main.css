@@ -3962,6 +3962,18 @@ body.ai-tool-mode #msgContainer {
   }
 }
 
+.loveme-entry-chip {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.loveme-entry-chip:hover,
+.loveme-entry-chip:focus-visible {
+  border-color: #fb7185;
+  box-shadow: 0 clamp(0.35rem, 1.5vw, 0.65rem) clamp(1rem, 3vw, 1.5rem) rgba(244, 63, 94, 0.12);
+}
+
 /* LoveMe styling MVP */
 .loveme-panel {
   display: flex;

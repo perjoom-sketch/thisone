@@ -150,12 +150,37 @@ Keep it practical and kind. Avoid long lectures.`;
             <label class="loveme-question-label" for="loveMeConcern">스타일링 고민 입력창</label>
             <textarea class="loveme-question" id="loveMeConcern" rows="1" aria-label="럽미 스타일링 고민 입력창" placeholder="예: 얼굴이 큰 편입니다, 이마가 넓어요, 반곱슬이라 비 오는 날 머리가 부스스해요"></textarea>
           </div>
+          <p class="ai-tool-voice-status" id="loveMeVoiceStatus" aria-live="polite" hidden></p>
           <div class="loveme-composer-bottom">
-            <p class="loveme-helper">사진 없이도 괜찮아요. 고민만 말해주시면 바로 스타일링해드릴게요.</p>
-            <button class="loveme-submit" id="loveMeSubmit" type="button">상담하기</button>
+            <div class="loveme-composer-left-actions">
+              <div class="loveme-plus-wrap">
+                <button class="loveme-plus-button" id="loveMePlusButton" type="button" aria-label="입력 메뉴 열기" aria-expanded="false" aria-controls="loveMePlusMenu" title="입력 메뉴 열기">+</button>
+                <div class="loveme-plus-menu" id="loveMePlusMenu" role="menu" hidden>
+                  <button class="loveme-plus-menu-item" type="button" role="menuitem" disabled>파일 추가 준비 중</button>
+                  <button class="loveme-plus-menu-item" type="button" role="menuitem" disabled>사진 기능 준비 중</button>
+                </div>
+              </div>
+            </div>
+            <div class="loveme-composer-actions">
+              <button class="loveme-help-button" id="loveMeHelpButton" type="button" aria-label="럽미 상담 예시 보기" aria-expanded="false" aria-controls="loveMeHelpPanel" title="럽미 상담 예시 보기">?</button>
+              <button class="ai-tool-mic-button" id="loveMeMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
+              <button class="loveme-submit" id="loveMeSubmit" type="button">상담하기</button>
+            </div>
           </div>
         </div>
 
+        <div class="loveme-help-panel" id="loveMeHelpPanel" hidden>
+          <p class="loveme-help-title">이렇게 말해보세요</p>
+          <div class="loveme-help-examples">
+            <button type="button" data-loveme-example="얼굴이 커 보여요">얼굴이 커 보여요</button>
+            <button type="button" data-loveme-example="이마가 넓어 보여요">이마가 넓어 보여요</button>
+            <button type="button" data-loveme-example="반곱슬이라 비 오는 날 머리가 부스스해요">반곱슬이라 비 오는 날 머리가 부스스해요</button>
+            <button type="button" data-loveme-example="키가 작아서 코디가 고민이에요">키가 작아서 코디가 고민이에요</button>
+            <button type="button" data-loveme-example="어깨가 넓어 보여요">어깨가 넓어 보여요</button>
+          </div>
+        </div>
+
+        <p class="loveme-helper">사진 없이도 괜찮아요. 고민만 말해주시면 바로 스타일링해드릴게요.</p>
         <p class="loveme-status" id="loveMeStatus" role="status" aria-live="polite" hidden></p>
         <div class="loveme-result" id="loveMeResult" aria-live="polite" hidden></div>
       </section>
@@ -166,8 +191,33 @@ Keep it practical and kind. Avoid long lectures.`;
     const submit = root.querySelector('#loveMeSubmit');
     const status = root.querySelector('#loveMeStatus');
     const result = root.querySelector('#loveMeResult');
+    const micButton = root.querySelector('#loveMeMicButton');
+    const voiceStatus = root.querySelector('#loveMeVoiceStatus');
+    const plusButton = root.querySelector('#loveMePlusButton');
+    const plusMenu = root.querySelector('#loveMePlusMenu');
+    const helpButton = root.querySelector('#loveMeHelpButton');
+    const helpPanel = root.querySelector('#loveMeHelpPanel');
+
+    global.ThisOneAIToolVoice?.attach?.({
+      button: micButton,
+      input: concern,
+      status: voiceStatus,
+      appendMode: 'newline'
+    });
 
     global.ThisOneModeTabs?.bind?.(root);
+
+    function setPlusMenuOpen(isOpen) {
+      if (!plusButton || !plusMenu) return;
+      plusMenu.hidden = !isOpen;
+      plusButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+
+    function setHelpPanelOpen(isOpen) {
+      if (!helpButton || !helpPanel) return;
+      helpPanel.hidden = !isOpen;
+      helpButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
 
     concern?.addEventListener('input', () => {
       concern.style.height = 'auto';
@@ -178,6 +228,39 @@ Keep it practical and kind. Avoid long lectures.`;
       if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
         event.preventDefault();
         submit?.click();
+      }
+    });
+
+    plusButton?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      setHelpPanelOpen(false);
+      setPlusMenuOpen(!!plusMenu?.hidden);
+    });
+
+    helpButton?.addEventListener('click', () => {
+      setPlusMenuOpen(false);
+      setHelpPanelOpen(!!helpPanel?.hidden);
+    });
+
+    root.querySelectorAll('[data-loveme-example]').forEach((button) => {
+      button.addEventListener('click', () => {
+        concern.value = button.dataset.lovemeExample || '';
+        concern.dispatchEvent(new Event('input', { bubbles: true }));
+        concern.focus();
+        setHelpPanelOpen(false);
+      });
+    });
+
+    document.addEventListener('click', (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (!target || !root.contains(target)) return;
+      if (!plusMenu?.hidden && !target.closest('.loveme-plus-wrap')) setPlusMenuOpen(false);
+    });
+
+    root.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        setPlusMenuOpen(false);
+        setHelpPanelOpen(false);
       }
     });
 

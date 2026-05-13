@@ -962,6 +962,137 @@ async function runAliExpressFinalProbeMode(probeCase, appSecret) {
   }
 }
 
+function buildAliExpressRestProbeBaseParams(appKey, timestamp) {
+  return {
+    app_key: appKey,
+    format: 'json',
+    v: '2.0',
+    timestamp,
+    sign_method: 'sha256',
+    keywords: 'mp3',
+    fields: 'commission_rate,sale_price',
+    page_no: '1',
+    page_size: '20',
+    platform_product_type: 'ALL',
+    sort: 'SALE_PRICE_ASC',
+    target_currency: 'USD',
+    target_language: 'EN',
+    ship_to_country: 'US'
+  };
+}
+
+function buildAliExpressRestProbeMode(restprobe, appKey) {
+  const mode = String(restprobe || '');
+
+  if (mode === '1') {
+    return {
+      probe: 1,
+      endpoint: 'https://api-sg.aliexpress.com/rest/aliexpress.affiliate.product.query',
+      timestampFormat: 'standard_gmt8',
+      signaturePrefix: 'aliexpress.affiliate.product.query',
+      params: buildAliExpressRestProbeBaseParams(appKey, getAliTimestamp())
+    };
+  }
+
+  if (mode === '2') {
+    return {
+      probe: 2,
+      endpoint: 'https://api-sg.aliexpress.com/rest/aliexpress/affiliate/product/query',
+      timestampFormat: 'standard_gmt8',
+      signaturePrefix: '/aliexpress/affiliate/product/query',
+      params: buildAliExpressRestProbeBaseParams(appKey, getAliTimestamp())
+    };
+  }
+
+  if (mode === '3') {
+    return {
+      probe: 3,
+      endpoint: 'https://api-sg.aliexpress.com/rest/aliexpress.affiliate.product.query',
+      timestampFormat: 'unix_milliseconds',
+      signaturePrefix: 'aliexpress.affiliate.product.query',
+      params: buildAliExpressRestProbeBaseParams(appKey, String(Date.now()))
+    };
+  }
+
+  if (mode === '4') {
+    return {
+      probe: 4,
+      endpoint: 'https://api-sg.aliexpress.com/rest/aliexpress/affiliate/product/query',
+      timestampFormat: 'unix_milliseconds',
+      signaturePrefix: '/aliexpress/affiliate/product/query',
+      params: buildAliExpressRestProbeBaseParams(appKey, String(Date.now()))
+    };
+  }
+
+  if (mode === '5') {
+    return {
+      probe: 5,
+      endpoint: 'https://api-sg.aliexpress.com/rest/aliexpress.affiliate.product.query',
+      timestampFormat: 'iso8601',
+      signaturePrefix: 'aliexpress.affiliate.product.query',
+      params: buildAliExpressRestProbeBaseParams(appKey, new Date().toISOString())
+    };
+  }
+
+  return undefined;
+}
+
+function signAliExpressRestProbeParams(params, appSecret, probeCase) {
+  const signedParams = { ...params };
+  signedParams.sign = generatePrefixedSha256Signature(signedParams, appSecret, probeCase.signaturePrefix);
+  return signedParams;
+}
+
+function buildAliExpressRestProbeResult(data, params, response) {
+  const debug = buildAliExpressDebug(data, params, response);
+  const products = getAliExpressProducts(data);
+
+  return {
+    httpStatus: debug.httpStatus,
+    code: debug.code,
+    msg: debug.msg,
+    subCode: debug.subCode,
+    subMsg: debug.subMsg,
+    errorCode: debug.errorCode,
+    errorMessage: debug.errorMessage,
+    bizSuccess: debug.bizSuccess,
+    itemCount: products.length,
+    requestId: debug.requestId,
+    responseKeys: debug.responseKeys
+  };
+}
+
+function buildAliExpressRestProbeError(error) {
+  return {
+    httpStatus: undefined,
+    code: undefined,
+    msg: undefined,
+    subCode: undefined,
+    subMsg: undefined,
+    errorCode: error.name || 'AliExpressRestProbeRequestError',
+    errorMessage: error.message || 'AliExpress REST probe request failed',
+    bizSuccess: false,
+    itemCount: 0,
+    requestId: undefined,
+    responseKeys: []
+  };
+}
+
+async function runAliExpressRestProbeMode(probeCase, appSecret) {
+  try {
+    const signedParams = signAliExpressRestProbeParams(
+      probeCase.params,
+      appSecret,
+      probeCase
+    );
+    const { response, data } = await requestAliExpressTopProbe(signedParams, probeCase.endpoint);
+
+    return buildAliExpressRestProbeResult(data, signedParams, response);
+  } catch (error) {
+    return buildAliExpressRestProbeError(error);
+  }
+}
+
 function buildAliExpressDebug(data, params, response) {
   const responseRoot = data && typeof data === 'object' ? data : {};
   const aliResponse = responseRoot.aliexpress_affiliate_product_query_response || {};
@@ -1100,6 +1231,28 @@ export default async function handler(req, res) {
 
     // ThisOne 엔진용 알리익스프레스 파라미터 세팅
     const baseParams = buildBaseAliExpressParams(APP_KEY, searchQuery);
+
+    if (req.query?.restprobe !== undefined) {
+      const restProbeCase = buildAliExpressRestProbeMode(req.query.restprobe, APP_KEY);
+
+      if (!restProbeCase) {
+        return res.status(200).json({
+          status: 'RestProbeError',
+          message: 'Unsupported restprobe mode. Use restprobe=1, 2, 3, 4, or 5.',
+          search_query: searchQuery
+        });
+      }
+
+      const result = await runAliExpressRestProbeMode(restProbeCase, APP_SECRET);
+
+      return res.status(200).json({
+        status: 'RestProbeComplete',
+        probe: restProbeCase.probe,
+        endpoint: restProbeCase.endpoint,
+        timestampFormat: restProbeCase.timestampFormat,
+        result
+      });
+    }
 
     if (req.query?.finalprobe !== undefined) {
       const finalProbeCase = buildAliExpressFinalProbeMode(req.query.finalprobe, APP_KEY);

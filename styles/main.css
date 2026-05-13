@@ -3772,8 +3772,9 @@ body.ai-tool-mode #msgContainer {
 .document-ai-upload-action,
 .instant-answer-plus-button,
 .web-search-plus-button {
-  font-size: clamp(1.35rem, 3.5vw, 1.65rem);
-  font-weight: 400;
+  color: var(--color-primary);
+  font-size: clamp(1.75rem, 4.8vw, 2.1rem);
+  font-weight: 900;
 }
 
 .document-ai-help-button,

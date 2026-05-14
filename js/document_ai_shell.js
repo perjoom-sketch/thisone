@@ -3,7 +3,8 @@
   global.__thisOneDocumentAIShellApplied = true;
 
   const DOCUMENT_AI_MODE = 'document-ai';
-  const READY_MESSAGE = '해석 기능은 준비 중입니다.\n곧 어려운 내용을 쉽게 해석해드릴게요.';
+  const LOADING_MESSAGE = '문서 내용을 확인하고 관련 정보를 찾는 중입니다...';
+  const EMPTY_INPUT_MESSAGE = '문서나 사진, 질문을 입력해주세요.';
   const UNSUPPORTED_FILE_MESSAGE = '현재는 PDF, JPG, PNG, WebP, 텍스트만 해석할 수 있습니다.';
   const UNSUPPORTED_PASTE_MESSAGE = 'PDF, 이미지, 텍스트만 붙여넣을 수 있습니다.';
   const PASTED_IMAGE_MESSAGE = '붙여넣은 이미지가 추가되었습니다.';
@@ -66,6 +67,114 @@
     if (!element) return;
     element.textContent = '';
     element.hidden = true;
+  }
+
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function normalizeUrl(url) {
+    const raw = String(url || '').trim();
+    if (!raw) return '';
+    try {
+      const parsed = new URL(raw);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '';
+      return parsed.href;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error('이미지를 읽을 수 없습니다.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function renderAnswerText(answer) {
+    return escapeHtml(answer || '')
+      .split(/\n{2,}/)
+      .map((block) => `<p>${block.replace(/\n/g, '<br>')}</p>`)
+      .join('');
+  }
+
+  function renderSources(sources) {
+    const usableSources = (Array.isArray(sources) ? sources : [])
+      .map((source) => ({
+        title: String(source?.title || '').trim(),
+        domain: String(source?.domain || '').trim(),
+        link: normalizeUrl(source?.link)
+      }))
+      .filter((source) => source.title || source.domain || source.link)
+      .slice(0, 5);
+
+    if (!usableSources.length) {
+      return '<p class="document-ai-no-sources">공개 출처는 확인하지 못했고, 업로드된 내용 기준으로 정리했습니다.</p>';
+    }
+
+    return `
+      <section class="document-ai-sources" aria-label="참고한 공개 출처">
+        <h3>참고한 공개 출처</h3>
+        <div class="web-search-results document-ai-source-list">
+          ${usableSources.map((source) => {
+            const title = escapeHtml(source.title || source.domain || source.link || '공개 출처');
+            const domain = escapeHtml(source.domain || '');
+            const linkAttrs = source.link
+              ? `href="${escapeHtml(source.link)}" target="_blank" rel="noopener noreferrer"`
+              : 'aria-disabled="true" tabindex="-1"';
+            return `
+              <article class="web-search-result-row document-ai-source-row">
+                <a class="web-search-result-title" ${linkAttrs}>${title}</a>
+                ${domain ? `<p class="web-search-result-source">${domain}</p>` : ''}
+              </article>
+            `;
+          }).join('')}
+        </div>
+      </section>
+    `;
+  }
+
+  async function requestDocumentAI(question, imageDataUrl) {
+    const response = await fetch('/api/documentAi', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, imageDataUrl })
+    });
+
+    const text = await response.text();
+    let data = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch (e) {
+      throw new Error('해석 응답을 읽을 수 없습니다.');
+    }
+
+    if (!response.ok) {
+      throw new Error(data?.error || `HTTP ${response.status}`);
+    }
+
+    return data || { answer: '', sources: [], usedSearch: false };
+  }
+
+  function renderDocumentAIResult(result, answer, sources) {
+    if (!result) return;
+    const safeAnswer = String(answer || '').trim();
+    result.innerHTML = `
+      <article class="document-ai-answer">
+        ${safeAnswer ? renderAnswerText(safeAnswer) : '<p>해석 결과가 비어 있습니다. 다시 시도해주세요.</p>'}
+      </article>
+      ${renderSources(sources)}
+    `;
+    result.hidden = false;
   }
 
   function enterDocumentAIMode() {
@@ -134,12 +243,14 @@
           <p>주민번호, 주소, 전화번호, 계좌번호는 해석에 필요하지 않습니다.</p>
         </div>
         <p class="document-ai-placeholder" id="documentAiPlaceholder" role="status" aria-live="polite" hidden></p>
+        <div class="document-ai-result" id="documentAiResult" aria-live="polite" hidden></div>
       </section>
     `;
 
     const root = container.querySelector('.document-ai-panel');
     const button = document.getElementById('documentAiSubmit');
     const placeholder = document.getElementById('documentAiPlaceholder');
+    const result = document.getElementById('documentAiResult');
     const upload = document.getElementById('documentAiUpload');
     const question = document.getElementById('documentAiQuestion');
     const helpButton = document.getElementById('documentAiHelpButton');
@@ -170,8 +281,35 @@
       }
     });
 
-    button?.addEventListener('click', () => {
-      setStatus(placeholder, READY_MESSAGE);
+    button?.addEventListener('click', async () => {
+      const text = question?.value?.trim?.() || '';
+      const file = imageInput?.getFile?.() || null;
+
+      if (!text && !file) {
+        setStatus(placeholder, EMPTY_INPUT_MESSAGE);
+        if (result) result.hidden = true;
+        if (result) result.innerHTML = '';
+        question?.focus?.();
+        return;
+      }
+
+      button.disabled = true;
+      if (result) result.hidden = true;
+      if (result) result.innerHTML = '';
+      setStatus(placeholder, LOADING_MESSAGE);
+
+      try {
+        const imageDataUrl = file ? await fileToDataUrl(file) : '';
+        const data = await requestDocumentAI(text, imageDataUrl);
+        renderDocumentAIResult(result, data.answer, data.sources);
+        hideStatus(placeholder);
+      } catch (error) {
+        if (result) result.hidden = true;
+        if (result) result.innerHTML = '';
+        setStatus(placeholder, `문서 해석 중 오류가 발생했습니다. ${error.message || ''}`.trim());
+      } finally {
+        button.disabled = false;
+      }
     });
 
 

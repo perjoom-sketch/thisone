@@ -86,40 +86,57 @@ Focus on what the user should understand or do next.`;
     return terms.slice(0, 3);
   }
 
-  async function requestInstantAnswer(question, onChunk) {
-    const payload = {
-      model: 'gemini-2.5-flash',
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: question }]
-    };
-
-    const response = await fetch('/api/chat', {
+  async function requestInstantAnswer(question) {
+    const response = await fetch('/api/instantAnswer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ question })
     });
 
+    const text = await response.text();
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || `HTTP ${response.status}`);
+      let message = text || `HTTP ${response.status}`;
+      try {
+        const errorData = JSON.parse(text);
+        message = errorData.error || message;
+      } catch (e) {}
+      throw new Error(message);
     }
 
-    const reader = response.body?.getReader();
-    if (!reader) return response.text();
-
-    const decoder = new TextDecoder();
-    let fullText = '';
-    let done = false;
-    while (!done) {
-      const result = await reader.read();
-      done = result.done;
-      if (result.value) {
-        const chunk = decoder.decode(result.value, { stream: true });
-        fullText += chunk;
-        if (typeof onChunk === 'function') onChunk(chunk, fullText);
-      }
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      throw new Error('즉답 응답을 읽을 수 없습니다.');
     }
-    return fullText;
+  }
+
+  function renderSources(sources, usedSearch) {
+    const sourceList = Array.isArray(sources) ? sources.filter((source) => source?.link) : [];
+    if (!sourceList.length) {
+      if (usedSearch) return '';
+      return '<div class="instant-answer-source-note">공개 출처 없이 질문 내용 기준으로 정리했습니다.</div>';
+    }
+
+    return `
+      <section class="instant-answer-sources" aria-label="참고한 공개 출처">
+        <div class="instant-answer-sources-title">참고한 공개 출처</div>
+        <ul class="instant-answer-source-list">
+          ${sourceList.map((source) => `
+            <li class="instant-answer-source-item">
+              <a href="${escapeHtml(source.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title || source.domain || source.link)}</a>
+              ${source.domain ? `<span class="instant-answer-source-domain">${escapeHtml(source.domain)}</span>` : ''}
+            </li>
+          `).join('')}
+        </ul>
+      </section>
+    `;
+  }
+
+  function renderInstantAnswerResult(payload) {
+    const answer = typeof payload === 'string' ? payload : payload?.answer;
+    const sources = typeof payload === 'string' ? [] : payload?.sources;
+    const usedSearch = Boolean(typeof payload === 'string' ? false : payload?.usedSearch);
+    return `${renderMarkdownLite(answer)}${renderSources(sources, usedSearch)}`;
   }
 
   function triggerSearch(term) {
@@ -272,14 +289,12 @@ Focus on what the user should understand or do next.`;
       result.hidden = false;
       result.innerHTML = '';
       renderSearchSuggestions(root, []);
-      setStatus(status, '즉답을 정리하고 있습니다...');
+      setStatus(status, '공개 정보를 확인하고 답변을 정리하는 중입니다...');
 
       try {
-        const answer = await requestInstantAnswer(text, (chunk, fullText) => {
-          result.innerHTML = renderMarkdownLite(fullText || chunk);
-        });
-        result.innerHTML = renderMarkdownLite(answer);
-        renderSearchSuggestions(root, extractSearchTerms(answer));
+        const payload = await requestInstantAnswer(text);
+        result.innerHTML = renderInstantAnswerResult(payload);
+        renderSearchSuggestions(root, extractSearchTerms(payload?.answer || ''));
         setStatus(status, '답변이 완료되었습니다.');
       } catch (error) {
         result.innerHTML = '';

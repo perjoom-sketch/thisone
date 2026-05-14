@@ -178,6 +178,8 @@
     const status = root.querySelector('#webSearchStatus');
     const micButton = root.querySelector('#webSearchMicButton');
     const voiceStatus = root.querySelector('#webSearchVoiceStatus');
+    const helpButton = root.querySelector('#webSearchHelpButton');
+    const helpPanel = root.querySelector('#webSearchHelpPanel');
     global.ThisOneAIToolVoice?.attach?.({
       button: micButton,
       input,

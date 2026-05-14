@@ -317,12 +317,12 @@ Keep it practical and kind. Avoid long lectures.`;
 
   async function requestLoveMeAnswer(concern, onChunk) {
     const payload = {
-      model: 'gemini-2.5-flash',
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: concern }]
+      concern,
+      messages: [{ role: 'user', content: concern }],
+      system: SYSTEM_PROMPT
     };
 
-    const response = await fetch('/api/chat', {
+    const response = await fetch('/api/loveme', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -333,22 +333,24 @@ Keep it practical and kind. Avoid long lectures.`;
       throw new Error(errorText || `HTTP ${response.status}`);
     }
 
-    const reader = response.body?.getReader();
-    if (!reader) return response.text();
-
-    const decoder = new TextDecoder();
-    let fullText = '';
-    let done = false;
-    while (!done) {
-      const result = await reader.read();
-      done = result.done;
-      if (result.value) {
-        const chunk = decoder.decode(result.value, { stream: true });
-        fullText += chunk;
-        if (typeof onChunk === 'function') onChunk(chunk, fullText);
-      }
+    const responseText = await response.text();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (error) {
+      throw new Error('럽미 응답 형식을 확인할 수 없습니다.');
     }
-    return fullText;
+
+    const answer = typeof data?.answer === 'string' ? data.answer : '';
+    if (!answer.trim()) {
+      throw new Error('럽미 답변이 비어 있습니다.');
+    }
+
+    if (typeof onChunk === 'function') onChunk(answer, answer);
+    return {
+      answer,
+      usedSearch: data?.usedSearch === true
+    };
   }
 
   function renderLoveMeShell() {
@@ -494,11 +496,16 @@ Keep it practical and kind. Avoid long lectures.`;
       setStatus(status, '럽미가 어울리는 스타일링을 찾는 중입니다...');
 
       try {
-        const answer = await requestLoveMeAnswer(text, (chunk, fullText) => {
+        const response = await requestLoveMeAnswer(text, (chunk, fullText) => {
           result.innerHTML = renderMarkdownLite(fullText || chunk);
         });
-        result.innerHTML = renderMarkdownLite(answer);
-        setStatus(status, '스타일링 답변이 완료되었습니다.');
+        result.innerHTML = renderMarkdownLite(response.answer);
+        setStatus(
+          status,
+          response.usedSearch
+            ? '스타일링 답변이 완료되었습니다. 요즘 스타일 기준도 함께 참고했어요.'
+            : '스타일링 답변이 완료되었습니다.'
+        );
       } catch (error) {
         result.innerHTML = '';
         result.hidden = true;

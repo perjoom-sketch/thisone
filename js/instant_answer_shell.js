@@ -29,6 +29,8 @@ For medical, legal, financial, or safety topics:
 Do not give long lectures.
 Do not answer with irrelevant shopping/product framing.
 Focus on what the user should understand or do next.`;
+  let removeInstantAnswerPasteListener = null;
+
   const EXAMPLES = [
     '배 아플 때 어떤 약 먹어야 해?',
     '월세 보증금 안 돌려주면 어떻게 해?',
@@ -52,6 +54,23 @@ Focus on what the user should understand or do next.`;
     document.body.classList.remove('document-ai-mode', 'web-search-mode');
   }
 
+  function cleanupInstantAnswerPasteListener() {
+    if (!removeInstantAnswerPasteListener) return;
+    removeInstantAnswerPasteListener();
+    removeInstantAnswerPasteListener = null;
+  }
+
+  function getClipboardImageFile(clipboardData) {
+    if (!clipboardData) return null;
+
+    const file = Array.from(clipboardData.files || []).find((candidate) => /^image\//.test(candidate?.type || ''));
+    if (file) return file;
+
+    return Array.from(clipboardData.items || [])
+      .filter((item) => item.kind === 'file' && /^image\//.test(item.type || ''))
+      .map((item) => item.getAsFile())
+      .find(Boolean) || null;
+  }
 
   function setStatus(element, message) {
     if (!element) return;
@@ -229,6 +248,7 @@ Focus on what the user should understand or do next.`;
     const selectedFileText = root.querySelector('#instantAnswerSelectedFileText');
     const selectedFileRemove = root.querySelector('#instantAnswerSelectedFileRemove');
     let selectedFileInput = null;
+    let selectedFile = null;
     global.ThisOneAIToolVoice?.attach?.({
       button: micButton,
       input: question,
@@ -260,24 +280,50 @@ Focus on what the user should understand or do next.`;
     function clearSelectedFileStatus() {
       if (selectedFileInput) selectedFileInput.value = '';
       selectedFileInput = null;
+      selectedFile = null;
       if (selectedFileText) selectedFileText.textContent = '';
       if (selectedFileStatus) selectedFileStatus.hidden = true;
     }
 
-    global.ThisOneModeTabs?.registerCleanup?.(INSTANT_ANSWER_MODE, clearSelectedFileStatus);
+    function cleanupInstantAnswer() {
+      clearSelectedFileStatus();
+      cleanupInstantAnswerPasteListener();
+    }
 
-    function setSelectedFileStatus(fileInput, label) {
-      const fileName = fileInput?.files?.[0]?.name;
-      if (!fileName) {
+    global.ThisOneModeTabs?.registerCleanup?.(INSTANT_ANSWER_MODE, cleanupInstantAnswer);
+
+    function setSelectedFile(file, label, fileInput) {
+      const fileName = file?.name || '이미지';
+      if (!file) {
         clearSelectedFileStatus();
         return;
       }
 
       if (fileInput === uploadInput && cameraInput) cameraInput.value = '';
       if (fileInput === cameraInput && uploadInput) uploadInput.value = '';
-      selectedFileInput = fileInput;
+      if (!fileInput) {
+        if (uploadInput) uploadInput.value = '';
+        if (cameraInput) cameraInput.value = '';
+      }
+      selectedFileInput = fileInput || null;
+      selectedFile = file;
       if (selectedFileText) selectedFileText.textContent = `${label}: ${fileName}`;
       if (selectedFileStatus) selectedFileStatus.hidden = false;
+    }
+
+    function setSelectedFileStatus(fileInput, label) {
+      setSelectedFile(fileInput?.files?.[0] || null, label, fileInput);
+    }
+
+    function handlePaste(event) {
+      if (!root.isConnected || !document.body.classList.contains('instant-answer-mode')) return;
+
+      const file = getClipboardImageFile(event.clipboardData);
+      if (!file) return;
+
+      event.preventDefault();
+      setPlusMenuOpen(false);
+      setSelectedFile(file, '붙여넣은 이미지');
     }
 
     plusButton?.addEventListener('click', (event) => {
@@ -298,6 +344,10 @@ Focus on what the user should understand or do next.`;
     });
 
     selectedFileRemove?.addEventListener('click', clearSelectedFileStatus);
+
+    cleanupInstantAnswerPasteListener();
+    document.addEventListener('paste', handlePaste);
+    removeInstantAnswerPasteListener = () => document.removeEventListener('paste', handlePaste);
 
     document.addEventListener('click', (event) => {
       const target = event.target instanceof Element ? event.target : null;

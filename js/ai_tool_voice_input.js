@@ -60,12 +60,20 @@
     input.focus();
   }
 
+  function getOverlapLength(left, right) {
+    const maxLength = Math.min(left.length, right.length);
+    for (let length = maxLength; length >= 2; length -= 1) {
+      if (left.endsWith(right.slice(0, length))) return length;
+    }
+    return 0;
+  }
+
   function mergeFinalTranscriptSegments(segments, nextSegment) {
     const cleanSegment = normalizeTranscript(nextSegment);
     if (!cleanSegment) return segments;
 
     const previousSegment = segments[segments.length - 1] || '';
-    if (previousSegment === cleanSegment) return segments;
+    if (segments.includes(cleanSegment)) return segments;
 
     if (previousSegment && cleanSegment.startsWith(previousSegment)) {
       segments[segments.length - 1] = cleanSegment;
@@ -74,8 +82,19 @@
 
     if (previousSegment && previousSegment.endsWith(cleanSegment)) return segments;
 
+    const overlapLength = previousSegment ? getOverlapLength(previousSegment, cleanSegment) : 0;
+    if (overlapLength > 0) {
+      segments[segments.length - 1] = normalizeTranscript(`${previousSegment}${cleanSegment.slice(overlapLength)}`);
+      return segments;
+    }
+
     segments.push(cleanSegment);
     return segments;
+  }
+
+  function enableContinuousRecognition(recognition) {
+    if (!recognition || !('continuous' in recognition)) return;
+    recognition.continuous = true;
   }
 
   function getSessionTranscript(controller) {
@@ -149,7 +168,7 @@
     };
 
     recognition.lang = 'ko-KR';
-    recognition.continuous = true;
+    enableContinuousRecognition(recognition);
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 

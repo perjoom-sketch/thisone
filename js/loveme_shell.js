@@ -94,19 +94,40 @@ For wavy or frizzy hair concerns, do not blame humidity as a villain. Say the te
 
 Answer in Korean unless the user clearly asks for another language.
 
-Use this structure when relevant:
-1. 공감
-2. 가볍게 편들기
-3. 솔직하지만 희망 주기
-4. 바로 스타일링 방향 제시
-5. Hair recommendation
-6. Makeup recommendation if relevant
-7. Clothing/fit recommendation if relevant
-8. Glasses/accessories/color recommendation if relevant
-9. What to avoid
-10. Styling recipe
-11. Sentence to tell a hairdresser or stylist
-12. Shopping search keywords if relevant
+Answer format:
+LoveMe answers must feel like a quick styling prescription card, not an essay, report, or lecture.
+Always prefer short headings, emoji visual anchors, and compact bullet-like lines.
+Avoid long paragraph-only answers.
+Use grouped sections so a user can understand the advice by scanning.
+
+Required structure:
+1. 한 줄 결론
+   - Start with a single concise conclusion line.
+   - Keep it warm, practical, and immediately useful.
+2. 스타일링 카드
+   - Do not add a separate “스타일링 카드” wrapper heading.
+   - Use these short section headings exactly when relevant:
+     - 💇 헤어
+     - 👕 의상
+     - 🎨 색상
+     - 👓 안경/액세서리
+     - 💄 메이크업 (only if relevant)
+   - Each card should have 2–4 short action lines.
+   - Use simple verbs like “고르기”, “피하기”, “더하기”, “정리하기”.
+3. 피하기 / 추천하기
+   - Pair quick avoid/recommend guidance.
+   - Keep it direct and kind.
+4. 바로 쓸 수 있는 쇼핑 검색어
+   - Give practical Korean search keywords the user can paste into a shopping site.
+
+Formatting rules:
+- Use Markdown headings such as “## 💇 헤어”.
+- Use short bullets, not long paragraphs.
+- Keep each section compact.
+- Prefer concrete styling prescriptions over explanations.
+- No appearance scores.
+- No cosmetic surgery or medical advice.
+- No photo analysis or photo upload requests.
 
 Keep it practical and kind. Avoid long lectures.`;
 
@@ -131,16 +152,79 @@ Keep it practical and kind. Avoid long lectures.`;
     element.hidden = !message;
   }
 
-  function renderMarkdownLite(text) {
-    const safe = escapeHtml(text || '').trim();
-    if (!safe) return '';
+  function renderInlineMarkdown(text) {
+    return escapeHtml(text || '').replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>');
+  }
 
-    const withBold = safe.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>');
-    return withBold
-      .replace(/^###\s+(.+)$/gm, '<strong>$1</strong>')
-      .replace(/^##\s+(.+)$/gm, '<strong>$1</strong>')
-      .replace(/^#\s+(.+)$/gm, '<strong>$1</strong>')
-      .replace(/\n/g, '<br>');
+  function cleanLoveMeLine(line) {
+    return String(line || '')
+      .replace(/^#{1,3}\s+/, '')
+      .replace(/^[-*]\s+/, '')
+      .trim();
+  }
+
+  function getLoveMeSectionType(title) {
+    if (/한\s*줄\s*결론|결론/.test(title)) return 'summary';
+    if (/💇|헤어|머리/.test(title)) return 'hair';
+    if (/👕|의상|옷|코디|핏/.test(title)) return 'outfit';
+    if (/🎨|색상|컬러|색감/.test(title)) return 'color';
+    if (/👓|안경|액세서리|악세서리/.test(title)) return 'accessory';
+    if (/💄|메이크업|화장/.test(title)) return 'makeup';
+    if (/피하기|추천하기|avoid|recommend/i.test(title)) return 'avoid';
+    if (/쇼핑|검색어|키워드/.test(title)) return 'shopping';
+    return 'default';
+  }
+
+  function renderLoveMeSection(section) {
+    const title = renderInlineMarkdown(section.title);
+    const lines = section.lines.map(cleanLoveMeLine).filter(Boolean);
+    const type = getLoveMeSectionType(section.title);
+    const tag = type === 'summary' ? 'loveme-answer-summary' : 'loveme-answer-card';
+    const body = lines.length
+      ? `<ul class="loveme-answer-list">${lines.map((line) => `<li>${renderInlineMarkdown(line)}</li>`).join('')}</ul>`
+      : '';
+
+    return `<section class="${tag} loveme-answer-${type}"><h3>${title}</h3>${body}</section>`;
+  }
+
+  function renderMarkdownLite(text) {
+    const raw = String(text || '').trim();
+    if (!raw) return '';
+
+    const lines = raw.split(/\r?\n/);
+    const sections = [];
+    let current = null;
+
+    lines.forEach((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) return;
+
+      const headingMatch = trimmed.match(/^#{1,3}\s+(.+)$/);
+      const isVisualHeading = /^(?:\d+\.\s*)?(?:💇\s*헤어|👕\s*의상|🎨\s*색상|👓\s*안경\/액세서리|💄\s*메이크업|피하기\s*\/\s*추천하기|바로\s*쓸\s*수\s*있는\s*쇼핑\s*검색어|한\s*줄\s*결론)\s*:?\s*$/i.test(trimmed);
+
+      if (headingMatch || isVisualHeading) {
+        current = {
+          title: cleanLoveMeLine(headingMatch ? headingMatch[1] : trimmed),
+          lines: []
+        };
+        sections.push(current);
+        return;
+      }
+
+      if (!current) {
+        current = { title: '✨ 한 줄 결론', lines: [] };
+        sections.push(current);
+      }
+
+      current.lines.push(trimmed);
+    });
+
+    const visibleSections = sections.filter((section) => {
+      return section.lines.length || getLoveMeSectionType(section.title) !== 'default';
+    });
+
+    if (!visibleSections.length) return '';
+    return `<div class="loveme-answer-cards">${visibleSections.map(renderLoveMeSection).join('')}</div>`;
   }
 
   async function requestLoveMeAnswer(concern, onChunk) {

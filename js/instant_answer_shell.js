@@ -54,10 +54,46 @@ Focus on what the user should understand or do next.`;
   }
 
 
+  const SOURCE_LOADING_STAGES = [
+    '공개 정보를 확인하고 있습니다...',
+    '쓸 만한 출처를 고르는 중입니다...',
+    '근거를 바탕으로 답변을 정리하는 중입니다...',
+    '출처와 답변을 맞춰보고 있습니다...'
+  ];
+  const SOURCE_LOADING_STAGE_MS = 1800;
+
   function setStatus(element, message) {
     if (!element) return;
+    element.classList.remove('is-loading');
     element.textContent = message;
     element.hidden = !message;
+  }
+
+  function startSourceLoadingStatus(element) {
+    if (!element) {
+      return () => {};
+    }
+
+    let stageIndex = 0;
+
+    function renderStage() {
+      const message = SOURCE_LOADING_STAGES[stageIndex % SOURCE_LOADING_STAGES.length];
+      element.classList.add('is-loading');
+      element.innerHTML = `
+        <span class="instant-answer-status-signal" aria-hidden="true"></span>
+        <span>${escapeHtml(message)}</span>
+      `;
+      element.hidden = false;
+      stageIndex += 1;
+    }
+
+    renderStage();
+    const timerId = global.setInterval(renderStage, SOURCE_LOADING_STAGE_MS);
+
+    return () => {
+      global.clearInterval(timerId);
+      element.classList.remove('is-loading');
+    };
   }
 
   function renderMarkdownLite(text) {
@@ -225,6 +261,7 @@ Focus on what the user should understand or do next.`;
     const result = root.querySelector('#instantAnswerResult');
     const micButton = root.querySelector('#instantAnswerMicButton');
     const voiceStatus = root.querySelector('#instantAnswerVoiceStatus');
+    let stopActiveSourceLoadingStatus = null;
     global.ThisOneAIToolVoice?.attach?.({
       button: micButton,
       input: question,
@@ -252,6 +289,8 @@ Focus on what the user should understand or do next.`;
     }
 
     function cleanupInstantAnswer() {
+      stopActiveSourceLoadingStatus?.();
+      stopActiveSourceLoadingStatus = null;
       imageInput?.cleanup?.();
     }
 
@@ -289,18 +328,25 @@ Focus on what the user should understand or do next.`;
       result.hidden = false;
       result.innerHTML = '';
       renderSearchSuggestions(root, []);
-      setStatus(status, '공개 정보를 확인하고 답변을 정리하는 중입니다...');
+      stopActiveSourceLoadingStatus?.();
+      stopActiveSourceLoadingStatus = startSourceLoadingStatus(status);
 
       try {
         const payload = await requestInstantAnswer(text);
+        stopActiveSourceLoadingStatus?.();
+        stopActiveSourceLoadingStatus = null;
         result.innerHTML = renderInstantAnswerResult(payload);
         renderSearchSuggestions(root, extractSearchTerms(payload?.answer || ''));
         setStatus(status, '답변이 완료되었습니다.');
       } catch (error) {
+        stopActiveSourceLoadingStatus?.();
+        stopActiveSourceLoadingStatus = null;
         result.innerHTML = '';
         result.hidden = true;
         setStatus(status, `즉답 생성 중 오류가 발생했습니다. ${error.message || ''}`.trim());
       } finally {
+        stopActiveSourceLoadingStatus?.();
+        stopActiveSourceLoadingStatus = null;
         submit.disabled = false;
       }
     });

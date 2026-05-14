@@ -7,6 +7,7 @@ const GEMINI_TIMEOUT_MS = 20000;
 const MAX_CONCERN_LENGTH = 1000;
 const MAX_SYSTEM_LENGTH = 12000;
 const MAX_CONTEXT_RESULTS = 5;
+const MAX_SOURCE_COUNT = 5;
 
 const STYLING_CONTEXT_TERMS = [
   '스타일', '스타일링', '코디', '패션', '옷', '의상', '핏', '색상', '컬러', '퍼스널컬러',
@@ -92,6 +93,60 @@ function buildSafeSearchSeed(concern) {
     .trim();
 }
 
+function getSourceDomain(link) {
+  try {
+    const hostname = new URL(String(link || '')).hostname.replace(/^www\./i, '');
+    return normalizeInputText(hostname, 80);
+  } catch (error) {
+    return '';
+  }
+}
+
+function isUsefulSerperSource(item) {
+  const title = normalizeInputText(item?.title, 140);
+  const snippet = normalizeInputText(item?.snippet, 240);
+  const link = normalizeInputText(item?.link, 240);
+  const domain = getSourceDomain(link);
+  if (!title || !link || !domain) return false;
+  if (!/^https?:\/\//i.test(link)) return false;
+  if (/^(accounts\.|login\.|m\.)/i.test(domain)) return false;
+  if (/\.(?:pdf|zip|png|jpe?g|gif|webp)(?:$|[?#])/i.test(link)) return false;
+  if (/로그인|회원가입|이미지|동영상|광고/i.test(title) && !snippet) return false;
+  return true;
+}
+
+function normalizeSerperSource(item) {
+  const link = normalizeInputText(item?.link, 240);
+  return {
+    title: normalizeInputText(item?.title, 140),
+    link,
+    snippet: normalizeInputText(item?.snippet, 240),
+    domain: getSourceDomain(link)
+  };
+}
+
+function dedupeSerperSources(results, limit = MAX_SOURCE_COUNT) {
+  const unique = [];
+  const seenLinks = new Set();
+  const seenTitles = new Set();
+
+  for (const rawItem of Array.isArray(results) ? results : []) {
+    const item = normalizeSerperSource(rawItem);
+    if (!isUsefulSerperSource(item)) continue;
+
+    const linkKey = item.link.replace(/[?#].*$/, '').replace(/\/$/, '').toLowerCase();
+    const titleKey = item.title.toLowerCase();
+    if (seenLinks.has(linkKey) || seenTitles.has(titleKey)) continue;
+
+    seenLinks.add(linkKey);
+    seenTitles.add(titleKey);
+    unique.push(item);
+    if (unique.length >= limit) break;
+  }
+
+  return unique;
+}
+
 function buildStylingSearchQueries(concern) {
   const seed = buildSafeSearchSeed(concern);
   if (!seed || !isStylingRelated(seed)) return [];
@@ -131,19 +186,15 @@ async function searchSerper(query, apiKey) {
   const data = await response.json();
   return (Array.isArray(data?.organic) ? data.organic : [])
     .slice(0, MAX_CONTEXT_RESULTS)
-    .map((item) => ({
-      title: normalizeInputText(item?.title, 140),
-      snippet: normalizeInputText(item?.snippet, 240),
-      link: normalizeInputText(item?.link, 240)
-    }))
-    .filter((item) => item.title || item.snippet);
+    .map(normalizeSerperSource)
+    .filter(isUsefulSerperSource);
 }
 
 async function getStylingSearchContext(concern) {
   const apiKey = process.env.SERPER_API_KEY;
   const queries = buildStylingSearchQueries(concern);
   if (!apiKey || !queries.length) {
-    return { usedSearch: false, context: '' };
+    return { usedSearch: false, context: '', sources: [] };
   }
 
   const results = [];
@@ -153,27 +204,24 @@ async function getStylingSearchContext(concern) {
     if (results.length >= MAX_CONTEXT_RESULTS) break;
   }
 
-  const unique = [];
-  const seen = new Set();
-  for (const item of results) {
-    const key = item.link || `${item.title}:${item.snippet}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    unique.push(item);
-    if (unique.length >= MAX_CONTEXT_RESULTS) break;
-  }
+  const unique = dedupeSerperSources(results, MAX_SOURCE_COUNT);
 
-  if (!unique.length) return { usedSearch: false, context: '' };
+  if (!unique.length) return { usedSearch: false, context: '', sources: [] };
 
   const context = unique
     .map((item, index) => [
       `${index + 1}. ${item.title}`,
       item.snippet ? `요약: ${item.snippet}` : '',
+      item.domain ? `사이트: ${item.domain}` : '',
       item.link ? `출처: ${item.link}` : ''
     ].filter(Boolean).join('\n'))
     .join('\n\n');
 
-  return { usedSearch: true, context };
+  return {
+    usedSearch: true,
+    context,
+    sources: unique
+  };
 }
 
 function buildGeminiParts(messages, concern, searchContext) {
@@ -182,7 +230,7 @@ function buildGeminiParts(messages, concern, searchContext) {
     .join('\n\n');
 
   const contextBlock = searchContext
-    ? `\n\nStyling search context for reference only. Use it only when it helps practical styling advice. Do not mention search mechanics unless needed.\n${searchContext}`
+    ? `\n\nStyling search context for reference only. Use it only when it helps practical styling advice. Naturally distinguish the user's concern, public styling context, and your practical interpretation when useful. Do not cite sources that are not in this context.\n${searchContext}`
     : '';
 
   return [{ text: `Concern: ${concern}\n\nConversation:\n${conversation}${contextBlock}` }];
@@ -246,23 +294,30 @@ async function handler(req, res) {
 
   let usedSearch = false;
   let searchContext = '';
+  let sources = [];
 
   try {
     const searchResult = await getStylingSearchContext(concern);
     usedSearch = searchResult.usedSearch;
     searchContext = searchResult.context;
+    sources = Array.isArray(searchResult.sources) ? searchResult.sources : [];
   } catch (error) {
     console.warn('[api/loveme] Serper failed; falling back to Gemini-only answer:', error.message);
     usedSearch = false;
     searchContext = '';
+    sources = [];
   }
 
   try {
     const answer = await generateGeminiAnswer({ messages, system, concern, searchContext });
-    return res.status(200).json({ answer, usedSearch });
+    return res.status(200).json({
+      answer,
+      sources: usedSearch ? sources.slice(0, MAX_SOURCE_COUNT) : [],
+      usedSearch
+    });
   } catch (error) {
     console.error('[api/loveme] Gemini answer failed:', error.message);
-    return res.status(503).json({ error: 'LOVEME_ANSWER_FAILED', usedSearch: false });
+    return res.status(503).json({ error: 'LOVEME_ANSWER_FAILED', sources: [], usedSearch: false });
   }
 }
 
@@ -272,5 +327,7 @@ module.exports._private = {
   buildStylingSearchQueries,
   isStylingRelated,
   validateConcern,
-  sanitizeMessages
+  sanitizeMessages,
+  getSourceDomain,
+  dedupeSerperSources
 };

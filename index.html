@@ -148,7 +148,8 @@
         { id: 'document-ai', label: '해석' },
         { id: 'instant-answer', label: '즉답' },
         { id: 'web-search', label: '서치' },
-        { id: 'loveme', label: '럽미' }
+        { id: 'loveme', label: '럽미' },
+        { id: 'home-meal', label: '집밥' }
       ];
       const cleanupHandlers = new Map();
 
@@ -157,6 +158,7 @@
         if (document.body.classList.contains('instant-answer-mode')) return 'instant-answer';
         if (document.body.classList.contains('web-search-mode')) return 'web-search';
         if (document.body.classList.contains('loveme-mode')) return 'loveme';
+        if (document.body.classList.contains('home-meal-mode')) return 'home-meal';
         return 'shopping';
       }
 
@@ -174,7 +176,7 @@
           return;
         }
         window.ThisOneAIToolVoice?.stopAll?.();
-        document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode', 'web-search-mode', 'loveme-mode', 'search-mode');
+        document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode', 'web-search-mode', 'loveme-mode', 'home-meal-mode', 'search-mode');
         const container = document.getElementById('msgContainer');
         if (container) container.innerHTML = '';
       }
@@ -187,11 +189,12 @@
         }
 
         cleanupExcept(mode);
-        document.body.classList.remove('document-ai-mode', 'instant-answer-mode', 'web-search-mode', 'loveme-mode');
+        document.body.classList.remove('document-ai-mode', 'instant-answer-mode', 'web-search-mode', 'loveme-mode', 'home-meal-mode');
         if (mode === 'document-ai') window.ThisOneDocumentAI?.open?.();
         if (mode === 'instant-answer') window.ThisOneInstantAnswer?.open?.();
         if (mode === 'web-search') window.ThisOneWebSearch?.open?.();
         if (mode === 'loveme') window.ThisOneLoveMe?.open?.();
+        if (mode === 'home-meal') window.ThisOneHomeMeal?.open?.();
       }
 
       function render(activeMode) {
@@ -286,6 +289,9 @@ PDF나 사진을 올리면 AI가 쉽게 해석하고 궁금한 점에 답해드�
         </button>
         <button class="document-ai-entry-chip loveme-entry-chip" type="button" title="럽미 상담을 시작합니다." onclick="window.ThisOneModeTabs?.open ? window.ThisOneModeTabs.open('loveme') : window.ThisOneLoveMe?.open?.()">
           <span class="document-ai-entry-label">💖 럽미</span>
+        </button>
+        <button class="document-ai-entry-chip home-meal-entry-chip" type="button" title="있는 재료만 말하면 오늘 집밥을 골라드립니다." onclick="window.ThisOneModeTabs?.open ? window.ThisOneModeTabs.open('home-meal') : window.ThisOneHomeMeal?.open?.()">
+          <span class="document-ai-entry-label">🍚 집밥</span>
         </button>
       </div>
       
@@ -384,10 +390,14 @@ PDF나 사진을 올리면 AI가 쉽게 해석하고 궁금한 점에 답해드�
   <script src="js/composer_image_input.js?v=1.0.1" defer></script>
   <script src="js/search_help_modal.js?v=3.5.0" defer></script>
   <script src="js/search_input_tools.js?v=3.5.0" defer></script>
-  <script src="js/document_ai_shell.js?v=1.0.0" defer></script>
+  <script src="js/document_ai_shell.js?v=1.0.1" defer></script>
   <script src="js/instant_answer_shell.js?v=1.0.1" defer></script>
   <script src="js/web_search_shell.js?v=1.0.3" defer></script>
   <script src="js/loveme_shell.js?v=1.0.2" defer></script>
+  <script src="js/home_meal_shell.js?v=1.0.0" defer></script>
+  <script src="js/web_search_shell.js?v=1.0.3" defer></script>
+  <script src="js/loveme_shell.js?v=1.0.2" defer></script>
+  <script src="js/home_meal_shell.js?v=1.0.0" defer></script>
   <script src="js/rental_policy.js?v=3.5.0"></script>
   <script src="js/api.js?v=3.5.0"></script>
   <script src="js/productFamilies.js?v=3.5.0"></script>

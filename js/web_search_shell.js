@@ -1,5 +1,6 @@
 (function (global) {
   const WEB_SEARCH_MODE = 'web-search';
+  let removeWebSearchPasteListener = null;
 
   function escapeHtml(value) {
     return String(value || '')
@@ -42,6 +43,24 @@
     global.ThisOneAIToolVoice?.stopAll?.();
     document.body.classList.add('ai-tool-mode', 'web-search-mode');
     document.body.classList.remove('document-ai-mode', 'instant-answer-mode');
+  }
+
+  function cleanupWebSearchPasteListener() {
+    if (!removeWebSearchPasteListener) return;
+    removeWebSearchPasteListener();
+    removeWebSearchPasteListener = null;
+  }
+
+  function getClipboardImageFile(clipboardData) {
+    if (!clipboardData) return null;
+
+    const file = Array.from(clipboardData.files || []).find((candidate) => /^image\//.test(candidate?.type || ''));
+    if (file) return file;
+
+    return Array.from(clipboardData.items || [])
+      .filter((item) => item.kind === 'file' && /^image\//.test(item.type || ''))
+      .map((item) => item.getAsFile())
+      .find(Boolean) || null;
   }
 
   function exitWebSearchMode() {
@@ -184,6 +203,7 @@
     const selectedFileText = root.querySelector('#webSearchSelectedFileText');
     const selectedFileRemove = root.querySelector('#webSearchSelectedFileRemove');
     let selectedFileInput = null;
+    let selectedFile = null;
     let selectedFilePreviewUrl = '';
     global.ThisOneAIToolVoice?.attach?.({
       button: micButton,
@@ -235,6 +255,7 @@
     function clearSelectedFileStatus() {
       if (selectedFileInput) selectedFileInput.value = '';
       selectedFileInput = null;
+      selectedFile = null;
       revokeSelectedFilePreviewUrl();
       if (selectedFilePreview) {
         selectedFilePreview.removeAttribute('src');
@@ -244,19 +265,28 @@
       if (selectedFileStatus) selectedFileStatus.hidden = true;
     }
 
-    global.ThisOneModeTabs?.registerCleanup?.(WEB_SEARCH_MODE, clearSelectedFileStatus);
+    function cleanupWebSearch() {
+      clearSelectedFileStatus();
+      cleanupWebSearchPasteListener();
+    }
 
-    function setSelectedFileStatus(fileInput, label) {
-      const file = fileInput?.files?.[0];
-      const fileName = file?.name;
-      if (!fileName) {
+    global.ThisOneModeTabs?.registerCleanup?.(WEB_SEARCH_MODE, cleanupWebSearch);
+
+    function setSelectedFile(file, label, fileInput) {
+      const fileName = file?.name || '이미지';
+      if (!file) {
         clearSelectedFileStatus();
         return;
       }
 
       if (fileInput === uploadInput && cameraInput) cameraInput.value = '';
       if (fileInput === cameraInput && uploadInput) uploadInput.value = '';
-      selectedFileInput = fileInput;
+      if (!fileInput) {
+        if (uploadInput) uploadInput.value = '';
+        if (cameraInput) cameraInput.value = '';
+      }
+      selectedFileInput = fileInput || null;
+      selectedFile = file;
       revokeSelectedFilePreviewUrl();
       if (selectedFilePreview) {
         selectedFilePreviewUrl = URL.createObjectURL(file);
@@ -268,6 +298,21 @@
       if (selectedFileStatus) selectedFileStatus.hidden = false;
     }
 
+    function setSelectedFileStatus(fileInput, label) {
+      setSelectedFile(fileInput?.files?.[0] || null, label, fileInput);
+    }
+
+    function handlePaste(event) {
+      if (!root.isConnected || !document.body.classList.contains('web-search-mode')) return;
+
+      const file = getClipboardImageFile(event.clipboardData);
+      if (!file) return;
+
+      event.preventDefault();
+      setPlusMenuOpen(false);
+      setSelectedFile(file, '붙여넣은 이미지');
+    }
+
     uploadInput?.addEventListener('change', () => {
       setSelectedFileStatus(uploadInput, '선택된 이미지');
     });
@@ -277,6 +322,10 @@
     });
 
     selectedFileRemove?.addEventListener('click', clearSelectedFileStatus);
+
+    cleanupWebSearchPasteListener();
+    document.addEventListener('paste', handlePaste);
+    removeWebSearchPasteListener = () => document.removeEventListener('paste', handlePaste);
 
     document.addEventListener('click', (event) => {
       if (!root.contains(event.target)) return;

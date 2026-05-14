@@ -71,7 +71,7 @@
   function enterDocumentAIMode() {
     global.ThisOneAIToolVoice?.stopAll?.();
     document.body.classList.add('ai-tool-mode', 'document-ai-mode');
-    document.body.classList.remove('instant-answer-mode', 'web-search-mode');
+    document.body.classList.remove('instant-answer-mode', 'web-search-mode', 'loveme-mode');
   }
 
   function cleanupDocumentAI() {

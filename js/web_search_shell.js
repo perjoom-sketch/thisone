@@ -1,6 +1,5 @@
 (function (global) {
   const WEB_SEARCH_MODE = 'web-search';
-  let removeWebSearchPasteListener = null;
 
   function escapeHtml(value) {
     return String(value || '')
@@ -42,26 +41,9 @@
   function enterWebSearchMode() {
     global.ThisOneAIToolVoice?.stopAll?.();
     document.body.classList.add('ai-tool-mode', 'web-search-mode');
-    document.body.classList.remove('document-ai-mode', 'instant-answer-mode');
+    document.body.classList.remove('document-ai-mode', 'instant-answer-mode', 'loveme-mode');
   }
 
-  function cleanupWebSearchPasteListener() {
-    if (!removeWebSearchPasteListener) return;
-    removeWebSearchPasteListener();
-    removeWebSearchPasteListener = null;
-  }
-
-  function getClipboardImageFile(clipboardData) {
-    if (!clipboardData) return null;
-
-    const file = Array.from(clipboardData.files || []).find((candidate) => /^image\//.test(candidate?.type || ''));
-    if (file) return file;
-
-    return Array.from(clipboardData.items || [])
-      .filter((item) => item.kind === 'file' && /^image\//.test(item.type || ''))
-      .map((item) => item.getAsFile())
-      .find(Boolean) || null;
-  }
 
   function exitWebSearchMode() {
     global.ThisOneAIToolVoice?.stopAll?.();
@@ -207,7 +189,6 @@
 
     function cleanupWebSearch() {
       imageInput?.cleanup?.();
-      cleanupWebSearchPasteListener();
     }
 
     global.ThisOneModeTabs?.registerCleanup?.(WEB_SEARCH_MODE, cleanupWebSearch);

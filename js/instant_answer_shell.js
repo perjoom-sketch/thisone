@@ -29,7 +29,6 @@ For medical, legal, financial, or safety topics:
 Do not give long lectures.
 Do not answer with irrelevant shopping/product framing.
 Focus on what the user should understand or do next.`;
-  let removeInstantAnswerPasteListener = null;
 
   const EXAMPLES = [
     '배 아플 때 어떤 약 먹어야 해?',
@@ -51,26 +50,9 @@ Focus on what the user should understand or do next.`;
   function enterInstantAnswerMode() {
     global.ThisOneAIToolVoice?.stopAll?.();
     document.body.classList.add('ai-tool-mode', 'instant-answer-mode');
-    document.body.classList.remove('document-ai-mode', 'web-search-mode');
+    document.body.classList.remove('document-ai-mode', 'web-search-mode', 'loveme-mode');
   }
 
-  function cleanupInstantAnswerPasteListener() {
-    if (!removeInstantAnswerPasteListener) return;
-    removeInstantAnswerPasteListener();
-    removeInstantAnswerPasteListener = null;
-  }
-
-  function getClipboardImageFile(clipboardData) {
-    if (!clipboardData) return null;
-
-    const file = Array.from(clipboardData.files || []).find((candidate) => /^image\//.test(candidate?.type || ''));
-    if (file) return file;
-
-    return Array.from(clipboardData.items || [])
-      .filter((item) => item.kind === 'file' && /^image\//.test(item.type || ''))
-      .map((item) => item.getAsFile())
-      .find(Boolean) || null;
-  }
 
   function setStatus(element, message) {
     if (!element) return;
@@ -254,7 +236,6 @@ Focus on what the user should understand or do next.`;
 
     function cleanupInstantAnswer() {
       imageInput?.cleanup?.();
-      cleanupInstantAnswerPasteListener();
     }
 
     global.ThisOneModeTabs?.registerCleanup?.(INSTANT_ANSWER_MODE, cleanupInstantAnswer);

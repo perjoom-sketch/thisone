@@ -27,21 +27,28 @@
     `;
   }
 
+  function isMobileLike() {
+    try {
+      return global.matchMedia('(max-width: 640px), (pointer: coarse)').matches;
+    } catch (error) {
+      return /Android|iPhone|iPad|iPod/i.test(global.navigator?.userAgent || '');
+    }
+  }
+
   function renderControls(options = {}) {
     const id = options.id || 'composerImage';
     const plusClass = options.plusClass || '';
     const wrapClass = options.wrapClass || '';
     const menuClass = options.menuClass || '';
     const itemClass = options.itemClass || '';
+    const uploadLabel = isMobileLike() ? '사진보관함' : '이미지 업로드';
     return `
       <div class="composer-plus-wrap ${wrapClass}">
-        <button class="ai-tool-icon-button ai-tool-plus-button composer-plus-button ${plusClass}" id="${id}PlusButton" type="button" aria-label="이미지 메뉴 열기" aria-expanded="false" aria-controls="${id}Menu" title="이미지 메뉴 열기">+</button>
+        <button class="ai-tool-icon-button ai-tool-plus-button composer-plus-button ${plusClass}" id="${id}PlusButton" type="button" aria-label="입력 방식 선택" aria-expanded="false" aria-controls="${id}Menu" title="입력 방식 선택">+</button>
         <div class="composer-plus-menu ${menuClass}" id="${id}Menu" role="menu" hidden>
-          <button class="composer-plus-menu-item ${itemClass}" id="${id}UploadButton" type="button" role="menuitem">이미지 업로드</button>
-          <button class="composer-plus-menu-item ${itemClass}" id="${id}CameraButton" type="button" role="menuitem">사진 찍기</button>
+          <button class="composer-plus-menu-item ${itemClass}" id="${id}UploadButton" type="button" role="menuitem"><span aria-hidden="true">🖼️</span><span>${uploadLabel}</span></button>
         </div>
         <input class="composer-image-file-input" id="${id}UploadInput" type="file" accept="image/*" hidden>
-        <input class="composer-image-file-input" id="${id}CameraInput" type="file" accept="image/*" capture="environment" hidden>
       </div>
     `;
   }
@@ -54,9 +61,7 @@
     const plusButton = root.querySelector(`#${id}PlusButton`);
     const plusMenu = root.querySelector(`#${id}Menu`);
     const uploadButton = root.querySelector(`#${id}UploadButton`);
-    const cameraButton = root.querySelector(`#${id}CameraButton`);
     const uploadInput = root.querySelector(`#${id}UploadInput`);
-    const cameraInput = root.querySelector(`#${id}CameraInput`);
     const preview = root.querySelector(`#${id}Preview`);
     const previewImg = root.querySelector(`#${id}PreviewImg`);
     const removeButton = root.querySelector(`#${id}Remove`);
@@ -101,12 +106,7 @@
         return;
       }
 
-      if (fileInput === uploadInput && cameraInput) cameraInput.value = '';
-      if (fileInput === cameraInput && uploadInput) uploadInput.value = '';
-      if (!fileInput) {
-        if (uploadInput) uploadInput.value = '';
-        if (cameraInput) cameraInput.value = '';
-      }
+      if (!fileInput && uploadInput) uploadInput.value = '';
 
       selectedFileInput = fileInput || null;
       selectedFile = file;
@@ -140,9 +140,7 @@
       setPlusMenuOpen(!!plusMenu?.hidden);
     });
     uploadButton?.addEventListener('click', () => openFilePicker(uploadInput));
-    cameraButton?.addEventListener('click', () => openFilePicker(cameraInput));
     uploadInput?.addEventListener('change', () => setFile(uploadInput.files?.[0] || null, uploadInput));
-    cameraInput?.addEventListener('change', () => setFile(cameraInput.files?.[0] || null, cameraInput));
     removeButton?.addEventListener('click', clear);
     document.addEventListener('paste', handlePaste);
     document.addEventListener('click', handleDocumentClick);

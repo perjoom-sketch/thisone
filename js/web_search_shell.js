@@ -142,21 +142,14 @@
         </div>
 
         <div class="ai-tool-composer web-search-form" role="search">
+          ${global.ThisOneComposerImageInput?.render?.({ id: 'webSearchImage', label: '서치 이미지' }) || ''}
           <div class="ai-tool-input web-search-composer-top">
             <label class="web-search-label" for="webSearchInput">검색어 입력창</label>
             <input class="web-search-input" id="webSearchInput" type="search" placeholder="검색어를 입력하세요" autocomplete="off">
           </div>
           <div class="ai-tool-control-row web-search-composer-bottom">
             <div class="ai-tool-left-controls web-search-composer-left-actions">
-              <div class="web-search-plus-wrap">
-                <button class="ai-tool-icon-button ai-tool-plus-button web-search-plus-button" id="webSearchPlusButton" type="button" aria-label="이미지 메뉴 열기" aria-expanded="false" aria-controls="webSearchPlusMenu" title="이미지 메뉴 열기">+</button>
-                <div class="web-search-plus-menu" id="webSearchPlusMenu" role="menu" hidden>
-                  <button class="web-search-plus-menu-item" id="webSearchUploadButton" type="button" role="menuitem">이미지 업로드</button>
-                  <button class="web-search-plus-menu-item" id="webSearchCameraButton" type="button" role="menuitem">사진 찍기</button>
-                </div>
-                <input class="web-search-file-input" id="webSearchUploadInput" type="file" accept="image/*" hidden>
-                <input class="web-search-file-input" id="webSearchCameraInput" type="file" accept="image/*" capture="environment" hidden>
-              </div>
+              ${global.ThisOneComposerImageInput?.renderControls?.({ id: 'webSearchImage', plusClass: 'web-search-plus-button' }) || ''}
             </div>
             <div class="ai-tool-right-controls web-search-composer-actions">
               <button class="ai-tool-icon-button ai-tool-help-button web-search-help-button" id="webSearchHelpButton" type="button" aria-label="서치 안내 보기" aria-expanded="false" aria-controls="webSearchHelpPanel" title="서치 안내">?</button>
@@ -174,11 +167,6 @@
         </div>
 
         <p class="ai-tool-voice-status" id="webSearchVoiceStatus" aria-live="polite" hidden></p>
-        <div class="web-search-selected-file" id="webSearchSelectedFile" hidden>
-          <img class="web-search-selected-file-preview" id="webSearchSelectedFilePreview" alt="" hidden>
-          <span class="web-search-selected-file-text" id="webSearchSelectedFileText" role="status" aria-live="polite"></span>
-          <button class="web-search-selected-file-remove" id="webSearchSelectedFileRemove" type="button" aria-label="선택한 이미지 제거" title="선택한 이미지 제거">×</button>
-        </div>
         <p class="web-search-status" id="webSearchStatus" role="status" aria-live="polite" hidden></p>
         <div class="web-search-results" id="webSearchResults" aria-live="polite"></div>
       </section>
@@ -190,21 +178,6 @@
     const status = root.querySelector('#webSearchStatus');
     const micButton = root.querySelector('#webSearchMicButton');
     const voiceStatus = root.querySelector('#webSearchVoiceStatus');
-    const plusButton = root.querySelector('#webSearchPlusButton');
-    const plusMenu = root.querySelector('#webSearchPlusMenu');
-    const helpButton = root.querySelector('#webSearchHelpButton');
-    const helpPanel = root.querySelector('#webSearchHelpPanel');
-    const uploadButton = root.querySelector('#webSearchUploadButton');
-    const cameraButton = root.querySelector('#webSearchCameraButton');
-    const uploadInput = root.querySelector('#webSearchUploadInput');
-    const cameraInput = root.querySelector('#webSearchCameraInput');
-    const selectedFileStatus = root.querySelector('#webSearchSelectedFile');
-    const selectedFilePreview = root.querySelector('#webSearchSelectedFilePreview');
-    const selectedFileText = root.querySelector('#webSearchSelectedFileText');
-    const selectedFileRemove = root.querySelector('#webSearchSelectedFileRemove');
-    let selectedFileInput = null;
-    let selectedFile = null;
-    let selectedFilePreviewUrl = '';
     global.ThisOneAIToolVoice?.attach?.({
       button: micButton,
       input,
@@ -213,10 +186,15 @@
     });
     global.ThisOneModeTabs?.bind?.(root);
 
+    const imageInput = global.ThisOneComposerImageInput?.attach?.(root, {
+      id: 'webSearchImage',
+      isActive: () => root.isConnected && document.body.classList.contains('web-search-mode'),
+      beforeOpen: () => setHelpPanelOpen(false)
+    });
+
     function setPlusMenuOpen(isOpen) {
-      if (!plusButton || !plusMenu) return;
-      plusMenu.hidden = !isOpen;
-      plusButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      if (isOpen) imageInput?.closeMenu?.();
+      else imageInput?.closeMenu?.();
     }
 
     function setHelpPanelOpen(isOpen) {
@@ -225,111 +203,16 @@
       helpButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     }
 
-    function openFilePicker(fileInput) {
-      setPlusMenuOpen(false);
-      if (!fileInput) return;
-      fileInput.value = '';
-      fileInput.click();
-    }
-
-    plusButton?.addEventListener('click', (event) => {
-      event.stopPropagation();
-      setHelpPanelOpen(false);
-      setPlusMenuOpen(!!plusMenu?.hidden);
-    });
-
-    helpButton?.addEventListener('click', () => {
-      setPlusMenuOpen(false);
-      setHelpPanelOpen(!!helpPanel?.hidden);
-    });
-
-    uploadButton?.addEventListener('click', () => openFilePicker(uploadInput));
-    cameraButton?.addEventListener('click', () => openFilePicker(cameraInput));
-
-    function revokeSelectedFilePreviewUrl() {
-      if (!selectedFilePreviewUrl) return;
-      URL.revokeObjectURL(selectedFilePreviewUrl);
-      selectedFilePreviewUrl = '';
-    }
-
-    function clearSelectedFileStatus() {
-      if (selectedFileInput) selectedFileInput.value = '';
-      selectedFileInput = null;
-      selectedFile = null;
-      revokeSelectedFilePreviewUrl();
-      if (selectedFilePreview) {
-        selectedFilePreview.removeAttribute('src');
-        selectedFilePreview.hidden = true;
-      }
-      if (selectedFileText) selectedFileText.textContent = '';
-      if (selectedFileStatus) selectedFileStatus.hidden = true;
-    }
-
     function cleanupWebSearch() {
-      clearSelectedFileStatus();
+      imageInput?.cleanup?.();
       cleanupWebSearchPasteListener();
     }
 
     global.ThisOneModeTabs?.registerCleanup?.(WEB_SEARCH_MODE, cleanupWebSearch);
 
-    function setSelectedFile(file, label, fileInput) {
-      const fileName = file?.name || '이미지';
-      if (!file) {
-        clearSelectedFileStatus();
-        return;
-      }
-
-      if (fileInput === uploadInput && cameraInput) cameraInput.value = '';
-      if (fileInput === cameraInput && uploadInput) uploadInput.value = '';
-      if (!fileInput) {
-        if (uploadInput) uploadInput.value = '';
-        if (cameraInput) cameraInput.value = '';
-      }
-      selectedFileInput = fileInput || null;
-      selectedFile = file;
-      revokeSelectedFilePreviewUrl();
-      if (selectedFilePreview) {
-        selectedFilePreviewUrl = URL.createObjectURL(file);
-        selectedFilePreview.src = selectedFilePreviewUrl;
-        selectedFilePreview.alt = `${label} 미리보기`;
-        selectedFilePreview.hidden = false;
-      }
-      if (selectedFileText) selectedFileText.textContent = `${label}: ${fileName}`;
-      if (selectedFileStatus) selectedFileStatus.hidden = false;
-    }
-
-    function setSelectedFileStatus(fileInput, label) {
-      setSelectedFile(fileInput?.files?.[0] || null, label, fileInput);
-    }
-
-    function handlePaste(event) {
-      if (!root.isConnected || !document.body.classList.contains('web-search-mode')) return;
-
-      const file = getClipboardImageFile(event.clipboardData);
-      if (!file) return;
-
-      event.preventDefault();
+    helpButton?.addEventListener('click', () => {
       setPlusMenuOpen(false);
-      setSelectedFile(file, '붙여넣은 이미지');
-    }
-
-    uploadInput?.addEventListener('change', () => {
-      setSelectedFileStatus(uploadInput, '선택된 이미지');
-    });
-
-    cameraInput?.addEventListener('change', () => {
-      setSelectedFileStatus(cameraInput, '선택된 사진');
-    });
-
-    selectedFileRemove?.addEventListener('click', clearSelectedFileStatus);
-
-    cleanupWebSearchPasteListener();
-    document.addEventListener('paste', handlePaste);
-    removeWebSearchPasteListener = () => document.removeEventListener('paste', handlePaste);
-
-    document.addEventListener('click', (event) => {
-      if (!root.contains(event.target)) return;
-      if (!plusMenu?.hidden && !event.target.closest('.web-search-plus-wrap')) setPlusMenuOpen(false);
+      setHelpPanelOpen(!!helpPanel?.hidden);
     });
 
     root.addEventListener('keydown', (event) => {

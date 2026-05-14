@@ -4419,6 +4419,72 @@ body.ai-tool-mode #msgContainer {
   font-size: clamp(0.88rem, 2vw, 1rem);
 }
 
+
+/* Shared compact image UX for every service composer */
+.composer-img-preview {
+  align-self: flex-start;
+  margin-bottom: 0;
+  gap: clamp(0.5rem, 1.5vw, 0.75rem);
+}
+
+.composer-img-preview .pv-item {
+  width: clamp(3.5rem, 12vw, 4.375rem);
+  height: clamp(3.5rem, 12vw, 4.375rem);
+}
+
+.composer-plus-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.composer-plus-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + clamp(0.4rem, 1.2vw, 0.6rem));
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.2rem, 0.8vw, 0.35rem);
+  min-inline-size: max-content;
+  padding: clamp(0.35rem, 1vw, 0.5rem);
+  border: 0.0625rem solid #dbeafe;
+  border-radius: clamp(0.75rem, 2vw, 0.95rem);
+  background: #ffffff;
+  box-shadow: 0 clamp(0.45rem, 1.4vw, 0.7rem) clamp(1.2rem, 3vw, 1.8rem) rgba(15, 23, 42, 0.14);
+}
+
+.composer-plus-menu[hidden] {
+  display: none;
+}
+
+.composer-plus-menu-item {
+  width: 100%;
+  padding: clamp(0.55rem, 1.6vw, 0.7rem) clamp(0.75rem, 2vw, 0.95rem);
+  border: 0;
+  border-radius: clamp(0.55rem, 1.5vw, 0.75rem);
+  background: transparent;
+  color: #1e293b;
+  font-family: inherit;
+  font-size: clamp(0.88rem, 2vw, 0.98rem);
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.composer-plus-menu-item:hover,
+.composer-plus-menu-item:focus-visible {
+  background: #eff6ff;
+  color: #0369a1;
+  outline: none;
+}
+
+.composer-image-file-input {
+  display: none;
+}
+
 /* Shared AI tool composer system: 해석 / 즉답 / 서치 / 럽미 */
 .ai-tool-composer {
   display: flex;

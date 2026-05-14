@@ -4338,6 +4338,162 @@ body.ai-tool-mode #msgContainer {
   color: #1e293b;
 }
 
+.home-meal-result[hidden] {
+  display: none;
+}
+
+.home-meal-result-panel {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 2vw, 1rem);
+  width: 100%;
+}
+
+.home-meal-ingredient-summary,
+.home-meal-menu-row {
+  display: flex;
+  align-items: stretch;
+  gap: clamp(0.75rem, 2vw, 1rem);
+  padding: clamp(0.85rem, 2vw, 1rem);
+  border: 0.0625rem solid #dcfce7;
+  border-radius: clamp(0.85rem, 2vw, 1rem);
+  background: #ffffff;
+}
+
+.home-meal-ingredient-summary {
+  flex-direction: column;
+}
+
+.home-meal-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.65rem, 1.8vw, 0.9rem);
+}
+
+.home-meal-menu-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.45rem, 1.4vw, 0.7rem);
+}
+
+.home-meal-menu-main h3,
+.home-meal-result-title,
+.home-meal-result-copy,
+.home-meal-menu-main p,
+.home-meal-source-note,
+.home-meal-menu-evidence p {
+  margin: 0;
+}
+
+.home-meal-menu-main h3,
+.home-meal-result-title {
+  color: #166534;
+  font-size: clamp(1rem, 2.4vw, 1.18rem);
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.home-meal-menu-main p,
+.home-meal-result-copy,
+.home-meal-source-note,
+.home-meal-menu-evidence p {
+  color: #475569;
+  font-size: clamp(0.84rem, 2vw, 0.95rem);
+  line-height: 1.6;
+}
+
+.home-meal-menu-meta {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.35rem, 1vw, 0.5rem);
+}
+
+.home-meal-result-label,
+.home-meal-evidence-badge {
+  color: #2563eb;
+  font-size: clamp(0.74rem, 1.8vw, 0.82rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.home-meal-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.35rem, 1vw, 0.5rem);
+}
+
+.home-meal-pill,
+.home-meal-muted {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999rem;
+  padding: clamp(0.22rem, 0.8vw, 0.32rem) clamp(0.5rem, 1.4vw, 0.7rem);
+  font-size: clamp(0.76rem, 1.8vw, 0.86rem);
+  line-height: 1.25;
+}
+
+.home-meal-pill {
+  border: 0.0625rem solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+  font-weight: 700;
+}
+
+.home-meal-missing-row .home-meal-pill {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.home-meal-muted {
+  border: 0.0625rem solid #dbeafe;
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.home-meal-menu-evidence {
+  flex: 0 1 min(36%, 18rem);
+  min-width: min(38vw, 12rem);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.4rem, 1.2vw, 0.6rem);
+  padding: clamp(0.65rem, 1.8vw, 0.85rem);
+  border-radius: clamp(0.75rem, 2vw, 0.9rem);
+  background: #f8fafc;
+}
+
+.home-meal-menu-evidence a {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.25rem, 0.8vw, 0.35rem);
+  color: #1e293b;
+  font-size: clamp(0.78rem, 1.8vw, 0.88rem);
+  font-weight: 700;
+  line-height: 1.45;
+  text-decoration: none;
+}
+
+.home-meal-menu-evidence small {
+  color: #64748b;
+  font-size: clamp(0.72rem, 1.7vw, 0.8rem);
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .home-meal-menu-row {
+    gap: clamp(0.55rem, 2vw, 0.75rem);
+  }
+
+  .home-meal-menu-evidence {
+    flex-basis: min(38%, 11rem);
+    min-width: min(36vw, 9rem);
+    padding: clamp(0.55rem, 1.8vw, 0.7rem);
+  }
+}
+
 @media (max-width: 640px) {
   .home-meal-panel {
     padding: clamp(1rem, 3vw, 1.5rem) 0;

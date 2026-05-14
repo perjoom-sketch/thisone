@@ -206,6 +206,7 @@
     });
 
     async function runSearch(queryOverride) {
+      setHelpPanelOpen(false);
       const query = String(queryOverride || input.value || '').trim();
       if (!query) {
         setStatus(status, '검색어를 입력해주세요.');
@@ -230,6 +231,8 @@
       }
     }
 
+    input.addEventListener('focus', () => setHelpPanelOpen(false));
+    input.addEventListener('input', () => setHelpPanelOpen(false));
     submit.addEventListener('click', () => runSearch());
     input.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {

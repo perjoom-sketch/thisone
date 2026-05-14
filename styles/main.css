@@ -237,7 +237,8 @@ body.search-mode .results-view {
 .document-ai-composer:focus-within,
 .instant-answer-composer:focus-within,
 .web-search-form:focus-within,
-.loveme-composer:focus-within {
+.loveme-composer:focus-within,
+.home-meal-composer:focus-within {
   border-color: var(--composer-focus-border);
   box-shadow: var(--composer-focus-shadow);
 }
@@ -2516,7 +2517,8 @@ body.search-mode .results-view {
 .document-ai-help-button,
 .instant-answer-help-button,
 .web-search-help-button,
-.loveme-help-button {
+.loveme-help-button,
+.home-meal-help-button {
   margin-left: auto;
   inline-size: var(--shopping-composer-right-button-size);
   block-size: var(--shopping-composer-right-button-size);
@@ -3301,7 +3303,8 @@ body.ai-tool-mode #msgContainer {
 .document-ai-help-button,
 .instant-answer-help-button,
 .web-search-help-button,
-.loveme-help-button {
+.loveme-help-button,
+.home-meal-help-button {
   margin-left: auto;
   inline-size: var(--shopping-composer-right-button-size);
   block-size: var(--shopping-composer-right-button-size);
@@ -3449,7 +3452,9 @@ body.ai-tool-mode #msgContainer {
   .web-search-form .ai-tool-mic-button,
   .web-search-help-button,
   .loveme-help-button,
+  .home-meal-help-button,
   .loveme-panel .ai-tool-mic-button,
+  .home-meal-panel .ai-tool-mic-button,
   .document-ai-help-button,
   .instant-answer-help-button {
     inline-size: var(--shopping-composer-right-button-size);
@@ -3458,6 +3463,7 @@ body.ai-tool-mode #msgContainer {
 
   .web-search-plus-button,
   .loveme-plus-button,
+  .home-meal-plus-button,
   .document-ai-upload-action,
   .instant-answer-plus-button {
     inline-size: var(--shopping-composer-left-button-size);
@@ -3473,8 +3479,11 @@ body.ai-tool-mode #msgContainer {
 .web-search-plus-button,
 .web-search-help-button,
 .loveme-plus-button,
+.home-meal-plus-button,
 .loveme-help-button,
+.home-meal-help-button,
 .loveme-panel .ai-tool-mic-button,
+.home-meal-panel .ai-tool-mic-button,
 .document-ai-panel .ai-tool-mic-button,
 .instant-answer-panel .ai-tool-mic-button,
 .web-search-form .ai-tool-mic-button {
@@ -3489,7 +3498,8 @@ body.ai-tool-mode #msgContainer {
 .document-ai-upload-action,
 .instant-answer-plus-button,
 .web-search-plus-button,
-.loveme-plus-button {
+.loveme-plus-button,
+.home-meal-plus-button {
   color: var(--color-primary);
   font-size: clamp(1.75rem, 4.8vw, 2.1rem);
   font-weight: 900;
@@ -3498,7 +3508,8 @@ body.ai-tool-mode #msgContainer {
 .document-ai-help-button,
 .instant-answer-help-button,
 .web-search-help-button,
-.loveme-help-button {
+.loveme-help-button,
+.home-meal-help-button {
   font-size: clamp(0.9rem, 2vw, 1rem);
   font-weight: 800;
 }
@@ -3532,6 +3543,8 @@ body.ai-tool-mode #msgContainer {
 .document-ai-panel .ai-tool-mic-button:focus-visible,
 .instant-answer-panel .ai-tool-mic-button:hover,
 .instant-answer-panel .ai-tool-mic-button:focus-visible,
+.home-meal-panel .ai-tool-mic-button:hover,
+.home-meal-panel .ai-tool-mic-button:focus-visible,
 .web-search-form .ai-tool-mic-button:hover,
 .web-search-form .ai-tool-mic-button:focus-visible,
 .ai-tool-mic-button.is-listening {
@@ -4046,11 +4059,184 @@ body.ai-tool-mode #msgContainer {
   }
 }
 
-/* Shared AI tool intro copy alignment: 해석 / 즉답 / 서치 / 럽미 */
+
+.home-meal-entry-chip {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.home-meal-entry-chip:hover,
+.home-meal-entry-chip:focus-visible {
+  border-color: #4ade80;
+  box-shadow: 0 clamp(0.35rem, 1.5vw, 0.65rem) clamp(1rem, 3vw, 1.5rem) rgba(34, 197, 94, 0.12);
+}
+
+/* Home Meal service shell */
+.home-meal-panel {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 2vw, 1rem);
+  width: var(--shopping-composer-width);
+  margin: 0 auto;
+  padding: clamp(1rem, 3vw, 1.5rem) 0;
+  border: 0.0625rem solid #dcfce7;
+  border-radius: clamp(1rem, 3vw, 1.5rem);
+  background: #f8fafc;
+  box-shadow: 0 clamp(0.35rem, 1vw, 0.55rem) clamp(1rem, 3vw, 1.5rem) rgba(37, 99, 235, 0.05);
+}
+
+.home-meal-copy {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.35rem, 1vw, 0.5rem);
+}
+
+.home-meal-main-copy,
+.home-meal-sub-copy,
+.home-meal-help-copy,
+.home-meal-status {
+  margin: 0;
+  color: #475569;
+  line-height: 1.65;
+  font-size: clamp(0.88rem, 2vw, 1rem);
+}
+
+.home-meal-main-copy {
+  color: #334155;
+  font-weight: 600;
+}
+
+.home-meal-sub-copy {
+  color: #15803d;
+  font-weight: 700;
+}
+
+.home-meal-composer-top,
+.home-meal-composer-bottom,
+.home-meal-composer-left-actions,
+.home-meal-composer-actions {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.home-meal-composer-top {
+  min-width: 0;
+}
+
+.home-meal-composer-bottom {
+  justify-content: space-between;
+  gap: var(--shopping-composer-control-gap);
+  flex-wrap: nowrap;
+}
+
+.home-meal-composer-left-actions,
+.home-meal-composer-actions {
+  gap: var(--shopping-composer-control-gap);
+  width: auto;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.home-meal-composer-left-actions {
+  flex: 1 1 auto;
+  justify-content: flex-start;
+}
+
+.home-meal-composer-actions {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
+.home-meal-question-label {
+  position: absolute;
+  width: 0.0625rem;
+  height: 0.0625rem;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.home-meal-plus-button,
+.home-meal-help-button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--shopping-composer-left-button-size);
+  block-size: var(--shopping-composer-left-button-size);
+  padding: 0;
+  border: 0;
+  border-radius: 999rem;
+  background: #f1f5f9;
+  color: #64748b;
+  font-family: inherit;
+  font-size: clamp(1.45rem, 4vw, 1.8rem);
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.home-meal-help-button {
+  inline-size: var(--shopping-composer-right-button-size);
+  block-size: var(--shopping-composer-right-button-size);
+  border: 0.0625rem solid #bfdbfe;
+  background: #ffffff;
+  color: #2563eb;
+  font-size: clamp(1rem, 2.8vw, 1.2rem);
+  font-weight: 900;
+}
+
+.home-meal-help-panel {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 1.4vw, 0.75rem);
+  padding: clamp(0.75rem, 2vw, 1rem);
+  border: 0.0625rem solid #dcfce7;
+  border-radius: clamp(0.85rem, 2vw, 1rem);
+  background: #ffffff;
+}
+
+.home-meal-help-panel[hidden],
+.home-meal-status[hidden] {
+  display: none;
+}
+
+.home-meal-help-title {
+  margin: 0;
+  color: #15803d;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  font-weight: 800;
+}
+
+.home-meal-status {
+  padding: clamp(0.9rem, 2vw, 1.1rem);
+  border: 0.0625rem solid #dcfce7;
+  border-radius: clamp(0.85rem, 2vw, 1rem);
+  background: #ffffff;
+  color: #1e293b;
+}
+
+@media (max-width: 640px) {
+  .home-meal-panel {
+    padding: clamp(1rem, 3vw, 1.5rem) 0;
+  }
+
+  .home-meal-composer-bottom,
+  .home-meal-composer-actions {
+    gap: var(--shopping-composer-control-gap);
+  }
+}
+
+/* Shared AI tool intro copy alignment: 해석 / 즉답 / 서치 / 럽미 / 집밥 */
 .document-ai-copy,
 .instant-answer-copy,
 .web-search-copy,
-.loveme-copy {
+.loveme-copy,
+.home-meal-copy {
   align-items: center;
   width: 100%;
   text-align: center;
@@ -4060,9 +4246,11 @@ body.ai-tool-mode #msgContainer {
 .instant-answer-main-copy,
 .web-search-main-copy,
 .loveme-main-copy,
+.home-meal-main-copy,
 .document-ai-sub-copy,
 .instant-answer-sub-copy,
-.web-search-sub-copy {
+.web-search-sub-copy,
+.home-meal-sub-copy {
   text-align: center;
   line-height: 1.65;
 }
@@ -4070,13 +4258,15 @@ body.ai-tool-mode #msgContainer {
 .document-ai-main-copy,
 .instant-answer-main-copy,
 .web-search-main-copy,
-.loveme-main-copy {
+.loveme-main-copy,
+.home-meal-main-copy {
   font-size: clamp(1rem, 2.5vw, 1.2rem);
 }
 
 .document-ai-sub-copy,
 .instant-answer-sub-copy,
-.web-search-sub-copy {
+.web-search-sub-copy,
+.home-meal-sub-copy {
   font-size: clamp(0.88rem, 2vw, 1rem);
 }
 
@@ -4149,7 +4339,7 @@ body.ai-tool-mode #msgContainer {
   display: none;
 }
 
-/* Shared AI tool composer system: 해석 / 즉답 / 서치 / 럽미 */
+/* Shared AI tool composer system: 해석 / 즉답 / 서치 / 럽미 / 집밥 */
 .ai-tool-composer {
   display: flex;
   flex-direction: column;
@@ -4285,6 +4475,7 @@ body.ai-tool-mode #msgContainer {
 .document-ai-question,
 .instant-answer-question,
 .loveme-question,
+.home-meal-question,
 .web-search-input {
   width: 100%;
   min-width: 0;
@@ -4302,6 +4493,7 @@ body.ai-tool-mode #msgContainer {
 .document-ai-question:focus,
 .instant-answer-question:focus,
 .loveme-question:focus,
+.home-meal-question:focus,
 .web-search-input:focus {
   outline: none;
 }
@@ -4312,7 +4504,8 @@ body.ai-tool-mode #msgContainer {
 }
 
 .instant-answer-question,
-.loveme-question {
+.loveme-question,
+.home-meal-question {
   min-height: auto;
   block-size: auto;
   overflow: hidden;
@@ -4332,7 +4525,9 @@ body.ai-tool-mode #msgContainer {
 .web-search-plus-button,
 .web-search-help-button,
 .loveme-plus-button,
+.home-meal-plus-button,
 .loveme-help-button,
+.home-meal-help-button,
 .ai-tool-mic-button {
   transform: none;
 }

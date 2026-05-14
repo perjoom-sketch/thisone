@@ -315,6 +315,46 @@ Keep it practical and kind. Avoid long lectures.`;
     return `<div class="loveme-answer-cards">${visibleSections.map(renderLoveMeSection).join('')}</div>`;
   }
 
+
+  function normalizeSourceItem(source) {
+    const title = String(source?.title || '').trim();
+    const link = String(source?.link || '').trim();
+    const domain = String(source?.domain || '').trim();
+    if (!title || !link || !domain || !/^https?:\/\//i.test(link)) return null;
+    return { title, link, domain };
+  }
+
+  function renderLoveMeSources(sources, usedSearch) {
+    const cleanSources = (Array.isArray(sources) ? sources : [])
+      .map(normalizeSourceItem)
+      .filter(Boolean)
+      .slice(0, 5);
+
+    if (!cleanSources.length) {
+      return usedSearch ? '' : '<p class="loveme-source-note">공개 출처 없이 입력한 고민 기준으로 정리했습니다.</p>';
+    }
+
+    return `
+      <aside class="loveme-sources" aria-label="참고한 공개 출처">
+        <h3>참고한 공개 출처</h3>
+        <ul class="loveme-source-list">
+          ${cleanSources.map((source) => `
+            <li class="loveme-source-item">
+              <a href="${escapeHtml(source.link)}" target="_blank" rel="noopener noreferrer">
+                <span class="loveme-source-title">${renderInlineMarkdown(source.title)}</span>
+                <span class="loveme-source-domain">${escapeHtml(source.domain)}</span>
+              </a>
+            </li>
+          `).join('')}
+        </ul>
+      </aside>
+    `;
+  }
+
+  function renderLoveMeAnswerWithSources(answer, sources, usedSearch) {
+    return `${renderMarkdownLite(answer)}${renderLoveMeSources(sources, usedSearch)}`;
+  }
+
   async function requestLoveMeAnswer(concern, onChunk) {
     const payload = {
       concern,
@@ -349,6 +389,7 @@ Keep it practical and kind. Avoid long lectures.`;
     if (typeof onChunk === 'function') onChunk(answer, answer);
     return {
       answer,
+      sources: Array.isArray(data?.sources) ? data.sources : [],
       usedSearch: data?.usedSearch === true
     };
   }
@@ -493,7 +534,7 @@ Keep it practical and kind. Avoid long lectures.`;
         const response = await requestLoveMeAnswer(text, (chunk, fullText) => {
           result.innerHTML = renderMarkdownLite(fullText || chunk);
         });
-        result.innerHTML = renderMarkdownLite(response.answer);
+        result.innerHTML = renderLoveMeAnswerWithSources(response.answer, response.sources, response.usedSearch);
         setStatus(
           status,
           response.usedSearch

@@ -1,5 +1,12 @@
 (function (global) {
   const LOVEME_MODE = 'loveme';
+  const LOVEME_LOADING_STAGES = [
+    '고민 내용을 정리하고 있습니다...',
+    '관련 스타일링 자료를 확인하고 있습니다...',
+    '현실적인 연출 포인트를 고르는 중입니다...',
+    '근거를 바탕으로 조언을 정리하는 중입니다...'
+  ];
+  const LOVEME_LOADING_STAGE_MS = 1800;
   const HONEST_STYLING_TONE_GUIDANCE = `LoveMe response tone: honest-but-hopeful styling 상담.
 
 LoveMe is not:
@@ -175,8 +182,36 @@ Keep it practical and kind. Avoid long lectures.`;
 
   function setStatus(element, message) {
     if (!element) return;
-    element.textContent = message;
+    element.classList.remove('is-loading');
+    element.textContent = message || '';
     element.hidden = !message;
+  }
+
+  function startStagedLoadingStatus(element, stages) {
+    if (!element || !Array.isArray(stages) || !stages.length) {
+      return () => {};
+    }
+
+    let stageIndex = 0;
+
+    function renderStage() {
+      const message = stages[stageIndex % stages.length];
+      element.classList.add('is-loading');
+      element.innerHTML = `
+        <span class="ai-tool-source-loading-signal" aria-hidden="true"></span>
+        <span>${escapeHtml(message)}</span>
+      `;
+      element.hidden = false;
+      stageIndex += 1;
+    }
+
+    renderStage();
+    const timerId = global.setInterval(renderStage, LOVEME_LOADING_STAGE_MS);
+
+    return () => {
+      global.clearInterval(timerId);
+      element.classList.remove('is-loading');
+    };
   }
 
   function renderInlineMarkdown(text) {
@@ -449,6 +484,7 @@ Keep it practical and kind. Avoid long lectures.`;
     const voiceStatus = root.querySelector('#loveMeVoiceStatus');
     const helpButton = root.querySelector('#loveMeHelpButton');
     const helpPanel = root.querySelector('#loveMeHelpPanel');
+    let stopActiveLoadingStatus = null;
 
     global.ThisOneAIToolVoice?.attach?.({
       button: micButton,
@@ -508,7 +544,11 @@ Keep it practical and kind. Avoid long lectures.`;
       if (!target || !root.contains(target)) return;
     });
 
-    global.ThisOneModeTabs?.registerCleanup?.(LOVEME_MODE, () => imageInput?.cleanup?.());
+    global.ThisOneModeTabs?.registerCleanup?.(LOVEME_MODE, () => {
+      stopActiveLoadingStatus?.();
+      stopActiveLoadingStatus = null;
+      imageInput?.cleanup?.();
+    });
 
     root.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
@@ -528,12 +568,15 @@ Keep it practical and kind. Avoid long lectures.`;
       submit.disabled = true;
       result.hidden = false;
       result.innerHTML = '';
-      setStatus(status, '럽미가 어울리는 스타일링을 찾는 중입니다...');
+      stopActiveLoadingStatus?.();
+      stopActiveLoadingStatus = startStagedLoadingStatus(status, LOVEME_LOADING_STAGES);
 
       try {
         const response = await requestLoveMeAnswer(text, (chunk, fullText) => {
           result.innerHTML = renderMarkdownLite(fullText || chunk);
         });
+        stopActiveLoadingStatus?.();
+        stopActiveLoadingStatus = null;
         result.innerHTML = renderLoveMeAnswerWithSources(response.answer, response.sources, response.usedSearch);
         setStatus(
           status,
@@ -542,10 +585,14 @@ Keep it practical and kind. Avoid long lectures.`;
             : '스타일링 답변이 완료되었습니다.'
         );
       } catch (error) {
+        stopActiveLoadingStatus?.();
+        stopActiveLoadingStatus = null;
         result.innerHTML = '';
         result.hidden = true;
         setStatus(status, `럽미 답변 생성 중 오류가 발생했습니다. ${error.message || ''}`.trim());
       } finally {
+        stopActiveLoadingStatus?.();
+        stopActiveLoadingStatus = null;
         submit.disabled = false;
       }
     });

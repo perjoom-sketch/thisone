@@ -3,7 +3,13 @@
   global.__thisOneDocumentAIShellApplied = true;
 
   const DOCUMENT_AI_MODE = 'document-ai';
-  const LOADING_MESSAGE = '문서 내용을 확인하고 관련 정보를 찾는 중입니다...';
+  const DOCUMENT_AI_LOADING_STAGES = [
+    '문서 내용을 확인하고 있습니다...',
+    '개인정보를 가리고 핵심을 추리는 중입니다...',
+    '관련 공개 정보를 확인하고 있습니다...',
+    '근거를 바탕으로 쉽게 정리하는 중입니다...'
+  ];
+  const DOCUMENT_AI_LOADING_STAGE_MS = 1800;
   const EMPTY_INPUT_MESSAGE = '문서나 사진, 질문을 입력해주세요.';
   const UNSUPPORTED_FILE_MESSAGE = '현재는 PDF, JPG, PNG, WebP, 텍스트만 해석할 수 있습니다.';
   const UNSUPPORTED_PASTE_MESSAGE = 'PDF, 이미지, 텍스트만 붙여넣을 수 있습니다.';
@@ -59,12 +65,41 @@
 
   function setStatus(element, message) {
     if (!element) return;
-    element.textContent = message;
-    element.hidden = false;
+    element.classList.remove('is-loading');
+    element.textContent = message || '';
+    element.hidden = !message;
+  }
+
+  function startStagedLoadingStatus(element, stages) {
+    if (!element || !Array.isArray(stages) || !stages.length) {
+      return () => {};
+    }
+
+    let stageIndex = 0;
+
+    function renderStage() {
+      const message = stages[stageIndex % stages.length];
+      element.classList.add('is-loading');
+      element.innerHTML = `
+        <span class="ai-tool-source-loading-signal" aria-hidden="true"></span>
+        <span>${escapeHtml(message)}</span>
+      `;
+      element.hidden = false;
+      stageIndex += 1;
+    }
+
+    renderStage();
+    const timerId = global.setInterval(renderStage, DOCUMENT_AI_LOADING_STAGE_MS);
+
+    return () => {
+      global.clearInterval(timerId);
+      element.classList.remove('is-loading');
+    };
   }
 
   function hideStatus(element) {
     if (!element) return;
+    element.classList.remove('is-loading');
     element.textContent = '';
     element.hidden = true;
   }
@@ -258,6 +293,7 @@
     const micButton = document.getElementById('documentAiMicButton');
     const voiceStatus = document.getElementById('documentAiVoiceStatus');
     let imageInput = null;
+    let stopActiveLoadingStatus = null;
     global.ThisOneAIToolVoice?.attach?.({
       button: micButton,
       input: question,
@@ -296,18 +332,25 @@
       button.disabled = true;
       if (result) result.hidden = true;
       if (result) result.innerHTML = '';
-      setStatus(placeholder, LOADING_MESSAGE);
+      stopActiveLoadingStatus?.();
+      stopActiveLoadingStatus = startStagedLoadingStatus(placeholder, DOCUMENT_AI_LOADING_STAGES);
 
       try {
         const imageDataUrl = file ? await fileToDataUrl(file) : '';
         const data = await requestDocumentAI(text, imageDataUrl);
+        stopActiveLoadingStatus?.();
+        stopActiveLoadingStatus = null;
         renderDocumentAIResult(result, data.answer, data.sources);
         hideStatus(placeholder);
       } catch (error) {
+        stopActiveLoadingStatus?.();
+        stopActiveLoadingStatus = null;
         if (result) result.hidden = true;
         if (result) result.innerHTML = '';
         setStatus(placeholder, `문서 해석 중 오류가 발생했습니다. ${error.message || ''}`.trim());
       } finally {
+        stopActiveLoadingStatus?.();
+        stopActiveLoadingStatus = null;
         button.disabled = false;
       }
     });
@@ -355,6 +398,8 @@
     });
 
     removePasteListener = () => {
+      stopActiveLoadingStatus?.();
+      stopActiveLoadingStatus = null;
       imageInput?.cleanup?.();
     };
   }

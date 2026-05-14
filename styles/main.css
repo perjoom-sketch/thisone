@@ -4279,6 +4279,77 @@ body.ai-tool-mode #msgContainer {
   color: #1e293b;
 }
 
+.loveme-answer-cards {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.55rem, 1.5vw, 0.8rem);
+}
+
+.loveme-answer-summary,
+.loveme-answer-card {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.35rem, 1vw, 0.5rem);
+  padding: clamp(0.75rem, 2vw, 0.95rem);
+  border: 0.0625rem solid #dbeafe;
+  border-radius: clamp(0.8rem, 2vw, 1rem);
+  background: #f8fafc;
+}
+
+.loveme-answer-summary {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.loveme-answer-card h3,
+.loveme-answer-summary h3 {
+  margin: 0;
+  color: #1d4ed8;
+  font-size: clamp(0.92rem, 2vw, 1.05rem);
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.loveme-answer-list {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.25rem, 0.8vw, 0.4rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.loveme-answer-list li {
+  position: relative;
+  padding-left: clamp(0.95rem, 2vw, 1.15rem);
+  color: #334155;
+  font-size: clamp(0.88rem, 1.8vw, 0.98rem);
+  line-height: 1.5;
+}
+
+.loveme-answer-list li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #60a5fa;
+  font-weight: 900;
+}
+
+.loveme-answer-hair,
+.loveme-answer-outfit,
+.loveme-answer-color,
+.loveme-answer-accessory,
+.loveme-answer-makeup,
+.loveme-answer-avoid,
+.loveme-answer-shopping {
+  background: #ffffff;
+}
+
+.loveme-answer-shopping {
+  border-color: #bae6fd;
+  background: #f0f9ff;
+}
+
 .loveme-result[hidden],
 .loveme-status[hidden] {
   display: none;

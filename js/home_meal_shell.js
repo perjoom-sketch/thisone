@@ -8,6 +8,31 @@
     '레시피 근거를 가볍게 붙이는 중입니다...'
   ];
   const HOME_MEAL_LOADING_STAGE_MS = 1400;
+
+  const HOME_MEAL_FLOWS = {
+    human: {
+      icon: '👤',
+      label: '사람',
+      placeholder: '냉장고에 있는 재료를 적어주세요...',
+      helper: '가진 재료로 오늘 먹을 집밥을 골라드립니다.',
+      emptyText: '재료를 입력해주세요. 예: 돼지고기, 김치, 두부'
+    },
+    dog: {
+      icon: '🐶',
+      label: '강아지',
+      placeholder: '강아지 나이, 몸무게, 건강 상태, 가진 재료를 적어주세요...',
+      helper: '강아지 집밥은 금지 식재료와 건강 상태 확인이 먼저 필요합니다.',
+      emptyText: '강아지 나이, 몸무게, 건강 상태, 가진 재료를 먼저 적어주세요.'
+    },
+    cat: {
+      icon: '🐱',
+      label: '고양이',
+      placeholder: '고양이 나이, 몸무게, 건강 상태, 가진 재료를 적어주세요...',
+      helper: '고양이 집밥은 영양 균형과 금지 식재료 확인이 특히 중요합니다.',
+      emptyText: '고양이 나이, 몸무게, 건강 상태, 가진 재료를 먼저 적어주세요.'
+    }
+  };
+  const DEFAULT_HOME_MEAL_FLOW = 'human';
   /**
    * 집밥 1차 flow:
    * user-provided text ingredients stay the primary evidence layer.
@@ -73,6 +98,37 @@
     if (!helpButton || !helpPanel) return;
     helpPanel.hidden = !isOpen;
     helpButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+
+
+  function renderHomeMealSubTabs(activeFlow) {
+    return `
+      <div class="home-meal-sub-tabs" role="tablist" aria-label="집밥 대상 선택">
+        ${Object.entries(HOME_MEAL_FLOWS).map(([flow, item]) => `
+          <button
+            class="home-meal-sub-tab${flow === activeFlow ? ' is-active' : ''}"
+            type="button"
+            role="tab"
+            aria-selected="${flow === activeFlow ? 'true' : 'false'}"
+            data-home-meal-flow="${flow}"
+          >
+            <span class="home-meal-sub-tab-icon" aria-hidden="true">${item.icon}</span>
+            <span>${item.label}</span>
+          </button>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function renderPetMealPending(flow) {
+    const isCat = flow === 'cat';
+    return `
+      <section class="home-meal-result-panel home-meal-pet-pending" aria-label="${isCat ? '고양이' : '강아지'} 집밥 준비 중 안내">
+        <p class="home-meal-result-title">${isCat ? '🐱 고양이' : '🐶 강아지'} 집밥은 안전 검토를 먼저 준비 중입니다.</p>
+        <p class="home-meal-result-copy">반려동물 집밥은 나이, 몸무게, 질환, 알레르기, 금지 식재료 확인이 필요해서 아직 레시피를 생성하지 않습니다.</p>
+        <p class="home-meal-result-copy">지금은 정보를 받아두는 단계이며, 재료 추천이나 급여량 안내는 제공하지 않습니다.</p>
+      </section>
+    `;
   }
 
   function renderIngredientList(items, emptyText) {
@@ -156,14 +212,16 @@
         ${global.ThisOneModeTabs?.render?.(HOME_MEAL_MODE) || ''}
         <div class="home-meal-copy">
           <p class="home-meal-main-copy">있는 재료만 말하면,</p>
-          <p class="home-meal-sub-copy">오늘 집밥을 골라드립니다.</p>
+          <p class="home-meal-sub-copy" id="homeMealHelperText">${HOME_MEAL_FLOWS[DEFAULT_HOME_MEAL_FLOW].helper}</p>
         </div>
+
+        ${renderHomeMealSubTabs(DEFAULT_HOME_MEAL_FLOW)}
 
         <div class="ai-tool-composer home-meal-composer">
           ${global.ThisOneComposerImageInput?.render?.({ id: 'homeMealImage', label: '집밥 재료 사진' }) || ''}
           <div class="ai-tool-input home-meal-composer-top">
             <label class="home-meal-question-label" for="homeMealQuestion">재료 입력창</label>
-            <textarea class="home-meal-question" id="homeMealQuestion" rows="1" aria-label="집밥 재료 입력창" placeholder="냉장고에 있는 재료를 적어보세요. 예: 돼지고기, 양파, 계란"></textarea>
+            <textarea class="home-meal-question" id="homeMealQuestion" rows="1" aria-label="집밥 재료 입력창" placeholder="${HOME_MEAL_FLOWS[DEFAULT_HOME_MEAL_FLOW].placeholder}"></textarea>
           </div>
           <p class="ai-tool-voice-status" id="homeMealVoiceStatus" aria-live="polite" hidden></p>
           <div class="ai-tool-control-row home-meal-composer-bottom">
@@ -196,9 +254,36 @@
     const helpPanel = root.querySelector('#homeMealHelpPanel');
     const status = root.querySelector('#homeMealStatus');
     const result = root.querySelector('#homeMealResult');
+    const helperText = root.querySelector('#homeMealHelperText');
+    const subTabs = Array.from(root.querySelectorAll('.home-meal-sub-tab'));
     const micButton = root.querySelector('#homeMealMicButton');
     const voiceStatus = root.querySelector('#homeMealVoiceStatus');
     let stopActiveLoadingStatus = null;
+    let activeHomeMealFlow = DEFAULT_HOME_MEAL_FLOW;
+
+    function setHomeMealFlow(flow) {
+      const nextFlow = HOME_MEAL_FLOWS[flow] ? flow : DEFAULT_HOME_MEAL_FLOW;
+      activeHomeMealFlow = nextFlow;
+      const config = HOME_MEAL_FLOWS[nextFlow];
+      question.placeholder = config.placeholder;
+      if (helperText) helperText.textContent = config.helper;
+      subTabs.forEach((tab) => {
+        const isActive = tab.dataset.homeMealFlow === nextFlow;
+        tab.classList.toggle('is-active', isActive);
+        tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+      stopActiveLoadingStatus?.();
+      stopActiveLoadingStatus = null;
+      setStatus(status, '');
+      if (nextFlow === DEFAULT_HOME_MEAL_FLOW) {
+        result.innerHTML = '';
+        result.hidden = true;
+        return;
+      }
+      result.hidden = false;
+      result.innerHTML = renderPetMealPending(nextFlow);
+      setStatus(status, config.helper);
+    }
 
     global.ThisOneAIToolVoice?.attach?.({
       button: micButton,
@@ -236,12 +321,32 @@
       setHelpPanelOpen(helpButton, helpPanel, Boolean(helpPanel?.hidden));
     });
 
+    subTabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        imageInput?.closeMenu?.();
+        setHelpPanelOpen(helpButton, helpPanel, false);
+        setHomeMealFlow(tab.dataset.homeMealFlow);
+      });
+    });
+
+    setHomeMealFlow(DEFAULT_HOME_MEAL_FLOW);
+
     submit?.addEventListener('click', async () => {
       const text = question.value.trim();
       const image = imageInput?.getFile?.() || null;
+      const activeConfig = HOME_MEAL_FLOWS[activeHomeMealFlow] || HOME_MEAL_FLOWS[DEFAULT_HOME_MEAL_FLOW];
       if (!text) {
-        setStatus(status, image ? '집밥 1차 기능은 텍스트 재료 입력부터 지원합니다. 재료명을 적어주세요.' : '재료를 입력해주세요. 예: 돼지고기, 김치, 두부');
+        setStatus(status, image && activeHomeMealFlow === DEFAULT_HOME_MEAL_FLOW ? '집밥 1차 기능은 텍스트 재료 입력부터 지원합니다. 재료명을 적어주세요.' : activeConfig.emptyText);
         question.focus();
+        return;
+      }
+
+      if (activeHomeMealFlow !== DEFAULT_HOME_MEAL_FLOW) {
+        stopActiveLoadingStatus?.();
+        stopActiveLoadingStatus = null;
+        result.hidden = false;
+        result.innerHTML = renderPetMealPending(activeHomeMealFlow);
+        setStatus(status, '반려동물 집밥은 안전 확인 기능을 준비 중이라 아직 레시피를 생성하지 않습니다.');
         return;
       }
 

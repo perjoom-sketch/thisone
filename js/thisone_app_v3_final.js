@@ -469,6 +469,38 @@ function removeImg() {
   if (fileInput) fileInput.value = '';
 }
 
+function clearShoppingComposerInputState() {
+  currentQuery = '';
+  syncQueryInputs('');
+  removeImg();
+
+  document.querySelectorAll('#imgPreview, [data-shopping-image-preview]').forEach((preview) => {
+    preview.classList.remove('show');
+  });
+
+  document.querySelectorAll('#previewImg, #imgPreview img, [data-shopping-image-preview] img').forEach((img) => {
+    img.removeAttribute('src');
+  });
+
+  document.querySelectorAll('#fileInput, [data-shopping-image-input]').forEach((input) => {
+    if ('value' in input) input.value = '';
+  });
+
+  document.getElementById('thisoneSearchToolsLeft')
+    ?.querySelector('.search-plus-btn')
+    ?.classList.remove('is-open');
+  document.getElementById('thisoneSearchToolsLeft')
+    ?.querySelector('.search-tools-menu')
+    ?.classList.remove('show');
+}
+
+window.clearShoppingComposerInputState = clearShoppingComposerInputState;
+window.ThisOneShoppingComposer = {
+  ...(window.ThisOneShoppingComposer || {}),
+  clearInputState: clearShoppingComposerInputState
+};
+window.ThisOneModeTabs?.registerCleanup?.('shopping', clearShoppingComposerInputState);
+
 function stripCitations(text) { return String(text || '').replace(/<cite\b[^>]*>|<\/cite>|<b>|<\/b>/gi, '').trim(); }
 function deepClean(value) {
   if (typeof value === 'string') return stripCitations(value);

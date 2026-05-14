@@ -2709,11 +2709,16 @@ body.search-mode .document-ai-entry-wrap {
     width: 95%;
     margin-top: clamp(0.55rem, 2vw, 0.75rem);
     padding-bottom: clamp(0.55rem, 2vw, 0.75rem);
+    justify-content: center;
+    gap: clamp(0.45rem, 2vw, 0.7rem);
   }
 
   .document-ai-entry-chip {
+    flex: 1 1 calc((100% - clamp(0.45rem, 2vw, 0.7rem) * 2) / 3);
+    min-inline-size: max(28%, 5.75rem);
+    min-block-size: clamp(2.5rem, 11vw, 3rem);
     width: auto;
-    padding: clamp(0.5rem, 2vw, 0.65rem) clamp(0.8rem, 3vw, 0.95rem);
+    padding: clamp(0.55rem, 2.4vw, 0.7rem) clamp(0.72rem, 3vw, 0.95rem);
   }
 }
 
@@ -3416,14 +3421,19 @@ body.ai-tool-mode #msgContainer {
 
 @media (max-width: 640px) {
   .ai-mode-tabs {
-    gap: clamp(0.2rem, 1vw, 0.35rem);
-    padding: clamp(0.2rem, 1vw, 0.3rem);
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: clamp(0.28rem, 1.4vw, 0.45rem);
+    padding: clamp(0.28rem, 1.4vw, 0.4rem);
+    border-radius: clamp(1rem, 4vw, 1.35rem);
   }
 
   .ai-mode-tab {
-    padding-right: clamp(0.35rem, 2vw, 0.55rem);
-    padding-left: clamp(0.35rem, 2vw, 0.55rem);
-    font-size: clamp(0.78rem, 3.2vw, 0.9rem);
+    flex: 1 1 calc((100% - clamp(0.28rem, 1.4vw, 0.45rem) * 2) / 3);
+    min-inline-size: max(28%, 5.25rem);
+    min-block-size: clamp(2.35rem, 10vw, 2.85rem);
+    padding: clamp(0.55rem, 2.3vw, 0.7rem) clamp(0.5rem, 2.4vw, 0.7rem);
+    font-size: clamp(0.86rem, 3.5vw, 0.95rem);
   }
 
   .web-search-panel {

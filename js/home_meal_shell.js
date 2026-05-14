@@ -1,23 +1,18 @@
 (function (global) {
   const HOME_MEAL_MODE = 'home-meal';
-  // Future source-backed Home Meal loading stages (for when recipe search exists):
-  // 1. 재료를 확인하고 있습니다...
-  // 2. 만들 수 있는 메뉴 후보를 찾는 중입니다...
-  // 3. 공개 레시피 근거를 확인하는 중입니다...
-  // 4. 부족한 재료를 정리하는 중입니다...
-  // Do not show these until Serper/recipe search is implemented.
 
+  const HOME_MEAL_LOADING_STAGES = [
+    '입력한 재료를 정리하고 있습니다...',
+    '가능한 집밥 후보를 고르는 중입니다...',
+    '부족한 재료를 확인하고 있습니다...',
+    '레시피 근거를 가볍게 붙이는 중입니다...'
+  ];
+  const HOME_MEAL_LOADING_STAGE_MS = 1400;
   /**
-   * Future source-backed 집밥 flow:
-   * user-provided ingredients stay the primary evidence layer.
-   * Public recipe/cooking/safety information will be added only as a later public evidence layer.
-   * user ingredients / fridge photo
-   * → safe ingredient summary
-   * → Serper public recipe/context search
-   * → AI menu candidates
-   * → missing ingredients
-   * → shopping search connection
-   *
+   * 집밥 1차 flow:
+   * user-provided text ingredients stay the primary evidence layer.
+   * Serper public recipe results are attached only as a light evidence layer.
+   * Shopping search connection is intentionally not enabled yet.
    * Pet meal support must not be mixed into the first human 집밥 implementation.
    * 반려동물 집밥 requires a separate safety layer.
    */
@@ -35,16 +30,121 @@
     if (container) container.innerHTML = '';
   }
 
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function setStatus(element, message) {
     if (!element) return;
+    element.classList.remove('is-loading');
     element.textContent = message || '';
     element.hidden = !message;
+  }
+
+  function startStagedLoadingStatus(element, stages) {
+    if (!element || !Array.isArray(stages) || !stages.length) return () => {};
+
+    let stageIndex = 0;
+    function renderStage() {
+      const message = stages[stageIndex % stages.length];
+      element.classList.add('is-loading');
+      element.innerHTML = `
+        <span class="ai-tool-source-loading-signal" aria-hidden="true"></span>
+        <span>${escapeHtml(message)}</span>
+      `;
+      element.hidden = false;
+      stageIndex += 1;
+    }
+
+    renderStage();
+    const timerId = global.setInterval(renderStage, HOME_MEAL_LOADING_STAGE_MS);
+    return () => {
+      global.clearInterval(timerId);
+      element.classList.remove('is-loading');
+    };
   }
 
   function setHelpPanelOpen(helpButton, helpPanel, isOpen) {
     if (!helpButton || !helpPanel) return;
     helpPanel.hidden = !isOpen;
     helpButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+
+  function renderIngredientList(items, emptyText) {
+    const list = Array.isArray(items) ? items.filter(Boolean) : [];
+    if (!list.length) return `<span class="home-meal-muted">${escapeHtml(emptyText || '없음')}</span>`;
+    return list.map((item) => `<span class="home-meal-pill">${escapeHtml(item)}</span>`).join('');
+  }
+
+  function renderHomeMealResult(data) {
+    const ingredients = Array.isArray(data?.ingredients) ? data.ingredients : [];
+    const candidates = Array.isArray(data?.candidates) ? data.candidates : [];
+
+    if (!candidates.length) {
+      return `
+        <section class="home-meal-result-panel">
+          <p class="home-meal-result-title">가능한 메뉴를 찾지 못했어요.</p>
+          <p class="home-meal-result-copy">${escapeHtml(data?.message || '재료명을 조금 더 구체적으로 적어주세요.')}</p>
+        </section>
+      `;
+    }
+
+    return `
+      <section class="home-meal-result-panel" aria-label="집밥 추천 결과">
+        <div class="home-meal-ingredient-summary">
+          <span class="home-meal-result-label">입력 재료</span>
+          <div class="home-meal-pill-row">${renderIngredientList(ingredients, '정리된 재료 없음')}</div>
+        </div>
+        <div class="home-meal-menu-list">
+          ${candidates.map((candidate) => `
+            <article class="home-meal-menu-row">
+              <div class="home-meal-menu-main">
+                <h3>${escapeHtml(candidate.name)}</h3>
+                <p>${escapeHtml(candidate.note || '입력한 재료 기준으로 만들기 쉬운 메뉴입니다.')}</p>
+                <div class="home-meal-menu-meta">
+                  <span class="home-meal-result-label">있는 재료</span>
+                  <div class="home-meal-pill-row">${renderIngredientList(candidate.available, '추가 확인 필요')}</div>
+                </div>
+                <div class="home-meal-menu-meta">
+                  <span class="home-meal-result-label">부족한 재료</span>
+                  <div class="home-meal-pill-row home-meal-missing-row">${renderIngredientList(candidate.missing, '바로 가능')}</div>
+                </div>
+              </div>
+              <aside class="home-meal-menu-evidence">
+                <span class="home-meal-evidence-badge">레시피 근거</span>
+                ${candidate.source ? `
+                  <a href="${escapeHtml(candidate.source.link)}" target="_blank" rel="noopener noreferrer">
+                    <span>${escapeHtml(candidate.source.title)}</span>
+                    <small>${escapeHtml(candidate.source.domain)}</small>
+                  </a>
+                ` : '<p>공개 레시피 근거는 찾지 못했지만, 재료 매칭 기준으로 제안했어요.</p>'}
+              </aside>
+            </article>
+          `).join('')}
+        </div>
+        <p class="home-meal-source-note">${data?.usedSearch ? 'Serper로 공개 레시피 결과를 확인해 간단히 붙였습니다.' : 'Serper 근거 없이 재료 매칭 기준으로 정리했습니다.'} 쇼핑 연결은 아직 하지 않습니다.</p>
+      </section>
+    `;
+  }
+
+  async function requestHomeMealRecommendation(ingredients) {
+    const response = await fetch('/api/homeMeal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ingredients })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `HTTP ${response.status}`);
+    }
+
+    return response.json();
   }
 
   function renderHomeMealShell() {
@@ -80,11 +180,12 @@
 
         <div class="home-meal-help-panel" id="homeMealHelpPanel" hidden>
           <p class="home-meal-help-title">집밥 안내</p>
-          <p class="home-meal-help-copy">있는 재료를 적으면 만들 수 있는 집밥 후보를 골라드릴 예정입니다.</p>
-          <p class="home-meal-help-copy">없는 재료는 나중에 쇼핑검색으로 연결할 수 있습니다.</p>
+          <p class="home-meal-help-copy">있는 재료를 적으면 만들 수 있는 메뉴 후보와 부족한 재료를 보여드립니다.</p>
+          <p class="home-meal-help-copy">레시피 근거는 간단히 붙이고, 쇼핑 연결은 아직 하지 않습니다.</p>
           <p class="home-meal-help-copy">반려동물 집밥은 별도 안전 기준이 필요합니다.</p>
         </div>
         <p class="home-meal-status" id="homeMealStatus" role="status" aria-live="polite" hidden></p>
+        <div class="home-meal-result" id="homeMealResult" aria-live="polite" hidden></div>
       </section>
     `;
 
@@ -94,8 +195,10 @@
     const helpButton = root.querySelector('#homeMealHelpButton');
     const helpPanel = root.querySelector('#homeMealHelpPanel');
     const status = root.querySelector('#homeMealStatus');
+    const result = root.querySelector('#homeMealResult');
     const micButton = root.querySelector('#homeMealMicButton');
     const voiceStatus = root.querySelector('#homeMealVoiceStatus');
+    let stopActiveLoadingStatus = null;
 
     global.ThisOneAIToolVoice?.attach?.({
       button: micButton,
@@ -113,6 +216,8 @@
     });
 
     function cleanupHomeMeal() {
+      stopActiveLoadingStatus?.();
+      stopActiveLoadingStatus = null;
       imageInput?.cleanup?.();
       exitHomeMealMode();
     }
@@ -131,16 +236,38 @@
       setHelpPanelOpen(helpButton, helpPanel, Boolean(helpPanel?.hidden));
     });
 
-    submit?.addEventListener('click', () => {
+    submit?.addEventListener('click', async () => {
       const text = question.value.trim();
       const image = imageInput?.getFile?.() || null;
-      if (!text && !image) {
-        setStatus(status, '재료를 입력하거나 사진을 올려주세요.');
+      if (!text) {
+        setStatus(status, image ? '집밥 1차 기능은 텍스트 재료 입력부터 지원합니다. 재료명을 적어주세요.' : '재료를 입력해주세요. 예: 돼지고기, 김치, 두부');
         question.focus();
         return;
       }
 
-      setStatus(status, '집밥 추천 기능은 준비 중입니다. 곧 재료 기반으로 메뉴를 골라드릴게요.');
+      submit.disabled = true;
+      result.hidden = false;
+      result.innerHTML = '';
+      stopActiveLoadingStatus?.();
+      stopActiveLoadingStatus = startStagedLoadingStatus(status, HOME_MEAL_LOADING_STAGES);
+
+      try {
+        const data = await requestHomeMealRecommendation(text);
+        stopActiveLoadingStatus?.();
+        stopActiveLoadingStatus = null;
+        result.innerHTML = renderHomeMealResult(data);
+        setStatus(status, data?.message || '집밥 후보를 정리했습니다.');
+      } catch (error) {
+        stopActiveLoadingStatus?.();
+        stopActiveLoadingStatus = null;
+        result.innerHTML = '';
+        result.hidden = true;
+        setStatus(status, `집밥 후보를 가져오지 못했습니다. ${error.message || ''}`.trim());
+      } finally {
+        stopActiveLoadingStatus?.();
+        stopActiveLoadingStatus = null;
+        submit.disabled = false;
+      }
     });
   }
 

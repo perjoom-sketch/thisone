@@ -2593,11 +2593,18 @@ body.search-mode .results-view {
 .document-ai-privacy {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: clamp(0.35rem, 1vw, 0.5rem);
   padding: clamp(0.85rem, 2.5vw, 1.1rem);
   border-radius: clamp(0.8rem, 2vw, 1rem);
   background: #ffffff;
   color: #475569;
+  text-align: center;
+}
+
+.document-ai-privacy strong,
+.document-ai-privacy p {
+  max-width: min(100%, clamp(18rem, 72vw, 36rem));
 }
 
 .document-ai-privacy strong {

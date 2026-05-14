@@ -187,6 +187,7 @@ Focus on what the user should understand or do next.`;
         </div>
 
         <div class="ai-tool-composer instant-answer-composer">
+          ${global.ThisOneComposerImageInput?.render?.({ id: 'instantAnswerImage', label: '즉답 이미지' }) || ''}
           <div class="ai-tool-input instant-answer-composer-top">
             <label class="instant-answer-question-label" for="instantAnswerQuestion">질문 입력창</label>
             <textarea class="instant-answer-question" id="instantAnswerQuestion" rows="1" aria-label="즉답 질문 입력창" placeholder="배 아플 때 어떤 약 먹어야 해?"></textarea>
@@ -194,15 +195,7 @@ Focus on what the user should understand or do next.`;
           <p class="ai-tool-voice-status" id="instantAnswerVoiceStatus" aria-live="polite" hidden></p>
           <div class="ai-tool-control-row instant-answer-composer-bottom">
             <div class="ai-tool-left-controls instant-answer-composer-left-actions">
-              <div class="instant-answer-plus-wrap">
-                <button class="ai-tool-icon-button ai-tool-plus-button instant-answer-plus-button" id="instantAnswerPlusButton" type="button" aria-label="이미지 메뉴 열기" aria-expanded="false" aria-controls="instantAnswerPlusMenu" title="이미지 메뉴 열기">+</button>
-                <div class="instant-answer-plus-menu" id="instantAnswerPlusMenu" role="menu" hidden>
-                  <button class="instant-answer-plus-menu-item" id="instantAnswerUploadButton" type="button" role="menuitem">이미지 업로드</button>
-                  <button class="instant-answer-plus-menu-item" id="instantAnswerCameraButton" type="button" role="menuitem">사진 찍기</button>
-                </div>
-                <input class="instant-answer-file-input" id="instantAnswerUploadInput" type="file" accept="image/*" hidden>
-                <input class="instant-answer-file-input" id="instantAnswerCameraInput" type="file" accept="image/*" capture="environment" hidden>
-              </div>
+              ${global.ThisOneComposerImageInput?.renderControls?.({ id: 'instantAnswerImage', plusClass: 'instant-answer-plus-button' }) || ''}
             </div>
             <div class="ai-tool-right-controls instant-answer-composer-actions">
               <button class="ai-tool-icon-button ai-tool-help-button instant-answer-help-button" id="instantAnswerHelpButton" type="button" aria-label="즉답 예시 보기" aria-controls="instantAnswerExamples" aria-expanded="false" title="즉답 예시 보기">?</button>
@@ -210,11 +203,6 @@ Focus on what the user should understand or do next.`;
               <button class="ai-tool-action-button instant-answer-submit" id="instantAnswerSubmit" type="button">바로 답변</button>
             </div>
           </div>
-        </div>
-
-        <div class="instant-answer-selected-file" id="instantAnswerSelectedFile" hidden>
-          <span class="instant-answer-selected-file-text" id="instantAnswerSelectedFileText" role="status" aria-live="polite"></span>
-          <button class="instant-answer-selected-file-remove" id="instantAnswerSelectedFileRemove" type="button" aria-label="선택한 이미지 제거" title="선택한 이미지 제거">×</button>
         </div>
 
         <div class="instant-answer-examples" id="instantAnswerExamples" aria-label="즉답 예시 질문" hidden>
@@ -238,17 +226,6 @@ Focus on what the user should understand or do next.`;
     const result = root.querySelector('#instantAnswerResult');
     const micButton = root.querySelector('#instantAnswerMicButton');
     const voiceStatus = root.querySelector('#instantAnswerVoiceStatus');
-    const plusButton = root.querySelector('#instantAnswerPlusButton');
-    const plusMenu = root.querySelector('#instantAnswerPlusMenu');
-    const uploadButton = root.querySelector('#instantAnswerUploadButton');
-    const cameraButton = root.querySelector('#instantAnswerCameraButton');
-    const uploadInput = root.querySelector('#instantAnswerUploadInput');
-    const cameraInput = root.querySelector('#instantAnswerCameraInput');
-    const selectedFileStatus = root.querySelector('#instantAnswerSelectedFile');
-    const selectedFileText = root.querySelector('#instantAnswerSelectedFileText');
-    const selectedFileRemove = root.querySelector('#instantAnswerSelectedFileRemove');
-    let selectedFileInput = null;
-    let selectedFile = null;
     global.ThisOneAIToolVoice?.attach?.({
       button: micButton,
       input: question,
@@ -258,10 +235,15 @@ Focus on what the user should understand or do next.`;
 
     global.ThisOneModeTabs?.bind?.(root);
 
+    const imageInput = global.ThisOneComposerImageInput?.attach?.(root, {
+      id: 'instantAnswerImage',
+      isActive: () => root.isConnected && document.body.classList.contains('instant-answer-mode'),
+      beforeOpen: () => setExamplesPanelOpen(false)
+    });
+
     function setPlusMenuOpen(isOpen) {
-      if (!plusButton || !plusMenu) return;
-      plusMenu.hidden = !isOpen;
-      plusButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      if (isOpen) imageInput?.closeMenu?.();
+      else imageInput?.closeMenu?.();
     }
 
     function setExamplesPanelOpen(isOpen) {
@@ -270,90 +252,12 @@ Focus on what the user should understand or do next.`;
       helpButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     }
 
-    function openFilePicker(fileInput) {
-      setPlusMenuOpen(false);
-      if (!fileInput) return;
-      fileInput.value = '';
-      fileInput.click();
-    }
-
-    function clearSelectedFileStatus() {
-      if (selectedFileInput) selectedFileInput.value = '';
-      selectedFileInput = null;
-      selectedFile = null;
-      if (selectedFileText) selectedFileText.textContent = '';
-      if (selectedFileStatus) selectedFileStatus.hidden = true;
-    }
-
     function cleanupInstantAnswer() {
-      clearSelectedFileStatus();
+      imageInput?.cleanup?.();
       cleanupInstantAnswerPasteListener();
     }
 
     global.ThisOneModeTabs?.registerCleanup?.(INSTANT_ANSWER_MODE, cleanupInstantAnswer);
-
-    function setSelectedFile(file, label, fileInput) {
-      const fileName = file?.name || '이미지';
-      if (!file) {
-        clearSelectedFileStatus();
-        return;
-      }
-
-      if (fileInput === uploadInput && cameraInput) cameraInput.value = '';
-      if (fileInput === cameraInput && uploadInput) uploadInput.value = '';
-      if (!fileInput) {
-        if (uploadInput) uploadInput.value = '';
-        if (cameraInput) cameraInput.value = '';
-      }
-      selectedFileInput = fileInput || null;
-      selectedFile = file;
-      if (selectedFileText) selectedFileText.textContent = `${label}: ${fileName}`;
-      if (selectedFileStatus) selectedFileStatus.hidden = false;
-    }
-
-    function setSelectedFileStatus(fileInput, label) {
-      setSelectedFile(fileInput?.files?.[0] || null, label, fileInput);
-    }
-
-    function handlePaste(event) {
-      if (!root.isConnected || !document.body.classList.contains('instant-answer-mode')) return;
-
-      const file = getClipboardImageFile(event.clipboardData);
-      if (!file) return;
-
-      event.preventDefault();
-      setPlusMenuOpen(false);
-      setSelectedFile(file, '붙여넣은 이미지');
-    }
-
-    plusButton?.addEventListener('click', (event) => {
-      event.stopPropagation();
-      setExamplesPanelOpen(false);
-      setPlusMenuOpen(!!plusMenu?.hidden);
-    });
-
-    uploadButton?.addEventListener('click', () => openFilePicker(uploadInput));
-    cameraButton?.addEventListener('click', () => openFilePicker(cameraInput));
-
-    uploadInput?.addEventListener('change', () => {
-      setSelectedFileStatus(uploadInput, '선택된 이미지');
-    });
-
-    cameraInput?.addEventListener('change', () => {
-      setSelectedFileStatus(cameraInput, '선택된 사진');
-    });
-
-    selectedFileRemove?.addEventListener('click', clearSelectedFileStatus);
-
-    cleanupInstantAnswerPasteListener();
-    document.addEventListener('paste', handlePaste);
-    removeInstantAnswerPasteListener = () => document.removeEventListener('paste', handlePaste);
-
-    document.addEventListener('click', (event) => {
-      const target = event.target instanceof Element ? event.target : null;
-      if (!target || !root.contains(target)) return;
-      if (!plusMenu?.hidden && !target.closest('.instant-answer-plus-wrap')) setPlusMenuOpen(false);
-    });
 
     root.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {

@@ -365,6 +365,7 @@ Keep it practical and kind. Avoid long lectures.`;
         </div>
 
         <div class="ai-tool-composer loveme-composer">
+          ${global.ThisOneComposerImageInput?.render?.({ id: 'loveMeImage', label: '럽미 이미지' }) || ''}
           <div class="ai-tool-input loveme-composer-top">
             <label class="loveme-question-label" for="loveMeConcern">럽미 상담 입력창</label>
             <textarea class="loveme-question" id="loveMeConcern" rows="1" aria-label="럽미 상담 입력창" placeholder="콤플렉스나 원하는 커버 스타일을 말씀해 보세요."></textarea>
@@ -372,13 +373,7 @@ Keep it practical and kind. Avoid long lectures.`;
           <p class="ai-tool-voice-status" id="loveMeVoiceStatus" aria-live="polite" hidden></p>
           <div class="ai-tool-control-row loveme-composer-bottom">
             <div class="ai-tool-left-controls loveme-composer-left-actions">
-              <div class="loveme-plus-wrap">
-                <button class="ai-tool-icon-button ai-tool-plus-button loveme-plus-button" id="loveMePlusButton" type="button" aria-label="입력 메뉴 열기" aria-expanded="false" aria-controls="loveMePlusMenu" title="입력 메뉴 열기">+</button>
-                <div class="loveme-plus-menu" id="loveMePlusMenu" role="menu" hidden>
-                  <button class="loveme-plus-menu-item" type="button" role="menuitem" disabled>파일 추가 준비 중</button>
-                  <button class="loveme-plus-menu-item" type="button" role="menuitem" disabled>사진 기능 준비 중</button>
-                </div>
-              </div>
+              ${global.ThisOneComposerImageInput?.renderControls?.({ id: 'loveMeImage', plusClass: 'loveme-plus-button' }) || ''}
             </div>
             <div class="ai-tool-right-controls loveme-composer-actions">
               <button class="ai-tool-icon-button ai-tool-help-button loveme-help-button" id="loveMeHelpButton" type="button" aria-label="럽미 상담 예시 보기" aria-expanded="false" aria-controls="loveMeHelpPanel" title="럽미 상담 예시 보기">?</button>
@@ -411,8 +406,6 @@ Keep it practical and kind. Avoid long lectures.`;
     const result = root.querySelector('#loveMeResult');
     const micButton = root.querySelector('#loveMeMicButton');
     const voiceStatus = root.querySelector('#loveMeVoiceStatus');
-    const plusButton = root.querySelector('#loveMePlusButton');
-    const plusMenu = root.querySelector('#loveMePlusMenu');
     const helpButton = root.querySelector('#loveMeHelpButton');
     const helpPanel = root.querySelector('#loveMeHelpPanel');
 
@@ -425,10 +418,15 @@ Keep it practical and kind. Avoid long lectures.`;
 
     global.ThisOneModeTabs?.bind?.(root);
 
+    const imageInput = global.ThisOneComposerImageInput?.attach?.(root, {
+      id: 'loveMeImage',
+      isActive: () => root.isConnected && document.body.classList.contains('loveme-mode'),
+      beforeOpen: () => setHelpPanelOpen(false)
+    });
+
     function setPlusMenuOpen(isOpen) {
-      if (!plusButton || !plusMenu) return;
-      plusMenu.hidden = !isOpen;
-      plusButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      if (isOpen) imageInput?.closeMenu?.();
+      else imageInput?.closeMenu?.();
     }
 
     function setHelpPanelOpen(isOpen) {
@@ -449,11 +447,6 @@ Keep it practical and kind. Avoid long lectures.`;
       }
     });
 
-    plusButton?.addEventListener('click', (event) => {
-      event.stopPropagation();
-      setHelpPanelOpen(false);
-      setPlusMenuOpen(!!plusMenu?.hidden);
-    });
 
     helpButton?.addEventListener('click', () => {
       setPlusMenuOpen(false);
@@ -472,8 +465,9 @@ Keep it practical and kind. Avoid long lectures.`;
     document.addEventListener('click', (event) => {
       const target = event.target instanceof Element ? event.target : null;
       if (!target || !root.contains(target)) return;
-      if (!plusMenu?.hidden && !target.closest('.loveme-plus-wrap')) setPlusMenuOpen(false);
     });
+
+    global.ThisOneModeTabs?.registerCleanup?.(LOVEME_MODE, () => imageInput?.cleanup?.());
 
     root.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {

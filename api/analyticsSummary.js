@@ -1,4 +1,4 @@
-import { readAnalyticsSummary } from '../lib/analyticsStore.js';
+import { getKvRestConfig, readAnalyticsSummary } from '../lib/analyticsStore.js';
 
 const PLACEHOLDER_MESSAGE = 'Analytics event collection is active, but readable storage is not configured yet.';
 const STORAGE_READ_FAILURE_MESSAGE = 'Analytics readable storage is configured, but the summary could not be loaded safely.';
@@ -109,8 +109,8 @@ function normalizeSummaryPayload(payload) {
   };
 }
 
-function hasRedisConfig() {
-  return Boolean(limitString(process.env.UPSTASH_REDIS_REST_URL, 1000) && limitString(process.env.UPSTASH_REDIS_REST_TOKEN, 1000));
+function hasReadableKvConfig() {
+  return Boolean(getKvRestConfig('read'));
 }
 
 export default async function handler(req, res) {
@@ -119,7 +119,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
 
-  if (!hasRedisConfig()) {
+  if (!hasReadableKvConfig()) {
     return res.status(200).json(placeholderResponse());
   }
 
@@ -144,5 +144,6 @@ export const _private = {
   normalizeBreakdownRows,
   normalizeDailyRows,
   normalizeSummaryPayload,
-  placeholderResponse
+  placeholderResponse,
+  hasReadableKvConfig
 };

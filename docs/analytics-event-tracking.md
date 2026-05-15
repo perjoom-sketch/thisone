@@ -13,7 +13,8 @@ Analytics storage is optional. The app does not require a database, dashboard, e
 - #326 audited and cleaned analytics tracking.
 - #327 added the first internal analytics summary page at `/tools/analytics-summary.html`.
 - #328 localized the analytics summary page and added CSS-only charts.
-- This PR adds Redis/Upstash REST-backed aggregate counters for real visitor, page-view, event, mode, and event-name counts.
+- #329 added Redis/Upstash REST-backed aggregate counters for real visitor, page-view, event, mode, and event-name counts.
+- This PR lets the analytics aggregate store use the existing Vercel KV REST environment variables as well as Upstash-style names.
 - #322 was closed without being merged and should not be referenced as an active implementation.
 
 ## Event names
@@ -43,16 +44,26 @@ Current event payloads may include:
 
 ## Persistent aggregate storage configuration
 
-By default, analytics events are written as structured server logs only. To enable real admin summary counts, configure an Upstash Redis REST-compatible store:
+By default, analytics events are written as structured server logs only. ThisOne uses Vercel KV for persistent key-value storage, and Vercel KV can expose REST credentials with Vercel-style variable names:
+
+```env
+KV_REST_API_URL=
+KV_REST_API_TOKEN=
+KV_REST_API_READ_ONLY_TOKEN=
+```
+
+`KV_REST_API_READ_ONLY_TOKEN` is optional for event writes, but the analytics summary read path uses it when available. If a read-only token is not present, summary reads fall back to `KV_REST_API_TOKEN`.
+
+Upstash-compatible variable names remain supported and continue to work without creating a new KV store:
 
 ```env
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 ```
 
-When both variables are configured, `lib/analyticsStore.js` writes only aggregate counters and visitor sets through Redis REST pipeline commands. The Redis layer increments daily totals for events, internal events, external events, page views, mode usage, and event-name usage. For `page_view`, it adds the anonymous `visitorId` to daily visitor sets so unique visitors are counted with `SCARD`. Internal and external visitor sets are maintained separately.
+Analytics aggregation is enabled when either `KV_REST_API_URL` + `KV_REST_API_TOKEN` or `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` is configured. When REST credentials are configured, `lib/analyticsStore.js` writes only aggregate counters and visitor sets through Redis/KV REST pipeline commands. The Redis/KV layer increments daily totals for events, internal events, external events, page views, mode usage, and event-name usage. For `page_view`, it adds the anonymous `visitorId` to daily visitor sets so unique visitors are counted with `SCARD`. Internal and external visitor sets are maintained separately.
 
-Redis keys follow this pattern:
+Analytics keys use the `analytics:` prefix and must remain separate from keyword/search KV keys. Do not reuse these keys for keyword storage or search keyword logic. Analytics keys follow this pattern:
 
 ```text
 analytics:day:{YYYY-MM-DD}:events
@@ -66,11 +77,11 @@ analytics:day:{YYYY-MM-DD}:mode:{mode}
 analytics:day:{YYYY-MM-DD}:eventName:{eventName}
 ```
 
-The date key is derived in KST (`YYYY-MM-DD`). Redis requests use short timeouts so tracking never delays the user-facing app flow.
+The date key is derived in KST (`YYYY-MM-DD`). Redis/KV requests use short timeouts so tracking never delays the user-facing app flow.
 
 ### Legacy webhook storage
 
-If Redis variables are not configured, the previous optional webhook storage path remains available:
+If Vercel KV or Upstash-compatible Redis variables are not configured, the previous optional webhook storage path remains available:
 
 ```env
 ANALYTICS_STORAGE_URL=
@@ -90,9 +101,9 @@ The first admin-facing analytics summary page is available at:
 
 This page is an internal readiness and aggregate inspection tool only. It is not linked from public navigation and is not an advertiser-facing dashboard. It fetches `GET /api/analyticsSummary` and renders only aggregate counts for today, the last 7 days, the last 30 days, mode breakdowns, and event-name breakdowns.
 
-Redis storage is required for real counts. If `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are not configured, the API returns `ok: true`, `storageConfigured: false`, and a zero-count placeholder message instead of inventing data or scraping logs.
+Vercel KV or Upstash-compatible Redis storage is required for real counts. If neither `KV_REST_API_URL` + `KV_REST_API_TOKEN` nor `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` is configured, the API returns `ok: true`, `storageConfigured: false`, and a zero-count placeholder message instead of inventing data or scraping logs.
 
-When Redis is configured, `GET /api/analyticsSummary` reads the last 30 KST date keys and returns aggregate-only data:
+When readable KV/Redis REST credentials are configured, `GET /api/analyticsSummary` reads the last 30 KST date keys and returns aggregate-only data. The summary read path prefers `KV_REST_API_READ_ONLY_TOKEN`, then falls back to `KV_REST_API_TOKEN`, then falls back to `UPSTASH_REDIS_REST_TOKEN`:
 
 - today, last 7 days, and last 30 days
 - total/internal/external event counts
@@ -108,9 +119,9 @@ Future advertiser-facing reports must exclude every event and visitor set where 
 
 Analytics tracking must never break the app.
 
-- If Redis variables are set, `storeAnalyticsEvent(event)` writes Redis aggregate counters and returns `{ ok: true, stored: "redis" }`.
-- If Redis storage fails, `storeAnalyticsEvent(event)` writes a short warning, falls back to the structured console event, and returns `{ ok: true, stored: "console-fallback" }`.
-- If Redis variables and `ANALYTICS_STORAGE_URL` are not set, `storeAnalyticsEvent(event)` writes the structured console event and returns `{ ok: true, stored: "console" }`.
+- If Vercel KV or Upstash-compatible Redis variables are set, `storeAnalyticsEvent(event)` writes aggregate counters and returns `{ ok: true, stored: "redis" }`.
+- If KV/Redis storage fails, `storeAnalyticsEvent(event)` writes a short warning, falls back to the structured console event, and returns `{ ok: true, stored: "console-fallback" }`.
+- If KV/Redis variables and `ANALYTICS_STORAGE_URL` are not set, `storeAnalyticsEvent(event)` writes the structured console event and returns `{ ok: true, stored: "console" }`.
 - If `ANALYTICS_STORAGE_URL` is set and the remote endpoint returns a successful response, `storeAnalyticsEvent(event)` returns `{ ok: true, stored: "remote" }`.
 - If the remote endpoint fails, times out, or cannot be reached, `storeAnalyticsEvent(event)` writes a short warning (`[ThisOne Analytics Storage Fallback]`), falls back to the structured console event, and returns `{ ok: true, stored: "console-fallback" }`.
 
@@ -197,7 +208,7 @@ Current scope:
 - Frontend helper: `window.ThisOneEventTracker`
 - Backend receiver: `POST /api/trackEvent`
 - Sanitized structured console logging
-- Redis/Upstash REST aggregate counter storage
+- Vercel KV and Upstash-compatible REST aggregate counter storage
 - Optional legacy webhook-style persistent event storage
 - Internal/test usage flagging
 - Internal aggregate summary page at `/tools/analytics-summary.html`

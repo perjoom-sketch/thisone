@@ -4406,6 +4406,80 @@ body.ai-tool-mode #msgContainer {
   width: 100%;
 }
 
+
+.home-meal-answer {
+  padding: clamp(0.9rem, 2vw, 1.1rem);
+  border: 0.0625rem solid #dcfce7;
+  border-radius: clamp(0.85rem, 2vw, 1rem);
+  background: #ffffff;
+  color: #1e293b;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.home-meal-sources {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.6rem, 1.6vw, 0.85rem);
+  padding: clamp(0.85rem, 2vw, 1rem);
+  border: 0.0625rem solid #dbeafe;
+  border-radius: clamp(0.85rem, 2vw, 1rem);
+  background: #f8fafc;
+}
+
+.home-meal-sources h3 {
+  margin: 0;
+  color: #2563eb;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  font-weight: 800;
+}
+
+.home-meal-source-list {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.55rem, 1.4vw, 0.75rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-meal-source-item {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.25rem, 0.8vw, 0.4rem);
+}
+
+.home-meal-source-item a {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: clamp(0.35rem, 1vw, 0.5rem);
+  color: #1e293b;
+  font-size: clamp(0.82rem, 1.9vw, 0.92rem);
+  font-weight: 800;
+  line-height: 1.45;
+  text-decoration: none;
+}
+
+.home-meal-source-item a:hover,
+.home-meal-source-item a:focus-visible {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.home-meal-source-domain {
+  color: #64748b;
+  font-size: clamp(0.74rem, 1.7vw, 0.82rem);
+  font-weight: 700;
+}
+
+.home-meal-source-item p {
+  margin: 0;
+  color: #475569;
+  font-size: clamp(0.78rem, 1.8vw, 0.88rem);
+  line-height: 1.55;
+}
+
 .home-meal-pet-pending {
   padding: clamp(0.85rem, 2vw, 1rem);
   border: 0.0625rem solid #dbeafe;

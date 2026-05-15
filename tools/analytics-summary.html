@@ -534,6 +534,37 @@
       line-height: 1.55;
     }
 
+    .line-chart {
+      display: block;
+      width: 100%;
+      min-height: clamp(11rem, 28vw, 16rem);
+    }
+
+    .line-chart-grid {
+      stroke: var(--line);
+      stroke-width: 1;
+    }
+
+    .line-chart-line {
+      fill: none;
+      stroke: var(--blue);
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 3;
+    }
+
+    .line-chart-point {
+      fill: var(--panel);
+      stroke: var(--blue);
+      stroke-width: 2;
+    }
+
+    .line-chart-label {
+      fill: var(--muted);
+      font-size: clamp(0.72rem, 1.4vw, 0.85rem);
+      font-weight: 700;
+    }
+
 
     @media (max-width: 640px) {
       main {
@@ -662,7 +693,7 @@
           <div id="audienceChart" class="chart-list"></div>
         </div>
         <div class="chart-panel" aria-labelledby="dailyVisitorChartTitle">
-          <div class="chart-title" id="dailyVisitorChartTitle">최근 30일 방문자 추이</div>
+          <div class="chart-title" id="dailyVisitorChartTitle">최근 30일 실제 방문자 추이</div>
           <div id="dailyVisitorChart" class="chart-list"></div>
         </div>
       </section>
@@ -1097,17 +1128,113 @@
     }
 
 
+    function createSvgElement(tagName) {
+      return document.createElementNS('http://www.w3.org/2000/svg', tagName);
+    }
+
+    function getDailyExternalVisitors(row) {
+      if (!row || typeof row !== 'object') return 0;
+      const externalValue = Number(row.externalVisitors);
+      if (Object.prototype.hasOwnProperty.call(row, 'externalVisitors') && Number.isFinite(externalValue) && externalValue >= 0) {
+        return Math.floor(externalValue);
+      }
+      return toCount(row.visitors);
+    }
+
     function renderDailyVisitorChart(summary) {
-      const dailyRows = Array.isArray(summary.daily) ? summary.daily : [];
-      renderChart(
-        'dailyVisitorChart',
-        dailyRows.map((row) => ({
-          label: row.date,
-          count: toCount(row.visitors),
-          className: toCount(row.externalVisitors) > 0 ? 'external' : ''
-        })),
-        '아직 최근 30일 방문자 추이 데이터가 없습니다.'
-      );
+      const container = document.getElementById('dailyVisitorChart');
+      container.replaceChildren();
+
+      const dailyRows = Array.isArray(summary.daily) ? summary.daily.slice(-30) : [];
+      const points = dailyRows.map((row) => ({
+        date: typeof row?.date === 'string' ? row.date : '',
+        count: getDailyExternalVisitors(row)
+      }));
+      const maxValue = points.reduce((max, point) => Math.max(max, point.count), 0);
+
+      if (maxValue === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'chart-empty';
+        empty.textContent = '아직 표시할 방문자 추이가 없습니다.';
+        container.append(empty);
+        return;
+      }
+
+      const chartWidth = 320;
+      const chartHeight = 160;
+      const padding = { top: 18, right: 18, bottom: 34, left: 34 };
+      const plotWidth = chartWidth - padding.left - padding.right;
+      const plotHeight = chartHeight - padding.top - padding.bottom;
+      const safeMax = Math.max(maxValue, 1);
+      const lastIndex = Math.max(points.length - 1, 1);
+      const coordinates = points.map((point, index) => {
+        const x = padding.left + (plotWidth * index) / lastIndex;
+        const y = padding.top + plotHeight - (plotHeight * point.count) / safeMax;
+        return { ...point, x, y };
+      });
+
+      const svg = createSvgElement('svg');
+      svg.classList.add('line-chart');
+      svg.setAttribute('viewBox', `0 0 ${chartWidth} ${chartHeight}`);
+      svg.setAttribute('role', 'img');
+      svg.setAttribute('aria-labelledby', 'dailyVisitorChartTitle dailyVisitorChartDescription');
+
+      const description = createSvgElement('desc');
+      description.setAttribute('id', 'dailyVisitorChartDescription');
+      description.textContent = `최근 30일 실제 방문자 최고값은 ${maxValue.toLocaleString()}명입니다.`;
+      svg.append(description);
+
+      [0, 0.5, 1].forEach((ratio) => {
+        const y = padding.top + plotHeight - plotHeight * ratio;
+        const grid = createSvgElement('line');
+        grid.classList.add('line-chart-grid');
+        grid.setAttribute('x1', padding.left);
+        grid.setAttribute('x2', chartWidth - padding.right);
+        grid.setAttribute('y1', y);
+        grid.setAttribute('y2', y);
+        svg.append(grid);
+      });
+
+      const polyline = createSvgElement('polyline');
+      polyline.classList.add('line-chart-line');
+      polyline.setAttribute('points', coordinates.map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(' '));
+      svg.append(polyline);
+
+      coordinates.forEach((point) => {
+        const circle = createSvgElement('circle');
+        circle.classList.add('line-chart-point');
+        circle.setAttribute('cx', point.x);
+        circle.setAttribute('cy', point.y);
+        circle.setAttribute('r', 3.5);
+        const title = createSvgElement('title');
+        title.textContent = `${point.date || '날짜 없음'}: ${point.count.toLocaleString()}명`;
+        circle.append(title);
+        svg.append(circle);
+      });
+
+      const maxLabel = createSvgElement('text');
+      maxLabel.classList.add('line-chart-label');
+      maxLabel.setAttribute('x', padding.left);
+      maxLabel.setAttribute('y', padding.top - 6);
+      maxLabel.textContent = `최고 ${maxValue.toLocaleString()}명`;
+      svg.append(maxLabel);
+
+      const firstDate = coordinates[0]?.date || '';
+      const lastDate = coordinates[coordinates.length - 1]?.date || '';
+      [
+        { text: firstDate, x: padding.left, anchor: 'start' },
+        { text: lastDate, x: chartWidth - padding.right, anchor: 'end' }
+      ].forEach((label) => {
+        const dateLabel = createSvgElement('text');
+        dateLabel.classList.add('line-chart-label');
+        dateLabel.setAttribute('x', label.x);
+        dateLabel.setAttribute('y', chartHeight - 10);
+        dateLabel.setAttribute('text-anchor', label.anchor);
+        dateLabel.textContent = label.text;
+        svg.append(dateLabel);
+      });
+
+      container.append(svg);
     }
 
     function getModeDisplay(mode) {

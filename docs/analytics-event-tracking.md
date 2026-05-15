@@ -155,13 +155,21 @@ The ID is generated with `crypto.randomUUID()` when available and falls back to 
 
 ## How to mark yourself as internal
 
-Use either localStorage directly:
+The preferred operator flow is now the admin settings panel on:
+
+```text
+/tools/analytics-summary.html
+```
+
+Open the page, find **운영자 설정**, then click **이 브라우저를 내부 테스트로 설정**. The panel writes the current browser's local `thisone_internal_user` flag and updates the visible status to **현재 브라우저: 내부 테스트로 집계됨**. This setting applies only to the current browser/device; other PCs, phones, browsers, or profiles must be configured separately.
+
+Use localStorage directly only as a fallback:
 
 ```js
 localStorage.setItem("thisone_internal_user", "true");
 ```
 
-Or use the helper:
+Or use the helper fallback:
 
 ```js
 window.ThisOneEventTracker.setInternalUser(true);
@@ -169,11 +177,21 @@ window.ThisOneEventTracker.setInternalUser(true);
 
 ## How to remove internal mode
 
+The preferred operator flow is to open `/tools/analytics-summary.html`, find **운영자 설정**, then click **내부 테스트 설정 해제**. The panel removes the current browser's local flag and updates the visible status to **현재 브라우저: 실제 사용자로 집계됨**.
+
+Use localStorage directly only as a fallback:
+
+```js
+localStorage.removeItem("thisone_internal_user");
+```
+
+Or use the helper fallback:
+
 ```js
 window.ThisOneEventTracker.setInternalUser(false);
 ```
 
-After internal mode is removed, new events include `isInternal: false`.
+After internal mode is removed, new events include `isInternal: false`. Future advertiser reports must exclude every stored event and visitor set where `isInternal === true`.
 
 ## Privacy rules
 

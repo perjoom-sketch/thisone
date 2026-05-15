@@ -365,7 +365,7 @@
         <div class="status-copy">
           <span class="eyebrow">저장소 상태</span>
           <strong id="storageStatus" class="value">확인 중…</strong>
-          <p id="storageMessage">읽기용 분석 저장소 상태를 확인하고 있습니다.</p>
+          <p id="storageMessage">Redis 집계 저장소 상태를 확인하고 있습니다.</p>
         </div>
         <span id="statusPill" class="pill">확인 중</span>
       </div>
@@ -384,6 +384,10 @@
         <div class="chart-panel" aria-labelledby="audienceChartTitle">
           <div class="chart-title" id="audienceChartTitle">내부/외부 비율 막대</div>
           <div id="audienceChart" class="chart-list"></div>
+        </div>
+        <div class="chart-panel" aria-labelledby="dailyVisitorChartTitle">
+          <div class="chart-title" id="dailyVisitorChartTitle">최근 30일 방문자 추이</div>
+          <div id="dailyVisitorChart" class="chart-list"></div>
         </div>
       </section>
 
@@ -432,12 +436,23 @@
   </main>
 
   <script>
+    const EMPTY_PERIOD = {
+      totalEvents: 0,
+      externalEvents: 0,
+      internalEvents: 0,
+      pageViews: 0,
+      visitors: 0,
+      externalVisitors: 0,
+      internalVisitors: 0
+    };
+
     const EMPTY_SUMMARY = {
-      today: { totalEvents: 0, externalEvents: 0, internalEvents: 0 },
-      last7Days: { totalEvents: 0, externalEvents: 0, internalEvents: 0 },
-      last30Days: { totalEvents: 0, externalEvents: 0, internalEvents: 0 },
+      today: { ...EMPTY_PERIOD },
+      last7Days: { ...EMPTY_PERIOD },
+      last30Days: { ...EMPTY_PERIOD },
       byMode: [],
-      byEventName: []
+      byEventName: [],
+      daily: []
     };
 
     const PERIOD_LABELS = [
@@ -473,7 +488,10 @@
     }
 
     function periodTotal(summary) {
-      return PERIOD_LABELS.reduce((total, [key]) => total + toCount(summary[key]?.totalEvents), 0);
+      return PERIOD_LABELS.reduce((total, [key]) => {
+        const period = summary[key] || EMPTY_PERIOD;
+        return total + toCount(period.totalEvents) + toCount(period.pageViews) + toCount(period.visitors);
+      }, 0);
     }
 
     function isSummaryEmpty(summary) {
@@ -490,7 +508,7 @@
     function updateStatus(response) {
       const statusPill = document.getElementById('statusPill');
       const configured = Boolean(response.storageConfigured);
-      setText('storageStatus', configured ? '읽기용 저장소 설정됨' : '읽기용 저장소가 아직 설정되지 않았습니다');
+      setText('storageStatus', configured ? 'Redis 집계 저장소 설정됨' : '저장소 미설정');
       setText('storageMessage', translateMessage(response.message, configured));
       statusPill.textContent = configured ? '준비됨' : '설정 필요';
       statusPill.className = configured ? 'pill ready' : 'pill warn';
@@ -575,15 +593,15 @@
 
         const value = document.createElement('strong');
         value.className = 'value';
-        value.textContent = toCount(period.totalEvents).toLocaleString();
+        value.textContent = `${toCount(period.visitors).toLocaleString()} 방문자`;
 
         const detail = document.createElement('span');
         detail.className = 'detail';
-        detail.textContent = `실제 사용자 ${toCount(period.externalEvents).toLocaleString()} · 내부 테스트 ${toCount(period.internalEvents).toLocaleString()}`;
+        detail.textContent = `실제 방문자 ${toCount(period.externalVisitors).toLocaleString()} · 내부 방문자 ${toCount(period.internalVisitors).toLocaleString()} · 페이지뷰 ${toCount(period.pageViews).toLocaleString()} · 이벤트 ${toCount(period.totalEvents).toLocaleString()}`;
 
         const pill = document.createElement('span');
         pill.className = 'pill';
-        pill.textContent = '전체 이벤트';
+        pill.textContent = `${toCount(period.externalEvents).toLocaleString()} 실제 이벤트`;
 
         copy.append(eyebrow, value, detail);
         row.append(copy, pill);
@@ -594,8 +612,8 @@
     function renderPeriodChart(summary) {
       renderChart(
         'periodChart',
-        PERIOD_LABELS.map(([key, label]) => ({ label, count: summary[key]?.totalEvents })),
-        '아직 기간별 이벤트 데이터가 없습니다.'
+        PERIOD_LABELS.map(([key, label]) => ({ label, count: summary[key]?.pageViews || summary[key]?.totalEvents })),
+        '아직 기간별 페이지뷰/이벤트 데이터가 없습니다.'
       );
     }
 
@@ -604,10 +622,24 @@
       renderChart(
         'audienceChart',
         [
-          { label: '실제 사용자', count: last30Days.externalEvents, className: 'external' },
-          { label: '내부 테스트', count: last30Days.internalEvents, className: 'internal' }
+          { label: '실제 방문자', count: last30Days.externalVisitors || last30Days.externalEvents, className: 'external' },
+          { label: '내부 방문자', count: last30Days.internalVisitors || last30Days.internalEvents, className: 'internal' }
         ],
-        '아직 실제 사용자/내부 테스트 비율을 계산할 데이터가 없습니다.'
+        '아직 실제 방문자/내부 방문자 비율을 계산할 데이터가 없습니다.'
+      );
+    }
+
+
+    function renderDailyVisitorChart(summary) {
+      const dailyRows = Array.isArray(summary.daily) ? summary.daily : [];
+      renderChart(
+        'dailyVisitorChart',
+        dailyRows.map((row) => ({
+          label: row.date,
+          count: toCount(row.visitors),
+          className: toCount(row.externalVisitors) > 0 ? 'external' : ''
+        })),
+        '아직 최근 30일 방문자 추이 데이터가 없습니다.'
       );
     }
 
@@ -652,6 +684,7 @@
       renderPeriods(summary);
       renderPeriodChart(summary);
       renderAudienceChart(summary);
+      renderDailyVisitorChart(summary);
       renderRows('modeRows', summary.byMode, 'mode', '아직 모드별 데이터가 없습니다.');
       renderRows('eventRows', summary.byEventName, 'eventName', '아직 이벤트별 데이터가 없습니다.');
       renderBreakdownChart('modeChart', summary.byMode, 'mode', '아직 모드별 사용량 데이터가 없습니다.');
@@ -662,7 +695,7 @@
       }
 
       if (!response.storageConfigured) {
-        setText('setupGuidance', '실제 집계를 보려면 집계 전용 요약 엔드포인트를 ANALYTICS_STORAGE_READ_URL에 설정하세요. 이 페이지는 원시 질문이나 민감한 페이로드를 표시하지 않습니다.');
+        setText('setupGuidance', '실제 집계를 보려면 UPSTASH_REDIS_REST_URL과 UPSTASH_REDIS_REST_TOKEN을 설정하세요. 이 페이지는 원시 질문, 방문자 ID, IP 주소 또는 민감한 페이로드를 표시하지 않습니다.');
       }
     }
 

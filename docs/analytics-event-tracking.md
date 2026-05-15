@@ -14,7 +14,8 @@ Analytics storage is optional. The app does not require a database, dashboard, e
 - #327 added the first internal analytics summary page at `/tools/analytics-summary.html`.
 - #328 localized the analytics summary page and added CSS-only charts.
 - #329 added Redis/Upstash REST-backed aggregate counters for real visitor, page-view, event, mode, and event-name counts.
-- This PR lets the analytics aggregate store use the existing Vercel KV REST environment variables as well as Upstash-style names.
+- This PR excludes `/tools/analytics-summary.html` from tracked service usage so admin refreshes and controls do not affect advertiser-facing usage metrics.
+- The analytics aggregate store can use the existing Vercel KV REST environment variables as well as Upstash-style names.
 - #322 was closed without being merged and should not be referenced as an active implementation.
 
 ## Event names
@@ -100,6 +101,8 @@ The first admin-facing analytics summary page is available at:
 ```
 
 This page is an internal readiness and aggregate inspection tool only. It is not linked from public navigation and is not an advertiser-facing dashboard. It fetches `GET /api/analyticsSummary` and renders only aggregate counts for today, the last 7 days, the last 30 days, mode breakdowns, and event-name breakdowns.
+
+The analytics admin page is excluded from tracked ThisOne service usage. Loading or refreshing `/tools/analytics-summary.html` must not emit `page_view` events, create visitor counts, or increment `events`, `pageViews`, `visitors`, `externalVisitors`, or `internalVisitors`. Admin controls on this page can still set/check the internal-user flag, fetch summaries, and call reset controls, but those admin page views and admin actions should not affect advertiser-facing metrics.
 
 Vercel KV or Upstash-compatible Redis storage is required for real counts. If neither `KV_REST_API_URL` + `KV_REST_API_TOKEN` nor `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` is configured, the API returns `ok: true`, `storageConfigured: false`, and a zero-count placeholder message instead of inventing data or scraping logs.
 
@@ -280,7 +283,7 @@ Current scope:
 - Vercel KV and Upstash-compatible REST aggregate counter storage
 - Optional legacy webhook-style persistent event storage
 - Internal/test usage flagging
-- Internal aggregate summary page at `/tools/analytics-summary.html`
+- Internal aggregate summary page at `/tools/analytics-summary.html` excluded from tracked service usage
 
 Future work, not included in this PR:
 

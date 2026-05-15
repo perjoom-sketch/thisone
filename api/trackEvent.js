@@ -27,6 +27,10 @@ function parseBody(body) {
   return {};
 }
 
+function isAnalyticsAdminPath(path) {
+  return String(path || '').includes('/tools/analytics-summary.html');
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -44,6 +48,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: 'Invalid eventName' });
     }
 
+    if (isAnalyticsAdminPath(event.path)) {
+      return res.status(200).json({ ok: true, skipped: true });
+    }
+
     await storeAnalyticsEvent(event);
     return res.status(200).json({ ok: true });
   } catch (error) {
@@ -55,5 +63,6 @@ export default async function handler(req, res) {
 export const _private = {
   sanitizeQuery,
   sanitizeEvent,
-  categorizeUserAgent
+  categorizeUserAgent,
+  isAnalyticsAdminPath
 };

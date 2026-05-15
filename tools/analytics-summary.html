@@ -558,10 +558,21 @@
       stroke-width: 2.4;
     }
 
+    .line-chart-line.single-point {
+      opacity: 0.72;
+      stroke-dasharray: 4 5;
+      stroke-width: 2;
+    }
+
     .line-chart-point {
       fill: var(--panel);
       stroke: var(--blue);
       stroke-width: 2;
+    }
+
+    .line-chart-point.low-data {
+      fill: #eff6ff;
+      stroke-width: 2.4;
     }
 
     .line-chart-label {
@@ -576,9 +587,9 @@
     }
 
     .line-chart-date-label {
-      opacity: 0.78;
-      font-size: clamp(0.58rem, 1.1vw, 0.68rem);
-      font-weight: 620;
+      opacity: 0.64;
+      font-size: clamp(0.54rem, 1vw, 0.62rem);
+      font-weight: 560;
     }
 
     .line-chart-helper {
@@ -1192,7 +1203,7 @@
       const isSingleVisitorScale = maxValue === 1;
       const isLowDataTrend = nonZeroDays < 2;
       const visualMax = isSingleVisitorScale
-        ? 2
+        ? (isLowDataTrend ? 3 : 2)
         : isLowDataTrend
           ? Math.max(maxValue * 2, maxValue + 1)
           : maxValue;
@@ -1214,7 +1225,9 @@
 
       const description = createSvgElement('desc');
       description.setAttribute('id', 'dailyVisitorChartDescription');
-      description.textContent = `최근 30일 실제 방문자 최고값은 ${maxValue.toLocaleString()}명입니다.`;
+      description.textContent = isSingleVisitorScale
+        ? `최근 30일 실제 방문자 최고값은 ${maxValue.toLocaleString()}명이며, 집계가 적어 추이는 참고용입니다.`
+        : `최근 30일 실제 방문자 최고값은 ${maxValue.toLocaleString()}명입니다.`;
       svg.append(description);
 
       yGuideValues.forEach((value) => {
@@ -1239,12 +1252,14 @@
       const polyline = createSvgElement('polyline');
       polyline.classList.add('line-chart-line');
       if (isLowDataTrend) polyline.classList.add('low-data');
+      if (isLowDataTrend && isSingleVisitorScale) polyline.classList.add('single-point');
       polyline.setAttribute('points', coordinates.map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(' '));
       svg.append(polyline);
 
       coordinates.forEach((point) => {
         const circle = createSvgElement('circle');
         circle.classList.add('line-chart-point');
+        if (isLowDataTrend && point.count > 0) circle.classList.add('low-data');
         circle.setAttribute('cx', point.x);
         circle.setAttribute('cy', point.y);
         circle.setAttribute('r', 3.5);

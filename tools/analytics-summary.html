@@ -147,6 +147,85 @@
       color: #7a3b08;
     }
 
+    .notice.success {
+      border-color: #bbf7d0;
+      background: var(--green-soft);
+      color: #14532d;
+    }
+
+    .operator-panel {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.85rem, 2vw, 1.1rem);
+    }
+
+    .operator-card {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.75rem, 1.8vw, 1rem);
+      margin-top: clamp(0.85rem, 2vw, 1.1rem);
+      padding: clamp(0.85rem, 2.2vw, 1.25rem);
+      background: var(--panel);
+      border: clamp(0.0625rem, 0.12vw, 0.085rem) solid var(--line);
+      border-radius: clamp(0.85rem, 2vw, 1.2rem);
+    }
+
+    .operator-status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: clamp(0.75rem, 2vw, 1.25rem);
+    }
+
+    .operator-status {
+      margin: 0;
+      color: var(--text);
+      font-size: clamp(0.95rem, 1.9vw, 1.05rem);
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    .operator-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: clamp(0.5rem, 1.4vw, 0.75rem);
+    }
+
+    .operator-button {
+      appearance: none;
+      border: clamp(0.0625rem, 0.12vw, 0.085rem) solid var(--line);
+      border-radius: 999vw;
+      padding: clamp(0.55rem, 1.4vw, 0.7rem) clamp(0.75rem, 2vw, 1.05rem);
+      background: var(--panel-soft);
+      color: var(--text);
+      font: inherit;
+      font-size: clamp(0.82rem, 1.65vw, 0.95rem);
+      font-weight: 740;
+      line-height: 1.2;
+      cursor: pointer;
+    }
+
+    .operator-button.primary {
+      border-color: #bfdbfe;
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+
+    .operator-button.danger {
+      border-color: #fecaca;
+      background: var(--red-soft);
+      color: var(--red);
+    }
+
+    .operator-button:focus-visible {
+      outline: clamp(0.12rem, 0.35vw, 0.2rem) solid rgba(37, 99, 235, 0.28);
+      outline-offset: clamp(0.12rem, 0.35vw, 0.2rem);
+    }
+
+    .operator-message {
+      margin: 0;
+    }
+
     .detail {
       display: flex;
       flex-wrap: wrap;
@@ -341,8 +420,22 @@
 
       .status-row,
       .metric-row,
-      .guidance-row {
+      .guidance-row,
+      .operator-status-row {
         align-items: flex-start;
+      }
+
+      .operator-status-row {
+        flex-direction: column;
+      }
+
+      .operator-actions {
+        flex-direction: column;
+      }
+
+      .operator-button {
+        width: 100%;
+        text-align: center;
       }
 
       .pill {
@@ -372,6 +465,24 @@
     </header>
 
     <div class="stack">
+
+      <section class="operator-panel" aria-labelledby="operatorSettingsTitle">
+        <h2 id="operatorSettingsTitle">운영자 설정</h2>
+        <p>이 설정은 현재 브라우저에만 적용됩니다. 다른 PC나 휴대폰에서는 별도로 설정해야 합니다.</p>
+        <div class="operator-card" aria-live="polite">
+          <div class="operator-status-row">
+            <p id="internalUserStatus" class="operator-status">현재 브라우저: 실제 사용자로 집계됨</p>
+            <span id="internalUserPill" class="pill">실제 사용자</span>
+          </div>
+          <div class="operator-actions" aria-label="내부 테스트 브라우저 설정">
+            <button type="button" id="setInternalUserButton" class="operator-button primary">이 브라우저를 내부 테스트로 설정</button>
+            <button type="button" id="clearInternalUserButton" class="operator-button danger">내부 테스트 설정 해제</button>
+            <button type="button" id="checkInternalUserButton" class="operator-button">현재 설정 확인</button>
+          </div>
+          <p id="internalUserMessage" class="notice operator-message">현재 브라우저의 내부 테스트 여부만 표시하며, 방문자 ID·원시 검색어·IP는 표시하지 않습니다.</p>
+        </div>
+      </section>
+
       <section aria-labelledby="periodTitle">
         <h2 id="periodTitle">집계 요약</h2>
         <p>전체 이벤트, 실제 사용자, 내부 테스트를 기간별로 분리해서 표시합니다.</p>
@@ -435,7 +546,17 @@
     </div>
   </main>
 
+  <script src="../js/thisone_event_tracker.js"></script>
   <script>
+    const INTERNAL_STORAGE_KEY = 'thisone_internal_user';
+
+    const INTERNAL_MESSAGES = {
+      set: '이 브라우저는 내부 테스트로 설정됐습니다. 광고주용 수치에서 제외해야 합니다.',
+      cleared: '내부 테스트 설정을 해제했습니다. 이후 이벤트는 실제 사용자로 집계됩니다.',
+      checkedInternal: '현재 브라우저는 내부 테스트로 집계됩니다.',
+      checkedExternal: '현재 브라우저는 실제 사용자로 집계됩니다.'
+    };
+
     const EMPTY_PERIOD = {
       totalEvents: 0,
       externalEvents: 0,
@@ -460,6 +581,72 @@
       ['last7Days', '최근 7일'],
       ['last30Days', '최근 30일']
     ];
+
+
+    function readInternalUserSetting() {
+      try {
+        return window.localStorage?.getItem(INTERNAL_STORAGE_KEY) === 'true';
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function writeInternalUserSetting(enabled) {
+      if (window.ThisOneEventTracker && typeof window.ThisOneEventTracker.setInternalUser === 'function') {
+        return window.ThisOneEventTracker.setInternalUser(enabled);
+      }
+
+      try {
+        if (enabled) window.localStorage?.setItem(INTERNAL_STORAGE_KEY, 'true');
+        else window.localStorage?.removeItem(INTERNAL_STORAGE_KEY);
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function renderInternalUserSetting(message) {
+      const isInternal = readInternalUserSetting();
+      const status = document.getElementById('internalUserStatus');
+      const pill = document.getElementById('internalUserPill');
+      const messageElement = document.getElementById('internalUserMessage');
+
+      if (status) {
+        status.textContent = isInternal
+          ? '현재 브라우저: 내부 테스트로 집계됨'
+          : '현재 브라우저: 실제 사용자로 집계됨';
+      }
+
+      if (pill) {
+        pill.textContent = isInternal ? '내부 테스트' : '실제 사용자';
+        pill.className = isInternal ? 'pill warn' : 'pill ready';
+      }
+
+      if (messageElement && message) {
+        messageElement.textContent = message;
+        messageElement.className = `notice operator-message ${isInternal ? 'warn' : 'success'}`;
+      }
+    }
+
+    function bindInternalUserControls() {
+      document.getElementById('setInternalUserButton')?.addEventListener('click', () => {
+        writeInternalUserSetting(true);
+        renderInternalUserSetting(INTERNAL_MESSAGES.set);
+      });
+
+      document.getElementById('clearInternalUserButton')?.addEventListener('click', () => {
+        writeInternalUserSetting(false);
+        renderInternalUserSetting(INTERNAL_MESSAGES.cleared);
+      });
+
+      document.getElementById('checkInternalUserButton')?.addEventListener('click', () => {
+        renderInternalUserSetting(readInternalUserSetting()
+          ? INTERNAL_MESSAGES.checkedInternal
+          : INTERNAL_MESSAGES.checkedExternal);
+      });
+
+      renderInternalUserSetting();
+    }
 
     function toCount(value) {
       const numberValue = Number(value);
@@ -721,6 +908,7 @@
       }
     }
 
+    bindInternalUserControls();
     loadSummary();
   </script>
 </body>

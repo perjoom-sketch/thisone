@@ -553,6 +553,11 @@
       stroke-width: 3;
     }
 
+    .line-chart-line.low-data {
+      opacity: 0.82;
+      stroke-width: 2.4;
+    }
+
     .line-chart-point {
       fill: var(--panel);
       stroke: var(--blue);
@@ -563,6 +568,24 @@
       fill: var(--muted);
       font-size: clamp(0.72rem, 1.4vw, 0.85rem);
       font-weight: 700;
+    }
+
+    .line-chart-y-label {
+      font-size: clamp(0.62rem, 1.15vw, 0.72rem);
+      font-weight: 680;
+    }
+
+    .line-chart-date-label {
+      opacity: 0.78;
+      font-size: clamp(0.58rem, 1.1vw, 0.68rem);
+      font-weight: 620;
+    }
+
+    .line-chart-helper {
+      margin: calc(clamp(0.65rem, 1.6vw, 0.95rem) * -0.35) 0 0;
+      color: var(--muted);
+      font-size: clamp(0.78rem, 1.55vw, 0.9rem);
+      line-height: 1.5;
     }
 
 
@@ -1162,14 +1185,24 @@
 
       const chartWidth = 320;
       const chartHeight = 160;
-      const padding = { top: 18, right: 18, bottom: 34, left: 34 };
+      const padding = { top: 18, right: 18, bottom: 34, left: 42 };
       const plotWidth = chartWidth - padding.left - padding.right;
       const plotHeight = chartHeight - padding.top - padding.bottom;
-      const safeMax = Math.max(maxValue, 1);
+      const nonZeroDays = points.filter((point) => point.count > 0).length;
+      const isSingleVisitorScale = maxValue === 1;
+      const isLowDataTrend = nonZeroDays < 2;
+      const visualMax = isSingleVisitorScale
+        ? 2
+        : isLowDataTrend
+          ? Math.max(maxValue * 2, maxValue + 1)
+          : maxValue;
+      const yGuideValues = isSingleVisitorScale
+        ? [0, 1]
+        : Array.from(new Set([0, Math.ceil(maxValue / 2), maxValue]));
       const lastIndex = Math.max(points.length - 1, 1);
       const coordinates = points.map((point, index) => {
         const x = padding.left + (plotWidth * index) / lastIndex;
-        const y = padding.top + plotHeight - (plotHeight * point.count) / safeMax;
+        const y = padding.top + plotHeight - (plotHeight * point.count) / visualMax;
         return { ...point, x, y };
       });
 
@@ -1184,8 +1217,8 @@
       description.textContent = `최근 30일 실제 방문자 최고값은 ${maxValue.toLocaleString()}명입니다.`;
       svg.append(description);
 
-      [0, 0.5, 1].forEach((ratio) => {
-        const y = padding.top + plotHeight - plotHeight * ratio;
+      yGuideValues.forEach((value) => {
+        const y = padding.top + plotHeight - (plotHeight * value) / visualMax;
         const grid = createSvgElement('line');
         grid.classList.add('line-chart-grid');
         grid.setAttribute('x1', padding.left);
@@ -1193,10 +1226,19 @@
         grid.setAttribute('y1', y);
         grid.setAttribute('y2', y);
         svg.append(grid);
+
+        const guideLabel = createSvgElement('text');
+        guideLabel.classList.add('line-chart-label', 'line-chart-y-label');
+        guideLabel.setAttribute('x', padding.left - 8);
+        guideLabel.setAttribute('y', y + 4);
+        guideLabel.setAttribute('text-anchor', 'end');
+        guideLabel.textContent = `${value.toLocaleString()}명`;
+        svg.append(guideLabel);
       });
 
       const polyline = createSvgElement('polyline');
       polyline.classList.add('line-chart-line');
+      if (isLowDataTrend) polyline.classList.add('low-data');
       polyline.setAttribute('points', coordinates.map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(' '));
       svg.append(polyline);
 
@@ -1226,7 +1268,7 @@
         { text: lastDate, x: chartWidth - padding.right, anchor: 'end' }
       ].forEach((label) => {
         const dateLabel = createSvgElement('text');
-        dateLabel.classList.add('line-chart-label');
+        dateLabel.classList.add('line-chart-label', 'line-chart-date-label');
         dateLabel.setAttribute('x', label.x);
         dateLabel.setAttribute('y', chartHeight - 10);
         dateLabel.setAttribute('text-anchor', label.anchor);
@@ -1235,6 +1277,13 @@
       });
 
       container.append(svg);
+
+      if (isSingleVisitorScale) {
+        const helper = document.createElement('p');
+        helper.className = 'line-chart-helper';
+        helper.textContent = '최근 집계가 적어 추이는 참고용입니다.';
+        container.append(helper);
+      }
     }
 
     function getModeDisplay(mode) {

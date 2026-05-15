@@ -10,6 +10,8 @@ Analytics storage is optional. The app does not require a database, dashboard, e
 
 - #321 introduced the internal event tracking foundation.
 - #323 introduced optional analytics event storage through `lib/analyticsStore.js` and `ANALYTICS_STORAGE_URL`.
+- #326 audited and cleaned analytics tracking.
+- This PR adds the first internal analytics summary page at `/tools/analytics-summary.html`.
 - #322 was closed without being merged and should not be referenced as an active implementation.
 
 ## Event names
@@ -63,6 +65,32 @@ When `ANALYTICS_STORAGE_URL` is configured, ThisOne sends this sanitized payload
 ```
 
 The storage request uses a short timeout of about 2 seconds so tracking never delays the user-facing app flow.
+
+
+## Internal analytics summary
+
+The first admin-facing analytics summary page is available at:
+
+```text
+/tools/analytics-summary.html
+```
+
+This page is an internal readiness and aggregate inspection tool only. It is not linked from public navigation and is not an advertiser-facing dashboard. It fetches `GET /api/analyticsSummary` and renders only aggregate counts for today, the last 7 days, the last 30 days, mode breakdowns, and event-name breakdowns.
+
+Readable storage is required for real counts. If `ANALYTICS_STORAGE_READ_URL` is not configured, or if the configured endpoint is not readable, the API returns `ok: true`, `storageConfigured: false`, and a zero-count placeholder message instead of inventing data or scraping logs.
+
+Optional read-side environment variables:
+
+```env
+ANALYTICS_STORAGE_READ_URL=
+ANALYTICS_STORAGE_TOKEN=
+```
+
+- `ANALYTICS_STORAGE_READ_URL`: optional HTTPS endpoint that returns aggregate summary JSON for admin inspection.
+- `ANALYTICS_STORAGE_TOKEN`: optional bearer token reused for read requests when present.
+- The summary API requests aggregate-only data and includes an `excludeInternal=true` query parameter by default.
+- Future advertiser-facing reports must exclude every event where `isInternal === true`; internal usage may be shown only as a separate audit/readiness number.
+- Raw sensitive event data should never be displayed in the admin summary page or any future advertiser-facing report.
 
 ## Fallback behavior
 
@@ -147,10 +175,11 @@ Current scope:
 - Sanitized structured console logging
 - Optional webhook-style persistent event storage
 - Internal/test usage flagging
+- Internal aggregate summary page at `/tools/analytics-summary.html`
 
 Future work, not included in this PR:
 
-- admin dashboard
+- public admin dashboard with authentication
 - advertiser reporting views
 - aggregation jobs
 - GA4 or Google Search Console integration

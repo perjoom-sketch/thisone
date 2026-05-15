@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThisOne Analytics Summary</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --panel-soft: #f8fbff;
+      --text: #172033;
+      --muted: #667085;
+      --line: #dfe7f2;
+      --blue: #2563eb;
+      --blue-soft: #eaf2ff;
+      --green: #15803d;
+      --green-soft: #eaf8ef;
+      --orange: #b45309;
+      --orange-soft: #fff6e8;
+      --red: #b42318;
+      --red-soft: #fff1f0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top left, #eef5ff 0, var(--bg) min(38vw, 34rem));
+      color: var(--text);
+    }
+
+    main {
+      width: min(94vw, 68rem);
+      margin: 0 auto;
+      padding: clamp(1rem, 4vw, 2.5rem) 0 clamp(2rem, 6vw, 4rem);
+    }
+
+    header,
+    section {
+      background: rgba(255, 255, 255, 0.9);
+      border: clamp(0.0625rem, 0.12vw, 0.085rem) solid var(--line);
+      border-radius: clamp(1rem, 2.5vw, 1.5rem);
+      box-shadow: 0 clamp(0.75rem, 2vw, 1.5rem) clamp(1.5rem, 4vw, 3rem) rgba(15, 23, 42, 0.06);
+    }
+
+    header {
+      padding: clamp(1rem, 3vw, 2rem);
+    }
+
+    h1 {
+      margin: 0 0 clamp(0.35rem, 1vw, 0.6rem);
+      color: #1d3f7a;
+      font-size: clamp(1.6rem, 4vw, 2.5rem);
+      line-height: 1.12;
+      font-weight: 760;
+      letter-spacing: -0.04em;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: clamp(1rem, 2.2vw, 1.25rem);
+      line-height: 1.25;
+    }
+
+    p {
+      margin: clamp(0.35rem, 1vw, 0.65rem) 0 0;
+      color: var(--muted);
+      font-size: clamp(0.9rem, 1.8vw, 1rem);
+      line-height: 1.6;
+    }
+
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.85rem, 2vw, 1.2rem);
+      margin-top: clamp(0.85rem, 2vw, 1.2rem);
+    }
+
+    .status-row,
+    .metric-row,
+    .table-row,
+    .guidance-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: clamp(0.75rem, 2vw, 1.25rem);
+      padding: clamp(0.85rem, 2.2vw, 1.25rem);
+      background: var(--panel);
+      border: clamp(0.0625rem, 0.12vw, 0.085rem) solid var(--line);
+      border-radius: clamp(0.85rem, 2vw, 1.2rem);
+    }
+
+    .status-row {
+      background: var(--panel-soft);
+      margin-top: clamp(0.9rem, 2vw, 1.25rem);
+    }
+
+    .status-copy,
+    .metric-copy,
+    .guidance-copy {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .eyebrow {
+      display: block;
+      color: var(--muted);
+      font-size: clamp(0.72rem, 1.4vw, 0.85rem);
+      font-weight: 720;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .value {
+      display: block;
+      margin-top: clamp(0.2rem, 0.8vw, 0.35rem);
+      font-size: clamp(1.45rem, 3.6vw, 2rem);
+      font-weight: 780;
+      letter-spacing: -0.035em;
+    }
+
+    .detail {
+      display: flex;
+      flex-wrap: wrap;
+      gap: clamp(0.35rem, 1vw, 0.55rem);
+      margin-top: clamp(0.35rem, 1vw, 0.55rem);
+      color: var(--muted);
+      font-size: clamp(0.78rem, 1.6vw, 0.9rem);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: min(36vw, 9rem);
+      border-radius: 999vw;
+      padding: clamp(0.4rem, 1vw, 0.55rem) clamp(0.7rem, 2vw, 1rem);
+      color: var(--blue);
+      background: var(--blue-soft);
+      font-size: clamp(0.78rem, 1.6vw, 0.9rem);
+      font-weight: 760;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .pill.ready {
+      color: var(--green);
+      background: var(--green-soft);
+    }
+
+    .pill.warn {
+      color: var(--orange);
+      background: var(--orange-soft);
+    }
+
+    .pill.error {
+      color: var(--red);
+      background: var(--red-soft);
+    }
+
+    section {
+      padding: clamp(0.9rem, 2.6vw, 1.5rem);
+    }
+
+    .metric-list,
+    .table-list {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.65rem, 1.6vw, 0.95rem);
+      margin-top: clamp(0.8rem, 2vw, 1.1rem);
+    }
+
+    .table-row {
+      align-items: flex-start;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: clamp(0.82rem, 1.7vw, 0.95rem);
+    }
+
+    th,
+    td {
+      padding: clamp(0.55rem, 1.4vw, 0.8rem) clamp(0.35rem, 1vw, 0.65rem);
+      border-bottom: clamp(0.0625rem, 0.12vw, 0.085rem) solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: clamp(0.72rem, 1.4vw, 0.85rem);
+      font-weight: 760;
+    }
+
+    td:last-child,
+    th:last-child {
+      text-align: right;
+    }
+
+    code {
+      border-radius: clamp(0.35rem, 1vw, 0.55rem);
+      padding: clamp(0.08rem, 0.4vw, 0.15rem) clamp(0.22rem, 0.6vw, 0.35rem);
+      background: #edf2f7;
+      color: #1f3b63;
+      font-size: 0.95em;
+    }
+
+    .empty {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    @media (max-width: 640px) {
+      main {
+        width: min(96vw, 68rem);
+      }
+
+      .status-row,
+      .metric-row,
+      .guidance-row {
+        align-items: flex-start;
+      }
+
+      .pill {
+        min-width: min(34vw, 8rem);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <span class="eyebrow">Internal admin tool</span>
+      <h1>ThisOne Analytics Summary</h1>
+      <p>집계된 이벤트 수만 확인하는 내부용 준비 페이지입니다. 광고주용 지표에는 반드시 <code>isInternal=true</code> 이벤트를 제외해야 합니다.</p>
+      <div class="status-row" aria-live="polite">
+        <div class="status-copy">
+          <span class="eyebrow">Storage status</span>
+          <strong id="storageStatus" class="value">Loading…</strong>
+          <p id="storageMessage">Readable analytics storage status is being checked.</p>
+        </div>
+        <span id="statusPill" class="pill">Checking</span>
+      </div>
+    </header>
+
+    <div class="stack">
+      <section aria-labelledby="periodTitle">
+        <h2 id="periodTitle">Aggregate counts</h2>
+        <p>총 이벤트, 외부 이벤트, 내부 이벤트를 기간별로 분리해서 표시합니다.</p>
+        <div id="periodMetrics" class="metric-list"></div>
+      </section>
+
+      <section aria-labelledby="breakdownTitle">
+        <h2 id="breakdownTitle">Breakdowns</h2>
+        <p>원시 검색어, 문서 내용, 이미지 데이터, IP 주소는 표시하지 않습니다.</p>
+        <div class="table-list">
+          <div class="table-row">
+            <div class="table-wrap">
+              <table aria-label="Events by mode">
+                <thead><tr><th>Mode</th><th>Count</th></tr></thead>
+                <tbody id="modeRows"><tr><td class="empty" colspan="2">No mode data yet.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="table-row">
+            <div class="table-wrap">
+              <table aria-label="Events by event name">
+                <thead><tr><th>Event name</th><th>Count</th></tr></thead>
+                <tbody id="eventRows"><tr><td class="empty" colspan="2">No event data yet.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="guidanceTitle">
+        <h2 id="guidanceTitle">Setup guidance</h2>
+        <div class="guidance-row">
+          <div class="guidance-copy">
+            <span class="eyebrow">Current limitation</span>
+            <p id="setupGuidance">Configure <code>ANALYTICS_STORAGE_READ_URL</code> to return aggregate summary JSON when persistent readable storage is available.</p>
+          </div>
+          <span class="pill warn">Aggregate only</span>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const EMPTY_SUMMARY = {
+      today: { totalEvents: 0, externalEvents: 0, internalEvents: 0 },
+      last7Days: { totalEvents: 0, externalEvents: 0, internalEvents: 0 },
+      last30Days: { totalEvents: 0, externalEvents: 0, internalEvents: 0 },
+      byMode: [],
+      byEventName: []
+    };
+
+    const PERIOD_LABELS = [
+      ['today', 'Today'],
+      ['last7Days', 'Last 7 days'],
+      ['last30Days', 'Last 30 days']
+    ];
+
+    function toCount(value) {
+      const numberValue = Number(value);
+      if (!Number.isFinite(numberValue) || numberValue < 0) return 0;
+      return Math.floor(numberValue);
+    }
+
+    function setText(id, value) {
+      const element = document.getElementById(id);
+      if (element) element.textContent = value;
+    }
+
+    function updateStatus(response) {
+      const statusPill = document.getElementById('statusPill');
+      const configured = Boolean(response.storageConfigured);
+      setText('storageStatus', configured ? 'Readable storage configured' : 'Readable storage not configured');
+      setText('storageMessage', response.message || (configured ? 'Aggregate analytics summary was loaded successfully.' : 'Analytics event collection is active, but readable storage is not configured yet.'));
+      statusPill.textContent = configured ? 'Ready' : 'Setup needed';
+      statusPill.className = configured ? 'pill ready' : 'pill warn';
+    }
+
+    function updateError(message) {
+      const statusPill = document.getElementById('statusPill');
+      setText('storageStatus', 'Summary unavailable');
+      setText('storageMessage', message || 'The analytics summary API could not be loaded. Try again after checking the admin API logs.');
+      statusPill.textContent = 'API error';
+      statusPill.className = 'pill error';
+    }
+
+    function renderPeriods(summary) {
+      const container = document.getElementById('periodMetrics');
+      container.replaceChildren();
+
+      PERIOD_LABELS.forEach(([key, label]) => {
+        const period = summary[key] || EMPTY_SUMMARY[key];
+        const row = document.createElement('div');
+        row.className = 'metric-row';
+
+        const copy = document.createElement('div');
+        copy.className = 'metric-copy';
+
+        const eyebrow = document.createElement('span');
+        eyebrow.className = 'eyebrow';
+        eyebrow.textContent = label;
+
+        const value = document.createElement('strong');
+        value.className = 'value';
+        value.textContent = toCount(period.totalEvents).toLocaleString();
+
+        const detail = document.createElement('span');
+        detail.className = 'detail';
+        detail.textContent = `External ${toCount(period.externalEvents).toLocaleString()} · Internal ${toCount(period.internalEvents).toLocaleString()}`;
+
+        const pill = document.createElement('span');
+        pill.className = 'pill';
+        pill.textContent = 'Total events';
+
+        copy.append(eyebrow, value, detail);
+        row.append(copy, pill);
+        container.append(row);
+      });
+    }
+
+    function renderRows(tbodyId, rows, labelKey, emptyText) {
+      const tbody = document.getElementById(tbodyId);
+      tbody.replaceChildren();
+
+      if (!Array.isArray(rows) || rows.length === 0) {
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.className = 'empty';
+        cell.colSpan = 2;
+        cell.textContent = emptyText;
+        row.append(cell);
+        tbody.append(row);
+        return;
+      }
+
+      rows.forEach((item) => {
+        const row = document.createElement('tr');
+        const label = document.createElement('td');
+        const count = document.createElement('td');
+        label.textContent = item[labelKey] || 'unknown';
+        count.textContent = toCount(item.count).toLocaleString();
+        row.append(label, count);
+        tbody.append(row);
+      });
+    }
+
+    function renderSummary(response) {
+      const summary = response.summary || EMPTY_SUMMARY;
+      updateStatus(response);
+      renderPeriods(summary);
+      renderRows('modeRows', summary.byMode, 'mode', 'No mode data yet.');
+      renderRows('eventRows', summary.byEventName, 'eventName', 'No event data yet.');
+
+      if (!response.storageConfigured) {
+        setText('setupGuidance', 'Set ANALYTICS_STORAGE_READ_URL to an aggregate-only summary endpoint. Real counts require readable persistent storage; this page never displays raw queries or sensitive payloads.');
+      }
+    }
+
+    async function loadSummary() {
+      try {
+        const response = await fetch('/api/analyticsSummary', {
+          headers: { Accept: 'application/json' }
+        });
+
+        if (!response.ok) {
+          throw new Error(`API status ${response.status}`);
+        }
+
+        const payload = await response.json();
+        if (!payload || payload.ok !== true) {
+          throw new Error('Unexpected analytics summary response');
+        }
+
+        renderSummary(payload);
+      } catch (error) {
+        updateError('The analytics summary API could not be loaded. This page only shows aggregate counts when /api/analyticsSummary is available.');
+        renderPeriods(EMPTY_SUMMARY);
+        renderRows('modeRows', [], 'mode', 'No mode data loaded.');
+        renderRows('eventRows', [], 'eventName', 'No event data loaded.');
+      }
+    }
+
+    loadSummary();
+  </script>
+</body>
+</html>

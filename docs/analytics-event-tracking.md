@@ -6,6 +6,12 @@ ThisOne needs trustworthy usage data for future traffic reports and advertiser-f
 
 Analytics storage is optional. The app does not require a database, dashboard, external analytics vendor, or persistent storage service to run.
 
+## Implementation history
+
+- #321 introduced the internal event tracking foundation.
+- #323 introduced optional analytics event storage through `lib/analyticsStore.js` and `ANALYTICS_STORAGE_URL`.
+- #322 was closed without being merged and should not be referenced as an active implementation.
+
 ## Event names
 
 Allowed event names are intentionally limited:
@@ -114,7 +120,7 @@ Only sanitized events may be written to remote storage. Never store or send:
 
 - uploaded image data
 - document contents
-- full private text
+- full free-form private text
 - phone numbers
 - resident registration numbers
 - account numbers

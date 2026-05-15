@@ -16,6 +16,7 @@
     loveMeSubmit: 'loveme',
     homeMealSubmit: 'home-meal'
   };
+  const SENSITIVE_METADATA_KEY_PATTERN = /(image|photo|base64|document|content|body|text|prompt|password|passwd|pwd|address|addr|phone|tel|rrn|resident|account)/i;
   let lastModeOpen = { mode: '', at: 0 };
 
   function safeLocalStorage() {
@@ -64,6 +65,10 @@
       .replace(/\b01[016789][-.\s]?\d{3,4}[-.\s]?\d{4}\b/g, '[removed-phone]')
       .replace(/\b\d{4,}([-.\s]?\d{2,}){1,}\b/g, '[removed-number]')
       .replace(/\b\d{7,}\b/g, '[removed-number]')
+      .replace(/\b(?:password|passwd|pwd|비밀번호)\s*[:=]\s*\S+/gi, '[removed-password]')
+      .replace(/\b[A-Za-z0-9+/]{80,}={0,2}\b/g, '[removed-base64]')
+      .replace(/[가-힣A-Za-z0-9\s.-]+(?:시|도)\s+[가-힣A-Za-z0-9\s.-]+(?:구|군)\s+[가-힣A-Za-z0-9\s.-]+(?:로|길)(?:\s*\d+[가-힣A-Za-z0-9\s.-]*)?/g, '[removed-address]')
+      .replace(/\b\d{1,6}\s+[A-Za-z0-9 .'-]+\s+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Court|Ct|Way|Place|Pl)\b/gi, '[removed-address]')
       .replace(/\s+/g, ' ')
       .trim()
       .slice(0, 100);
@@ -75,7 +80,7 @@
     const output = {};
     Object.entries(metadata).slice(0, 20).forEach(([rawKey, rawValue]) => {
       const key = limitString(rawKey, 40);
-      if (!key) return;
+      if (!key || SENSITIVE_METADATA_KEY_PATTERN.test(key)) return;
 
       if (rawValue === null || rawValue === undefined) {
         output[key] = null;
@@ -84,7 +89,7 @@
       } else if (typeof rawValue === 'number') {
         output[key] = Number.isFinite(rawValue) ? rawValue : null;
       } else if (typeof rawValue === 'string') {
-        output[key] = limitString(rawValue, 160);
+        output[key] = sanitizeQuery(rawValue).slice(0, 160);
       }
     });
 

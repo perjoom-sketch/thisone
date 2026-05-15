@@ -3,6 +3,8 @@
 
   const INTERNAL_STORAGE_KEY = 'thisone_internal_user';
   const VISITOR_STORAGE_KEY = 'thisone_visitor_id';
+  const INTERNAL_COOKIE_NAME = 'thisone_internal_user';
+  const INTERNAL_COOKIE_DOMAIN = '.thisone.me';
   const ENDPOINT = '/api/trackEvent';
   const ALLOWED_EVENT_NAMES = new Set([
     'page_view',
@@ -29,20 +31,54 @@
     }
   }
 
-  function setInternalUser(enabled) {
-    const storage = safeLocalStorage();
-    if (!storage) return false;
+  function safeDocument() {
+    try {
+      return global.document || null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeCookie(value) {
+    const doc = safeDocument();
+    if (!doc) return false;
 
     try {
-      if (enabled) storage.setItem(INTERNAL_STORAGE_KEY, 'true');
-      else storage.removeItem(INTERNAL_STORAGE_KEY);
+      doc.cookie = `${INTERNAL_COOKIE_NAME}=${value}; Domain=${INTERNAL_COOKIE_DOMAIN}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
       return true;
     } catch (error) {
       return false;
     }
   }
 
-  function isInternalUser() {
+  function clearCookie() {
+    const doc = safeDocument();
+    if (!doc) return false;
+
+    try {
+      doc.cookie = `${INTERNAL_COOKIE_NAME}=; Domain=${INTERNAL_COOKIE_DOMAIN}; Path=/; Max-Age=0; SameSite=Lax; Secure`;
+      doc.cookie = `${INTERNAL_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax; Secure`;
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function hasInternalUserCookie() {
+    const doc = safeDocument();
+    if (!doc) return false;
+
+    try {
+      return doc.cookie
+        .split(';')
+        .map((cookie) => cookie.trim())
+        .some((cookie) => cookie === `${INTERNAL_COOKIE_NAME}=true`);
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function hasInternalUserLocalStorage() {
     const storage = safeLocalStorage();
     if (!storage) return false;
 
@@ -51,6 +87,28 @@
     } catch (error) {
       return false;
     }
+  }
+
+  function setInternalUser(enabled) {
+    const storage = safeLocalStorage();
+    let wroteLocalStorage = false;
+
+    if (storage) {
+      try {
+        if (enabled) storage.setItem(INTERNAL_STORAGE_KEY, 'true');
+        else storage.removeItem(INTERNAL_STORAGE_KEY);
+        wroteLocalStorage = true;
+      } catch (error) {
+        wroteLocalStorage = false;
+      }
+    }
+
+    const wroteCookie = enabled ? writeCookie('true') : clearCookie();
+    return wroteLocalStorage || wroteCookie;
+  }
+
+  function isInternalUser() {
+    return hasInternalUserLocalStorage() || hasInternalUserCookie();
   }
 
 
@@ -304,7 +362,9 @@
       sanitizeQuery,
       buildEvent,
       trackModeOpen,
-      trackPageView
+      trackPageView,
+      hasInternalUserCookie,
+      hasInternalUserLocalStorage
     }
   };
 

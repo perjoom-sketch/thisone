@@ -658,7 +658,7 @@
 
       <section class="operator-panel" aria-labelledby="operatorSettingsTitle">
         <h2 id="operatorSettingsTitle">운영자 설정</h2>
-        <p>이 설정은 현재 브라우저에만 적용됩니다. 다른 PC나 휴대폰에서는 별도로 설정해야 합니다.</p>
+        <p>내부 테스트 설정은 현재 브라우저에 저장됩니다. www 여부가 달라도 유지되도록 공통 쿠키도 함께 사용합니다.</p>
         <div class="operator-card" aria-live="polite">
           <div class="operator-status-row">
             <p id="internalUserStatus" class="operator-status">현재 브라우저: 실제 사용자로 집계됨</p>
@@ -779,6 +779,8 @@
   <script src="../js/thisone_event_tracker.js"></script>
   <script>
     const INTERNAL_STORAGE_KEY = 'thisone_internal_user';
+    const INTERNAL_COOKIE_NAME = 'thisone_internal_user';
+    const INTERNAL_COOKIE_DOMAIN = '.thisone.me';
 
     const INTERNAL_MESSAGES = {
       set: '이 브라우저는 내부 테스트로 설정됐습니다. 광고주용 수치에서 제외해야 합니다.',
@@ -844,7 +846,7 @@
     ]);
 
 
-    function readInternalUserSetting() {
+    function readInternalUserLocalStorage() {
       try {
         return window.localStorage?.getItem(INTERNAL_STORAGE_KEY) === 'true';
       } catch (error) {
@@ -852,18 +854,60 @@
       }
     }
 
+    function readInternalUserCookie() {
+      try {
+        return document.cookie
+          .split(';')
+          .map((cookie) => cookie.trim())
+          .some((cookie) => cookie === `${INTERNAL_COOKIE_NAME}=true`);
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function writeInternalUserCookie() {
+      try {
+        document.cookie = `${INTERNAL_COOKIE_NAME}=true; Domain=${INTERNAL_COOKIE_DOMAIN}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function clearInternalUserCookie() {
+      try {
+        document.cookie = `${INTERNAL_COOKIE_NAME}=; Domain=${INTERNAL_COOKIE_DOMAIN}; Path=/; Max-Age=0; SameSite=Lax; Secure`;
+        document.cookie = `${INTERNAL_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax; Secure`;
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function readInternalUserSetting() {
+      if (window.ThisOneEventTracker && typeof window.ThisOneEventTracker.isInternalUser === 'function') {
+        return window.ThisOneEventTracker.isInternalUser();
+      }
+
+      return readInternalUserLocalStorage() || readInternalUserCookie();
+    }
+
     function writeInternalUserSetting(enabled) {
       if (window.ThisOneEventTracker && typeof window.ThisOneEventTracker.setInternalUser === 'function') {
         return window.ThisOneEventTracker.setInternalUser(enabled);
       }
 
+      let wroteLocalStorage = false;
       try {
         if (enabled) window.localStorage?.setItem(INTERNAL_STORAGE_KEY, 'true');
         else window.localStorage?.removeItem(INTERNAL_STORAGE_KEY);
-        return true;
+        wroteLocalStorage = true;
       } catch (error) {
-        return false;
+        wroteLocalStorage = false;
       }
+
+      const wroteCookie = enabled ? writeInternalUserCookie() : clearInternalUserCookie();
+      return wroteLocalStorage || wroteCookie;
     }
 
     function renderInternalUserSetting(message) {

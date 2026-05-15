@@ -179,13 +179,19 @@ isInternal === true
 
 Do not drop internal events at storage time. Preserve the `isInternal` flag and exclude those events only when building future advertiser-facing reports.
 
-The frontend checks this localStorage key:
+The frontend keeps the existing localStorage key:
 
 ```js
 thisone_internal_user = "true"
 ```
 
-If the key is present and set to `"true"`, events include `isInternal: true`. If it is absent, events include `isInternal: false`.
+It also uses a shared cookie fallback so the same browser remains marked internal across both `https://thisone.me` and `https://www.thisone.me`:
+
+```http
+thisone_internal_user=true; Domain=.thisone.me; Path=/; Max-Age=31536000; SameSite=Lax; Secure
+```
+
+If either the localStorage key or the shared cookie is present and set to `"true"`, events include `isInternal: true`. If neither storage location is set, events include `isInternal: false`.
 
 The frontend also creates an anonymous local visitor ID for aggregate unique visitor counting only:
 
@@ -203,12 +209,13 @@ The preferred operator flow is now the admin settings panel on:
 /tools/analytics-summary.html
 ```
 
-Open the page, find **운영자 설정**, then click **이 브라우저를 내부 테스트로 설정**. The panel writes the current browser's local `thisone_internal_user` flag and updates the visible status to **현재 브라우저: 내부 테스트로 집계됨**. This setting applies only to the current browser/device; other PCs, phones, browsers, or profiles must be configured separately.
+Open the page, find **운영자 설정**, then click **이 브라우저를 내부 테스트로 설정**. The panel writes the current browser's local `thisone_internal_user` flag, writes the shared `.thisone.me` cookie, and updates the visible status to **현재 브라우저: 내부 테스트로 집계됨**. This setting is stored in the current browser/device; the shared cookie keeps the setting consistent when the operator moves between the apex and `www` hosts in that browser.
 
-Use localStorage directly only as a fallback:
+Use localStorage directly only as a fallback, and set the shared cookie at the same time when the current host supports `.thisone.me` cookies:
 
 ```js
 localStorage.setItem("thisone_internal_user", "true");
+document.cookie = "thisone_internal_user=true; Domain=.thisone.me; Path=/; Max-Age=31536000; SameSite=Lax; Secure";
 ```
 
 Or use the helper fallback:
@@ -219,12 +226,14 @@ window.ThisOneEventTracker.setInternalUser(true);
 
 ## How to remove internal mode
 
-The preferred operator flow is to open `/tools/analytics-summary.html`, find **운영자 설정**, then click **내부 테스트 설정 해제**. The panel removes the current browser's local flag and updates the visible status to **현재 브라우저: 실제 사용자로 집계됨**.
+The preferred operator flow is to open `/tools/analytics-summary.html`, find **운영자 설정**, then click **내부 테스트 설정 해제**. The panel removes the current browser's local flag, expires the shared `.thisone.me` cookie, expires any host-only cookie with the same name, and updates the visible status to **현재 브라우저: 실제 사용자로 집계됨**.
 
-Use localStorage directly only as a fallback:
+Use localStorage directly only as a fallback, and expire both the shared and host-only cookies at the same time:
 
 ```js
 localStorage.removeItem("thisone_internal_user");
+document.cookie = "thisone_internal_user=; Domain=.thisone.me; Path=/; Max-Age=0; SameSite=Lax; Secure";
+document.cookie = "thisone_internal_user=; Path=/; Max-Age=0; SameSite=Lax; Secure";
 ```
 
 Or use the helper fallback:

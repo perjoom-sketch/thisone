@@ -193,6 +193,14 @@
     }
   }
 
+  function isAnalyticsAdminPage() {
+    try {
+      return String(global.location?.pathname || '').includes('/tools/analytics-summary.html');
+    } catch (error) {
+      return false;
+    }
+  }
+
   function buildEvent(eventName, payload) {
     const name = limitString(eventName, 60);
     if (!ALLOWED_EVENT_NAMES.has(name)) return null;
@@ -235,6 +243,8 @@
   }
 
   function track(eventName, payload) {
+    if (isAnalyticsAdminPage()) return;
+
     const event = buildEvent(eventName, payload);
     sendEvent(event);
   }
@@ -246,6 +256,7 @@
   }
 
   function trackPageView() {
+    if (isAnalyticsAdminPage()) return;
     if (global.document?.__thisonePageViewTracked) return;
     if (global.document) global.document.__thisonePageViewTracked = true;
     track('page_view', {
@@ -363,6 +374,7 @@
       buildEvent,
       trackModeOpen,
       trackPageView,
+      isAnalyticsAdminPage,
       hasInternalUserCookie,
       hasInternalUserLocalStorage
     }

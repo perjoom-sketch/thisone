@@ -226,6 +226,88 @@
       margin: 0;
     }
 
+
+    .reset-panel {
+      border-color: #f8d7a3;
+      background: linear-gradient(180deg, rgba(255, 246, 232, 0.95), rgba(255, 255, 255, 0.96));
+    }
+
+    .reset-card {
+      border-color: #f8d7a3;
+      background: #fffaf2;
+    }
+
+    .reset-warning {
+      border-color: #f8d7a3;
+      background: var(--orange-soft);
+      color: #7a3b08;
+    }
+
+    .reset-form {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.75rem, 1.8vw, 1rem);
+    }
+
+    .reset-control-row {
+      display: flex;
+      align-items: flex-end;
+      gap: clamp(0.65rem, 1.8vw, 1rem);
+    }
+
+    .reset-field {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+      flex-direction: column;
+      gap: clamp(0.3rem, 0.8vw, 0.45rem);
+    }
+
+    .reset-field label {
+      color: var(--text);
+      font-size: clamp(0.82rem, 1.65vw, 0.95rem);
+      font-weight: 740;
+    }
+
+    .reset-field select,
+    .reset-field input {
+      width: 100%;
+      border: clamp(0.0625rem, 0.12vw, 0.085rem) solid var(--line);
+      border-radius: clamp(0.65rem, 1.6vw, 0.9rem);
+      padding: clamp(0.6rem, 1.5vw, 0.8rem) clamp(0.7rem, 1.8vw, 1rem);
+      background: var(--panel);
+      color: var(--text);
+      font: inherit;
+      font-size: clamp(0.86rem, 1.7vw, 0.98rem);
+    }
+
+    .reset-field select:focus,
+    .reset-field input:focus {
+      outline: clamp(0.12rem, 0.35vw, 0.2rem) solid rgba(180, 83, 9, 0.24);
+      outline-offset: clamp(0.1rem, 0.28vw, 0.16rem);
+      border-color: #f59e0b;
+    }
+
+    .reset-button-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: clamp(0.65rem, 1.8vw, 1rem);
+    }
+
+    .reset-button[disabled] {
+      opacity: 0.48;
+      cursor: not-allowed;
+    }
+
+    .reset-all-caution {
+      margin: 0;
+      color: var(--red);
+      font-size: clamp(0.8rem, 1.6vw, 0.92rem);
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
     .detail {
       display: flex;
       flex-wrap: wrap;
@@ -469,8 +551,11 @@
         flex-direction: column;
       }
 
-      .operator-actions {
+      .operator-actions,
+      .reset-control-row,
+      .reset-button-row {
         flex-direction: column;
+        align-items: stretch;
       }
 
       .operator-button {
@@ -520,6 +605,39 @@
             <button type="button" id="checkInternalUserButton" class="operator-button">현재 설정 확인</button>
           </div>
           <p id="internalUserMessage" class="notice operator-message">현재 브라우저의 내부 테스트 여부만 표시하며, 방문자 ID·원시 검색어·IP는 표시하지 않습니다.</p>
+        </div>
+      </section>
+
+
+
+      <section class="operator-panel reset-panel" aria-labelledby="resetAnalyticsTitle">
+        <h2 id="resetAnalyticsTitle">통계 초기화</h2>
+        <p class="notice reset-warning">초기화는 analytics: 통계 키만 삭제합니다. 검색어/연관검색어용 KV 데이터는 삭제하지 않습니다.</p>
+        <div class="operator-card reset-card">
+          <form id="resetAnalyticsForm" class="reset-form">
+            <div class="reset-control-row">
+              <div class="reset-field">
+                <label for="resetRange">초기화 범위</label>
+                <select id="resetRange" name="range">
+                  <option value="today" selected>오늘</option>
+                  <option value="last7Days">최근 7일</option>
+                  <option value="last30Days">최근 30일</option>
+                  <option value="all">전체 통계 (주의)</option>
+                </select>
+              </div>
+              <div class="reset-field">
+                <label for="resetConfirmText">확인 문구</label>
+                <input id="resetConfirmText" name="confirmText" type="text" autocomplete="off" inputmode="text" placeholder="통계 초기화" aria-describedby="resetConfirmHelp">
+              </div>
+            </div>
+            <p id="resetConfirmHelp" class="detail">“통계 초기화”를 정확히 입력해야 버튼이 활성화됩니다.</p>
+            <p id="resetAllCaution" class="reset-all-caution" hidden>전체 통계는 모든 analytics: 키만 삭제합니다. keyword:, query:, related:, suggestion:, trajectory:, search: 키는 삭제하지 않습니다.</p>
+            <div class="reset-button-row">
+              <button type="submit" id="resetAnalyticsButton" class="operator-button danger reset-button" disabled>선택한 통계 초기화</button>
+              <span id="resetAnalyticsStatus" class="pill warn">확인 문구 필요</span>
+            </div>
+            <p id="resetAnalyticsMessage" class="notice operator-message reset-warning" aria-live="polite">테스트 데이터 정리용 관리자 기능입니다. 공개 내비게이션에는 노출하지 않습니다.</p>
+          </form>
         </div>
       </section>
 
@@ -652,6 +770,15 @@
     const UNKNOWN_MODE_NOTE = '모드 정보 없이 기록된 페이지뷰입니다.';
 
 
+    const RESET_CONFIRM_TEXT = '통계 초기화';
+    const RESET_RANGE_LABELS = new Map([
+      ['today', '오늘'],
+      ['last7Days', '최근 7일'],
+      ['last30Days', '최근 30일'],
+      ['all', '전체 통계']
+    ]);
+
+
     function readInternalUserSetting() {
       try {
         return window.localStorage?.getItem(INTERNAL_STORAGE_KEY) === 'true';
@@ -715,6 +842,90 @@
       });
 
       renderInternalUserSetting();
+    }
+
+
+
+    function getResetControls() {
+      return {
+        form: document.getElementById('resetAnalyticsForm'),
+        range: document.getElementById('resetRange'),
+        confirm: document.getElementById('resetConfirmText'),
+        button: document.getElementById('resetAnalyticsButton'),
+        status: document.getElementById('resetAnalyticsStatus'),
+        message: document.getElementById('resetAnalyticsMessage'),
+        allCaution: document.getElementById('resetAllCaution')
+      };
+    }
+
+    function setResetMessage(message, type = 'warn') {
+      const { message: messageElement, status } = getResetControls();
+      if (messageElement) {
+        messageElement.textContent = message;
+        messageElement.className = `notice operator-message ${type === 'success' ? 'success' : type === 'error' ? 'warn' : 'reset-warning'}`;
+      }
+      if (status) {
+        status.textContent = type === 'success' ? '초기화 완료' : type === 'error' ? '확인 필요' : '확인 문구 필요';
+        status.className = type === 'success' ? 'pill ready' : 'pill warn';
+      }
+    }
+
+    function updateResetButtonState(options = {}) {
+      const { range, confirm, button, allCaution } = getResetControls();
+      const confirmed = confirm?.value === RESET_CONFIRM_TEXT;
+      if (button) button.disabled = !confirmed;
+      if (allCaution) allCaution.hidden = range?.value !== 'all';
+      if (!confirmed && !options.silent) setResetMessage('“통계 초기화”를 정확히 입력해야 초기화할 수 있습니다.');
+    }
+
+    async function submitAnalyticsReset(event) {
+      event.preventDefault();
+      const { range, confirm, button } = getResetControls();
+      const resetRange = range?.value || 'today';
+      const confirmText = confirm?.value || '';
+
+      if (confirmText !== RESET_CONFIRM_TEXT) {
+        updateResetButtonState();
+        return;
+      }
+
+      if (button) button.disabled = true;
+      setResetMessage(`${RESET_RANGE_LABELS.get(resetRange) || '선택한 범위'} 통계를 초기화하는 중입니다...`);
+
+      try {
+        const response = await fetch('/api/resetAnalytics', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ range: resetRange, confirmText })
+        });
+        const payload = await response.json().catch(() => null);
+
+        if (!response.ok || !payload?.ok) {
+          throw new Error(payload?.message || payload?.error || '통계 초기화 요청이 실패했습니다.');
+        }
+
+        const deletedText = typeof payload.deletedKeys === 'number'
+          ? `${payload.deletedKeys.toLocaleString()}개 analytics: 키 삭제`
+          : 'analytics: 키 초기화 요청 완료';
+        setResetMessage(`${RESET_RANGE_LABELS.get(payload.resetRange) || '선택한 범위'} 초기화 완료: ${deletedText}.`, 'success');
+        if (confirm) confirm.value = '';
+        await loadSummary();
+      } catch (error) {
+        setResetMessage(error?.message || '통계 초기화 중 오류가 발생했습니다.', 'error');
+      } finally {
+        updateResetButtonState({ silent: true });
+      }
+    }
+
+    function bindAnalyticsResetControls() {
+      const { form, range, confirm } = getResetControls();
+      form?.addEventListener('submit', submitAnalyticsReset);
+      range?.addEventListener('change', updateResetButtonState);
+      confirm?.addEventListener('input', updateResetButtonState);
+      updateResetButtonState();
     }
 
     function toCount(value) {
@@ -1022,6 +1233,7 @@
     }
 
     bindInternalUserControls();
+    bindAnalyticsResetControls();
     loadSummary();
   </script>
 </body>

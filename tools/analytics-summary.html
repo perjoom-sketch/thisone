@@ -235,6 +235,46 @@
       font-size: clamp(0.78rem, 1.6vw, 0.9rem);
     }
 
+    .summary-help {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.45rem, 1.2vw, 0.7rem);
+      margin-top: clamp(0.8rem, 2vw, 1.1rem);
+      padding: clamp(0.75rem, 2vw, 1.05rem);
+      border: clamp(0.0625rem, 0.12vw, 0.085rem) solid var(--line);
+      border-radius: clamp(0.75rem, 1.8vw, 1rem);
+      background: var(--panel-soft);
+    }
+
+    .summary-help-row {
+      display: flex;
+      gap: clamp(0.45rem, 1.2vw, 0.7rem);
+      color: var(--muted);
+      font-size: clamp(0.82rem, 1.65vw, 0.95rem);
+      line-height: 1.5;
+    }
+
+    .summary-help-row strong {
+      flex: 0 0 min(28vw, 6rem);
+      color: var(--text);
+      font-weight: 760;
+    }
+
+    .label-primary {
+      display: block;
+      color: var(--text);
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .label-note {
+      display: block;
+      margin-top: clamp(0.15rem, 0.5vw, 0.25rem);
+      color: var(--muted);
+      font-size: clamp(0.74rem, 1.5vw, 0.86rem);
+      line-height: 1.45;
+    }
+
     .pill {
       display: inline-flex;
       align-items: center;
@@ -486,6 +526,13 @@
       <section aria-labelledby="periodTitle">
         <h2 id="periodTitle">집계 요약</h2>
         <p>전체 이벤트, 실제 사용자, 내부 테스트를 기간별로 분리해서 표시합니다.</p>
+        <div class="summary-help" aria-label="집계 항목 설명">
+          <div class="summary-help-row"><strong>방문자</strong><span>하루 기준 중복을 제외한 브라우저 수입니다.</span></div>
+          <div class="summary-help-row"><strong>페이지뷰</strong><span>페이지가 열린 횟수입니다. 새로고침도 포함될 수 있습니다.</span></div>
+          <div class="summary-help-row"><strong>이벤트</strong><span>검색, 모드 진입, 도구 실행 등 사용 행동 수입니다.</span></div>
+          <div class="summary-help-row"><strong>실제 방문자</strong><span>내부 테스트로 표시되지 않은 방문자입니다.</span></div>
+          <div class="summary-help-row"><strong>내부 방문자</strong><span>운영자/개발자 테스트로 표시된 방문자입니다.</span></div>
+        </div>
         <div id="emptyState" class="chart-empty" hidden>아직 읽을 수 있는 저장소가 설정되지 않아 실제 집계는 표시되지 않습니다.</div>
         <div id="periodMetrics" class="metric-list"></div>
         <div class="chart-panel" aria-labelledby="periodChartTitle">
@@ -503,32 +550,32 @@
       </section>
 
       <section aria-labelledby="breakdownTitle">
-        <h2 id="breakdownTitle">상세 집계</h2>
-        <p>원시 검색어, 문서 내용, 이미지 데이터, IP 주소, 업로드된 콘텐츠는 표시하지 않습니다.</p>
+        <h2 id="breakdownTitle">상세 사용 내역</h2>
+        <p>원시 검색어, 문서 내용, 이미지 데이터, IP 주소, 업로드 콘텐츠는 표시하지 않습니다.</p>
         <div class="table-list">
           <div class="table-row">
             <div class="table-wrap">
-              <table aria-label="모드별 사용량 표">
-                <thead><tr><th>모드</th><th>이벤트 수</th></tr></thead>
-                <tbody id="modeRows"><tr><td class="empty" colspan="2">아직 모드별 데이터가 없습니다.</td></tr></tbody>
+              <table aria-label="기능별 사용량 표">
+                <thead><tr><th>기능</th><th>이벤트 수</th></tr></thead>
+                <tbody id="modeRows"><tr><td class="empty" colspan="2">아직 기능별 데이터가 없습니다.</td></tr></tbody>
               </table>
             </div>
           </div>
           <div class="table-row">
             <div class="table-wrap">
-              <table aria-label="이벤트별 사용량 표">
-                <thead><tr><th>이벤트 이름</th><th>이벤트 수</th></tr></thead>
-                <tbody id="eventRows"><tr><td class="empty" colspan="2">아직 이벤트별 데이터가 없습니다.</td></tr></tbody>
+              <table aria-label="사용 행동별 사용량 표">
+                <thead><tr><th>사용 행동</th><th>이벤트 수</th></tr></thead>
+                <tbody id="eventRows"><tr><td class="empty" colspan="2">아직 사용 행동별 데이터가 없습니다.</td></tr></tbody>
               </table>
             </div>
           </div>
         </div>
         <div class="chart-panel" aria-labelledby="modeChartTitle">
-          <div class="chart-title" id="modeChartTitle">모드별 사용량 막대 그래프</div>
+          <div class="chart-title" id="modeChartTitle">기능별 사용량</div>
           <div id="modeChart" class="chart-list"></div>
         </div>
         <div class="chart-panel" aria-labelledby="eventChartTitle">
-          <div class="chart-title" id="eventChartTitle">이벤트별 사용량 막대 그래프</div>
+          <div class="chart-title" id="eventChartTitle">사용 행동별 집계</div>
           <div id="eventChart" class="chart-list"></div>
         </div>
       </section>
@@ -581,6 +628,28 @@
       ['last7Days', '최근 7일'],
       ['last30Days', '최근 30일']
     ];
+
+    const MODE_LABELS = new Map([
+      ['shopping', '쇼핑'],
+      ['document-ai', '해석'],
+      ['instant-answer', '즉답'],
+      ['web-search', '서치'],
+      ['loveme', '럽미'],
+      ['home-meal', '집밥'],
+      ['admin-analytics', '통계 관리'],
+      ['unknown', '미분류']
+    ]);
+
+    const EVENT_LABELS = new Map([
+      ['page_view', '페이지뷰'],
+      ['mode_open', '모드 진입'],
+      ['shopping_search_submit', '쇼핑 검색'],
+      ['ai_tool_submit', 'AI 도구 실행'],
+      ['source_click', '출처 클릭'],
+      ['product_click', '상품 클릭']
+    ]);
+
+    const UNKNOWN_MODE_NOTE = '모드 정보 없이 기록된 페이지뷰입니다.';
 
 
     function readInternalUserSetting() {
@@ -830,15 +899,59 @@
       );
     }
 
-    function renderBreakdownChart(chartId, rows, labelKey, emptyText) {
+    function getModeDisplay(mode) {
+      const rawMode = typeof mode === 'string' ? mode : '';
+      const label = MODE_LABELS.get(rawMode) || '미분류';
+      return {
+        label,
+        note: label === '미분류' ? UNKNOWN_MODE_NOTE : '',
+        raw: rawMode && !MODE_LABELS.has(rawMode) ? rawMode : ''
+      };
+    }
+
+    function getEventDisplay(eventName) {
+      const rawEventName = typeof eventName === 'string' ? eventName : '';
+      return {
+        label: EVENT_LABELS.get(rawEventName) || '기타 이벤트',
+        note: '',
+        raw: ''
+      };
+    }
+
+    function getDisplayInfo(item, type) {
+      return type === 'mode' ? getModeDisplay(item?.mode) : getEventDisplay(item?.eventName);
+    }
+
+    function appendDisplayLabel(cell, displayInfo) {
+      const primary = document.createElement('span');
+      primary.className = 'label-primary';
+      primary.textContent = displayInfo.label;
+      cell.append(primary);
+
+      if (displayInfo.note) {
+        const note = document.createElement('span');
+        note.className = 'label-note';
+        note.textContent = displayInfo.note;
+        cell.append(note);
+      }
+
+      if (displayInfo.raw) {
+        const raw = document.createElement('span');
+        raw.className = 'label-note';
+        raw.textContent = `원본 값: ${displayInfo.raw}`;
+        cell.append(raw);
+      }
+    }
+
+    function renderBreakdownChart(chartId, rows, type, emptyText) {
       renderChart(
         chartId,
-        Array.isArray(rows) ? rows.map((item) => ({ label: item[labelKey] || '알 수 없음', count: item.count })) : [],
+        Array.isArray(rows) ? rows.map((item) => ({ label: getDisplayInfo(item, type).label, count: item.count })) : [],
         emptyText
       );
     }
 
-    function renderRows(tbodyId, rows, labelKey, emptyText) {
+    function renderRows(tbodyId, rows, type, emptyText) {
       const tbody = document.getElementById(tbodyId);
       tbody.replaceChildren();
 
@@ -857,7 +970,7 @@
         const row = document.createElement('tr');
         const label = document.createElement('td');
         const count = document.createElement('td');
-        label.textContent = item[labelKey] || '알 수 없음';
+        appendDisplayLabel(label, getDisplayInfo(item, type));
         count.textContent = toCount(item.count).toLocaleString();
         row.append(label, count);
         tbody.append(row);
@@ -872,10 +985,10 @@
       renderPeriodChart(summary);
       renderAudienceChart(summary);
       renderDailyVisitorChart(summary);
-      renderRows('modeRows', summary.byMode, 'mode', '아직 모드별 데이터가 없습니다.');
-      renderRows('eventRows', summary.byEventName, 'eventName', '아직 이벤트별 데이터가 없습니다.');
-      renderBreakdownChart('modeChart', summary.byMode, 'mode', '아직 모드별 사용량 데이터가 없습니다.');
-      renderBreakdownChart('eventChart', summary.byEventName, 'eventName', '아직 이벤트별 사용량 데이터가 없습니다.');
+      renderRows('modeRows', summary.byMode, 'mode', '아직 기능별 데이터가 없습니다.');
+      renderRows('eventRows', summary.byEventName, 'event', '아직 사용 행동별 데이터가 없습니다.');
+      renderBreakdownChart('modeChart', summary.byMode, 'mode', '아직 기능별 사용량 데이터가 없습니다.');
+      renderBreakdownChart('eventChart', summary.byEventName, 'event', '아직 사용 행동별 데이터가 없습니다.');
 
       if (emptyState) {
         emptyState.hidden = response.storageConfigured && !isSummaryEmpty(summary);

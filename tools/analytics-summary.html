@@ -235,6 +235,21 @@
       font-size: clamp(0.78rem, 1.6vw, 0.9rem);
     }
 
+    .metric-help,
+    .label-help {
+      display: block;
+      margin-top: clamp(0.28rem, 0.8vw, 0.45rem);
+      color: var(--muted);
+      font-size: clamp(0.76rem, 1.5vw, 0.88rem);
+      line-height: 1.45;
+    }
+
+    .label-main {
+      display: block;
+      font-weight: 700;
+      color: var(--text);
+    }
+
     .pill {
       display: inline-flex;
       align-items: center;
@@ -412,6 +427,61 @@
       line-height: 1.55;
     }
 
+    .line-chart {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.45rem, 1.2vw, 0.7rem);
+      width: 100%;
+    }
+
+    .line-chart svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      min-height: clamp(10rem, 28vw, 16rem);
+      overflow: visible;
+    }
+
+    .line-chart-grid {
+      stroke: #dfe7f2;
+      stroke-width: 0.18;
+    }
+
+    .line-chart-path {
+      fill: none;
+      stroke: var(--blue);
+      stroke-width: 1.15;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .line-chart-dot {
+      fill: var(--panel);
+      stroke: var(--blue);
+      stroke-width: 0.75;
+    }
+
+    .line-chart-label {
+      fill: var(--muted);
+      font-size: clamp(0.16rem, 0.45vw, 0.24rem);
+      font-weight: 700;
+    }
+
+    .line-chart-value {
+      fill: var(--text);
+      font-size: clamp(0.18rem, 0.5vw, 0.27rem);
+      font-weight: 760;
+    }
+
+    .line-chart-summary {
+      display: flex;
+      justify-content: space-between;
+      gap: clamp(0.5rem, 1.4vw, 0.8rem);
+      color: var(--muted);
+      font-size: clamp(0.78rem, 1.55vw, 0.9rem);
+      line-height: 1.45;
+    }
+
 
     @media (max-width: 640px) {
       main {
@@ -497,38 +567,38 @@
           <div id="audienceChart" class="chart-list"></div>
         </div>
         <div class="chart-panel" aria-labelledby="dailyVisitorChartTitle">
-          <div class="chart-title" id="dailyVisitorChartTitle">최근 30일 방문자 추이</div>
+          <div class="chart-title" id="dailyVisitorChartTitle">최근 30일 실제 방문자 추이</div>
           <div id="dailyVisitorChart" class="chart-list"></div>
         </div>
       </section>
 
       <section aria-labelledby="breakdownTitle">
-        <h2 id="breakdownTitle">상세 집계</h2>
-        <p>원시 검색어, 문서 내용, 이미지 데이터, IP 주소, 업로드된 콘텐츠는 표시하지 않습니다.</p>
+        <h2 id="breakdownTitle">상세 사용 내역</h2>
+        <p>원시 검색어, 문서 내용, 이미지 데이터, IP 주소, 업로드 콘텐츠는 표시하지 않습니다.</p>
         <div class="table-list">
           <div class="table-row">
             <div class="table-wrap">
-              <table aria-label="모드별 사용량 표">
-                <thead><tr><th>모드</th><th>이벤트 수</th></tr></thead>
+              <table aria-label="기능별 사용량 표">
+                <thead><tr><th>기능</th><th>이벤트 수</th></tr></thead>
                 <tbody id="modeRows"><tr><td class="empty" colspan="2">아직 모드별 데이터가 없습니다.</td></tr></tbody>
               </table>
             </div>
           </div>
           <div class="table-row">
             <div class="table-wrap">
-              <table aria-label="이벤트별 사용량 표">
-                <thead><tr><th>이벤트 이름</th><th>이벤트 수</th></tr></thead>
+              <table aria-label="사용 행동별 집계 표">
+                <thead><tr><th>사용 행동</th><th>이벤트 수</th></tr></thead>
                 <tbody id="eventRows"><tr><td class="empty" colspan="2">아직 이벤트별 데이터가 없습니다.</td></tr></tbody>
               </table>
             </div>
           </div>
         </div>
         <div class="chart-panel" aria-labelledby="modeChartTitle">
-          <div class="chart-title" id="modeChartTitle">모드별 사용량 막대 그래프</div>
+          <div class="chart-title" id="modeChartTitle">기능별 사용량</div>
           <div id="modeChart" class="chart-list"></div>
         </div>
         <div class="chart-panel" aria-labelledby="eventChartTitle">
-          <div class="chart-title" id="eventChartTitle">이벤트별 사용량 막대 그래프</div>
+          <div class="chart-title" id="eventChartTitle">사용 행동별 집계</div>
           <div id="eventChart" class="chart-list"></div>
         </div>
       </section>
@@ -581,6 +651,38 @@
       ['last7Days', '최근 7일'],
       ['last30Days', '최근 30일']
     ];
+
+    const MODE_LABELS = new Map([
+      ['shopping', '쇼핑'],
+      ['document-ai', '해석'],
+      ['instant-answer', '즉답'],
+      ['web-search', '서치'],
+      ['loveme', '럽미'],
+      ['home-meal', '집밥'],
+      ['admin-analytics', '통계 관리'],
+      ['unknown', '미분류']
+    ]);
+
+    const EVENT_LABELS = new Map([
+      ['page_view', '페이지뷰'],
+      ['mode_open', '모드 진입'],
+      ['shopping_search_submit', '쇼핑 검색'],
+      ['ai_tool_submit', 'AI 도구 실행'],
+      ['source_click', '출처 클릭'],
+      ['product_click', '상품 클릭']
+    ]);
+
+    const MODE_HELP_TEXT = new Map([
+      ['unknown', '모드 정보 없이 기록된 페이지뷰입니다.']
+    ]);
+
+    const METRIC_HELP_TEXT = {
+      visitors: '하루 기준 중복을 제외한 브라우저 수입니다.',
+      pageViews: '페이지가 열린 횟수입니다. 새로고침도 포함될 수 있습니다.',
+      events: '검색, 모드 진입, 도구 실행 등 사용 행동 수입니다.',
+      externalVisitors: '내부 테스트로 표시되지 않은 방문자입니다.',
+      internalVisitors: '운영자/개발자 테스트로 표시된 방문자입니다.'
+    };
 
 
     function readInternalUserSetting() {
@@ -657,6 +759,30 @@
     function setText(id, value) {
       const element = document.getElementById(id);
       if (element) element.textContent = value;
+    }
+
+    function getModeDisplay(mode) {
+      return MODE_LABELS.get(mode) || MODE_LABELS.get('unknown');
+    }
+
+    function getModeHelp(mode) {
+      return MODE_HELP_TEXT.get(mode) || '';
+    }
+
+    function getEventDisplay(eventName) {
+      return EVENT_LABELS.get(eventName) || '기타 이벤트';
+    }
+
+    function getDisplayLabel(item, labelKey) {
+      const rawLabel = item?.[labelKey];
+      if (labelKey === 'mode') return getModeDisplay(rawLabel);
+      if (labelKey === 'eventName') return getEventDisplay(rawLabel);
+      return rawLabel || '알 수 없음';
+    }
+
+    function getDisplayHelp(item, labelKey) {
+      if (labelKey === 'mode') return getModeHelp(item?.[labelKey]);
+      return '';
     }
 
     function translateMessage(message, configured) {
@@ -786,11 +912,15 @@
         detail.className = 'detail';
         detail.textContent = `실제 방문자 ${toCount(period.externalVisitors).toLocaleString()} · 내부 방문자 ${toCount(period.internalVisitors).toLocaleString()} · 페이지뷰 ${toCount(period.pageViews).toLocaleString()} · 이벤트 ${toCount(period.totalEvents).toLocaleString()}`;
 
+        const help = document.createElement('span');
+        help.className = 'metric-help';
+        help.textContent = `${METRIC_HELP_TEXT.visitors} ${METRIC_HELP_TEXT.externalVisitors} ${METRIC_HELP_TEXT.internalVisitors} ${METRIC_HELP_TEXT.pageViews} ${METRIC_HELP_TEXT.events}`;
+
         const pill = document.createElement('span');
         pill.className = 'pill';
         pill.textContent = `${toCount(period.externalEvents).toLocaleString()} 실제 이벤트`;
 
-        copy.append(eyebrow, value, detail);
+        copy.append(eyebrow, value, detail, help);
         row.append(copy, pill);
         container.append(row);
       });
@@ -817,23 +947,113 @@
     }
 
 
+    function formatChartDate(dateText) {
+      if (!dateText) return '';
+      const parts = String(dateText).split('-');
+      if (parts.length >= 3) return `${parts[1]}/${parts[2]}`;
+      return String(dateText);
+    }
+
+    function getDailyVisitorCount(row) {
+      if (row && Object.prototype.hasOwnProperty.call(row, 'externalVisitors')) {
+        return toCount(row.externalVisitors);
+      }
+      return toCount(row?.visitors);
+    }
+
     function renderDailyVisitorChart(summary) {
+      const container = document.getElementById('dailyVisitorChart');
+      container.replaceChildren();
+
       const dailyRows = Array.isArray(summary.daily) ? summary.daily : [];
-      renderChart(
-        'dailyVisitorChart',
-        dailyRows.map((row) => ({
-          label: row.date,
-          count: toCount(row.visitors),
-          className: toCount(row.externalVisitors) > 0 ? 'external' : ''
-        })),
-        '아직 최근 30일 방문자 추이 데이터가 없습니다.'
-      );
+      const normalizedRows = dailyRows.map((row) => ({
+        date: row?.date || '',
+        count: getDailyVisitorCount(row)
+      }));
+      const maxValue = normalizedRows.reduce((max, row) => Math.max(max, row.count), 0);
+
+      if (maxValue === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'chart-empty';
+        empty.textContent = '아직 표시할 방문자 추이가 없습니다.';
+        container.append(empty);
+        return;
+      }
+
+      const chart = document.createElement('div');
+      chart.className = 'line-chart';
+
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 100 48');
+      svg.setAttribute('role', 'img');
+      svg.setAttribute('aria-label', '최근 30일 실제 방문자 추이 선 그래프');
+      svg.setAttribute('preserveAspectRatio', 'none');
+
+      [12, 24, 36].forEach((y) => {
+        const grid = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        grid.setAttribute('class', 'line-chart-grid');
+        grid.setAttribute('x1', '6');
+        grid.setAttribute('x2', '96');
+        grid.setAttribute('y1', String(y));
+        grid.setAttribute('y2', String(y));
+        svg.append(grid);
+      });
+
+      const points = normalizedRows.map((row, index) => {
+        const x = normalizedRows.length === 1 ? 51 : 8 + (index / (normalizedRows.length - 1)) * 86;
+        const y = 39 - (row.count / maxValue) * 30;
+        return { ...row, x, y };
+      });
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+      path.setAttribute('class', 'line-chart-path');
+      path.setAttribute('points', points.map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(' '));
+      svg.append(path);
+
+      points.forEach((point, index) => {
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('class', 'line-chart-dot');
+        dot.setAttribute('cx', point.x.toFixed(2));
+        dot.setAttribute('cy', point.y.toFixed(2));
+        dot.setAttribute('r', '1.1');
+        svg.append(dot);
+
+        if (index === 0 || index === points.length - 1 || index === Math.floor(points.length / 2)) {
+          const dateLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          dateLabel.setAttribute('class', 'line-chart-label');
+          dateLabel.setAttribute('x', point.x.toFixed(2));
+          dateLabel.setAttribute('y', '45');
+          dateLabel.setAttribute('text-anchor', index === 0 ? 'start' : index === points.length - 1 ? 'end' : 'middle');
+          dateLabel.textContent = formatChartDate(point.date);
+          svg.append(dateLabel);
+        }
+      });
+
+      const maxLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      maxLabel.setAttribute('class', 'line-chart-value');
+      maxLabel.setAttribute('x', '6');
+      maxLabel.setAttribute('y', '7');
+      maxLabel.textContent = `${maxValue.toLocaleString()}명`;
+      svg.append(maxLabel);
+
+      const summaryLine = document.createElement('div');
+      summaryLine.className = 'line-chart-summary';
+      const firstDate = normalizedRows[0]?.date || '';
+      const lastDate = normalizedRows[normalizedRows.length - 1]?.date || '';
+      const rangeText = document.createElement('span');
+      rangeText.textContent = `${formatChartDate(firstDate)} → ${formatChartDate(lastDate)}`;
+      const maxText = document.createElement('span');
+      maxText.textContent = `최대 ${maxValue.toLocaleString()}명`;
+      summaryLine.append(rangeText, maxText);
+
+      chart.append(svg, summaryLine);
+      container.append(chart);
     }
 
     function renderBreakdownChart(chartId, rows, labelKey, emptyText) {
       renderChart(
         chartId,
-        Array.isArray(rows) ? rows.map((item) => ({ label: item[labelKey] || '알 수 없음', count: item.count })) : [],
+        Array.isArray(rows) ? rows.map((item) => ({ label: getDisplayLabel(item, labelKey), count: item.count })) : [],
         emptyText
       );
     }
@@ -857,7 +1077,19 @@
         const row = document.createElement('tr');
         const label = document.createElement('td');
         const count = document.createElement('td');
-        label.textContent = item[labelKey] || '알 수 없음';
+        const labelMain = document.createElement('span');
+        labelMain.className = 'label-main';
+        labelMain.textContent = getDisplayLabel(item, labelKey);
+        label.append(labelMain);
+
+        const labelHelp = getDisplayHelp(item, labelKey);
+        if (labelHelp) {
+          const help = document.createElement('span');
+          help.className = 'label-help';
+          help.textContent = labelHelp;
+          label.append(help);
+        }
+
         count.textContent = toCount(item.count).toLocaleString();
         row.append(label, count);
         tbody.append(row);

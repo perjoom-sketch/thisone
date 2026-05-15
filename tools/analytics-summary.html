@@ -374,7 +374,7 @@
     <div class="stack">
       <section aria-labelledby="periodTitle">
         <h2 id="periodTitle">집계 요약</h2>
-        <p>전체 이벤트, 실제 사용자, 내부 테스트를 기간별로 분리해서 표시합니다.</p>
+        <p>전체 이벤트, 페이지뷰, 익명 순방문자, 내부/외부 이벤트를 기간별로 분리해서 표시합니다.</p>
         <div id="emptyState" class="chart-empty" hidden>아직 읽을 수 있는 저장소가 설정되지 않아 실제 집계는 표시되지 않습니다.</div>
         <div id="periodMetrics" class="metric-list"></div>
         <div class="chart-panel" aria-labelledby="periodChartTitle">
@@ -389,7 +389,7 @@
 
       <section aria-labelledby="breakdownTitle">
         <h2 id="breakdownTitle">상세 집계</h2>
-        <p>원시 검색어, 문서 내용, 이미지 데이터, IP 주소, 업로드된 콘텐츠는 표시하지 않습니다.</p>
+        <p>원시 검색어, 문서 내용, 이미지 데이터, IP 주소, 업로드된 콘텐츠는 표시하지 않습니다. 모드/이벤트별 사용량은 광고주 트래픽으로 오해되지 않도록 내부 테스트를 제외한 외부 이벤트만 집계합니다.</p>
         <div class="table-list">
           <div class="table-row">
             <div class="table-wrap">
@@ -423,7 +423,7 @@
         <div class="guidance-row">
           <div class="guidance-copy">
             <span class="eyebrow">현재 제한 사항</span>
-            <p id="setupGuidance">읽기 가능한 영구 저장소가 준비되면 <code>ANALYTICS_STORAGE_READ_URL</code>이 집계 요약 JSON을 반환하도록 설정하세요.</p>
+            <p id="setupGuidance">기존 Vercel KV/Upstash REST 환경 변수가 설정되면 <code>/api/trackEvent</code>가 집계 카운터를 쓰고 <code>/api/analyticsSummary</code>가 실제 요약을 반환합니다.</p>
           </div>
           <span class="pill warn">집계만 표시</span>
         </div>
@@ -433,9 +433,9 @@
 
   <script>
     const EMPTY_SUMMARY = {
-      today: { totalEvents: 0, externalEvents: 0, internalEvents: 0 },
-      last7Days: { totalEvents: 0, externalEvents: 0, internalEvents: 0 },
-      last30Days: { totalEvents: 0, externalEvents: 0, internalEvents: 0 },
+      today: { totalEvents: 0, pageViews: 0, uniqueVisitors: 0, externalEvents: 0, internalEvents: 0 },
+      last7Days: { totalEvents: 0, pageViews: 0, uniqueVisitors: 0, externalEvents: 0, internalEvents: 0 },
+      last30Days: { totalEvents: 0, pageViews: 0, uniqueVisitors: 0, externalEvents: 0, internalEvents: 0 },
       byMode: [],
       byEventName: []
     };
@@ -466,7 +466,11 @@
 
       const knownMessages = new Map([
         ['Analytics event collection is active, but readable storage is not configured yet.', '아직 읽을 수 있는 저장소가 설정되지 않아 실제 집계는 표시되지 않습니다.'],
-        ['Analytics readable storage is configured, but the summary could not be loaded safely.', '읽기용 저장소가 설정되어 있지만 집계 요약을 안전하게 불러오지 못했습니다.']
+        ['Analytics readable storage is configured, but the summary could not be loaded safely.', '읽기용 저장소가 설정되어 있지만 집계 요약을 안전하게 불러오지 못했습니다.'],
+        ['Analytics event collection is active, but Vercel KV/Redis storage is not configured yet.', '기존 Vercel KV/Redis 저장소 환경 변수가 아직 설정되지 않아 실제 집계는 표시되지 않습니다.'],
+        ['Analytics KV/Redis storage is configured, but the summary could not be loaded safely.', 'KV/Redis 저장소가 설정되어 있지만 집계 요약을 안전하게 불러오지 못했습니다.'],
+        ['Analytics KV/Redis aggregation is configured and returning real counts.', 'KV/Redis 집계에서 실제 사용 통계를 정상적으로 불러왔습니다.'],
+        ['REDIS_URL is present, but this project is configured to use the existing Vercel KV/Upstash REST variables for analytics aggregation.', 'REDIS_URL은 감지됐지만 이 프로젝트의 기존 Vercel KV/Upstash REST 환경 변수가 필요합니다.']
       ]);
 
       return knownMessages.get(message) || message;
@@ -579,7 +583,7 @@
 
         const detail = document.createElement('span');
         detail.className = 'detail';
-        detail.textContent = `실제 사용자 ${toCount(period.externalEvents).toLocaleString()} · 내부 테스트 ${toCount(period.internalEvents).toLocaleString()}`;
+        detail.textContent = `페이지뷰 ${toCount(period.pageViews).toLocaleString()} · 순방문자 ${toCount(period.uniqueVisitors).toLocaleString()} · 외부 이벤트 ${toCount(period.externalEvents).toLocaleString()} · 내부 테스트 ${toCount(period.internalEvents).toLocaleString()}`;
 
         const pill = document.createElement('span');
         pill.className = 'pill';
@@ -662,7 +666,7 @@
       }
 
       if (!response.storageConfigured) {
-        setText('setupGuidance', '실제 집계를 보려면 집계 전용 요약 엔드포인트를 ANALYTICS_STORAGE_READ_URL에 설정하세요. 이 페이지는 원시 질문이나 민감한 페이로드를 표시하지 않습니다.');
+        setText('setupGuidance', '실제 집계를 보려면 기존 Vercel KV 환경 변수(KV_REST_API_URL/KV_REST_API_TOKEN 또는 UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN)를 설정하세요. 이 페이지는 원시 질문이나 민감한 페이로드를 표시하지 않습니다.');
       }
     }
 

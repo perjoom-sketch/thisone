@@ -3,7 +3,9 @@
 
   const INTERNAL_STORAGE_KEY = 'thisone_internal_user';
   const ENDPOINT = '/api/trackEvent';
+  const VISITOR_STORAGE_KEY = 'thisone_anonymous_visitor';
   const ALLOWED_EVENT_NAMES = new Set([
+    'page_view',
     'mode_open',
     'shopping_search_submit',
     'ai_tool_submit',
@@ -50,6 +52,35 @@
       return false;
     }
   }
+  function createAnonymousVisitorId() {
+    const randomSource = global.crypto;
+    if (randomSource?.randomUUID) return randomSource.randomUUID();
+
+    const randomValues = randomSource?.getRandomValues ? new Uint32Array(4) : null;
+    if (randomValues) {
+      randomSource.getRandomValues(randomValues);
+      return Array.from(randomValues, (value) => value.toString(16).padStart(8, '0')).join('');
+    }
+
+    return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
+  }
+
+  function getAnonymousVisitorId() {
+    const storage = safeLocalStorage();
+    if (!storage) return createAnonymousVisitorId();
+
+    try {
+      const existing = storage.getItem(VISITOR_STORAGE_KEY);
+      if (existing) return existing;
+
+      const next = createAnonymousVisitorId();
+      storage.setItem(VISITOR_STORAGE_KEY, next);
+      return next;
+    } catch (error) {
+      return createAnonymousVisitorId();
+    }
+  }
+
 
   function limitString(value, maxLength) {
     return String(value || '')
@@ -112,6 +143,7 @@
     const event = {
       eventName: name,
       isInternal: isInternalUser(),
+      anonymousVisitorId: getAnonymousVisitorId(),
       timestamp: new Date().toISOString(),
       path: getPath()
     };
@@ -147,6 +179,10 @@
   function track(eventName, payload) {
     const event = buildEvent(eventName, payload);
     sendEvent(event);
+  }
+
+  function trackPageView() {
+    track('page_view', { mode: global.ThisOneModeTabs?.getActiveMode?.() || 'shopping' });
   }
 
   function trackModeOpen(mode) {
@@ -255,10 +291,12 @@
     _private: {
       sanitizeQuery,
       buildEvent,
+      getAnonymousVisitorId,
       trackModeOpen
     }
   };
 
   wrapModeTabs();
   bindDelegatedTracking();
+  trackPageView();
 })(window);

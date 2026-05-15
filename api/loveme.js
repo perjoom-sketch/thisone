@@ -236,6 +236,59 @@ function buildGeminiParts(messages, concern, searchContext) {
   return [{ text: `Concern: ${concern}\n\nConversation:\n${conversation}${contextBlock}` }];
 }
 
+
+function buildLoveMeFallbackAnswer(concern) {
+  const normalizedConcern = normalizeInputText(concern, 160);
+  const isRainyWavyHair = /반곱슬|곱슬|부스스|비\s*오는\s*날|습기|장마|머리/.test(normalizedConcern);
+
+  if (isRainyWavyHair) {
+    return `지금은 자료를 불러오지 못해 기본 스타일링 기준으로만 답변드릴게요.
+
+## 한 줄 결론
+비 오는 날 반곱슬은 습기 때문에 부풀기 쉬워서, 가볍게 날리는 컷보다 무게감을 남긴 레이어로 차분하게 정리하는 쪽이 좋습니다.
+
+## 헤어
+- 짧게 층을 많이 내면 끝이 더 퍼져 보여 부스스함이 커질 수 있어요.
+- 전체 길이와 끝부분에 무게감을 남긴 레이어가 더 안정적으로 가라앉습니다.
+- 드라이할 때 위에서 아래로 바람을 보내고, 마지막에는 차가운 바람으로 모양을 잠가주세요.
+- 젖은 듯한 무거운 스타일링보다 차분하게 눌러 정리한 자연스러운 스타일을 추천합니다.
+
+## 피하기 / 추천하기
+- 피하기: 뿌리부터 오일이나 크림을 많이 바르기.
+- 추천하기: 오일이나 크림은 끝부분 위주로 아주 소량만 바르기.
+- 피하기: 앞머리와 옆머리에 제품을 넉넉히 얹기.
+- 추천하기: 앞머리와 옆머리는 고정 제품을 아주 적게 써서 잔머리만 정리하기.
+
+## 바로 쓸 수 있는 쇼핑 검색어
+- 반곱슬 헤어 오일 가벼운 타입
+- 습기 차분 헤어크림
+- 잔머리 고정 스틱 소프트
+- 냉풍 드라이 스타일링 브러시`;
+  }
+
+  return `지금은 자료를 불러오지 못해 기본 스타일링 기준으로만 답변드릴게요.
+
+## 한 줄 결론
+오늘 고민은 크게 바꾸기보다, 보이고 싶은 방향에 맞춰 선·색·무게감을 정리하는 쪽이 가장 안전합니다.
+
+## 헤어
+- 얼굴 주변은 너무 가볍게 비우기보다 자연스럽게 이어지게 정리하기.
+- 볼륨은 필요한 곳에만 살리고, 뜨는 부분은 드라이로 눌러 마무리하기.
+
+## 의상
+- 상의와 하의 중 한쪽에만 포인트를 두고 나머지는 담백하게 고르기.
+- 핏은 너무 조이거나 너무 크게 흐르지 않는 중간선을 추천합니다.
+
+## 피하기 / 추천하기
+- 피하기: 고민 부위를 가리려고 전체를 무겁게 덮기.
+- 추천하기: 선 하나, 색 하나, 소재 하나만 정해서 정돈감 만들기.
+
+## 바로 쓸 수 있는 쇼핑 검색어
+- 데일리 레이어드 스타일링
+- 차분한 기본핏 상의
+- 자연스러운 커버 코디`;
+}
+
 async function generateGeminiAnswer({ messages, system, concern, searchContext }) {
   const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error('GOOGLE_API_KEY is not configured.');
@@ -317,7 +370,12 @@ async function handler(req, res) {
     });
   } catch (error) {
     console.error('[api/loveme] Gemini answer failed:', error.message);
-    return res.status(503).json({ error: 'LOVEME_ANSWER_FAILED', sources: [], usedSearch: false });
+    return res.status(200).json({
+      answer: buildLoveMeFallbackAnswer(concern),
+      sources: [],
+      usedSearch: false,
+      fallback: true
+    });
   }
 }
 
@@ -329,5 +387,6 @@ module.exports._private = {
   validateConcern,
   sanitizeMessages,
   getSourceDomain,
-  dedupeSerperSources
+  dedupeSerperSources,
+  buildLoveMeFallbackAnswer
 };

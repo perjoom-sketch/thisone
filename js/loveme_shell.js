@@ -420,8 +420,17 @@ Keep it practical and kind. Avoid long lectures.`;
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || `HTTP ${response.status}`);
+      let message = '럽미 답변을 바로 만들지 못했습니다. 잠시 후 다시 시도해주세요.';
+      try {
+        const errorText = await response.text();
+        const errorData = JSON.parse(errorText || '{}');
+        if (typeof errorData?.message === 'string' && errorData.message.trim()) {
+          message = errorData.message.trim();
+        }
+      } catch (error) {
+        // Keep the user-facing message readable and avoid exposing raw JSON or server details.
+      }
+      throw new Error(message);
     }
 
     const responseText = await response.text();
@@ -605,7 +614,8 @@ Keep it practical and kind. Avoid long lectures.`;
         stopActiveLoadingStatus = null;
         result.innerHTML = '';
         result.hidden = true;
-        setStatus(status, `럽미 답변 생성 중 오류가 발생했습니다. ${error.message || ''}`.trim());
+        const safeMessage = String(error?.message || '').replace(/[{}[\]"]/g, '').trim();
+        setStatus(status, safeMessage || '럽미 답변을 바로 만들지 못했습니다. 잠시 후 다시 시도해주세요.');
       } finally {
         stopActiveLoadingStatus?.();
         stopActiveLoadingStatus = null;

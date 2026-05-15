@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ThisOne Analytics Summary</title>
+  <title>디스원 사용 통계</title>
   <style>
     :root {
       color-scheme: light;
@@ -21,7 +21,7 @@
       --orange-soft: #fff6e8;
       --red: #b42318;
       --red-soft: #fff1f0;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
     }
 
     * { box-sizing: border-box; }
@@ -122,6 +122,31 @@
       letter-spacing: -0.035em;
     }
 
+
+    .notice-list {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.55rem, 1.4vw, 0.8rem);
+      margin-top: clamp(0.85rem, 2vw, 1.1rem);
+    }
+
+    .notice {
+      margin: 0;
+      padding: clamp(0.7rem, 1.8vw, 1rem);
+      border: clamp(0.0625rem, 0.12vw, 0.085rem) solid var(--line);
+      border-radius: clamp(0.75rem, 1.8vw, 1rem);
+      background: var(--panel-soft);
+      color: var(--text);
+      font-size: clamp(0.86rem, 1.7vw, 0.98rem);
+      line-height: 1.55;
+    }
+
+    .notice.warn {
+      border-color: #f8d7a3;
+      background: var(--orange-soft);
+      color: #7a3b08;
+    }
+
     .detail {
       display: flex;
       flex-wrap: wrap;
@@ -220,6 +245,95 @@
       font-style: italic;
     }
 
+    .chart-panel {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.65rem, 1.6vw, 0.95rem);
+      margin-top: clamp(0.8rem, 2vw, 1.1rem);
+      padding: clamp(0.85rem, 2.2vw, 1.25rem);
+      background: var(--panel);
+      border: clamp(0.0625rem, 0.12vw, 0.085rem) solid var(--line);
+      border-radius: clamp(0.85rem, 2vw, 1.2rem);
+    }
+
+    .chart-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: clamp(0.55rem, 1.4vw, 0.8rem);
+      color: var(--text);
+      font-size: clamp(0.9rem, 1.8vw, 1rem);
+      font-weight: 760;
+    }
+
+    .chart-list {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.55rem, 1.4vw, 0.8rem);
+    }
+
+    .chart-row {
+      display: grid;
+      grid-template-columns: minmax(min(28vw, 8rem), 0.36fr) 1fr minmax(min(14vw, 4rem), 0.14fr);
+      align-items: center;
+      gap: clamp(0.45rem, 1.4vw, 0.8rem);
+    }
+
+    .chart-label,
+    .chart-count {
+      min-width: 0;
+      color: var(--text);
+      font-size: clamp(0.78rem, 1.55vw, 0.92rem);
+      line-height: 1.35;
+    }
+
+    .chart-label {
+      overflow-wrap: anywhere;
+      font-weight: 680;
+    }
+
+    .chart-count {
+      color: var(--muted);
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .bar-track {
+      min-width: 0;
+      min-height: clamp(0.7rem, 1.6vw, 0.95rem);
+      overflow: hidden;
+      border-radius: 999vw;
+      background: #eef3fb;
+    }
+
+    .bar-fill {
+      display: block;
+      width: var(--bar-width, 0%);
+      min-height: clamp(0.7rem, 1.6vw, 0.95rem);
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--blue), #60a5fa);
+    }
+
+    .bar-fill.external {
+      background: linear-gradient(90deg, var(--green), #6ee7a2);
+    }
+
+    .bar-fill.internal {
+      background: linear-gradient(90deg, var(--orange), #fbbf24);
+    }
+
+    .chart-empty {
+      margin: 0;
+      padding: clamp(0.8rem, 2vw, 1rem);
+      border-radius: clamp(0.75rem, 1.8vw, 1rem);
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-size: clamp(0.84rem, 1.65vw, 0.95rem);
+      line-height: 1.55;
+    }
+
+
     @media (max-width: 640px) {
       main {
         width: min(96vw, 68rem);
@@ -240,57 +354,78 @@
 <body>
   <main>
     <header>
-      <span class="eyebrow">Internal admin tool</span>
-      <h1>ThisOne Analytics Summary</h1>
-      <p>집계된 이벤트 수만 확인하는 내부용 준비 페이지입니다. 광고주용 지표에는 반드시 <code>isInternal=true</code> 이벤트를 제외해야 합니다.</p>
+      <span class="eyebrow">내부 관리자 도구</span>
+      <h1>디스원 사용 통계</h1>
+      <p>디스원 운영 준비를 위해 집계된 이벤트 수만 확인하는 내부용 페이지입니다.</p>
+      <div class="notice-list" aria-label="개인정보 및 광고주 지표 안내">
+        <p class="notice">이 화면은 원시 질문이나 문서 내용을 보여주지 않고, 집계된 이벤트 수만 표시합니다.</p>
+        <p class="notice warn">광고주용 수치에서는 <code>isInternal=true</code> 내부 테스트 이벤트를 반드시 제외해야 합니다.</p>
+      </div>
       <div class="status-row" aria-live="polite">
         <div class="status-copy">
-          <span class="eyebrow">Storage status</span>
-          <strong id="storageStatus" class="value">Loading…</strong>
-          <p id="storageMessage">Readable analytics storage status is being checked.</p>
+          <span class="eyebrow">저장소 상태</span>
+          <strong id="storageStatus" class="value">확인 중…</strong>
+          <p id="storageMessage">읽기용 분석 저장소 상태를 확인하고 있습니다.</p>
         </div>
-        <span id="statusPill" class="pill">Checking</span>
+        <span id="statusPill" class="pill">확인 중</span>
       </div>
     </header>
 
     <div class="stack">
       <section aria-labelledby="periodTitle">
-        <h2 id="periodTitle">Aggregate counts</h2>
-        <p>총 이벤트, 외부 이벤트, 내부 이벤트를 기간별로 분리해서 표시합니다.</p>
+        <h2 id="periodTitle">집계 요약</h2>
+        <p>전체 이벤트, 실제 사용자, 내부 테스트를 기간별로 분리해서 표시합니다.</p>
+        <div id="emptyState" class="chart-empty" hidden>아직 읽을 수 있는 저장소가 설정되지 않아 실제 집계는 표시되지 않습니다.</div>
         <div id="periodMetrics" class="metric-list"></div>
+        <div class="chart-panel" aria-labelledby="periodChartTitle">
+          <div class="chart-title" id="periodChartTitle">기간별 이벤트 막대 그래프</div>
+          <div id="periodChart" class="chart-list"></div>
+        </div>
+        <div class="chart-panel" aria-labelledby="audienceChartTitle">
+          <div class="chart-title" id="audienceChartTitle">내부/외부 비율 막대</div>
+          <div id="audienceChart" class="chart-list"></div>
+        </div>
       </section>
 
       <section aria-labelledby="breakdownTitle">
-        <h2 id="breakdownTitle">Breakdowns</h2>
-        <p>원시 검색어, 문서 내용, 이미지 데이터, IP 주소는 표시하지 않습니다.</p>
+        <h2 id="breakdownTitle">상세 집계</h2>
+        <p>원시 검색어, 문서 내용, 이미지 데이터, IP 주소, 업로드된 콘텐츠는 표시하지 않습니다.</p>
         <div class="table-list">
           <div class="table-row">
             <div class="table-wrap">
-              <table aria-label="Events by mode">
-                <thead><tr><th>Mode</th><th>Count</th></tr></thead>
-                <tbody id="modeRows"><tr><td class="empty" colspan="2">No mode data yet.</td></tr></tbody>
+              <table aria-label="모드별 사용량 표">
+                <thead><tr><th>모드</th><th>이벤트 수</th></tr></thead>
+                <tbody id="modeRows"><tr><td class="empty" colspan="2">아직 모드별 데이터가 없습니다.</td></tr></tbody>
               </table>
             </div>
           </div>
           <div class="table-row">
             <div class="table-wrap">
-              <table aria-label="Events by event name">
-                <thead><tr><th>Event name</th><th>Count</th></tr></thead>
-                <tbody id="eventRows"><tr><td class="empty" colspan="2">No event data yet.</td></tr></tbody>
+              <table aria-label="이벤트별 사용량 표">
+                <thead><tr><th>이벤트 이름</th><th>이벤트 수</th></tr></thead>
+                <tbody id="eventRows"><tr><td class="empty" colspan="2">아직 이벤트별 데이터가 없습니다.</td></tr></tbody>
               </table>
             </div>
           </div>
         </div>
+        <div class="chart-panel" aria-labelledby="modeChartTitle">
+          <div class="chart-title" id="modeChartTitle">모드별 사용량 막대 그래프</div>
+          <div id="modeChart" class="chart-list"></div>
+        </div>
+        <div class="chart-panel" aria-labelledby="eventChartTitle">
+          <div class="chart-title" id="eventChartTitle">이벤트별 사용량 막대 그래프</div>
+          <div id="eventChart" class="chart-list"></div>
+        </div>
       </section>
 
       <section aria-labelledby="guidanceTitle">
-        <h2 id="guidanceTitle">Setup guidance</h2>
+        <h2 id="guidanceTitle">설정 안내</h2>
         <div class="guidance-row">
           <div class="guidance-copy">
-            <span class="eyebrow">Current limitation</span>
-            <p id="setupGuidance">Configure <code>ANALYTICS_STORAGE_READ_URL</code> to return aggregate summary JSON when persistent readable storage is available.</p>
+            <span class="eyebrow">현재 제한 사항</span>
+            <p id="setupGuidance">읽기 가능한 영구 저장소가 준비되면 <code>ANALYTICS_STORAGE_READ_URL</code>이 집계 요약 JSON을 반환하도록 설정하세요.</p>
           </div>
-          <span class="pill warn">Aggregate only</span>
+          <span class="pill warn">집계만 표시</span>
         </div>
       </section>
     </div>
@@ -306,9 +441,9 @@
     };
 
     const PERIOD_LABELS = [
-      ['today', 'Today'],
-      ['last7Days', 'Last 7 days'],
-      ['last30Days', 'Last 30 days']
+      ['today', '오늘'],
+      ['last7Days', '최근 7일'],
+      ['last30Days', '최근 30일']
     ];
 
     function toCount(value) {
@@ -322,21 +457,104 @@
       if (element) element.textContent = value;
     }
 
+    function translateMessage(message, configured) {
+      if (!message) {
+        return configured
+          ? '집계된 사용 통계를 정상적으로 불러왔습니다.'
+          : '아직 읽을 수 있는 저장소가 설정되지 않아 실제 집계는 표시되지 않습니다.';
+      }
+
+      const knownMessages = new Map([
+        ['Analytics event collection is active, but readable storage is not configured yet.', '아직 읽을 수 있는 저장소가 설정되지 않아 실제 집계는 표시되지 않습니다.'],
+        ['Analytics readable storage is configured, but the summary could not be loaded safely.', '읽기용 저장소가 설정되어 있지만 집계 요약을 안전하게 불러오지 못했습니다.']
+      ]);
+
+      return knownMessages.get(message) || message;
+    }
+
+    function periodTotal(summary) {
+      return PERIOD_LABELS.reduce((total, [key]) => total + toCount(summary[key]?.totalEvents), 0);
+    }
+
+    function isSummaryEmpty(summary) {
+      const periodCounts = periodTotal(summary);
+      const modeCounts = Array.isArray(summary.byMode)
+        ? summary.byMode.reduce((total, item) => total + toCount(item.count), 0)
+        : 0;
+      const eventCounts = Array.isArray(summary.byEventName)
+        ? summary.byEventName.reduce((total, item) => total + toCount(item.count), 0)
+        : 0;
+      return periodCounts + modeCounts + eventCounts === 0;
+    }
+
     function updateStatus(response) {
       const statusPill = document.getElementById('statusPill');
       const configured = Boolean(response.storageConfigured);
-      setText('storageStatus', configured ? 'Readable storage configured' : 'Readable storage not configured');
-      setText('storageMessage', response.message || (configured ? 'Aggregate analytics summary was loaded successfully.' : 'Analytics event collection is active, but readable storage is not configured yet.'));
-      statusPill.textContent = configured ? 'Ready' : 'Setup needed';
+      setText('storageStatus', configured ? '읽기용 저장소 설정됨' : '읽기용 저장소가 아직 설정되지 않았습니다');
+      setText('storageMessage', translateMessage(response.message, configured));
+      statusPill.textContent = configured ? '준비됨' : '설정 필요';
       statusPill.className = configured ? 'pill ready' : 'pill warn';
     }
 
     function updateError(message) {
       const statusPill = document.getElementById('statusPill');
-      setText('storageStatus', 'Summary unavailable');
-      setText('storageMessage', message || 'The analytics summary API could not be loaded. Try again after checking the admin API logs.');
-      statusPill.textContent = 'API error';
+      setText('storageStatus', '요약을 불러올 수 없습니다');
+      setText('storageMessage', message || '관리자 API 로그를 확인한 뒤 다시 시도해 주세요.');
+      statusPill.textContent = 'API 오류';
       statusPill.className = 'pill error';
+    }
+
+    function createBarRow(labelText, countValue, maxValue, className = '') {
+      const count = toCount(countValue);
+      const safeMax = Math.max(toCount(maxValue), 1);
+      const row = document.createElement('div');
+      row.className = 'chart-row';
+
+      const label = document.createElement('span');
+      label.className = 'chart-label';
+      label.textContent = labelText || '알 수 없음';
+
+      const track = document.createElement('span');
+      track.className = 'bar-track';
+      track.setAttribute('aria-hidden', 'true');
+
+      const fill = document.createElement('span');
+      fill.className = `bar-fill ${className}`.trim();
+      fill.style.setProperty('--bar-width', `${Math.max((count / safeMax) * 100, count > 0 ? 2 : 0)}%`);
+      track.append(fill);
+
+      const countElement = document.createElement('span');
+      countElement.className = 'chart-count';
+      countElement.textContent = count.toLocaleString();
+
+      row.append(label, track, countElement);
+      return row;
+    }
+
+    function renderChart(chartId, rows, emptyText) {
+      const container = document.getElementById(chartId);
+      container.replaceChildren();
+
+      const normalizedRows = Array.isArray(rows)
+        ? rows.map((row) => ({
+            label: row.label,
+            count: toCount(row.count),
+            className: row.className || ''
+          }))
+        : [];
+      const maxValue = normalizedRows.reduce((max, row) => Math.max(max, row.count), 0);
+
+      if (maxValue === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'chart-empty';
+        empty.textContent = emptyText;
+        container.append(empty);
+        return;
+      }
+
+      normalizedRows.forEach((row) => {
+        container.append(createBarRow(row.label, row.count, maxValue, row.className));
+      });
     }
 
     function renderPeriods(summary) {
@@ -361,16 +579,44 @@
 
         const detail = document.createElement('span');
         detail.className = 'detail';
-        detail.textContent = `External ${toCount(period.externalEvents).toLocaleString()} · Internal ${toCount(period.internalEvents).toLocaleString()}`;
+        detail.textContent = `실제 사용자 ${toCount(period.externalEvents).toLocaleString()} · 내부 테스트 ${toCount(period.internalEvents).toLocaleString()}`;
 
         const pill = document.createElement('span');
         pill.className = 'pill';
-        pill.textContent = 'Total events';
+        pill.textContent = '전체 이벤트';
 
         copy.append(eyebrow, value, detail);
         row.append(copy, pill);
         container.append(row);
       });
+    }
+
+    function renderPeriodChart(summary) {
+      renderChart(
+        'periodChart',
+        PERIOD_LABELS.map(([key, label]) => ({ label, count: summary[key]?.totalEvents })),
+        '아직 기간별 이벤트 데이터가 없습니다.'
+      );
+    }
+
+    function renderAudienceChart(summary) {
+      const last30Days = summary.last30Days || EMPTY_SUMMARY.last30Days;
+      renderChart(
+        'audienceChart',
+        [
+          { label: '실제 사용자', count: last30Days.externalEvents, className: 'external' },
+          { label: '내부 테스트', count: last30Days.internalEvents, className: 'internal' }
+        ],
+        '아직 실제 사용자/내부 테스트 비율을 계산할 데이터가 없습니다.'
+      );
+    }
+
+    function renderBreakdownChart(chartId, rows, labelKey, emptyText) {
+      renderChart(
+        chartId,
+        Array.isArray(rows) ? rows.map((item) => ({ label: item[labelKey] || '알 수 없음', count: item.count })) : [],
+        emptyText
+      );
     }
 
     function renderRows(tbodyId, rows, labelKey, emptyText) {
@@ -392,7 +638,7 @@
         const row = document.createElement('tr');
         const label = document.createElement('td');
         const count = document.createElement('td');
-        label.textContent = item[labelKey] || 'unknown';
+        label.textContent = item[labelKey] || '알 수 없음';
         count.textContent = toCount(item.count).toLocaleString();
         row.append(label, count);
         tbody.append(row);
@@ -401,13 +647,22 @@
 
     function renderSummary(response) {
       const summary = response.summary || EMPTY_SUMMARY;
+      const emptyState = document.getElementById('emptyState');
       updateStatus(response);
       renderPeriods(summary);
-      renderRows('modeRows', summary.byMode, 'mode', 'No mode data yet.');
-      renderRows('eventRows', summary.byEventName, 'eventName', 'No event data yet.');
+      renderPeriodChart(summary);
+      renderAudienceChart(summary);
+      renderRows('modeRows', summary.byMode, 'mode', '아직 모드별 데이터가 없습니다.');
+      renderRows('eventRows', summary.byEventName, 'eventName', '아직 이벤트별 데이터가 없습니다.');
+      renderBreakdownChart('modeChart', summary.byMode, 'mode', '아직 모드별 사용량 데이터가 없습니다.');
+      renderBreakdownChart('eventChart', summary.byEventName, 'eventName', '아직 이벤트별 사용량 데이터가 없습니다.');
+
+      if (emptyState) {
+        emptyState.hidden = response.storageConfigured && !isSummaryEmpty(summary);
+      }
 
       if (!response.storageConfigured) {
-        setText('setupGuidance', 'Set ANALYTICS_STORAGE_READ_URL to an aggregate-only summary endpoint. Real counts require readable persistent storage; this page never displays raw queries or sensitive payloads.');
+        setText('setupGuidance', '실제 집계를 보려면 집계 전용 요약 엔드포인트를 ANALYTICS_STORAGE_READ_URL에 설정하세요. 이 페이지는 원시 질문이나 민감한 페이로드를 표시하지 않습니다.');
       }
     }
 
@@ -428,10 +683,8 @@
 
         renderSummary(payload);
       } catch (error) {
-        updateError('The analytics summary API could not be loaded. This page only shows aggregate counts when /api/analyticsSummary is available.');
-        renderPeriods(EMPTY_SUMMARY);
-        renderRows('modeRows', [], 'mode', 'No mode data loaded.');
-        renderRows('eventRows', [], 'eventName', 'No event data loaded.');
+        renderSummary({ ok: false, storageConfigured: false, summary: EMPTY_SUMMARY });
+        updateError('분석 요약 API를 불러올 수 없습니다. /api/analyticsSummary가 사용 가능할 때만 집계 수치가 표시됩니다.');
       }
     }
 

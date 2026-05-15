@@ -115,6 +115,48 @@ When readable KV/Redis REST credentials are configured, `GET /api/analyticsSumma
 
 Future advertiser-facing reports must exclude every event and visitor set where `isInternal === true`; internal usage may be shown only as a separate audit/readiness number. Raw sensitive event data, raw visitor IDs, IP addresses, user text, and raw queries should never be displayed in the admin summary page or any future advertiser-facing report.
 
+
+
+## Admin analytics reset
+
+The admin summary page includes an internal-only **통계 초기화** section for removing setup/test analytics counters. This control is not linked from public navigation and does not add login/auth. It uses a safety gate instead: the operator must type the exact confirmation text `통계 초기화` before the reset button is enabled.
+
+The reset endpoint is:
+
+```text
+POST /api/resetAnalytics
+```
+
+Request body:
+
+```json
+{
+  "range": "today",
+  "confirmText": "통계 초기화"
+}
+```
+
+Allowed `range` values are `today`, `last7Days`, `last30Days`, and `all`. The default UI range is **오늘**. **전체 통계** is intentionally labeled as a caution option and still requires the exact confirmation text.
+
+The endpoint must only delete keys that start with the analytics prefix:
+
+```text
+analytics:
+```
+
+For date-limited resets, it scans and deletes only matching KST day keys such as `analytics:day:{YYYY-MM-DD}:*`. For `all`, it scans `analytics:*`. It must never use `FLUSHDB` and must never delete or modify keyword/search KV data, including keys that begin with:
+
+```text
+keyword:
+query:
+related:
+suggestion:
+trajectory:
+search:
+```
+
+If KV/Redis REST credentials are not configured, the reset API returns a safe error message: `KV 저장소가 설정되지 않아 초기화할 수 없습니다.` Responses do not expose raw KV keys; they only return the requested range, a deleted-key count when Redis/KV reports one, and a safe status message.
+
 ## Fallback behavior
 
 Analytics tracking must never break the app.

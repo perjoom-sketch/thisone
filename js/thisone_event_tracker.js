@@ -2,8 +2,10 @@
   'use strict';
 
   const INTERNAL_STORAGE_KEY = 'thisone_internal_user';
+  const VISITOR_STORAGE_KEY = 'thisone_visitor_id';
   const ENDPOINT = '/api/trackEvent';
   const ALLOWED_EVENT_NAMES = new Set([
+    'page_view',
     'mode_open',
     'shopping_search_submit',
     'ai_tool_submit',
@@ -48,6 +50,35 @@
       return storage.getItem(INTERNAL_STORAGE_KEY) === 'true';
     } catch (error) {
       return false;
+    }
+  }
+
+
+  function createVisitorId() {
+    try {
+      if (global.crypto && typeof global.crypto.randomUUID === 'function') {
+        return global.crypto.randomUUID();
+      }
+    } catch (error) {
+      // Fall through to anonymous random string fallback.
+    }
+
+    return `anon-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+  }
+
+  function getVisitorId() {
+    const storage = safeLocalStorage();
+    if (!storage) return createVisitorId();
+
+    try {
+      const existing = limitString(storage.getItem(VISITOR_STORAGE_KEY), 80);
+      if (existing) return existing;
+
+      const visitorId = createVisitorId();
+      storage.setItem(VISITOR_STORAGE_KEY, visitorId);
+      return visitorId;
+    } catch (error) {
+      return createVisitorId();
     }
   }
 
@@ -112,6 +143,7 @@
     const event = {
       eventName: name,
       isInternal: isInternalUser(),
+      visitorId: getVisitorId(),
       timestamp: new Date().toISOString(),
       path: getPath()
     };
@@ -147,6 +179,21 @@
   function track(eventName, payload) {
     const event = buildEvent(eventName, payload);
     sendEvent(event);
+  }
+
+
+  function getCurrentMode() {
+    const activeMode = global.ThisOneModeTabs?.getActiveMode?.();
+    return limitString(activeMode, 40) || 'unknown';
+  }
+
+  function trackPageView() {
+    if (global.document?.__thisonePageViewTracked) return;
+    if (global.document) global.document.__thisonePageViewTracked = true;
+    track('page_view', {
+      mode: getCurrentMode(),
+      metadata: { path: getPath() }
+    });
   }
 
   function trackModeOpen(mode) {
@@ -251,14 +298,17 @@
   global.ThisOneEventTracker = {
     setInternalUser,
     isInternalUser,
+    getVisitorId,
     track,
     _private: {
       sanitizeQuery,
       buildEvent,
-      trackModeOpen
+      trackModeOpen,
+      trackPageView
     }
   };
 
   wrapModeTabs();
   bindDelegatedTracking();
+  trackPageView();
 })(window);

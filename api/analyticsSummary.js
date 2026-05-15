@@ -1,4 +1,5 @@
-const SUMMARY_READ_TIMEOUT_MS = 2500;
+import { readAnalyticsSummary } from '../lib/analyticsStore.js';
+
 const PLACEHOLDER_MESSAGE = 'Analytics event collection is active, but readable storage is not configured yet.';
 const STORAGE_READ_FAILURE_MESSAGE = 'Analytics readable storage is configured, but the summary could not be loaded safely.';
 const MAX_BREAKDOWN_ROWS = 20;
@@ -8,7 +9,11 @@ function createEmptyPeriod() {
   return {
     totalEvents: 0,
     externalEvents: 0,
-    internalEvents: 0
+    internalEvents: 0,
+    pageViews: 0,
+    visitors: 0,
+    externalVisitors: 0,
+    internalVisitors: 0
   };
 }
 
@@ -18,7 +23,8 @@ function createEmptySummary() {
     last7Days: createEmptyPeriod(),
     last30Days: createEmptyPeriod(),
     byMode: [],
-    byEventName: []
+    byEventName: [],
+    daily: []
   };
 }
 
@@ -50,7 +56,11 @@ function normalizePeriod(value) {
   return {
     totalEvents: toCount(period.totalEvents),
     externalEvents: toCount(period.externalEvents),
-    internalEvents: toCount(period.internalEvents)
+    internalEvents: toCount(period.internalEvents),
+    pageViews: toCount(period.pageViews),
+    visitors: toCount(period.visitors),
+    externalVisitors: toCount(period.externalVisitors),
+    internalVisitors: toCount(period.internalVisitors)
   };
 }
 
@@ -70,6 +80,22 @@ function normalizeBreakdownRows(value, labelKey) {
     .filter(Boolean);
 }
 
+function normalizeDailyRows(value) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .slice(-30)
+    .map((row) => {
+      const date = limitString(row?.date, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+      return {
+        date,
+        ...normalizePeriod(row)
+      };
+    })
+    .filter(Boolean);
+}
+
 function normalizeSummaryPayload(payload) {
   const source = payload?.summary && typeof payload.summary === 'object' ? payload.summary : payload;
 
@@ -78,48 +104,13 @@ function normalizeSummaryPayload(payload) {
     last7Days: normalizePeriod(source?.last7Days),
     last30Days: normalizePeriod(source?.last30Days),
     byMode: normalizeBreakdownRows(source?.byMode, 'mode'),
-    byEventName: normalizeBreakdownRows(source?.byEventName, 'eventName')
+    byEventName: normalizeBreakdownRows(source?.byEventName, 'eventName'),
+    daily: normalizeDailyRows(source?.daily)
   };
 }
 
-function buildReadUrl(rawUrl) {
-  const url = new URL(rawUrl);
-  url.searchParams.set('excludeInternal', 'true');
-  url.searchParams.set('aggregateOnly', 'true');
-  return url.toString();
-}
-
-async function fetchStorageSummary(readUrl, token) {
-  if (typeof fetch !== 'function') {
-    throw new Error('fetch unavailable');
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), SUMMARY_READ_TIMEOUT_MS);
-
-  try {
-    const headers = {
-      Accept: 'application/json'
-    };
-
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-
-    const response = await fetch(buildReadUrl(readUrl), {
-      method: 'GET',
-      headers,
-      signal: controller.signal
-    });
-
-    if (!response.ok) {
-      throw new Error(`analytics summary storage status ${response.status}`);
-    }
-
-    return response.json();
-  } finally {
-    clearTimeout(timeout);
-  }
+function hasRedisConfig() {
+  return Boolean(limitString(process.env.UPSTASH_REDIS_REST_URL, 1000) && limitString(process.env.UPSTASH_REDIS_REST_TOKEN, 1000));
 }
 
 export default async function handler(req, res) {
@@ -128,31 +119,30 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
 
-  const readUrl = limitString(process.env.ANALYTICS_STORAGE_READ_URL, 1000);
-  const token = limitString(process.env.ANALYTICS_STORAGE_TOKEN, 1000);
-
-  if (!readUrl) {
+  if (!hasRedisConfig()) {
     return res.status(200).json(placeholderResponse());
   }
 
   try {
-    const remotePayload = await fetchStorageSummary(readUrl, token);
+    const summary = await readAnalyticsSummary();
     return res.status(200).json({
       ok: true,
       storageConfigured: true,
-      summary: normalizeSummaryPayload(remotePayload)
+      summary: normalizeSummaryPayload(summary)
     });
   } catch (error) {
-    console.warn('[ThisOne Analytics Summary] readable storage unavailable:', error?.message || error);
+    console.warn('[ThisOne Analytics Summary] Redis summary unavailable:', error?.message || error);
     return res.status(200).json(placeholderResponse(STORAGE_READ_FAILURE_MESSAGE));
   }
 }
 
 export const _private = {
-  SUMMARY_READ_TIMEOUT_MS,
   PLACEHOLDER_MESSAGE,
   STORAGE_READ_FAILURE_MESSAGE,
   createEmptySummary,
+  normalizePeriod,
+  normalizeBreakdownRows,
+  normalizeDailyRows,
   normalizeSummaryPayload,
-  buildReadUrl
+  placeholderResponse
 };

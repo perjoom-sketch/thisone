@@ -1,4 +1,5 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { analyzeUserIntent } = require('../lib/intentAnalysis');
 
 const AI_CONFIG = { MODEL_NAME: process.env.MODEL_NAME || 'gemini-2.5-flash' };
 const OPENAI_MODEL = 'gpt-5.4-mini';
@@ -167,6 +168,25 @@ async function searchSerper(query) {
   return pickUsefulSources(data?.organic || []);
 }
 
+async function searchSerperQueries(queries) {
+  const seen = new Set();
+  const sources = [];
+  const safeQueries = Array.isArray(queries) ? queries.filter(Boolean).slice(0, 5) : [];
+
+  for (const query of safeQueries) {
+    const querySources = await searchSerper(query);
+    for (const source of querySources) {
+      const key = source.link.replace(/[?#].*$/, '');
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      sources.push(source);
+      if (sources.length >= MAX_SOURCE_COUNT) return sources;
+    }
+  }
+
+  return sources;
+}
+
 function buildSourceContext(sources) {
   if (!sources.length) return '사용한 공개 출처 없음.';
   return sources.map((source, index) => [
@@ -294,14 +314,15 @@ async function handler(req, res) {
     return res.status(400).json({ error: 'question must be a non-empty string' });
   }
 
+  const intent = analyzeUserIntent({ text: question, mode: 'instant-answer' });
   let sources = [];
   let usedSearch = false;
-  const shouldSearch = shouldUsePublicSearch(question);
+  const shouldSearch = shouldUsePublicSearch(question) || intent.answerStrategy === 'source_backed';
 
   if (shouldSearch) {
-    const query = buildSafePublicQuery(question);
+    const searchQueries = intent.searchQueries.length ? intent.searchQueries : [buildSafePublicQuery(question)];
     try {
-      sources = await searchSerper(query);
+      sources = await searchSerperQueries(searchQueries);
       usedSearch = sources.length > 0;
     } catch (searchError) {
       console.warn('[api/instantAnswer] Serper failed:', searchError.message);
@@ -320,5 +341,7 @@ module.exports._private = {
   shouldUsePublicSearch,
   buildSafePublicQuery,
   removePrivateDetails,
-  pickUsefulSources
+  pickUsefulSources,
+  searchSerperQueries,
+  analyzeUserIntent
 };

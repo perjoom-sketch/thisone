@@ -19,64 +19,65 @@
 - 명시적 지시 없이 "개선" 금지
 - 코드 변경과 무관한 파일 건드리기 금지
 
+### 시스템 환경 관리
+- 작업 시작 및 완료 시 반드시 노트북 저장공간(C드라이브) 확인
+- 여유 공간이 5GB 미만일 경우 사용자에게 즉시 보고 및 정화 작업 제안
+
 ==============================================
-## 2. 현재 작업 (이번 세션)
+## 2. 현재 작업 및 프로젝트 방향성 (이번 세션)
 ==============================================
 
-### 목표: 목록형 레이아웃 전면 재구성
+### 프로젝트 방향 (Project Direction)
+ThisOne은 단순 쇼핑 검색에서 확장하여 **공유형 AI 입력 서비스(shared AI input service)**로 나아갑니다.
+- **핵심 원칙 (Core principle)**:
+  - 입력(input)은 공통으로 공유됨
+  - 처리 정책(processing policy)은 모드별로 개별 적용
+  - 다중 첨부 파일은 적절한 경우 하나의 입력 번들(input bundle)로 취급됨
 
-**폐기할 것:**
-- 기존 3카드 그리드 컨셉 (DOM + CSS 완전 제거)
-- 가성비/신뢰/ThisOne추천을 카드로 분리하는 구조
+### 최근 병합된 PR (Merged PRs)
+- #369 shared attachment input policy foundation
+- #370 multiple attachments as one input bundle
+- #371 multi-image paste in interpretation mode
+- #372 submit all Document AI attachment bundle files
 
-**새 구조:**
+### 현재 Document AI 상태 (Current Status)
+- 해석(Document AI) 모드는 컴포저에서 다중 첨부를 지원함
+- 붙여넣기/첨부된 파일은 `selectedFiles[]`에 저장됨
+- 프론트엔드는 백엔드로 `files[]` 배열을 전송함
+- 백엔드는 `files[]`를 하나의 번들로 처리하고, 통합된 하나의 응답을 반환함
+- 기존 단일 파일 동작(legacy single file behavior)은 여전히 보존됨
 
-1. 결과 컨테이너
-```css
-   display: flex;
-   flex-direction: column;
-   gap: clamp(8px, 2vw, 16px);
-   width: min(95%, 900px);
-   margin: 0 auto;
-```
+### 다음 우선순위 (Next Priority)
+**Document AI의 PDF 읽기 신뢰성 향상 (fix PDF reading reliability)**
+- PDF 전용 타임아웃 (PDF-specific timeout)
+- 업로드 사이즈 검토 (upload size review)
+- `pdfReadStatus` 명확한 초기화 (clear pdfReadStatus)
+- 실패한 PDF를 성공한 척 읽지 않기 (never pretend to read failed PDFs)
+- 아직 문서 세션(document session) 작업 안 함
+- 아직 보충 검색(supplemental search) 작업 안 함
 
-2. 각 항목(행) 내부 구조
-[썸네일] [정보 영역] [가격/배지]
-- 썸네일 폭: `clamp(80px, 15vw, 120px)`
-   - 정보 영역: `flex: 1`
-   - 우측에 가격 + 배지
+### PR 규율 (PR Discipline)
+PR은 작고 분리된 상태로 유지할 것 (Keep PRs small and separated).
+**절대 아래 항목을 섞지 말 것 (Do not mix)**:
+- 공통 컴포저 변경 (common composer changes)
+- PDF 신뢰성 (PDF reliability)
+- 문서 세션 (document session)
+- 후속 Q&A (follow-up Q&A)
+- 보충 검색 (supplemental search)
+- 분석기 (analytics)
+- 쇼핑 랭킹 (shopping ranking)
 
-3. 배지 전환
-   - 가성비 / 신뢰 / ThisOne추천을 각각 구분 색상 배지로
-   - 제품명 옆 또는 행 우측에 배치
+### Antigravity 역할 및 보고 규칙
+Antigravity는 명시적인 지시가 없는 한 파일을 편집하지 않으며, 주로 **브라우저 기반 QA(Browser-based QA)** 에 사용되어야 합니다.
+- 역할: 로컬 앱 시작, 브라우저 열기, UI 테스트, 콘솔/네트워크 검사, 스크린샷 캡처, 통과/실패 보고
+- **보고 스타일 (Keep report concise):**
+  - 현재 브랜치 (current branch)
+  - 변경된 파일 (changed files)
+  - 테스트 결과 (test result)
+  - 콘솔/네트워크 에러 (console/network errors)
+  - 스크린샷 (브라우저 QA 시)
 
-4. 폰트
-   - `clamp()` 기반 반응형
-
-5. 모바일(~640px)
-   - 동일 목록 구조 유지
-   - 썸네일만 축소, 정보 영역 폭 비율 조정
-   - 카드가 화면 100% 차지하는 세로 스택 금지
-
-### 부수 수정
-
-**브레이크포인트 복원:**
-- main.css의 모든 @media 쿼리 확인
-- 768px로 된 부분 있으면 전부 640px로 복원
-
-**모바일 검색 후 레이아웃 버그:**
-- 증상: 검색창(.search-wrap)이 좌측 세로 쌓임, "비/스/포/크" 글자 세로 배치
-- 원인: body.search-mode 상태에서 모바일 레이아웃 규칙 누락
-- 수정: 검색창 상단 유지, 결과는 아래로 세로 정렬
-
-**PC 검색 중간 멈춤 버그:**
-- 증상: "검색패턴 관찰", "데이터 수집" 후 멈춤 / "검색 중 오류 발생"
-- 원인: requestIntentInfer 또는 buildCandidates 실패
-- 수정: 모든 외부 API 호출에 Fallback + timeout 적용
-- 검증: Gemini 503(혼잡) 에러 발생 시 20초를 기다리지 않고 4초 내외로 빠른 폴백(Fail-Fast) 작동 확인 (사용자 경험 최적화)
-
-### 커밋 메시지
-`fix: restore 640px breakpoint + list layout + intent fallback`
+**(주의)** 완료되지 않은 작업을 지어내지 말 것. 패키지 파일을 변경하지 말 것.
 
 ==============================================
 ## 3. 검증 프로토콜 (영구 · 절대 어기지 말 것)

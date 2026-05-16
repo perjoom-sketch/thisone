@@ -1,4 +1,5 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { analyzeQuestion } = require('../lib/questionUnderstanding');
 
 const AI_CONFIG = { MODEL_NAME: process.env.MODEL_NAME || 'gemini-2.5-flash' };
 const OPENAI_MODEL = 'gpt-5.4-mini';
@@ -33,6 +34,11 @@ const LOW_QUALITY_DOMAINS = [
   'pinterest.', 'facebook.', 'instagram.', 'tiktok.', 'x.com', 'twitter.', 'youtube.', 'dcinside.', 'fmkorea.', 'theqoo.'
 ];
 
+const OFFICIAL_SOURCE_DOMAINS = [
+  '.go.kr', 'gov.kr', 'epeople.go.kr', 'moel.go.kr', 'korea.kr', 'law.go.kr', 'easylaw.go.kr',
+  'safety.or.kr', 'kosha.or.kr', 'nhis.or.kr', 'comwel.or.kr', 'nts.go.kr'
+];
+
 function normalizeText(value, maxLength = MAX_QUESTION_LENGTH) {
   return String(value || '')
     .replace(/[\u0000-\u001f\u007f]/g, ' ')
@@ -46,7 +52,9 @@ function hasAnyKeyword(text, keywords) {
   return keywords.some((keyword) => source.includes(keyword.toLowerCase()));
 }
 
-function shouldUsePublicSearch(question) {
+function shouldUsePublicSearch(question, analysis) {
+  if (analysis && analysis.needsSearch) return true;
+
   const text = normalizeText(question).toLowerCase();
   if (!text) return false;
 
@@ -151,6 +159,30 @@ async function fetchWithTimeout(url, options, timeoutMs, label) {
   }
 }
 
+function isOfficialSource(source) {
+  const domain = String(source?.domain || getDomain(source?.link)).toLowerCase();
+  return OFFICIAL_SOURCE_DOMAINS.some((officialDomain) => domain === officialDomain || domain.endsWith(officialDomain) || domain.includes(officialDomain));
+}
+
+function hasUsefulEvidence(sources, analysis) {
+  if (!Array.isArray(sources) || sources.length === 0) return false;
+  if (analysis?.needsOfficialSource) return sources.some(isOfficialSource);
+  return sources.length >= 1;
+}
+
+function mergeSources(current, next) {
+  const seen = new Set();
+  const merged = [];
+  for (const source of [...(current || []), ...(next || [])]) {
+    const key = String(source?.link || '').replace(/[?#].*$/, '');
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    merged.push(source);
+    if (merged.length >= MAX_SOURCE_COUNT) break;
+  }
+  return merged;
+}
+
 async function searchSerper(query) {
   const apiKey = process.env.SERPER_API_KEY;
   if (!apiKey || !query) return [];
@@ -165,6 +197,20 @@ async function searchSerper(query) {
   }, SERPER_TIMEOUT_MS, 'Serper');
 
   return pickUsefulSources(data?.organic || []);
+}
+
+async function searchSerperQueries(queries, analysis) {
+  let sources = [];
+  for (const query of queries) {
+    try {
+      const nextSources = await searchSerper(query);
+      sources = mergeSources(sources, nextSources);
+      if (hasUsefulEvidence(sources, analysis)) break;
+    } catch (searchError) {
+      console.warn('[api/instantAnswer] Serper failed:', searchError.message);
+    }
+  }
+  return sources;
 }
 
 function buildSourceContext(sources) {
@@ -197,11 +243,18 @@ ThisOne은 source-backed AI 서비스다. AI는 진실의 출처가 아니고, �
 4. 주의할 점`;
 }
 
-function buildUserPrompt(question, sources) {
-  return `사용자 질문:\n${question}\n\n공개 검색 맥락:\n${buildSourceContext(sources)}\n\n위 정보만으로 자연스럽게 즉답해줘. 출처 목록 자체는 프론트에서 따로 보여주므로, 답변 본문에는 링크를 길게 나열하지 마.`;
+function buildUserPrompt(question, sources, analysis) {
+  const questionContext = analysis ? [
+    `사용자 원문 질문:\n${analysis.originalText}`,
+    `내부 재작성 질문:\n${analysis.rewrittenQuestion}`,
+    `필요 근거 유형: ${analysis.evidencePreference}`,
+    `확인할 핵심어: ${analysis.keyPhrases.join(', ') || '없음'}`
+  ].join('\n\n') : `사용자 질문:\n${question}`;
+
+  return `${questionContext}\n\n공개 검색 맥락:\n${buildSourceContext(sources)}\n\n위 정보만으로 자연스럽게 즉답해줘. 출처 목록 자체는 프론트에서 따로 보여주므로, 답변 본문에는 링크를 길게 나열하지 마.`;
 }
 
-async function geminiAnswer(question, sources, usedSearch) {
+async function geminiAnswer(question, sources, usedSearch, analysis) {
   const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error('GOOGLE_API_KEY is not configured');
 
@@ -224,7 +277,7 @@ async function geminiAnswer(question, sources, usedSearch) {
   });
 
   const result = await Promise.race([
-    model.generateContent(buildUserPrompt(question, sources)),
+    model.generateContent(buildUserPrompt(question, sources, analysis)),
     timeoutPromise
   ]).finally(() => clearTimeout(timeoutId));
 
@@ -233,7 +286,7 @@ async function geminiAnswer(question, sources, usedSearch) {
   return answer.trim();
 }
 
-async function openaiAnswer(question, sources, usedSearch) {
+async function openaiAnswer(question, sources, usedSearch, analysis) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');
 
@@ -247,7 +300,7 @@ async function openaiAnswer(question, sources, usedSearch) {
       model: OPENAI_MODEL,
       messages: [
         { role: 'system', content: buildSystemPrompt({ usedSearch }) },
-        { role: 'user', content: buildUserPrompt(question, sources) }
+        { role: 'user', content: buildUserPrompt(question, sources, analysis) }
       ],
       temperature: 0.2
     })
@@ -258,29 +311,42 @@ async function openaiAnswer(question, sources, usedSearch) {
   return answer.trim();
 }
 
-function buildCarefulFallbackAnswer(question, usedSearch) {
+function buildCarefulFallbackAnswer(question, usedSearch, analysis, hasEnoughEvidence = usedSearch) {
   const text = normalizeText(question, 160);
   if (hasAnyKeyword(text, PERSONAL_SUPPORT_KEYWORDS)) {
     return '1. 결론\n지금 많이 버거운 상태라면 혼자 견디려고만 하지 말고, 가까운 사람에게 “지금 너무 힘들다”고 바로 말해보세요.\n\n2. 이유\n감정이 심하게 올라올 때는 문제를 해결하기보다 안전하게 시간을 버티는 것이 먼저입니다.\n\n3. 지금 할 일\n물 한 잔 마시고, 숨을 천천히 쉬면서 믿을 만한 사람에게 연락하세요. 스스로를 해칠 생각이 있거나 위험하다고 느끼면 즉시 119 또는 가까운 응급실에 도움을 요청하세요.\n\n4. 주의할 점\n공개 출처 없이 질문 내용 기준으로 정리했습니다.';
   }
 
+  if (!hasEnoughEvidence && analysis?.needsSearch) {
+    const officialLine = analysis.needsOfficialSource
+      ? '공식 기관·법령·지자체 안내에서 확인되어야 하는 부분은 아직 확정하지 못했습니다.'
+      : '공개 출처에서 확인되어야 하는 부분은 아직 확정하지 못했습니다.';
+    const checkTarget = analysis.institutionWords?.length ? `${analysis.institutionWords[0]} 공식 안내` : '관련 공식 안내 또는 최신 공지';
+    const questionSummary = analysis.rewrittenQuestion || text;
+    return `1. 결론\n공개 출처를 충분히 확인하지 못해 일반적인 기준으로 정리했습니다. 이 질문은 “${questionSummary}”라는 기준으로 확인해야 하며, 현재는 단정 답변보다 추가 확인이 필요합니다.\n\n2. 확인되지 않은 부분\n${officialLine} 특히 명칭, 소속, 권한, 대상, 기한처럼 기관별로 달라질 수 있는 정보는 공개 근거가 필요합니다.\n\n3. 일반적으로 볼 수 있는 기준\n질문에 기관·제도·절차가 포함되어 있다면 개인 블로그나 요약 글보다 공식 기관 안내, 법령, 지자체 공지, 사업 설명자료를 우선 확인하는 것이 안전합니다.\n\n4. 다음 확인 방법\n${checkTarget}에서 정확한 명칭으로 다시 검색하거나, 담당 부서 민원/문의 창구에 현재 기준을 확인하세요.`;
+  }
+
   return `1. 결론\n지금 질문은 일반 정보 확인이 필요한 내용일 수 있습니다. ${usedSearch ? '확인된 공개 검색 요약을 바탕으로' : '공개 출처 없이 질문 내용 기준으로'} 조심스럽게 판단해야 합니다.\n\n2. 이유\n상황·지역·기관·시점에 따라 답이 달라질 수 있어 단정하기 어렵습니다.\n\n3. 지금 할 일\n관련 공식 기관, 전문가, 약사/의사/변호사 등 해당 분야 담당자에게 최신 기준을 확인하세요.\n\n4. 주의할 점\nAI 답변은 최종 근거가 아니며, 중요한 결정에는 공식 안내를 우선하세요.`;
 }
 
-async function buildAnswer(question, sources, usedSearch) {
+async function buildAnswer(question, sources, usedSearch, analysis, hasEnoughEvidence = usedSearch) {
+  if (analysis?.needsSearch && !hasEnoughEvidence) {
+    return buildCarefulFallbackAnswer(question, usedSearch, analysis, hasEnoughEvidence);
+  }
+
   try {
-    return await geminiAnswer(question, sources, usedSearch);
+    return await geminiAnswer(question, sources, usedSearch, analysis);
   } catch (geminiError) {
     console.warn('[api/instantAnswer] Gemini failed:', geminiError.message);
   }
 
   try {
-    return await openaiAnswer(question, sources, usedSearch);
+    return await openaiAnswer(question, sources, usedSearch, analysis);
   } catch (openaiError) {
     console.warn('[api/instantAnswer] OpenAI failed:', openaiError.message);
   }
 
-  return buildCarefulFallbackAnswer(question, usedSearch);
+  return buildCarefulFallbackAnswer(question, usedSearch, analysis, hasEnoughEvidence);
 }
 
 async function handler(req, res) {
@@ -294,24 +360,38 @@ async function handler(req, res) {
     return res.status(400).json({ error: 'question must be a non-empty string' });
   }
 
+  const analysis = analyzeQuestion({ text: question, mode: 'instant-answer' });
   let sources = [];
   let usedSearch = false;
-  const shouldSearch = shouldUsePublicSearch(question);
+  let fallback = false;
+  let escalatedAnalysis = analysis;
+  const shouldSearch = shouldUsePublicSearch(question, analysis);
 
   if (shouldSearch) {
-    const query = buildSafePublicQuery(question);
-    try {
-      sources = await searchSerper(query);
+    const firstQueries = analysis.searchQueries.length ? analysis.searchQueries : [buildSafePublicQuery(question)];
+    sources = await searchSerperQueries(firstQueries, analysis);
+    usedSearch = sources.length > 0;
+
+    if (!hasUsefulEvidence(sources, analysis) && analysis.deeperResearchQueries.length) {
+      fallback = true;
+      escalatedAnalysis = analyzeQuestion({ text: question, mode: 'instant-answer' }, { firstSearchWeak: true });
+      const deeperSources = await searchSerperQueries(escalatedAnalysis.deeperResearchQueries, escalatedAnalysis);
+      sources = mergeSources(sources, deeperSources);
       usedSearch = sources.length > 0;
-    } catch (searchError) {
-      console.warn('[api/instantAnswer] Serper failed:', searchError.message);
-      sources = [];
-      usedSearch = false;
     }
   }
 
-  const answer = await buildAnswer(question, sources, usedSearch);
-  return res.status(200).json({ answer, sources: usedSearch ? sources : [], usedSearch });
+  const hasEnoughEvidence = hasUsefulEvidence(sources, escalatedAnalysis);
+  if (escalatedAnalysis.needsSearch && !hasEnoughEvidence) fallback = true;
+  const answerQuestion = escalatedAnalysis.rewrittenQuestion || question;
+  const answer = await buildAnswer(answerQuestion, sources, usedSearch, escalatedAnalysis, hasEnoughEvidence);
+  return res.status(200).json({
+    answer,
+    sources: usedSearch ? sources : [],
+    usedSearch,
+    fallback,
+    statusMessages: fallback ? escalatedAnalysis.interimMessages : undefined
+  });
 }
 
 module.exports = handler;
@@ -320,5 +400,7 @@ module.exports._private = {
   shouldUsePublicSearch,
   buildSafePublicQuery,
   removePrivateDetails,
-  pickUsefulSources
+  pickUsefulSources,
+  hasUsefulEvidence,
+  searchSerperQueries
 };

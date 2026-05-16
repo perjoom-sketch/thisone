@@ -3465,19 +3465,21 @@ body.ai-tool-mode #msgContainer {
 
 @media (max-width: 640px) {
   .ai-mode-tabs {
-    flex-wrap: wrap;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, auto);
     gap: clamp(0.28rem, 1.4vw, 0.45rem);
     padding: clamp(0.28rem, 1.4vw, 0.4rem);
     border-radius: clamp(1rem, 4vw, 1.35rem);
   }
 
   .ai-mode-tab {
-    flex: 1 1 calc((100% - clamp(0.28rem, 1.4vw, 0.45rem) * 2) / 3);
-    min-inline-size: max(28%, 5.25rem);
+    flex: none;
+    min-inline-size: 0;
     min-block-size: clamp(2.35rem, 10vw, 2.85rem);
-    padding: clamp(0.55rem, 2.3vw, 0.7rem) clamp(0.5rem, 2.4vw, 0.7rem);
+    padding: clamp(0.55rem, 2.3vw, 0.7rem) 0.25rem;
     font-size: clamp(0.86rem, 3.5vw, 0.95rem);
+    width: 100%;
   }
 
   .web-search-panel {

@@ -567,39 +567,64 @@ function buildFinalPrompt({ question, imageSummary, sources }) {
   const safeSummary = imageSummary?.safeSummary ? redactSensitive(imageSummary.safeSummary) : '';
   const sourceContext = buildSourceContext(sources);
 
-  return `당신은 ThisOne 해석 모드입니다. ThisOne은 source-backed AI 서비스입니다.
-AI는 진실의 출처가 아니며, 업로드된 내용과 공개 출처가 근거입니다.
+  return `당신은 ThisOne 해석 모드입니다. ThisOne은 근거(source)에 기반한 AI 서비스입니다.
+업로드된 문서/사진의 원문과 공개 출처를 바탕으로 답변하세요.
 
 답변 규칙:
-- 평범한 한국어로, 실용적으로, 너무 길지 않게 답하세요.
-- 개인정보(이름, 주민번호, 전화번호, 주소, 계좌/카드번호, 개인 ID, 사건번호)는 반복하지 마세요.
-- 공개 출처가 있는 내용과 업로드 내용에서 보이는 내용을 구분하세요.
+- 평범하고 실용적인 한국어로 답하세요.
+- 질문이 구체적이더라도, 문서/사진이 첨부되었다면 먼저 내용을 읽어주는 것이 기본입니다.
+- 아래 5단계 구조를 엄격히 지켜서 답변을 시작하세요.
+
+[필수 출력 구조]
+1. 읽은 내용: 
+   - 문서/사진의 텍스트를 보이는 그대로 옮깁니다. 
+   - 손글씨(handwriting)라면 최대한 줄바꿈을 살려 한 줄씩 받아쓰기 하세요.
+   - 숫자, 단위, 공식, 화살표, 라벨 등을 정확히 보존하세요. (예: 17%, 감면비율, 계산식 등)
+   - 질문이 "읽어줘", "원문으로 옮겨줘" 등인 경우 이 부분에 가장 집중하세요.
+2. 잘 안 보이는 부분: 
+   - 글씨가 뭉개졌거나 흐릿해서 확신할 수 없는 부분은 여기서 언급하세요.
+   - 본문에서는 (불확실), (잘 안 보임), (아마 ...) 등으로 표시하고 여기서 이유를 설명하세요.
+3. 쉬운 말로 설명: 
+   - 위 내용을 누구나 이해할 수 있게 쉬운 용어로 요약/설명하세요.
+4. 숫자/계산/도면에서 중요한 점: 
+   - 문서 내의 수치, 계산 결과, 도면의 핵심 기호 등 놓치지 말아야 할 포인트를 짚어주세요.
+5. 다음에 물어볼 만한 것: 
+   - 사용자가 이 문서와 관련해 추가로 궁금해할 법한 질문 3가지를 제안하세요.
+
+[주의사항]
+- 개인정보(이름, 주민번호, 전화번호, 주소, 계좌/카드번호, 개인 ID, 사건번호)는 반복하지 마세요. 텍스트를 옮길 때 필요한 경우 [비공개] 또는 성명 [비공개] 등으로 처리하세요.
 - 공개 출처로 확인하지 못한 내용을 단정하지 마세요.
 - 법률/의료/금융 등 고위험 내용은 일반 설명으로 제한하고 필요 시 기관/전문가 확인을 권하세요.
-- 가능하면 아래 구조를 쓰되, 불필요한 항목은 짧게 처리하세요.
-  1. 이게 무엇인지
-  2. 문서/사진에서 보이는 핵심
-  3. 공개 출처로 확인한 내용
-  4. 지금 해야 할 일
-  5. 주의할 점
 
 사용자 질문/입력:
 ${safeQuestion || '(질문 없음)'}
 
 업로드 문서/사진 안전 요약:
-문서/사진 종류: ${imageSummary?.documentType || '없음'}
-요약: ${safeSummary || '업로드 요약 없음'}
+${safeSummary || '업로드 요약 없음'}
 
 공개 출처 검색 결과:
 ${sourceContext || '공개 출처 없음'}
 
-위 근거만 사용해 답변하세요.`;
+위 근거와 첨부된 이미지를 직접 대조하며 답변하세요.`;
 }
 
-async function generateAnswer(payload) {
+async function generateAnswer(payload, uploadedFiles = []) {
   const prompt = buildFinalPrompt(payload);
+  const parts = [{ text: prompt }];
+
+  for (const file of uploadedFiles) {
+    if (file?.data && file?.mimeType && /^image\/|application\/pdf/.test(file.mimeType)) {
+      parts.push({
+        inlineData: {
+          mimeType: file.mimeType,
+          data: file.data
+        }
+      });
+    }
+  }
+
   try {
-    const text = await callGemini([{ text: prompt }]);
+    const text = await callGemini(parts);
     if (text.trim()) return redactSensitive(text.trim());
   } catch (geminiError) {
     try {
@@ -614,20 +639,20 @@ async function generateAnswer(payload) {
   }
 
   const lines = [];
-  lines.push('1. 이게 무엇인지');
-  lines.push(payload.imageSummary?.documentType ? `${payload.imageSummary.documentType}로 보입니다.` : '입력하신 내용을 기준으로 해석했습니다.');
+  lines.push('1. 읽은 내용');
+  lines.push(payload.imageSummary?.safeSummary || '업로드된 내용을 읽는 중에 오류가 발생했습니다.');
   lines.push('');
-  lines.push('2. 문서/사진에서 보이는 핵심');
-  lines.push(payload.imageSummary?.safeSummary || redactSensitive(normalizeText(payload.question, 700)) || '확인할 수 있는 내용이 많지 않습니다.');
+  lines.push('2. 잘 안 보이는 부분');
+  lines.push('이미지 상태나 보안 설정으로 인해 일부 내용을 정확히 확인하지 못했습니다.');
   lines.push('');
-  lines.push('3. 공개 출처로 확인한 내용');
-  lines.push(payload.sources?.length ? '아래 공개 출처의 요약을 함께 참고했습니다.' : '공개 출처는 확인하지 못했고, 업로드된 내용 기준으로 정리했습니다.');
+  lines.push('3. 쉬운 말로 설명');
+  lines.push(payload.imageSummary?.documentType ? `${payload.imageSummary.documentType}에 대한 내용입니다.` : '입력하신 내용을 바탕으로 정리했습니다.');
   lines.push('');
-  lines.push('4. 지금 해야 할 일');
-  lines.push('민감정보는 가린 상태로 원문을 다시 확인하고, 제출/신청/납부처럼 마감이 있는 항목이 있는지 먼저 확인하세요.');
+  lines.push('4. 숫자/계산/도면에서 중요한 점');
+  lines.push('수치나 계산식 등은 원본 문서와 대조하여 다시 한번 확인하시기 바랍니다.');
   lines.push('');
-  lines.push('5. 주의할 점');
-  lines.push('중요한 법률·의료·금융 판단은 해당 기관이나 전문가에게 최종 확인하세요.');
+  lines.push('5. 다음에 물어볼 만한 것');
+  lines.push('- 이 문서의 주요 마감 기한은 언제인가요?\n- 제가 추가로 제출해야 할 서류가 있나요?\n- 이 내용의 법적 효력은 어떻게 되나요?');
   return lines.join('\n');
 }
 
@@ -728,7 +753,7 @@ module.exports = async function handler(req, res) {
       if (pdfReadInfo?.pdfReadStatus === 'failed') {
         answer = buildPdfFailureAnswer(pdfReadInfo);
       } else {
-        answer = await generateAnswer({ question, imageSummary, sources });
+        answer = await generateAnswer({ question, imageSummary, sources }, uploadedFiles);
       }
 
       const attachmentContext = imageSummary ? {

@@ -258,6 +258,14 @@
           <div class="img-preview" id="imgPreview">
             <div class="pv-item">
               <img class="pv-img" id="previewImg" src="" alt="미리보기">
+              <div class="composer-file-chip" id="shoppingFileChip" hidden>
+                <span class="composer-file-chip-icon" id="shoppingFileIcon" aria-hidden="true">📄</span>
+                <span class="composer-file-chip-text">
+                  <span class="composer-file-chip-label" id="shoppingFileLabel">쇼핑 첨부</span>
+                  <span class="composer-file-chip-name" id="shoppingFileName"></span>
+                  <span class="composer-file-chip-type" id="shoppingFileType"></span>
+                </span>
+              </div>
               <button class="pv-del" type="button" onclick="removeImg()">✕</button>
             </div>
           </div>
@@ -348,7 +356,7 @@ PDF나 사진을 올리면 AI가 쉽게 해석하고 궁금한 점에 답해드�
     </div>
   </div>
 
-  <input type="file" id="fileInput" accept="image/*" onchange="handleImg(event)">
+  <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.jpg,.jpeg,.png,.webp,.pdf,.txt" onchange="handleImg(event)">
 
   <template id="filterTemplateV2">
     <div class="filter-panel">
@@ -389,6 +397,7 @@ PDF나 사진을 올리면 AI가 쉽게 해석하고 궁금한 점에 답해드�
   <script src="js/inquiry_manager.js?v=3.5.0" defer></script>
   <script src="js/voice_search.js?v=3.5.0" defer></script>
   <script src="js/ai_tool_voice_input.js?v=1.0.0" defer></script>
+  <script src="js/composer_attachment_input.js?v=1.0.0" defer></script>
   <script src="js/composer_image_input.js?v=1.0.1" defer></script>
   <script src="js/search_help_modal.js?v=3.5.0" defer></script>
   <script src="js/search_input_tools.js?v=3.5.0" defer></script>

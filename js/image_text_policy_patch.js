@@ -216,8 +216,9 @@ function showMobileVisionDebug(title, rows){
     const patchedProcessFile=function(file){
       global.__thisOneLastImageFileMeta={type:file&&file.type||'',size:file&&file.size||0,name:file&&file.name||''};
       showMobileVisionDebug('사진 첨부됨',[[ '파일 타입', global.__thisOneLastImageFileMeta.type||'(없음)' ],[ '파일 크기', Math.round((global.__thisOneLastImageFileMeta.size||0)/1024)+'KB' ]]);
+      const isImageAttachment=/^image\//i.test(String(file&&file.type||''));
       const textBeforeImage=getPrimaryInputValue();
-      if(textBeforeImage){
+      if(isImageAttachment&&textBeforeImage){
         clearQueryInputs();
         console.debug('[ThisOne][image-text-policy]','text cleared because image was attached after text input',{clearedText:textBeforeImage});
       }

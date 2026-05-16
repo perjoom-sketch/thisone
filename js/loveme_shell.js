@@ -466,7 +466,7 @@ Keep it practical and kind. Avoid long lectures.`;
         </div>
 
         <div class="ai-tool-composer loveme-composer">
-          ${global.ThisOneComposerImageInput?.render?.({ id: 'loveMeImage', label: '럽미 이미지' }) || ''}
+          ${global.ThisOneComposerAttachmentInput?.render?.({ id: 'loveMeImage', label: '럽미 이미지', fileChipLabel: '럽미 첨부' }) || ''}
           <div class="ai-tool-input loveme-composer-top">
             <label class="loveme-question-label" for="loveMeConcern">럽미 상담 입력창</label>
             <textarea class="loveme-question" id="loveMeConcern" rows="1" aria-label="럽미 상담 입력창" placeholder="콤플렉스나 원하는 커버 스타일을 말씀해 보세요."></textarea>
@@ -474,7 +474,7 @@ Keep it practical and kind. Avoid long lectures.`;
           <p class="ai-tool-voice-status" id="loveMeVoiceStatus" aria-live="polite" hidden></p>
           <div class="ai-tool-control-row loveme-composer-bottom">
             <div class="ai-tool-left-controls loveme-composer-left-actions">
-              ${global.ThisOneComposerImageInput?.renderControls?.({ id: 'loveMeImage', plusClass: 'loveme-plus-button' }) || ''}
+              ${global.ThisOneComposerAttachmentInput?.renderControls?.({ id: 'loveMeImage', plusClass: 'loveme-plus-button', uploadLabel: '사진·파일 추가' }) || ''}
             </div>
             <div class="ai-tool-right-controls loveme-composer-actions">
               <button class="ai-tool-icon-button ai-tool-help-button loveme-help-button" id="loveMeHelpButton" type="button" aria-label="럽미 상담 예시 보기" aria-expanded="false" aria-controls="loveMeHelpPanel" title="럽미 상담 예시 보기">?</button>
@@ -520,10 +520,14 @@ Keep it practical and kind. Avoid long lectures.`;
 
     global.ThisOneModeTabs?.bind?.(root);
 
-    const imageInput = global.ThisOneComposerImageInput?.attach?.(root, {
+    const imageInput = global.ThisOneComposerAttachmentInput?.attach?.(root.querySelector('.loveme-composer') || root, {
       id: 'loveMeImage',
+      mode: 'loveme',
+      textInput: concern,
       isActive: () => root.isConnected && document.body.classList.contains('loveme-mode'),
-      beforeOpen: () => setHelpPanelOpen(false)
+      beforeOpen: () => setHelpPanelOpen(false),
+      onNotice: (message) => setStatus(status, message),
+      onReject: (_file, message) => setStatus(status, message)
     });
 
     function setPlusMenuOpen(isOpen) {
@@ -584,6 +588,10 @@ Keep it practical and kind. Avoid long lectures.`;
 
     submit?.addEventListener('click', async () => {
       const text = concern.value.trim();
+      if (!imageInput?.isProcessable?.()) {
+        setStatus(status, imageInput?.getUnsupportedMessage?.() || '이 모드에서는 해당 첨부를 처리하지 않습니다.');
+        return;
+      }
       if (!text) {
         setStatus(status, '신경 쓰이는 부분을 편하게 적어주세요. 럽미는 편입니다.');
         concern.focus();

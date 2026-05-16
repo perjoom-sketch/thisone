@@ -5027,3 +5027,24 @@ body.ai-tool-mode #msgContainer {
 .document-ai-composer.is-drag-over {
   transform: none;
 }
+
+/* Shared attachment composer foundation */
+.composer-attachment-preview .pv-item.is-file-chip,
+#imgPreview .pv-item.is-file-chip {
+  width: min(100%, clamp(12rem, 55vw, 22rem));
+  height: auto;
+  min-height: clamp(3.5rem, 12vw, 4.375rem);
+}
+
+.composer-attachment-preview .pv-item.is-file-chip:hover,
+#imgPreview .pv-item.is-file-chip:hover {
+  transform: none;
+}
+
+#imgPreview .composer-file-chip {
+  display: flex;
+}
+
+#imgPreview .composer-file-chip[hidden] {
+  display: none;
+}

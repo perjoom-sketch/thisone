@@ -394,13 +394,16 @@
     return `
       <section class="document-ai-follow-up">
         <h4 class="document-ai-follow-up-title">이 문서를 기준으로 이어서 물어보세요.</h4>
-        <div class="document-ai-follow-up-chips">
-          <button type="button" class="document-ai-chip" data-follow-up="핵심만 다시 요약해줘">핵심만 다시 요약해줘</button>
-          <button type="button" class="document-ai-chip" data-follow-up="설정 방법 다시 설명해줘">설정 방법 다시 설명해줘</button>
-          <button type="button" class="document-ai-chip" data-follow-up="작업자에게 쉽게 설명해줘">작업자에게 쉽게 설명해줘</button>
-        </div>
-        <div class="document-ai-follow-up-footer">
-          <button type="button" class="document-ai-text-button" id="documentAiFollowUpReset">새 문서로 시작</button>
+        <div class="document-ai-follow-up-row">
+          <div class="document-ai-follow-up-chips">
+            <button type="button" class="document-ai-chip" data-follow-up="핵심만 다시 요약해줘">핵심만 다시 요약해줘</button>
+            <button type="button" class="document-ai-chip" data-follow-up="설정 방법 다시 설명해줘">설정 방법 다시 설명해줘</button>
+            <button type="button" class="document-ai-chip" data-follow-up="작업자에게 쉽게 설명해줘">작업자에게 쉽게 설명해줘</button>
+          </div>
+          <div class="document-ai-reset-wrap">
+            <button type="button" class="document-ai-reset-button" id="documentAiFollowUpReset"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>처음으로</button>
+            <span class="document-ai-reset-helper">새 문서·새 질문으로 시작합니다</span>
+          </div>
         </div>
       </section>
     `;

@@ -666,10 +666,18 @@ module.exports = async function handler(req, res) {
       answer = await generateAnswer({ question, imageSummary, sources });
     }
 
+    const attachmentContext = imageSummary ? {
+      documentType: imageSummary.documentType || '',
+      safeSummary: imageSummary.safeSummary || '',
+      publicKeywords: imageSummary.publicKeywords || [],
+      fileCount: uploadedFiles.length
+    } : null;
+
     return res.status(200).json({
       answer,
       sources,
       usedSearch,
+      attachmentContext,
       ...(pdfReadInfo || {})
     });
   } catch (error) {

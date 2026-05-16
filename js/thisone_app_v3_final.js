@@ -389,6 +389,9 @@ function resetShoppingHomeState() {
   document.body.classList.remove('ai-tool-mode', 'document-ai-mode', 'instant-answer-mode', 'web-search-mode', 'loveme-mode', 'search-mode');
   const container = document.getElementById('msgContainer');
   if (container) container.innerHTML = '';
+  if (typeof clearShoppingComposerInputState === 'function') {
+    clearShoppingComposerInputState();
+  }
 }
 
 function openShoppingHome() {

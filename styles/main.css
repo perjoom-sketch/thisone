@@ -4695,6 +4695,63 @@ body.ai-tool-mode #msgContainer {
   height: clamp(3.5rem, 12vw, 4.375rem);
 }
 
+
+.composer-img-preview .pv-item.is-file-chip {
+  width: min(100%, clamp(12rem, 55vw, 22rem));
+  height: auto;
+  min-height: clamp(3.5rem, 12vw, 4.375rem);
+}
+
+.composer-img-preview .pv-item.is-file-chip:hover {
+  transform: none;
+}
+
+.composer-file-chip {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 1.5vw, 0.75rem);
+  width: 100%;
+  min-height: clamp(3.5rem, 12vw, 4.375rem);
+  padding: clamp(0.7rem, 2vw, 0.9rem);
+  border: 0.0625rem solid #bfdbfe;
+  border-radius: clamp(0.75rem, 2vw, 1rem);
+  background: #eff6ff;
+  color: #1e293b;
+}
+
+.composer-file-chip[hidden] {
+  display: none;
+}
+
+.composer-file-chip-icon {
+  flex: 0 0 auto;
+  font-size: clamp(1.2rem, 3vw, 1.6rem);
+}
+
+.composer-file-chip-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: clamp(0.15rem, 0.6vw, 0.25rem);
+}
+
+.composer-file-chip-label,
+.composer-file-chip-type {
+  color: #64748b;
+  font-size: clamp(0.72rem, 1.8vw, 0.82rem);
+  line-height: 1.2;
+}
+
+.composer-file-chip-name {
+  overflow: hidden;
+  color: #1d4ed8;
+  font-size: clamp(0.85rem, 2vw, 0.95rem);
+  font-weight: 800;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .composer-plus-wrap {
   position: relative;
   display: inline-flex;

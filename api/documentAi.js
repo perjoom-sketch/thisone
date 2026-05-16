@@ -10,6 +10,14 @@ const SERPER_TIMEOUT_MS = 4000;
 const MAX_QUESTION_LENGTH = 4000;
 const MAX_SUMMARY_LENGTH = 1800;
 const MAX_SOURCE_COUNT = 5;
+const SUPPORTED_FILE_TYPES = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+  'text/plain'
+]);
 
 const PUBLIC_DOCUMENT_TERMS = [
   '기본증명서', '가족관계증명서', '혼인관계증명서', '입양관계증명서', '친양자입양관계증명서',
@@ -67,17 +75,44 @@ function removeSensitiveForSearch(value) {
     .trim();
 }
 
-function parseDataUrl(dataUrl) {
-  const match = String(dataUrl || '').match(/^data:([^;,]+);base64,(.+)$/);
+function normalizeMimeType(type) {
+  const mimeType = String(type || '').toLowerCase();
+  return mimeType === 'image/jpg' ? 'image/jpeg' : mimeType;
+}
+
+function parseDataUrl(dataUrl, fallbackType = '') {
+  const match = String(dataUrl || '').match(/^data:([^;,]+)(?:;[^,]*)?;base64,(.+)$/);
   if (!match) return null;
 
-  const mimeType = match[1].toLowerCase();
-  if (!/^image\/(jpeg|jpg|png|webp)$/.test(mimeType)) return null;
+  const mimeType = normalizeMimeType(match[1] || fallbackType);
+  if (!SUPPORTED_FILE_TYPES.has(mimeType)) return null;
 
-  return {
-    mimeType: mimeType === 'image/jpg' ? 'image/jpeg' : mimeType,
-    data: match[2]
-  };
+  return { mimeType, data: match[2] };
+}
+
+function parseUploadedFile(file, legacyImageDataUrl = '') {
+  if (file && typeof file === 'object') {
+    const mimeType = normalizeMimeType(file.type);
+    const parsed = parseDataUrl(file.dataUrl, mimeType);
+    if (!parsed || !SUPPORTED_FILE_TYPES.has(parsed.mimeType)) return null;
+    return {
+      name: normalizeText(file.name || '업로드 파일', 160),
+      mimeType: parsed.mimeType,
+      data: parsed.data
+    };
+  }
+
+  const legacyImage = parseDataUrl(legacyImageDataUrl);
+  if (!legacyImage || !/^image\//.test(legacyImage.mimeType)) return null;
+  return { name: '업로드 이미지', mimeType: legacyImage.mimeType, data: legacyImage.data };
+}
+
+function decodeBase64Text(data) {
+  try {
+    return Buffer.from(String(data || ''), 'base64').toString('utf8');
+  } catch (error) {
+    return '';
+  }
 }
 
 function buildTimeoutPromise(timeoutMs, label) {
@@ -163,13 +198,21 @@ async function callOpenAI(messages, timeoutMs = OPENAI_TIMEOUT_MS) {
   }
 }
 
-async function summarizeImage(imageDataUrl, question) {
-  const image = parseDataUrl(imageDataUrl);
-  if (!image) {
+async function summarizeUploadedFile(file, question) {
+  if (!file) {
     return {
-      documentType: '이미지',
-      safeSummary: '지원되는 이미지 형식이 아니어서 사진 내용을 확인하지 못했습니다.',
+      documentType: '문서/사진',
+      safeSummary: '지원되는 파일 형식이 아니어서 업로드 내용을 확인하지 못했습니다.',
       publicKeywords: []
+    };
+  }
+
+  if (file.mimeType === 'text/plain') {
+    const text = redactSensitive(normalizeText(decodeBase64Text(file.data), MAX_SUMMARY_LENGTH));
+    return {
+      documentType: '텍스트 문서',
+      safeSummary: text || '텍스트 파일 내용을 읽지 못했습니다.',
+      publicKeywords: findPublicTerms(`${question} ${text}`)
     };
   }
 
@@ -192,11 +235,11 @@ JSON 형식:
 
   const text = await callGemini([
     { text: prompt },
-    { inlineData: { mimeType: image.mimeType, data: image.data } }
+    { inlineData: { mimeType: file.mimeType, data: file.data } }
   ]);
   const parsed = extractJsonObject(text) || {};
   return {
-    documentType: normalizeText(parsed.documentType || '문서/사진', 80),
+    documentType: normalizeText(parsed.documentType || (file.mimeType === 'application/pdf' ? 'PDF 문서' : '문서/사진'), 80),
     safeSummary: redactSensitive(normalizeText(parsed.safeSummary || text, MAX_SUMMARY_LENGTH)),
     publicKeywords: (Array.isArray(parsed.publicKeywords) ? parsed.publicKeywords : [])
       .map((item) => removeSensitiveForSearch(item).slice(0, 80))
@@ -381,19 +424,24 @@ module.exports = async function handler(req, res) {
     const body = await readBody(req);
     const question = normalizeText(body?.question || '');
     const imageDataUrl = typeof body?.imageDataUrl === 'string' ? body.imageDataUrl : '';
+    const uploadedFile = parseUploadedFile(body?.file, imageDataUrl);
 
-    if (!question && !imageDataUrl) {
+    if (body?.file && !uploadedFile) {
+      return res.status(400).json({ error: '현재는 PDF, JPG, PNG, WebP, 텍스트만 해석할 수 있습니다.' });
+    }
+
+    if (!question && !uploadedFile) {
       return res.status(400).json({ error: '문서나 사진, 질문을 입력해주세요.' });
     }
 
     let imageSummary = null;
-    if (imageDataUrl) {
+    if (uploadedFile) {
       try {
-        imageSummary = await summarizeImage(imageDataUrl, question);
+        imageSummary = await summarizeUploadedFile(uploadedFile, question);
       } catch (error) {
         imageSummary = {
-          documentType: '이미지/문서',
-          safeSummary: '사진 내용을 자동으로 확인하지 못했습니다. 질문에 적힌 내용 기준으로 해석합니다.',
+          documentType: uploadedFile.mimeType === 'application/pdf' ? 'PDF 문서' : '이미지/문서',
+          safeSummary: '업로드 내용을 자동으로 확인하지 못했습니다. 질문에 적힌 내용 기준으로 해석합니다.',
           publicKeywords: findPublicTerms(question)
         };
       }

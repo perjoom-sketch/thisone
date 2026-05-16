@@ -746,10 +746,10 @@
               </div>
               <div class="reset-field">
                 <label for="resetConfirmText">확인 문구</label>
-                <input id="resetConfirmText" name="confirmText" type="text" autocomplete="off" inputmode="text" placeholder="통계 초기화" aria-describedby="resetConfirmHelp">
+                <input id="resetConfirmText" name="confirmText" type="text" autocomplete="off" inputmode="text" placeholder="통계 초기화" aria-describedby="resetConfirmHelp resetAnalyticsStatus">
               </div>
             </div>
-            <p id="resetConfirmHelp" class="detail">“통계 초기화”를 정확히 입력해야 버튼이 활성화됩니다.</p>
+            <p id="resetConfirmHelp" class="detail">아래 입력칸에 “통계 초기화”를 입력하면 버튼이 활성화됩니다.</p>
             <p id="resetAllCaution" class="reset-all-caution" hidden>전체 통계는 모든 analytics: 키만 삭제합니다. keyword:, query:, related:, suggestion:, trajectory:, search: 키는 삭제하지 않습니다.</p>
             <div class="reset-button-row">
               <button type="submit" id="resetAnalyticsButton" class="operator-button danger reset-button" disabled>선택한 통계 초기화</button>
@@ -988,6 +988,12 @@
       };
     }
 
+    function normalizeResetConfirmText(value) {
+      return String(value || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
     function setResetMessage(message, type = 'warn') {
       const { message: messageElement, status } = getResetControls();
       if (messageElement) {
@@ -1001,18 +1007,22 @@
     }
 
     function updateResetButtonState(options = {}) {
-      const { range, confirm, button, allCaution } = getResetControls();
-      const confirmed = confirm?.value === RESET_CONFIRM_TEXT;
+      const { range, confirm, button, allCaution, status } = getResetControls();
+      const confirmed = normalizeResetConfirmText(confirm?.value) === RESET_CONFIRM_TEXT;
       if (button) button.disabled = !confirmed;
       if (allCaution) allCaution.hidden = range?.value !== 'all';
-      if (!confirmed && !options.silent) setResetMessage('“통계 초기화”를 정확히 입력해야 초기화할 수 있습니다.');
+      if (status) {
+        status.textContent = confirmed ? '확인 완료' : '확인 문구 필요';
+        status.className = confirmed ? 'pill ready' : 'pill warn';
+      }
+      if (!confirmed && !options.silent) setResetMessage('아래 입력칸에 “통계 초기화”를 입력하면 초기화할 수 있습니다.');
     }
 
     async function submitAnalyticsReset(event) {
       event.preventDefault();
       const { range, confirm, button } = getResetControls();
       const resetRange = range?.value || 'today';
-      const confirmText = confirm?.value || '';
+      const confirmText = normalizeResetConfirmText(confirm?.value);
 
       if (confirmText !== RESET_CONFIRM_TEXT) {
         updateResetButtonState();
@@ -1055,6 +1065,11 @@
       form?.addEventListener('submit', submitAnalyticsReset);
       range?.addEventListener('change', updateResetButtonState);
       confirm?.addEventListener('input', updateResetButtonState);
+      confirm?.addEventListener('change', updateResetButtonState);
+      confirm?.addEventListener('compositionend', updateResetButtonState);
+      confirm?.addEventListener('paste', () => {
+        window.setTimeout(updateResetButtonState, 0);
+      });
       updateResetButtonState();
     }
 

@@ -148,14 +148,124 @@
     });
   }
 
+  function compressImage(file) {
+    return new Promise((resolve, reject) => {
+      if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+        return resolve(file);
+      }
+
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        
+        let width = img.width;
+        let height = img.height;
+        const maxEdge = 1600;
+
+        if (width <= maxEdge && height <= maxEdge) {
+          return resolve(file);
+        }
+
+        if (width > height) {
+          height = Math.round((height * maxEdge) / width);
+          width = maxEdge;
+        } else {
+          width = Math.round((width * maxEdge) / height);
+          height = maxEdge;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            return reject(new Error('이미지 처리 중 오류가 발생했습니다.'));
+          }
+          const compressedFile = new File([blob], file.name, {
+            type: file.type,
+            lastModified: Date.now()
+          });
+          resolve(compressedFile);
+        }, file.type, 0.82);
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('이미지를 읽을 수 없습니다.'));
+      };
+
+      img.src = objectUrl;
+    });
+  }
+
+  async function uploadFileToR2(file) {
+    const response = await fetch('/api/documentAiPresignUpload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filename: file.name,
+        type: file.type,
+        size: file.size
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || '업로드 준비에 실패했습니다.');
+    }
+
+    const { uploadUrl, fileKey } = await response.json();
+
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file
+    });
+
+    if (!uploadRes.ok) {
+      throw new Error('저장소 업로드에 실패했습니다.');
+    }
+
+    return fileKey;
+  }
+
   async function filesToPayloads(files) {
     const payloads = [];
+    const MAX_LEGACY_UPLOAD_BYTES = 4 * 1024 * 1024;
+
     for (const file of Array.from(files || [])) {
-      payloads.push({
-        name: file.name || 'upload',
-        type: file.type || 'application/octet-stream',
-        dataUrl: await fileToDataUrl(file)
-      });
+      try {
+        // Try R2 upload first
+        const fileKey = await uploadFileToR2(file);
+        payloads.push({
+          name: file.name || 'upload',
+          type: file.type || 'application/octet-stream',
+          fileKey,
+          size: file.size
+        });
+      } catch (error) {
+        // Restore legacy base64 fallback if R2 upload fails and file is small enough
+        if (file.size <= MAX_LEGACY_UPLOAD_BYTES) {
+          console.warn('[Document AI] R2 upload failed, falling back to base64:', error);
+          const processedFile = await compressImage(file);
+          const dataUrl = await fileToDataUrl(processedFile);
+          payloads.push({
+            name: processedFile.name || 'upload',
+            type: processedFile.type || 'application/octet-stream',
+            dataUrl,
+            size: processedFile.size
+          });
+        } else {
+          // If too large for base64 fallback, we must propagate the R2 error
+          throw error;
+        }
+      }
     }
     return payloads;
   }

@@ -147,6 +147,18 @@
     });
   }
 
+  async function filesToPayloads(files) {
+    const payloads = [];
+    for (const file of Array.from(files || [])) {
+      payloads.push({
+        name: file.name || 'upload',
+        type: file.type || 'application/octet-stream',
+        dataUrl: await fileToDataUrl(file)
+      });
+    }
+    return payloads;
+  }
+
   function renderAnswerText(answer) {
     return escapeHtml(answer || '')
       .split(/\n{2,}/)
@@ -400,14 +412,7 @@
       stopActiveLoadingStatus = startStagedLoadingStatus(placeholder, DOCUMENT_AI_LOADING_STAGES);
 
       try {
-        const filesPayload = [];
-        for (const file of files) {
-          filesPayload.push({
-            name: file.name || 'upload',
-            type: file.type || 'application/octet-stream',
-            dataUrl: await fileToDataUrl(file)
-          });
-        }
+        const filesPayload = await filesToPayloads(files);
         const data = await requestDocumentAI(text, filesPayload);
         stopActiveLoadingStatus?.();
         stopActiveLoadingStatus = null;

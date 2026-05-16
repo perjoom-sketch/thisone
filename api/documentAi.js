@@ -134,9 +134,19 @@ function parseUploadedFile(file, legacyImageDataUrl = '') {
 
 function parseUploadedFiles(filesArray) {
   if (!Array.isArray(filesArray)) return [];
-  return filesArray
-    .map((file) => parseUploadedFile(file, ''))
-    .filter(Boolean);
+  return filesArray.map((file) => parseUploadedFile(file, ''));
+}
+
+function parseUploadedFileBundle(filesArray) {
+  if (!Array.isArray(filesArray) || !filesArray.length) {
+    return { files: [], hasInvalidFile: false };
+  }
+
+  const parsedFiles = parseUploadedFiles(filesArray);
+  return {
+    files: parsedFiles.filter(Boolean),
+    hasInvalidFile: parsedFiles.some((file) => !file)
+  };
 }
 
 function buildErrorPayload(error, answer = error) {
@@ -578,22 +588,19 @@ module.exports = async function handler(req, res) {
     const body = await readBody(req);
     const question = normalizeText(body?.question || '');
 
-    // Support new multi-file format (files[])
-    let uploadedFiles = parseUploadedFiles(body?.files);
+    // Prefer the new multi-file bundle format (files[]) and preserve its order.
+    const uploadedBundle = parseUploadedFileBundle(body?.files);
+    if (uploadedBundle.hasInvalidFile) {
+      return res.status(400).json(buildErrorPayload('현재는 PDF, JPG, PNG, WebP, 텍스트만 해석할 수 있습니다.'));
+    }
 
-    // Fallback to legacy single-file format (file) for backward compatibility
+    let uploadedFiles = uploadedBundle.files;
+
+    // Fall back to legacy single-file format (file/imageDataUrl) for backward compatibility.
     if (!uploadedFiles.length && body?.file) {
       const imageDataUrl = typeof body?.imageDataUrl === 'string' ? body.imageDataUrl : '';
       const singleFile = parseUploadedFile(body?.file, imageDataUrl);
       uploadedFiles = singleFile ? [singleFile] : [];
-    }
-
-    // Check for invalid/unsupported files in the new format
-    if (body?.files && Array.isArray(body.files)) {
-      const invalidFile = body.files.find((f) => !parseUploadedFile(f, ''));
-      if (invalidFile) {
-        return res.status(400).json(buildErrorPayload('현재는 PDF, JPG, PNG, WebP, 텍스트만 해석할 수 있습니다.'));
-      }
     }
 
     if (!question && !uploadedFiles.length) {

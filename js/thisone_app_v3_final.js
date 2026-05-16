@@ -43,6 +43,7 @@ window.addEventListener('load', () => {
 const MINI_SCOPE_ICON = '<svg width="10" height="10" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="14" stroke="#fff" stroke-width="4" fill="none" opacity=".7"/><circle cx="32" cy="32" r="5" fill="#fff"/><line x1="32" y1="6" x2="32" y2="18" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="32" y1="46" x2="32" y2="58" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="6" y1="32" x2="18" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/><line x1="46" y1="32" x2="58" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/></svg>';
 
 let pendingImg = null;
+let pendingShoppingAttachment = null;
 let loading = false;
 let isSearchMode = false;
 let searchHistory = [];
@@ -430,16 +431,63 @@ function handleImg(e) {
 }
 
 function handlePaste(e) {
-  const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+  const clipboardData = e.clipboardData || e.originalEvent.clipboardData;
+  const files = Array.from(clipboardData?.files || []);
+  const directFile = files.find((file) => ['image', 'pdf', 'plainTextFile'].includes(window.ThisOneComposerAttachmentInput?.classifyFile?.(file)));
+  if (directFile) {
+    processFile(directFile);
+    return;
+  }
+  const items = Array.from(clipboardData?.items || []);
   for (const item of items) {
-    if (item.type.indexOf("image") !== -1) {
+    if (item.kind === 'file') {
       const file = item.getAsFile();
-      processFile(file);
+      if (file && ['image', 'pdf', 'plainTextFile'].includes(window.ThisOneComposerAttachmentInput?.classifyFile?.(file))) {
+        processFile(file);
+        return;
+      }
     }
   }
 }
 
 function processFile(file) {
+  if (!file) return;
+  const kind = window.ThisOneComposerAttachmentInput?.classifyFile?.(file) || (file.type?.startsWith?.('image/') ? 'image' : 'unknown');
+  const canAttach = ['image', 'pdf', 'plainTextFile'].includes(kind);
+  if (!canAttach) {
+    window.ThisOneUI?.showNotice?.('JPG, PNG, WebP, PDF, 텍스트 파일만 추가할 수 있습니다.', { tone: 'warning' });
+    return;
+  }
+
+  pendingShoppingAttachment = null;
+  const pv = document.getElementById('imgPreview');
+  const item = pv?.querySelector('.pv-item');
+  const el = document.getElementById('previewImg');
+  const chip = document.getElementById('shoppingFileChip');
+  const icon = document.getElementById('shoppingFileIcon');
+  const label = document.getElementById('shoppingFileLabel');
+  const name = document.getElementById('shoppingFileName');
+  const type = document.getElementById('shoppingFileType');
+
+  if (kind !== 'image') {
+    pendingImg = null;
+    pendingShoppingAttachment = file;
+    if (el) {
+      el.removeAttribute('src');
+      el.hidden = true;
+    }
+    if (chip) chip.hidden = false;
+    if (icon) icon.textContent = kind === 'pdf' ? '📕' : '📄';
+    if (label) label.textContent = kind === 'pdf' ? 'PDF 문서' : '텍스트 파일';
+    if (name) name.textContent = file.name || '업로드 파일';
+    if (type) type.textContent = file.type || (kind === 'pdf' ? 'application/pdf' : 'text/plain');
+    item?.classList.add('is-file-chip');
+    if (pv) pv.classList.add('show');
+    const message = window.ThisOneComposerAttachmentInput?.getUnsupportedMessage?.('shopping', file);
+    window.ThisOneUI?.showNotice?.(message, { tone: 'warning', duration: 5000 });
+    return;
+  }
+
   const r = new FileReader();
   r.onload = (ev) => {
     pendingImg = { 
@@ -447,11 +495,12 @@ function processFile(file) {
       src: ev.target.result,
       type: file.type || 'image/jpeg'
     };
-    
-    // 두 개의 미리보기 영역 동기화
-    const pv = document.getElementById('imgPreview');
-    const el = document.getElementById('previewImg');
-    if (el) el.src = ev.target.result;
+    if (el) {
+      el.hidden = false;
+      el.src = ev.target.result;
+    }
+    if (chip) chip.hidden = true;
+    item?.classList.remove('is-file-chip');
     if (pv) { pv.classList.add('show'); }
   };
   r.readAsDataURL(file);
@@ -459,13 +508,21 @@ function processFile(file) {
 
 function removeImg() {
   pendingImg = null;
+  pendingShoppingAttachment = null;
 
   const pv = document.getElementById('imgPreview');
   const img = document.getElementById('previewImg');
   const fileInput = document.getElementById('fileInput');
 
   if (pv) pv.classList.remove('show');
-  if (img) img.removeAttribute('src');
+  if (img) {
+    img.removeAttribute('src');
+    img.hidden = false;
+  }
+  const chip = document.getElementById('shoppingFileChip');
+  const item = document.querySelector('#imgPreview .pv-item');
+  if (chip) chip.hidden = true;
+  item?.classList.remove('is-file-chip');
   if (fileInput) fileInput.value = '';
 }
 
@@ -580,7 +637,7 @@ function prepareSendContext(forceMode) {
 
   const inp = getInput();
   const txt = inp ? inp.value.trim() : "";
-  if (!txt && !pendingImg) return null;
+  if (!txt && !pendingImg && !pendingShoppingAttachment) return null;
   currentQuery = txt; // 쿼리 저장 복구
 
   // 모바일 스크롤 진압 1단계: 즉시 포커스 해제 및 키보드 닫기
@@ -595,7 +652,14 @@ function prepareSendContext(forceMode) {
   setTimeout(fixScroll, 100);
   setTimeout(fixScroll, 300);
   setTimeout(fixScroll, 600);
-  if (!currentQuery && !pendingImg) return null;
+  if (!currentQuery && !pendingImg && !pendingShoppingAttachment) return null;
+  if (pendingShoppingAttachment && !pendingImg) {
+    const message = window.ThisOneComposerAttachmentInput?.getUnsupportedMessage?.('shopping', pendingShoppingAttachment)
+      || 'PDF는 쇼핑 검색에서 읽지 않습니다. 상품명이나 상품 사진으로 검색해 주세요.';
+    window.ThisOneUI?.showNotice?.(message, { tone: 'warning', duration: 5000 });
+    window.ThisOneUI?.addErrorState?.('imageFail', { message });
+    return null;
+  }
 
   switchToSearchMode();
 

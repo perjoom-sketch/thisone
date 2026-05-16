@@ -206,7 +206,7 @@
         ${renderHomeMealSubTabs(DEFAULT_HOME_MEAL_FLOW)}
 
         <div class="ai-tool-composer home-meal-composer">
-          ${global.ThisOneComposerImageInput?.render?.({ id: 'homeMealImage', label: '집밥 재료 사진' }) || ''}
+          ${global.ThisOneComposerAttachmentInput?.render?.({ id: 'homeMealImage', label: '집밥 재료 사진', fileChipLabel: '집밥 첨부' }) || ''}
           <div class="ai-tool-input home-meal-composer-top">
             <label class="home-meal-question-label" for="homeMealQuestion">재료 입력창</label>
             <textarea class="home-meal-question" id="homeMealQuestion" rows="1" aria-label="집밥 재료 입력창" placeholder="${HOME_MEAL_FLOWS[DEFAULT_HOME_MEAL_FLOW].placeholder}"></textarea>
@@ -214,7 +214,7 @@
           <p class="ai-tool-voice-status" id="homeMealVoiceStatus" aria-live="polite" hidden></p>
           <div class="ai-tool-control-row home-meal-composer-bottom">
             <div class="ai-tool-left-controls home-meal-composer-left-actions">
-              ${global.ThisOneComposerImageInput?.renderControls?.({ id: 'homeMealImage', plusClass: 'home-meal-plus-button' }) || ''}
+              ${global.ThisOneComposerAttachmentInput?.renderControls?.({ id: 'homeMealImage', plusClass: 'home-meal-plus-button', uploadLabel: '사진·파일 추가' }) || ''}
             </div>
             <div class="ai-tool-right-controls home-meal-composer-actions">
               <button class="ai-tool-icon-button ai-tool-help-button home-meal-help-button" id="homeMealHelpButton" type="button" aria-label="집밥 안내 보기" aria-controls="homeMealHelpPanel" aria-expanded="false" title="집밥 안내">?</button>
@@ -282,10 +282,14 @@
 
     global.ThisOneModeTabs?.bind?.(root);
 
-    const imageInput = global.ThisOneComposerImageInput?.attach?.(root, {
+    const imageInput = global.ThisOneComposerAttachmentInput?.attach?.(root.querySelector('.home-meal-composer') || root, {
       id: 'homeMealImage',
+      mode: 'homeMeal',
+      textInput: question,
       isActive: () => root.isConnected && document.body.classList.contains('home-meal-mode'),
-      beforeOpen: () => setHelpPanelOpen(helpButton, helpPanel, false)
+      beforeOpen: () => setHelpPanelOpen(helpButton, helpPanel, false),
+      onNotice: (message) => setStatus(status, message),
+      onReject: (_file, message) => setStatus(status, message)
     });
 
     function cleanupHomeMeal() {
@@ -323,6 +327,11 @@
       const text = question.value.trim();
       const image = imageInput?.getFile?.() || null;
       const activeConfig = HOME_MEAL_FLOWS[activeHomeMealFlow] || HOME_MEAL_FLOWS[DEFAULT_HOME_MEAL_FLOW];
+      if (!imageInput?.isProcessable?.()) {
+        setStatus(status, imageInput?.getUnsupportedMessage?.() || '이 모드에서는 해당 첨부를 처리하지 않습니다.');
+        question.focus();
+        return;
+      }
       if (!text) {
         setStatus(status, image && activeHomeMealFlow === DEFAULT_HOME_MEAL_FLOW ? '집밥 1차 기능은 텍스트 재료 입력부터 지원합니다. 재료명을 적어주세요.' : activeConfig.emptyText);
         question.focus();

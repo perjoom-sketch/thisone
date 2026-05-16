@@ -12,9 +12,6 @@
   const DOCUMENT_AI_LOADING_STAGE_MS = 1800;
   const EMPTY_INPUT_MESSAGE = '문서나 사진, 질문을 입력해주세요.';
   const UNSUPPORTED_FILE_MESSAGE = '현재는 PDF, JPG, PNG, WebP, 텍스트만 해석할 수 있습니다.';
-  const UNSUPPORTED_PASTE_MESSAGE = 'PDF, 이미지, 텍스트만 붙여넣을 수 있습니다.';
-  const PASTED_IMAGE_MESSAGE = '붙여넣은 이미지가 추가되었습니다.';
-  const PASTED_TEXT_MESSAGE = '붙여넣은 텍스트가 추가되었습니다.';
   let removePasteListener = null;
 
   const DOCUMENT_AI_UPLOAD_POLICY = {
@@ -306,13 +303,13 @@
         </div>
 
         <div class="ai-tool-composer document-ai-composer" id="documentAiUpload">
-          ${global.ThisOneComposerImageInput?.render?.(DOCUMENT_AI_UPLOAD_POLICY) || ''}
+          ${global.ThisOneComposerAttachmentInput?.render?.(DOCUMENT_AI_UPLOAD_POLICY) || ''}
           <div class="ai-tool-input document-ai-composer-top">
             <textarea class="document-ai-question" id="documentAiQuestion" rows="4" aria-label="해석 질문 입력창" placeholder="문서나 사진을 올리면 쉽게 풀어드려요"></textarea>
           </div>
           <div class="ai-tool-control-row document-ai-composer-bottom">
             <div class="ai-tool-left-controls document-ai-composer-left-actions">
-              ${global.ThisOneComposerImageInput?.renderControls?.({ ...DOCUMENT_AI_UPLOAD_POLICY, plusClass: 'document-ai-upload-action' }) || ''}
+              ${global.ThisOneComposerAttachmentInput?.renderControls?.({ ...DOCUMENT_AI_UPLOAD_POLICY, plusClass: 'document-ai-upload-action' }) || ''}
             </div>
             <div class="ai-tool-right-controls document-ai-composer-right-actions">
               <button class="ai-tool-icon-button ai-tool-help-button document-ai-help-button" id="documentAiHelpButton" type="button" aria-expanded="false" aria-controls="documentAiHelpPanel" aria-label="해석 질문 예시 보기" title="도움말">?</button>
@@ -362,14 +359,12 @@
       status: voiceStatus,
       appendMode: 'newline'
     });
-    function setDragOver(isDragOver) {
-      upload?.classList.toggle('is-drag-over', isDragOver);
-    }
-
     global.ThisOneModeTabs?.bind?.(root);
 
-    imageInput = global.ThisOneComposerImageInput?.attach?.(root, {
+    imageInput = global.ThisOneComposerAttachmentInput?.attach?.(upload, {
       ...DOCUMENT_AI_UPLOAD_POLICY,
+      mode: 'documentAi',
+      textInput: question,
       isActive: () => root.isConnected && document.body.classList.contains('document-ai-mode'),
       beforeOpen: () => {
         if (helpPanel && helpButton) {
@@ -442,30 +437,6 @@
       question.focus();
     });
 
-
-    upload?.addEventListener('dragenter', (event) => {
-      event.preventDefault();
-      setDragOver(true);
-    });
-
-    upload?.addEventListener('dragover', (event) => {
-      event.preventDefault();
-      setDragOver(true);
-    });
-
-    upload?.addEventListener('dragleave', () => {
-      setDragOver(false);
-    });
-
-    upload?.addEventListener('dragend', () => {
-      setDragOver(false);
-    });
-
-    upload?.addEventListener('drop', (event) => {
-      event.preventDefault();
-      setDragOver(false);
-      imageInput?.setFile?.(event.dataTransfer?.files?.[0] || null);
-    });
 
     removePasteListener = () => {
       stopActiveLoadingStatus?.();

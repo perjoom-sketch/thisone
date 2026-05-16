@@ -11,6 +11,7 @@
       canUseImage: true,
       canUsePdf: false,
       canUsePlainTextFile: false,
+      maxFiles: 1,
       unsupportedPdfMessage: 'PDF는 쇼핑 검색에서 읽지 않습니다. 상품명이나 상품 사진으로 검색해 주세요.',
       unsupportedPlainTextFileMessage: '쇼핑 검색에서는 텍스트 파일을 읽지 않습니다. 상품명을 검색창에 직접 입력해 주세요.'
     },
@@ -18,13 +19,15 @@
       canUseText: true,
       canUseImage: true,
       canUsePdf: true,
-      canUsePlainTextFile: true
+      canUsePlainTextFile: true,
+      maxFiles: 10
     },
     instantAnswer: {
       canUseText: true,
       canUseImage: false,
       canUsePdf: false,
       canUsePlainTextFile: false,
+      maxFiles: 1,
       unsupportedImageMessage: '즉답은 현재 텍스트 질문 중심입니다. 사진 해석은 해석 탭에서 도와드릴게요.',
       unsupportedPdfMessage: '즉답에서는 PDF 문서를 읽지 않습니다. 해석 탭에서 문서를 올려주세요.'
     },
@@ -33,6 +36,7 @@
       canUseImage: true,
       canUsePdf: false,
       canUsePlainTextFile: false,
+      maxFiles: 1,
       unsupportedPdfMessage: '서치에서는 PDF 문서를 읽지 않습니다. 웹에서 찾을 키워드를 입력해 주세요.'
     },
     loveme: {
@@ -40,6 +44,7 @@
       canUseImage: true,
       canUsePdf: false,
       canUsePlainTextFile: false,
+      maxFiles: 1,
       unsupportedPdfMessage: '럽미는 사진 상담 중심입니다. 문서 해석은 해석 탭에서 도와드릴게요.'
     },
     homeMeal: {
@@ -47,6 +52,7 @@
       canUseImage: true,
       canUsePdf: false,
       canUsePlainTextFile: false,
+      maxFiles: 1,
       unsupportedPdfMessage: '이건 음식 재료가 아니라 문서에 가까워요. 해석 탭에서 풀어드릴 수 있습니다.'
     }
   };
@@ -132,38 +138,26 @@
     return '첨부 파일';
   }
 
-  function getClipboardFile(clipboardData, accept) {
-    if (!clipboardData) return null;
-    const files = Array.from(clipboardData.files || []);
-    const directFile = files.find((candidate) => isAcceptedFile(candidate, accept));
-    if (directFile) return directFile;
+  function getClipboardFiles(clipboardData) {
+    if (!clipboardData) return [];
+    const files = Array.from(clipboardData.files || []).filter(Boolean);
+    if (files.length > 0) return files;
     return Array.from(clipboardData.items || [])
       .filter((item) => item.kind === 'file')
       .map((item) => item.getAsFile())
-      .find((candidate) => isAcceptedFile(candidate, accept)) || null;
+      .filter(Boolean);
   }
+
 
   function render(options = {}) {
     const id = options.id || 'composerAttachment';
-    const label = options.label || '첨부 파일';
-    const chipLabel = options.fileChipLabel || '선택한 파일';
     return `
       <div class="composer-attachment-preview composer-img-preview img-preview" id="${escapeHtml(id)}Preview" aria-live="polite">
-        <div class="pv-item" id="${escapeHtml(id)}PreviewItem">
-          <img class="pv-img" id="${escapeHtml(id)}PreviewImg" src="" alt="${escapeHtml(label)} 미리보기">
-          <div class="composer-file-chip" id="${escapeHtml(id)}FileChip" hidden>
-            <span class="composer-file-chip-icon" id="${escapeHtml(id)}FileIcon" aria-hidden="true">📄</span>
-            <span class="composer-file-chip-text">
-              <span class="composer-file-chip-label" id="${escapeHtml(id)}FileLabel">${escapeHtml(chipLabel)}</span>
-              <span class="composer-file-chip-name" id="${escapeHtml(id)}FileName"></span>
-              <span class="composer-file-chip-type" id="${escapeHtml(id)}FileType"></span>
-            </span>
-          </div>
-          <button class="pv-del" id="${escapeHtml(id)}Remove" type="button" aria-label="선택한 파일 제거" title="선택한 파일 제거">✕</button>
-        </div>
+        <div class="composer-attachment-list" id="${escapeHtml(id)}PreviewList"></div>
       </div>
     `;
   }
+
 
   function isMobileLike() {
     try {
@@ -184,7 +178,7 @@
         <div class="composer-plus-menu ${escapeHtml(options.menuClass || '')}" id="${escapeHtml(id)}Menu" role="menu" hidden>
           <button class="composer-plus-menu-item ${escapeHtml(options.itemClass || '')}" id="${escapeHtml(id)}UploadButton" type="button" role="menuitem"><span aria-hidden="true">📎</span><span>${escapeHtml(uploadLabel)}</span></button>
         </div>
-        <input class="composer-attachment-file-input" id="${escapeHtml(id)}UploadInput" type="file" accept="${escapeHtml(options.accept || COMMON_ACCEPT)}" hidden>
+        <input class="composer-attachment-file-input" id="${escapeHtml(id)}UploadInput" type="file" accept="${escapeHtml(options.accept || COMMON_ACCEPT)}" multiple hidden>
       </div>
     `;
   }
@@ -192,7 +186,6 @@
   function attach(root, options = {}) {
     if (!root) return null;
     const id = options.id || 'composerAttachment';
-    const accept = options.accept || COMMON_ACCEPT;
     const active = typeof options.isActive === 'function' ? options.isActive : () => root.isConnected;
     const modePolicy = options.modePolicy || options.mode || null;
     const plusButton = root.querySelector(`#${id}PlusButton`);
@@ -200,18 +193,12 @@
     const uploadButton = root.querySelector(`#${id}UploadButton`);
     const uploadInput = root.querySelector(`#${id}UploadInput`);
     const preview = root.querySelector(`#${id}Preview`);
-    const previewItem = root.querySelector(`#${id}PreviewItem`);
-    const previewImg = root.querySelector(`#${id}PreviewImg`);
-    const fileChip = root.querySelector(`#${id}FileChip`);
-    const fileIcon = root.querySelector(`#${id}FileIcon`);
-    const fileLabel = root.querySelector(`#${id}FileLabel`);
-    const fileName = root.querySelector(`#${id}FileName`);
-    const fileType = root.querySelector(`#${id}FileType`);
-    const removeButton = root.querySelector(`#${id}Remove`);
+    const previewList = root.querySelector(`#${id}PreviewList`);
     const textInput = options.textInput || null;
+    const maxFiles = Math.max(1, Number(options.maxFiles || getPolicy(modePolicy)?.maxFiles || 1));
     let selectedFileInput = null;
-    let selectedFile = null;
-    let selectedFilePreviewUrl = '';
+    let selectedFiles = [];
+    let selectedFilePreviewUrls = [];
 
     function setPlusMenuOpen(isOpen) {
       if (!plusButton || !plusMenu) return;
@@ -219,91 +206,148 @@
       plusButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     }
 
-    function revokePreviewUrl() {
-      if (!selectedFilePreviewUrl) return;
-      URL.revokeObjectURL(selectedFilePreviewUrl);
-      selectedFilePreviewUrl = '';
+    function revokePreviewUrls() {
+      selectedFilePreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+      selectedFilePreviewUrls = [];
+    }
+
+    function getFiles() {
+      return selectedFiles.slice();
+    }
+
+    function getFirstUnsupportedFile() {
+      return selectedFiles.find((file) => !canProcessAttachment(modePolicy, file)) || null;
+    }
+
+    function buildChangeMeta() {
+      const files = getFiles();
+      const unsupportedFile = getFirstUnsupportedFile();
+      return {
+        files,
+        processable: !unsupportedFile,
+        kind: files.length === 1 ? classifyFile(files[0]) : 'bundle',
+        maxFiles,
+        unsupportedFile
+      };
     }
 
     function resetPreview() {
-      revokePreviewUrl();
-      if (previewImg) {
-        previewImg.removeAttribute('src');
-        previewImg.hidden = false;
-      }
-      if (fileChip) fileChip.hidden = true;
-      if (fileName) fileName.textContent = '';
-      if (fileType) fileType.textContent = '';
-      if (previewItem) previewItem.classList.remove('is-file-chip');
+      revokePreviewUrls();
+      if (previewList) previewList.innerHTML = '';
       if (preview) preview.classList.remove('show');
-    }
-
-    function clear() {
-      if (selectedFileInput) selectedFileInput.value = '';
-      selectedFileInput = null;
-      selectedFile = null;
-      resetPreview();
-      if (typeof options.onChange === 'function') options.onChange(null, { processable: true });
     }
 
     function showNotice(message, file) {
       if (typeof options.onNotice === 'function') options.onNotice(message, file);
     }
 
-    function reject(file, message) {
-      clear();
-      if (typeof options.onReject === 'function') options.onReject(file, message || DEFAULT_UNSUPPORTED_MESSAGE);
+    function emitChange() {
+      if (typeof options.onChange === 'function') {
+        options.onChange(selectedFiles[0] || null, buildChangeMeta());
+      }
     }
 
-    function renderSelectedFile(file) {
+    function clear() {
+      if (selectedFileInput) selectedFileInput.value = '';
+      selectedFileInput = null;
+      selectedFiles = [];
       resetPreview();
-      if (isImageFile(file) && options.previewMode !== 'file') {
-        if (previewImg) {
-          selectedFilePreviewUrl = URL.createObjectURL(file);
-          previewImg.src = selectedFilePreviewUrl;
-          previewImg.hidden = false;
+      emitChange();
+    }
+
+    function renderSelectedFiles() {
+      resetPreview();
+      if (!selectedFiles.length) return;
+      selectedFiles.forEach((file, index) => {
+        const item = document.createElement('div');
+        item.className = 'pv-item composer-attachment-item';
+        const fileName = escapeHtml(file.name || '업로드 파일');
+        const fileType = escapeHtml(file.type || getFileLabel(file));
+        const removeLabel = escapeHtml(`${file.name || '첨부 파일'} 제거`);
+
+        if (isImageFile(file) && options.previewMode !== 'file') {
+          const previewUrl = URL.createObjectURL(file);
+          selectedFilePreviewUrls.push(previewUrl);
+          item.innerHTML = `
+            <img class="pv-img" src="${escapeHtml(previewUrl)}" alt="${fileName} 미리보기">
+            <span class="composer-attachment-order" aria-label="첨부 순서">${index + 1}</span>
+            <button class="pv-del" type="button" data-attachment-remove-index="${index}" aria-label="${removeLabel}" title="${removeLabel}">✕</button>
+          `;
+        } else {
+          item.classList.add('is-file-chip');
+          const icon = classifyFile(file) === 'pdf' ? '📕' : '📄';
+          item.innerHTML = `
+            <div class="composer-file-chip">
+              <span class="composer-file-chip-icon" aria-hidden="true">${icon}</span>
+              <span class="composer-file-chip-text">
+                <span class="composer-file-chip-label">${escapeHtml(getFileLabel(file))}</span>
+                <span class="composer-file-chip-name">${fileName}</span>
+                <span class="composer-file-chip-type">${fileType}</span>
+              </span>
+              <span class="composer-attachment-order" aria-label="첨부 순서">${index + 1}</span>
+            </div>
+            <button class="pv-del" type="button" data-attachment-remove-index="${index}" aria-label="${removeLabel}" title="${removeLabel}">✕</button>
+          `;
         }
-        if (fileChip) fileChip.hidden = true;
-        if (previewItem) previewItem.classList.remove('is-file-chip');
-      } else {
-        if (previewImg) previewImg.hidden = true;
-        if (fileChip) fileChip.hidden = false;
-        if (fileIcon) fileIcon.textContent = classifyFile(file) === 'pdf' ? '📕' : '📄';
-        if (fileLabel) fileLabel.textContent = getFileLabel(file);
-        if (fileName) fileName.textContent = file.name || '업로드 파일';
-        if (fileType) fileType.textContent = file.type || getFileLabel(file);
-        if (previewItem) previewItem.classList.add('is-file-chip');
-      }
+        previewList?.appendChild(item);
+      });
       if (preview) preview.classList.add('show');
     }
 
-    function setFile(file, fileInput) {
-      if (!file) {
-        clear();
-        return false;
+    function removeFile(index) {
+      if (index < 0 || index >= selectedFiles.length) return false;
+      selectedFiles = selectedFiles.filter((_file, fileIndex) => fileIndex !== index);
+      if (!selectedFiles.length && selectedFileInput) {
+        selectedFileInput.value = '';
+        selectedFileInput = null;
       }
-      if (!isAcceptedFile(file, accept)) {
-        if (fileInput) fileInput.value = '';
-        reject(file, options.unsupportedMessage || DEFAULT_UNSUPPORTED_MESSAGE);
+      renderSelectedFiles();
+      emitChange();
+      return true;
+    }
+
+    function normalizeIncomingFiles(files) {
+      return Array.from(files || []).filter(Boolean);
+    }
+
+    function setFiles(files, fileInput) {
+      const incoming = normalizeIncomingFiles(files);
+      if (!incoming.length) {
+        clear();
         return false;
       }
       if (!fileInput && uploadInput) uploadInput.value = '';
       selectedFileInput = fileInput || null;
-      selectedFile = file;
-      renderSelectedFile(file);
+      selectedFiles = incoming.slice(0, maxFiles);
+      renderSelectedFiles();
       setPlusMenuOpen(false);
-      const processable = canProcessAttachment(modePolicy, file);
-      if (!processable) showNotice(getUnsupportedMessage(modePolicy, file), file);
-      if (typeof options.onChange === 'function') options.onChange(file, { processable, kind: classifyFile(file) });
+      const unsupportedFile = getFirstUnsupportedFile();
+      if (unsupportedFile) showNotice(getUnsupportedMessage(modePolicy, unsupportedFile), unsupportedFile);
+      emitChange();
+      return true;
+    }
+
+    function addFiles(files, fileInput) {
+      const incoming = normalizeIncomingFiles(files);
+      if (!incoming.length) return false;
+      if (maxFiles <= 1) return setFiles(incoming.slice(0, 1), fileInput);
+      if (!fileInput && uploadInput) uploadInput.value = '';
+      selectedFileInput = fileInput || selectedFileInput;
+      selectedFiles = selectedFiles.concat(incoming).slice(0, maxFiles);
+      renderSelectedFiles();
+      setPlusMenuOpen(false);
+      const unsupportedFile = getFirstUnsupportedFile();
+      if (unsupportedFile) showNotice(getUnsupportedMessage(modePolicy, unsupportedFile), unsupportedFile);
+      emitChange();
       return true;
     }
 
     function handlePaste(event) {
       if (!active()) return;
-      const file = getClipboardFile(event.clipboardData, accept);
-      if (file) {
+      const files = getClipboardFiles(event.clipboardData);
+      if (files.length) {
         event.preventDefault();
-        setFile(file, null);
+        addFiles(files, null);
         return;
       }
       const pastedText = event.clipboardData?.getData?.('text/plain') || '';
@@ -337,8 +381,12 @@
       uploadInput.value = '';
       uploadInput.click();
     });
-    uploadInput?.addEventListener('change', () => setFile(uploadInput.files?.[0] || null, uploadInput));
-    removeButton?.addEventListener('click', clear);
+    uploadInput?.addEventListener('change', () => setFiles(uploadInput.files || [], uploadInput));
+    previewList?.addEventListener('click', (event) => {
+      const target = event.target instanceof Element ? event.target.closest('[data-attachment-remove-index]') : null;
+      if (!target) return;
+      removeFile(Number(target.getAttribute('data-attachment-remove-index')));
+    });
     document.addEventListener('paste', handlePaste);
     document.addEventListener('click', handleDocumentClick);
 
@@ -358,17 +406,24 @@
       if (!active()) return;
       event.preventDefault();
       setDragOver(false);
-      setFile(event.dataTransfer?.files?.[0] || null, null);
+      addFiles(event.dataTransfer?.files || [], null);
     });
 
     return {
       clear,
       closeMenu: () => setPlusMenuOpen(false),
-      getFile: () => selectedFile,
-      getAttachment: () => selectedFile,
-      isProcessable: () => !selectedFile || canProcessAttachment(modePolicy, selectedFile),
-      getUnsupportedMessage: () => selectedFile ? getUnsupportedMessage(modePolicy, selectedFile) : '',
-      setFile: (file) => setFile(file, null),
+      getFiles,
+      getFile: () => selectedFiles[0] || null,
+      getAttachment: () => selectedFiles[0] || null,
+      isProcessable: () => !getFirstUnsupportedFile(),
+      getUnsupportedMessage: () => {
+        const unsupportedFile = getFirstUnsupportedFile();
+        return unsupportedFile ? getUnsupportedMessage(modePolicy, unsupportedFile) : '';
+      },
+      setFiles: (files) => setFiles(files, null),
+      addFiles: (files) => addFiles(files, null),
+      setFile: (file) => setFiles(file ? [file] : [], null),
+      removeFile,
       cleanup: () => {
         document.removeEventListener('paste', handlePaste);
         document.removeEventListener('click', handleDocumentClick);
@@ -376,6 +431,7 @@
       }
     };
   }
+
 
   global.ThisOneComposerAttachmentInput = {
     COMMON_ACCEPT,

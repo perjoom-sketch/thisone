@@ -24,7 +24,8 @@
     allowDocuments: true,
     previewMode: 'auto',
     fileChipLabel: '해석 파일',
-    unsupportedMessage: UNSUPPORTED_FILE_MESSAGE
+    unsupportedMessage: UNSUPPORTED_FILE_MESSAGE,
+    maxFiles: 10
   };
 
   const SUPPORTED_FILE_TYPES = new Set([
@@ -378,13 +379,19 @@
 
     button?.addEventListener('click', async () => {
       const text = question?.value?.trim?.() || '';
-      const file = imageInput?.getFile?.() || null;
+      const files = imageInput?.getFiles?.() || [];
+      const file = files[0] || null;
 
-      if (!text && !file) {
+      if (!text && !files.length) {
         setStatus(placeholder, EMPTY_INPUT_MESSAGE);
         if (result) result.hidden = true;
         if (result) result.innerHTML = '';
         question?.focus?.();
+        return;
+      }
+
+      if (!imageInput?.isProcessable?.()) {
+        setStatus(placeholder, imageInput?.getUnsupportedMessage?.() || UNSUPPORTED_FILE_MESSAGE);
         return;
       }
 

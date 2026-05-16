@@ -26,11 +26,13 @@ It provides the same foundation for all mode composers:
 - shared `attach()` state/event binding
 - image preview
 - document/text file chip
-- remove selected file
-- paste handling for pasted images and pasted text
-- drag/drop handling
+- render a multi-file attachment bundle with preserved selection order
+- remove one selected file without clearing the rest of the bundle
+- paste handling for multiple pasted images/files and pasted text
+- drag/drop handling for multiple files
 - common unsupported-file notice hooks
-- `getFile()` / `getAttachment()` state access
+- `getFiles()` bundle state access, plus `getFile()` / `getAttachment()` first-file aliases for backward compatibility
+- `setFiles(files)`, `addFiles(files)`, and `clear()` bundle mutation helpers
 - `isProcessable()` / `getUnsupportedMessage()` mode-policy helpers
 
 Component-level accepted inputs are intentionally broader than a single mode's backend capability:
@@ -39,7 +41,7 @@ Component-level accepted inputs are intentionally broader than a single mode's b
 image/jpeg, image/png, image/webp, application/pdf, text/plain, pasted text, pasted image, drag/drop file
 ```
 
-The component accepts only the common safe file set above. It does not send attachments to any backend by itself.
+The file picker advertises the common safe file set above, but dropped or pasted unsupported files stay in composer state so the active mode can show its mode-specific unsupported message on submit. The component does not send attachments to any backend by itself.
 
 ## Mode policy object
 
@@ -53,6 +55,7 @@ Current policy shape:
   canUseImage: true,
   canUsePdf: false,
   canUsePlainTextFile: false,
+  maxFiles: 1,
   unsupportedPdfMessage: '...',
   unsupportedPlainTextFileMessage: '...'
 }
@@ -60,14 +63,14 @@ Current policy shape:
 
 Current modes:
 
-| Mode | Text | Image | PDF | text/plain file | Unsupported behavior |
-|---|---:|---:|---:|---:|---|
-| shopping | Yes | Yes | No | No | Shows shopping-specific guidance and keeps backend search unchanged. |
-| documentAi | Yes | Yes | Yes | Yes | Sends the existing Document AI payload unchanged. |
-| instantAnswer | Yes | No | No | No | Foundation policy only; no backend migration. |
-| webSearch | Yes | Yes | No | No | Foundation policy only. |
-| loveme | Yes | Yes | No | No | Shows a friendly redirect to the 해석 tab for documents. |
-| homeMeal | Yes | Yes | No | No | Explains document-like inputs should go to 해석. |
+| Mode | Text | Image | PDF | text/plain file | Max files | Unsupported behavior |
+|---|---:|---:|---:|---:|---:|---|
+| shopping | Yes | Yes | No | No | 1 | Shows shopping-specific guidance and keeps backend search unchanged. |
+| documentAi | Yes | Yes | Yes | Yes | 10 | Allows multiple images/documents in one ordered input bundle; backend payload migration is intentionally separate. |
+| instantAnswer | Yes | No | No | No | 1 | Foundation policy only; no backend migration. |
+| webSearch | Yes | Yes | No | No | 1 | Foundation policy only. |
+| loveme | Yes | Yes | No | No | 1 | Shows a friendly redirect to the 해석 tab for documents. |
+| homeMeal | Yes | Yes | No | No | 1 | Explains document-like inputs should go to 해석. |
 
 ## This PR migration scope
 
@@ -75,7 +78,7 @@ This PR is frontend input foundation only.
 
 Changed runtime behavior is intentionally narrow:
 
-1. **해석 mode** uses `ThisOneComposerAttachmentInput` for PDF/image/text-file selection, paste, drag/drop, preview/chip, and removal while preserving the existing `/api/documentAi` payload shape.
+1. **해석 mode** uses `ThisOneComposerAttachmentInput` for ordered multi-file PDF/image/text-file selection, paste, drag/drop, preview/chip, one-at-a-time removal, and clearing while preserving the existing `/api/documentAi` payload shape.
 2. **쇼핑 mode** can select a PDF/text file into the shared attachment state preview, then shows a clear unsupported message on search instead of failing silently. Image search behavior is preserved.
 3. **럽미 / 집밥** use the shared attachment state and mode policy so PDF attachment is accepted into the composer UI but blocked with friendly guidance at submit time. Their text-only backend payloads are unchanged.
 
@@ -97,6 +100,6 @@ This foundation does not:
 ## Implementation notes
 
 - Mode shells own payload serialization.
-- Unsupported attachments are not silently dropped; mode policy returns the exact message shown to the user.
-- `ThisOneComposerImageInput` remains in place for legacy/image-only callers during incremental migration.
+- Unsupported attachments are not silently dropped; they remain in bundle state and mode policy returns the exact message shown to the user on submit.
+- `ThisOneComposerImageInput` remains in place for legacy/image-only callers during incremental migration and mirrors the same `getFiles()` / `setFiles()` / `addFiles()` / `clear()` API shape.
 - Future PRs should migrate remaining shells one mode at a time and keep backend changes separate.

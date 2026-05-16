@@ -266,6 +266,21 @@ const DIRECT_LEGAL_STATUS_KEYWORDS = [
   '권한', '임용', '공무직', '기간제근로자', '근로계약', '위탁계약'
 ];
 
+const OFFICIAL_STATUS_SAFETY_KEYWORDS = [
+  '직원', '공무원', '소속', '위촉', '민간', '권한', '감독', '처분', '단속', '지적', '명령'
+];
+
+const OVERCONFIDENT_STATUS_PATTERNS = [
+  /(?:고용노동부|노동부|정부|공공기관|해당 기관)\s*(?:의\s*)?(?:정식\s*)?직원이?\s*아닙니다/,
+  /(?:정식\s*)?직원이?\s*아닙니다/,
+  /공무원이?\s*아닙니다/,
+  /정식\s*직원이?\s*아닙니다/,
+  /(?:정식\s*)?소속이?\s*아닙니다/,
+  /권한이?\s*없습니다/,
+  /(?:행정처분|단속|감독|지적|명령)\s*권한이?\s*없습니다/,
+  /(?:고용노동부|노동부|공무원|직원|소속|위촉|민간|권한|감독|처분|단속|지적|명령)[^\n.。!?！？]{0,60}아닙니다/
+];
+
 function sourceText(source) {
   return [source?.title, source?.snippet, source?.domain].filter(Boolean).join(' ');
 }
@@ -584,6 +599,117 @@ function ensureEvidenceLimitedPhrasing(answer, analysis, researchPlan, sources) 
   return softened;
 }
 
+
+function getOpeningConclusionText(answer) {
+  const text = String(answer || '').trim();
+  if (!text) return '';
+
+  const sectionMatch = text.match(/1\.?\s*결론\s*\n([\s\S]*?)(?=\n\s*2\.?\s|$)/);
+  if (sectionMatch) return normalizeText(sectionMatch[1], 700);
+
+  return normalizeText(text.split(/\n\s*\n/)[0] || text, 700);
+}
+
+function hasOverconfidentStatusConclusionNearStart(answer) {
+  const opening = getOpeningConclusionText(answer);
+  if (!opening) return false;
+  return OVERCONFIDENT_STATUS_PATTERNS.some((pattern) => pattern.test(opening));
+}
+
+function isOfficialStatusSafetyQuestion(question, analysis) {
+  const text = [
+    question,
+    analysis?.originalText,
+    analysis?.rewrittenQuestion,
+    analysis?.taskType,
+    analysis?.evidencePreference,
+    ...(analysis?.roleWords || []),
+    ...(analysis?.institutionWords || [])
+  ].join(' ');
+
+  return Boolean(
+    analysis?.needsOfficialSource === true
+    || analysis?.taskType === 'affiliation/status'
+    || analysis?.taskType === 'authority/role'
+    || analysis?.evidencePreference === 'official'
+    || hasAnyKeyword(text, OFFICIAL_STATUS_SAFETY_KEYWORDS)
+  );
+}
+
+function isEvidenceLimitedForOfficialStatus(sourceQuality, sources) {
+  return isEvidenceLimitedSourceQuality(sourceQuality) || sourcesSuggestProgramOrRecruitmentOnly(sources);
+}
+
+function replaceConclusionSection(answer, conclusion) {
+  const text = String(answer || '').trim();
+  if (!text) return text;
+
+  if (/1\.?\s*결론\s*\n/.test(text)) {
+    if (/\n\s*2\.?\s/.test(text)) {
+      return text.replace(/1\.?\s*결론\s*\n[\s\S]*?(?=\n\s*2\.?\s)/, `1. 결론\n${conclusion}\n`);
+    }
+    return text.replace(/1\.?\s*결론\s*\n[\s\S]*/, `1. 결론\n${conclusion}`);
+  }
+
+  return `1. 결론\n${conclusion}\n\n${text}`;
+}
+
+function ensureAffiliationChecks(answer, analysis) {
+  const text = String(answer || '').trim();
+  if (!text || !isAffiliationOrAuthorityQuestion(analysis)) return answer;
+
+  const checkText = affiliationCheckText(analysis);
+  if (/5\.?\s*지금 확인할 것\s*\n/.test(text)) {
+    const sectionMatch = text.match(/5\.?\s*지금 확인할 것\s*\n([\s\S]*)$/);
+    const existing = sectionMatch ? sectionMatch[1] : '';
+    const requiredWords = ['신분증', '공문', '명함', '위촉장', '소속기관', '근로감독관', '행정처분'];
+    if (requiredWords.every((word) => existing.includes(word))) return answer;
+    return text.replace(/5\.?\s*지금 확인할 것\s*\n[\s\S]*/, `5. 지금 확인할 것\n${checkText}`);
+  }
+
+  return `${text}\n\n5. 지금 확인할 것\n${checkText}`;
+}
+
+function enforceCautiousConclusion(answer, context = {}) {
+  const analysis = context.analysis || {};
+  const sources = Array.isArray(context.sources) ? context.sources : [];
+  const sourceQuality = context.sourceQuality || context.researchPlan?.sourceQuality || 'none';
+  const question = context.question || analysis.originalText || analysis.rewrittenQuestion || '';
+  const originalAnswer = String(answer || '');
+
+  if (!originalAnswer.trim()) {
+    return { answer, modified: false, issueFlags: [] };
+  }
+
+  if (!isOfficialStatusSafetyQuestion(question, analysis)) {
+    return { answer, modified: false, issueFlags: [] };
+  }
+
+  if (!isEvidenceLimitedForOfficialStatus(sourceQuality, sources)) {
+    return { answer, modified: false, issueFlags: [] };
+  }
+
+  if (!hasOverconfidentStatusConclusionNearStart(originalAnswer)) {
+    return { answer, modified: false, issueFlags: [] };
+  }
+
+  const cautiousConclusion = cautiousOfficialConclusion(analysis);
+  const revisedAnswer = ensureAffiliationChecks(
+    replaceConclusionSection(originalAnswer, cautiousConclusion),
+    analysis
+  );
+
+  if (revisedAnswer === originalAnswer) {
+    return { answer, modified: false, issueFlags: [] };
+  }
+
+  return {
+    answer: revisedAnswer,
+    modified: true,
+    issueFlags: ['overconfident_conclusion', 'unsupported_claim_risk']
+  };
+}
+
 function joinBullets(items, fallback) {
   const clean = (items || []).map((item) => normalizeText(item, 260)).filter(Boolean);
   if (!clean.length) return fallback;
@@ -686,7 +812,8 @@ function buildAnswerQualityMetadata({
   reviewFailed,
   fallback,
   finalAnswer,
-  searchFailed
+  searchFailed,
+  conclusionSafetyFlags
 }) {
   const sourceList = Array.isArray(sources) ? sources : [];
   const sourceQuality = researchPlan?.sourceQuality || 'none';
@@ -700,6 +827,9 @@ function buildAnswerQualityMetadata({
   if (isWeakSourceQuality(sourceQuality)) issueFlags.push('weak_sources');
   if (reviewExpected && reviewFailed) issueFlags.push('model_review_failed');
   if (hasRepeatedAwkwardSections(finalAnswer)) issueFlags.push('repeated_sections');
+  for (const flag of Array.isArray(conclusionSafetyFlags) ? conclusionSafetyFlags : []) {
+    if (flag && !issueFlags.includes(flag)) issueFlags.push(flag);
+  }
 
   const answerLength = String(finalAnswer || '').length;
   const difficultOrOfficial = isDifficultOrOfficialQuestion(analysis);
@@ -1007,6 +1137,17 @@ async function handler(req, res) {
   if (escalatedAnalysis.needsSearch && !hasEnoughEvidence) fallback = true;
   const answerQuestion = escalatedAnalysis.rewrittenQuestion || question;
   const answerResult = await buildAnswer(answerQuestion, sources, usedSearch, escalatedAnalysis, hasEnoughEvidence, researchPlan, { usedDeeperResearch });
+  const conclusionSafety = enforceCautiousConclusion(answerResult.answer, {
+    question,
+    analysis: escalatedAnalysis,
+    sourceQuality: researchPlan.sourceQuality,
+    sources,
+    usedSearch,
+    usedDeeperResearch,
+    reviewUsed: answerResult.reviewUsed
+  });
+  answerResult.answer = conclusionSafety.answer;
+  answerResult.conclusionSafetyFlags = conclusionSafety.issueFlags;
   await safeLogAnswerQuality(buildAnswerQualityMetadata({
     analysis: escalatedAnalysis,
     researchPlan,
@@ -1018,7 +1159,8 @@ async function handler(req, res) {
     reviewFailed: answerResult.reviewFailed,
     fallback,
     finalAnswer: answerResult.answer,
-    searchFailed: searchDiagnostics.failed
+    searchFailed: searchDiagnostics.failed,
+    conclusionSafetyFlags: answerResult.conclusionSafetyFlags
   }));
 
   return res.status(200).json({
@@ -1050,5 +1192,8 @@ module.exports._private = {
   isDifficultOrOfficialQuestion,
   isSimpleQuestion,
   hasStrongConclusionLanguage,
+  enforceCautiousConclusion,
+  hasOverconfidentStatusConclusionNearStart,
+  isOfficialStatusSafetyQuestion,
   buildAnswerQualityMetadata
 };

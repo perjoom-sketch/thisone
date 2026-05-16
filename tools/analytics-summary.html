@@ -226,6 +226,13 @@
       margin: 0;
     }
 
+    .operator-diagnostic {
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(0.78rem, 1.55vw, 0.9rem);
+      line-height: 1.55;
+    }
+
 
     .reset-panel {
       border-color: #f8d7a3;
@@ -658,18 +665,19 @@
 
       <section class="operator-panel" aria-labelledby="operatorSettingsTitle">
         <h2 id="operatorSettingsTitle">운영자 설정</h2>
-        <p>내부 테스트 설정은 현재 브라우저에 저장됩니다. www 여부가 달라도 유지되도록 공통 쿠키도 함께 사용합니다.</p>
+        <p>이 설정은 카운트 수집을 끄는 기능이 아닙니다. 이 브라우저에서 발생한 방문/이벤트를 내부 테스트 또는 실제 사용자 수치로 분류합니다.</p>
         <div class="operator-card" aria-live="polite">
           <div class="operator-status-row">
-            <p id="internalUserStatus" class="operator-status">현재 브라우저: 실제 사용자로 집계됨</p>
+            <p id="internalUserStatus" class="operator-status">현재 브라우저: 실제 사용자로 분류됨</p>
             <span id="internalUserPill" class="pill">실제 사용자</span>
           </div>
           <div class="operator-actions" aria-label="내부 테스트 브라우저 설정">
-            <button type="button" id="setInternalUserButton" class="operator-button primary">이 브라우저를 내부 테스트로 설정</button>
-            <button type="button" id="clearInternalUserButton" class="operator-button danger">내부 테스트 설정 해제</button>
+            <button type="button" id="setInternalUserButton" class="operator-button primary">이 브라우저의 사용 기록을 내부 테스트로 분류</button>
+            <button type="button" id="clearInternalUserButton" class="operator-button danger">이 브라우저의 사용 기록을 실제 사용자로 분류</button>
             <button type="button" id="checkInternalUserButton" class="operator-button">현재 설정 확인</button>
           </div>
           <p id="internalUserMessage" class="notice operator-message">현재 브라우저의 내부 테스트 여부만 표시하며, 방문자 ID·원시 검색어·IP는 표시하지 않습니다.</p>
+          <p id="internalUserDiagnostic" class="operator-diagnostic">현재 분류 기준: localStorage false · shared cookie false · 최종 전송값 isInternal false</p>
         </div>
       </section>
 
@@ -778,15 +786,11 @@
 
   <script src="../js/thisone_event_tracker.js"></script>
   <script>
-    const INTERNAL_STORAGE_KEY = 'thisone_internal_user';
-    const INTERNAL_COOKIE_NAME = 'thisone_internal_user';
-    const INTERNAL_COOKIE_DOMAIN = '.thisone.me';
-
     const INTERNAL_MESSAGES = {
-      set: '이 브라우저는 내부 테스트로 설정됐습니다. 광고주용 수치에서 제외해야 합니다.',
-      cleared: '내부 테스트 설정을 해제했습니다. 이후 이벤트는 실제 사용자로 집계됩니다.',
-      checkedInternal: '현재 브라우저는 내부 테스트로 집계됩니다.',
-      checkedExternal: '현재 브라우저는 실제 사용자로 집계됩니다.'
+      set: '이 브라우저의 사용 기록을 내부 테스트로 분류합니다. 이후 이벤트는 내부 테스트 수치로 집계됩니다.',
+      cleared: '이 브라우저의 사용 기록을 실제 사용자로 분류합니다. 이후 이벤트는 실제 사용자 수치로 집계됩니다.',
+      checkedInternal: '현재 브라우저의 사용 기록은 내부 테스트로 분류됩니다.',
+      checkedExternal: '현재 브라우저의 사용 기록은 실제 사용자로 분류됩니다.'
     };
 
     const EMPTY_PERIOD = {
@@ -846,68 +850,20 @@
     ]);
 
 
-    function readInternalUserLocalStorage() {
-      try {
-        return window.localStorage?.getItem(INTERNAL_STORAGE_KEY) === 'true';
-      } catch (error) {
-        return false;
-      }
-    }
-
-    function readInternalUserCookie() {
-      try {
-        return document.cookie
-          .split(';')
-          .map((cookie) => cookie.trim())
-          .some((cookie) => cookie === `${INTERNAL_COOKIE_NAME}=true`);
-      } catch (error) {
-        return false;
-      }
-    }
-
-    function writeInternalUserCookie() {
-      try {
-        document.cookie = `${INTERNAL_COOKIE_NAME}=true; Domain=${INTERNAL_COOKIE_DOMAIN}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
-        return true;
-      } catch (error) {
-        return false;
-      }
-    }
-
-    function clearInternalUserCookie() {
-      try {
-        document.cookie = `${INTERNAL_COOKIE_NAME}=; Domain=${INTERNAL_COOKIE_DOMAIN}; Path=/; Max-Age=0; SameSite=Lax; Secure`;
-        document.cookie = `${INTERNAL_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax; Secure`;
-        return true;
-      } catch (error) {
-        return false;
-      }
+    function getInternalUserDiagnostics() {
+      return window.ThisOneEventTracker?.getInternalUserDiagnostics?.() || {
+        localStorage: false,
+        sharedCookie: false,
+        isInternal: false
+      };
     }
 
     function readInternalUserSetting() {
-      if (window.ThisOneEventTracker && typeof window.ThisOneEventTracker.isInternalUser === 'function') {
-        return window.ThisOneEventTracker.isInternalUser();
-      }
-
-      return readInternalUserLocalStorage() || readInternalUserCookie();
+      return window.ThisOneEventTracker?.isInternalUser?.() || false;
     }
 
     function writeInternalUserSetting(enabled) {
-      if (window.ThisOneEventTracker && typeof window.ThisOneEventTracker.setInternalUser === 'function') {
-        return window.ThisOneEventTracker.setInternalUser(enabled);
-      }
-
-      let wroteLocalStorage = false;
-      try {
-        if (enabled) window.localStorage?.setItem(INTERNAL_STORAGE_KEY, 'true');
-        else window.localStorage?.removeItem(INTERNAL_STORAGE_KEY);
-        wroteLocalStorage = true;
-      } catch (error) {
-        wroteLocalStorage = false;
-      }
-
-      const wroteCookie = enabled ? writeInternalUserCookie() : clearInternalUserCookie();
-      return wroteLocalStorage || wroteCookie;
+      return window.ThisOneEventTracker?.setInternalUser?.(enabled) || false;
     }
 
     function renderInternalUserSetting(message) {
@@ -915,11 +871,13 @@
       const status = document.getElementById('internalUserStatus');
       const pill = document.getElementById('internalUserPill');
       const messageElement = document.getElementById('internalUserMessage');
+      const diagnosticElement = document.getElementById('internalUserDiagnostic');
+      const diagnostics = getInternalUserDiagnostics();
 
       if (status) {
         status.textContent = isInternal
-          ? '현재 브라우저: 내부 테스트로 집계됨'
-          : '현재 브라우저: 실제 사용자로 집계됨';
+          ? '현재 브라우저: 내부 테스트로 분류됨'
+          : '현재 브라우저: 실제 사용자로 분류됨';
       }
 
       if (pill) {
@@ -930,6 +888,10 @@
       if (messageElement && message) {
         messageElement.textContent = message;
         messageElement.className = `notice operator-message ${isInternal ? 'warn' : 'success'}`;
+      }
+
+      if (diagnosticElement) {
+        diagnosticElement.textContent = `현재 분류 기준: localStorage ${diagnostics.localStorage ? 'true' : 'false'} · shared cookie ${diagnostics.sharedCookie ? 'true' : 'false'} · 최종 전송값 isInternal ${diagnostics.isInternal ? 'true' : 'false'}`;
       }
     }
 

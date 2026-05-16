@@ -103,6 +103,7 @@
 │   ├── intentDetector.js
 │   ├── queryNormalizer.js
 │   ├── questionUnderstanding.js
+│   ├── researchStrategy.js
 │   ├── ranking.js
 │   ├── recurringOffer.js
 │   ├── rental_policy.js
@@ -142,7 +143,7 @@
 - `api/`: Vercel 서버리스 API 엔드포인트 모음.
 - `js/`: 브라우저에서 실행되는 프런트엔드 기능 모듈.
 - `styles/`: 메인 UI, 검색 행, 현대화 테마 관련 CSS.
-- `lib/`: API와 서버 로직에서 공유하는 검색, 랭킹, 분석, 정규화, 질문 이해 유틸리티.
+- `lib/`: API와 서버 로직에서 공유하는 검색, 랭킹, 분석, 정규화, 질문 이해, 조사 전략 유틸리티.
 - `tools/`: 운영자/개발자용 진단 및 요약 HTML 도구 페이지.
 - `docs/`: 설계 원칙, 감사 기록, 데이터 스키마, 작업 흐름 문서.
 - `ads/`: ThisOne 배너 광고 이미지 자산.
@@ -166,7 +167,7 @@
 - `api/documentAi.js`: 문서/증명서 관련 AI 질의 응답 서비스를 제공한다.
 - `api/homeMeal.js`: 집밥/식단 관련 AI 서비스 엔드포인트.
 - `api/inquiry.js`: 사용자 문의 접수 또는 조회 API.
-- `api/instantAnswer.js`: 즉답형 AI 응답 서비스를 제공하며, 질문 이해 분석 결과를 1차 검색과 추가 조사 쿼리에 사용한다.
+- `api/instantAnswer.js`: 즉답형 AI 응답 서비스를 제공하며, 질문 이해 분석 결과와 조사 전략 레이어를 1차 검색·추가 조사 흐름에 사용한다.
 - `api/intentInfer.js`: 사용자 검색어의 의도와 카테고리를 추론한다.
 - `api/logStore.js`: 로그 저장 또는 조회를 위한 API.
 - `api/loveme.js`: LoveMe 서비스용 백엔드 API.
@@ -250,6 +251,7 @@
 - `api/analyticsSummary.js`: 저장된 analytics 이벤트의 기간별 요약과 breakdown을 제공하는 조회 엔드포인트.
 - `api/resetAnalytics.js`: 현재 저장소에는 존재하지 않는다.
 - `lib/analyticsStore.js`: analytics 이벤트 저장 키, 집계, 요약 조회를 담당하는 서버 공용 저장소 유틸리티.
+- `lib/researchStrategy.js`: 즉답 1차 검색 이후 출처 품질, 추가 조사 필요 여부, 답변 섹션 전략을 결정하는 공유 유틸리티.
 - `js/thisone_event_tracker.js`: 브라우저에서 page view, source click, search submit 등 이벤트를 수집 API로 전송하는 스크립트.
 - `tools/analytics-summary.html`: analytics 요약 API를 호출해 운영자가 읽을 수 있는 표로 보여주는 HTML 도구.
 

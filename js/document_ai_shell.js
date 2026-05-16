@@ -13,6 +13,7 @@
   const EMPTY_INPUT_MESSAGE = '문서나 사진, 질문을 입력해주세요.';
   const UNSUPPORTED_FILE_MESSAGE = '현재는 PDF, JPG, PNG, WebP, 텍스트만 해석할 수 있습니다.';
   let removePasteListener = null;
+  let currentDocContext = null;
 
   const DOCUMENT_AI_UPLOAD_POLICY = {
     id: 'documentAiImage',
@@ -311,26 +312,31 @@
         ${global.ThisOneModeTabs?.render?.(DOCUMENT_AI_MODE) || ''}
         <div class="document-ai-copy">
           <p class="document-ai-main-copy">어려운 글, 읽지 말고 물어보세요.</p>
-          <p class="document-ai-sub-copy">PDF나 사진을 올리면 AI가 쉽게 해석하고, 궁금한 점에 답해드립니다.</p>
+          <p class="document-ai-sub-copy">설명서, 계약서, 약관, 법규, 진단서 등을 올리면 AI가 쉽게 해석해 드립니다.</p>
         </div>
 
         <div class="ai-tool-composer document-ai-composer" id="documentAiUpload">
           ${global.ThisOneComposerAttachmentInput?.render?.(DOCUMENT_AI_UPLOAD_POLICY) || ''}
           <div class="ai-tool-input document-ai-composer-top">
-            <textarea class="document-ai-question" id="documentAiQuestion" rows="4" aria-label="해석 질문 입력창" placeholder="문서나 사진을 올리면 쉽게 풀어드려요"></textarea>
+            <textarea class="document-ai-question" id="documentAiQuestion" rows="4" aria-label="해석 질문 입력창" placeholder="문서나 사진을 올리고 궁금한 점을 물어보세요"></textarea>
           </div>
           <div class="ai-tool-control-row document-ai-composer-bottom">
             <div class="ai-tool-left-controls document-ai-composer-left-actions">
               ${global.ThisOneComposerAttachmentInput?.renderControls?.({ ...DOCUMENT_AI_UPLOAD_POLICY, plusClass: 'document-ai-upload-action' }) || ''}
             </div>
             <div class="ai-tool-right-controls document-ai-composer-right-actions">
-              <button class="ai-tool-icon-button ai-tool-help-button document-ai-help-button" id="documentAiHelpButton" type="button" aria-expanded="false" aria-controls="documentAiHelpPanel" aria-label="이렇게 물어보세요" title="이렇게 물어보세요"></button>
+              <button class="ai-tool-icon-button ai-tool-help-button document-ai-help-button" id="documentAiHelpButton" type="button" aria-expanded="false" aria-controls="documentAiHelpPanel" aria-label="이렇게 물어보세요" title="이렇게 물어보세요">?</button>
               <button class="ai-tool-icon-button ai-tool-mic-button" id="documentAiMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
               <button class="ai-tool-action-button document-ai-submit" id="documentAiSubmit" type="button">해석하기</button>
             </div>
           </div>
         </div>
         <div class="document-ai-help-panel" id="documentAiHelpPanel" hidden>
+          <div class="document-ai-help-info" style="font-size: 13px; color: #64748b; margin-bottom: 12px; line-height: 1.5;">
+            <p style="margin: 0;">• 개인정보는 꼭 가리고 올려주세요.</p>
+            <p style="margin: 4px 0 0;">• 여러 장을 올려도 하나의 문서 묶음으로 해석합니다.</p>
+            <p style="margin: 4px 0 0;">• 설명서, 계약서, 약관, 법규, 진단서 등 모두 가능합니다.</p>
+          </div>
           <p class="document-ai-help-title">이렇게 물어보세요</p>
           <div class="document-ai-help-examples">
             <button type="button" data-document-ai-example="이 문서에서 내가 해야 할 일만 정리해줘">이 문서에서 내가 해야 할 일만 정리해줘</button>
@@ -342,12 +348,6 @@
 
         <p class="ai-tool-voice-status" id="documentAiVoiceStatus" aria-live="polite" hidden></p>
 
-        <div class="document-ai-privacy" role="note" aria-label="개인정보 안내">
-          <strong>개인정보 안내</strong>
-          <p>개인정보는 가리고 올려주세요.</p>
-          <p>디스원은 이름이 아니라 문서의 뜻을 풀어드립니다.</p>
-          <p>주민번호, 주소, 전화번호, 계좌번호는 해석에 필요하지 않습니다.</p>
-        </div>
         <p class="document-ai-placeholder" id="documentAiPlaceholder" role="status" aria-live="polite" hidden></p>
         <div class="document-ai-result" id="documentAiResult" aria-live="polite" hidden></div>
       </section>
@@ -384,7 +384,13 @@
           helpButton.setAttribute('aria-expanded', 'false');
         }
       },
-      onChange: () => hideStatus(placeholder),
+      onChange: () => {
+        hideStatus(placeholder);
+        const files = imageInput?.getFiles?.() || [];
+        if (files.length === 0) {
+          currentDocContext = null;
+        }
+      },
       onReject: (_file, message) => setStatus(placeholder, message || UNSUPPORTED_FILE_MESSAGE)
     });
 
@@ -408,6 +414,9 @@
       button.disabled = true;
       if (result) result.hidden = true;
       if (result) result.innerHTML = '';
+      
+      currentDocContext = null;
+
       stopActiveLoadingStatus?.();
       stopActiveLoadingStatus = startStagedLoadingStatus(placeholder, DOCUMENT_AI_LOADING_STAGES);
 
@@ -416,6 +425,19 @@
         const data = await requestDocumentAI(text, filesPayload);
         stopActiveLoadingStatus?.();
         stopActiveLoadingStatus = null;
+
+        if (data.attachmentContext) {
+          currentDocContext = {
+            documentType: data.attachmentContext.documentType,
+            safeSummary: data.attachmentContext.safeSummary,
+            publicKeywords: data.attachmentContext.publicKeywords,
+            fileCount: data.attachmentContext.fileCount,
+            lastAnswer: data.answer || ''
+          };
+        } else {
+          currentDocContext = null;
+        }
+
         renderDocumentAIResult(result, data.answer, data.sources, {
           pdfReadFailed: data.pdfReadStatus === 'failed'
         });
@@ -454,6 +476,7 @@
     removePasteListener = () => {
       stopActiveLoadingStatus?.();
       stopActiveLoadingStatus = null;
+      currentDocContext = null;
       imageInput?.cleanup?.();
     };
   }

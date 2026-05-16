@@ -192,6 +192,30 @@
     `;
   }
 
+  function getDocumentAIStatusMessage(status) {
+    switch (status) {
+      case 400:
+        return '요청 내용을 확인할 수 없습니다. 파일 형식과 질문을 확인해 주세요.';
+      case 413:
+        return '파일이 너무 큽니다. 용량을 줄이거나 필요한 페이지만 캡처해서 올려주세요.';
+      case 500:
+        return 'PDF 해석 중 오류가 발생했습니다. 이미지로 캡처하거나 텍스트를 복사해 다시 시도해 주세요.';
+      case 504:
+        return 'PDF 해석 시간이 초과되었습니다. 필요한 페이지만 나누어 올려주세요.';
+      default:
+        if (status >= 500) {
+          return '문서 해석 서버가 응답하지 않습니다. 잠시 후 다시 시도해 주세요.';
+        }
+        return '문서 해석 요청을 처리하지 못했습니다. 파일과 질문을 확인해 주세요.';
+    }
+  }
+
+  function getSafeDocumentAIServerMessage(data) {
+    const message = String(data?.error || '').trim();
+    if (!message || /[<>]/.test(message) || message.length > 180) return '';
+    return message;
+  }
+
   async function requestDocumentAI(question, filePayload) {
     const response = await fetch('/api/documentAi', {
       method: 'POST',
@@ -208,11 +232,21 @@
     try {
       data = text ? JSON.parse(text) : null;
     } catch (e) {
-      throw new Error('해석 응답을 읽을 수 없습니다.');
+      if (!response.ok) {
+        throw new Error(getDocumentAIStatusMessage(response.status));
+      }
+      throw new Error('해석 응답 형식이 올바르지 않습니다.');
     }
 
     if (!response.ok) {
-      throw new Error(data?.error || `HTTP ${response.status}`);
+      const serverMessage = getSafeDocumentAIServerMessage(data);
+      if (response.status === 400 && serverMessage) {
+        throw new Error(serverMessage);
+      }
+      if ((response.status === 413 || response.status === 504) && serverMessage) {
+        throw new Error(serverMessage);
+      }
+      throw new Error(getDocumentAIStatusMessage(response.status));
     }
 
     return data || { answer: '', sources: [], usedSearch: false };

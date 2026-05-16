@@ -10,6 +10,9 @@ const SERPER_TIMEOUT_MS = 4000;
 const MAX_QUESTION_LENGTH = 4000;
 const MAX_SUMMARY_LENGTH = 1800;
 const MAX_SOURCE_COUNT = 5;
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+const FILE_TOO_LARGE_MESSAGE = '파일이 너무 큽니다. 용량을 줄이거나 필요한 페이지만 캡처해서 올려주세요.';
+const PDF_READ_FAILED_MESSAGE = 'PDF 내용을 자동으로 읽지 못했습니다. 필요한 페이지를 이미지로 캡처하거나 텍스트를 복사해 올리면 더 정확히 해석할 수 있습니다.';
 const SUPPORTED_FILE_TYPES = new Set([
   'application/pdf',
   'image/jpeg',
@@ -80,6 +83,14 @@ function normalizeMimeType(type) {
   return mimeType === 'image/jpg' ? 'image/jpeg' : mimeType;
 }
 
+function estimateBase64DecodedBytes(data) {
+  const base64 = String(data || '').replace(/\s/g, '');
+  if (!base64) return 0;
+
+  const padding = base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0;
+  return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
+}
+
 function parseDataUrl(dataUrl, fallbackType = '') {
   const match = String(dataUrl || '').match(/^data:([^;,]+)(?:;[^,]*)?;base64,(.+)$/);
   if (!match) return null;
@@ -87,7 +98,7 @@ function parseDataUrl(dataUrl, fallbackType = '') {
   const mimeType = normalizeMimeType(match[1] || fallbackType);
   if (!SUPPORTED_FILE_TYPES.has(mimeType)) return null;
 
-  return { mimeType, data: match[2] };
+  return { mimeType, data: match[2], decodedBytes: estimateBase64DecodedBytes(match[2]) };
 }
 
 function parseUploadedFile(file, legacyImageDataUrl = '') {
@@ -98,13 +109,28 @@ function parseUploadedFile(file, legacyImageDataUrl = '') {
     return {
       name: normalizeText(file.name || '업로드 파일', 160),
       mimeType: parsed.mimeType,
-      data: parsed.data
+      data: parsed.data,
+      decodedBytes: parsed.decodedBytes
     };
   }
 
   const legacyImage = parseDataUrl(legacyImageDataUrl);
   if (!legacyImage || !/^image\//.test(legacyImage.mimeType)) return null;
-  return { name: '업로드 이미지', mimeType: legacyImage.mimeType, data: legacyImage.data };
+  return {
+    name: '업로드 이미지',
+    mimeType: legacyImage.mimeType,
+    data: legacyImage.data,
+    decodedBytes: legacyImage.decodedBytes
+  };
+}
+
+function buildErrorPayload(error, answer = error) {
+  return {
+    error,
+    answer,
+    sources: [],
+    usedSearch: false
+  };
 }
 
 function decodeBase64Text(data) {
@@ -417,7 +443,7 @@ async function generateAnswer(payload) {
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json(buildErrorPayload('Method not allowed'));
   }
 
   try {
@@ -427,11 +453,15 @@ module.exports = async function handler(req, res) {
     const uploadedFile = parseUploadedFile(body?.file, imageDataUrl);
 
     if (body?.file && !uploadedFile) {
-      return res.status(400).json({ error: '현재는 PDF, JPG, PNG, WebP, 텍스트만 해석할 수 있습니다.' });
+      return res.status(400).json(buildErrorPayload('현재는 PDF, JPG, PNG, WebP, 텍스트만 해석할 수 있습니다.'));
     }
 
     if (!question && !uploadedFile) {
-      return res.status(400).json({ error: '문서나 사진, 질문을 입력해주세요.' });
+      return res.status(400).json(buildErrorPayload('문서나 사진, 질문을 입력해주세요.'));
+    }
+
+    if (uploadedFile?.decodedBytes > MAX_UPLOAD_BYTES) {
+      return res.status(413).json(buildErrorPayload(FILE_TOO_LARGE_MESSAGE));
     }
 
     let imageSummary = null;
@@ -439,10 +469,14 @@ module.exports = async function handler(req, res) {
       try {
         imageSummary = await summarizeUploadedFile(uploadedFile, question);
       } catch (error) {
+        const isPdf = uploadedFile.mimeType === 'application/pdf';
         imageSummary = {
-          documentType: uploadedFile.mimeType === 'application/pdf' ? 'PDF 문서' : '이미지/문서',
-          safeSummary: '업로드 내용을 자동으로 확인하지 못했습니다. 질문에 적힌 내용 기준으로 해석합니다.',
-          publicKeywords: findPublicTerms(question)
+          documentType: isPdf ? 'PDF 문서' : '이미지/문서',
+          safeSummary: isPdf
+            ? PDF_READ_FAILED_MESSAGE
+            : '업로드 내용을 자동으로 확인하지 못했습니다. 질문에 적힌 내용 기준으로 해석합니다.',
+          publicKeywords: findPublicTerms(question),
+          pdfReadFailed: isPdf
         };
       }
     }
@@ -460,18 +494,20 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    const answer = await generateAnswer({ question, imageSummary, sources });
+    let answer = await generateAnswer({ question, imageSummary, sources });
+    if (imageSummary?.pdfReadFailed && !answer.includes(PDF_READ_FAILED_MESSAGE)) {
+      answer = `${PDF_READ_FAILED_MESSAGE}\n\n${answer}`;
+    }
     return res.status(200).json({
       answer,
       sources,
       usedSearch
     });
   } catch (error) {
-    return res.status(500).json({
-      error: '문서 해석 중 오류가 발생했습니다.',
-      answer: '문서 해석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
-      sources: [],
-      usedSearch: false
-    });
+    return res.status(error?.status === 504 ? 504 : 500).json(buildErrorPayload(
+      error?.status === 504
+        ? 'PDF 해석 시간이 초과되었습니다. 필요한 페이지만 나누어 올려주세요.'
+        : 'PDF 해석 중 오류가 발생했습니다. 이미지로 캡처하거나 텍스트를 복사해 다시 시도해 주세요.'
+    ));
   }
 };

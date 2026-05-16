@@ -216,14 +216,13 @@
     return message;
   }
 
-  async function requestDocumentAI(question, filePayload) {
+  async function requestDocumentAI(question, filesPayload) {
     const response = await fetch('/api/documentAi', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         question,
-        file: filePayload || null,
-        imageDataUrl: filePayload?.type?.startsWith?.('image/') ? filePayload.dataUrl : ''
+        files: filesPayload || null
       })
     });
 
@@ -313,7 +312,7 @@
               ${global.ThisOneComposerAttachmentInput?.renderControls?.({ ...DOCUMENT_AI_UPLOAD_POLICY, plusClass: 'document-ai-upload-action' }) || ''}
             </div>
             <div class="ai-tool-right-controls document-ai-composer-right-actions">
-              <button class="ai-tool-icon-button ai-tool-help-button document-ai-help-button" id="documentAiHelpButton" type="button" aria-expanded="false" aria-controls="documentAiHelpPanel" aria-label="해석 질문 예시 보기" title="도움말">?</button>
+              <button class="ai-tool-icon-button ai-tool-help-button document-ai-help-button" id="documentAiHelpButton" type="button" aria-expanded="false" aria-controls="documentAiHelpPanel" aria-label="이렇게 물어보세요" title="이렇게 물어보세요"></button>
               <button class="ai-tool-icon-button ai-tool-mic-button" id="documentAiMicButton" type="button" aria-label="음성으로 입력" title="음성으로 입력"></button>
               <button class="ai-tool-action-button document-ai-submit" id="documentAiSubmit" type="button">해석하기</button>
             </div>
@@ -380,7 +379,6 @@
     button?.addEventListener('click', async () => {
       const text = question?.value?.trim?.() || '';
       const files = imageInput?.getFiles?.() || [];
-      const file = files[0] || null;
 
       if (!text && !files.length) {
         setStatus(placeholder, EMPTY_INPUT_MESSAGE);
@@ -402,12 +400,15 @@
       stopActiveLoadingStatus = startStagedLoadingStatus(placeholder, DOCUMENT_AI_LOADING_STAGES);
 
       try {
-        const filePayload = file ? {
-          name: file.name || 'upload',
-          type: file.type || 'application/octet-stream',
-          dataUrl: await fileToDataUrl(file)
-        } : null;
-        const data = await requestDocumentAI(text, filePayload);
+        const filesPayload = [];
+        for (const file of files) {
+          filesPayload.push({
+            name: file.name || 'upload',
+            type: file.type || 'application/octet-stream',
+            dataUrl: await fileToDataUrl(file)
+          });
+        }
+        const data = await requestDocumentAI(text, filesPayload);
         stopActiveLoadingStatus?.();
         stopActiveLoadingStatus = null;
         renderDocumentAIResult(result, data.answer, data.sources, {

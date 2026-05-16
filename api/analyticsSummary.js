@@ -7,10 +7,13 @@ const MAX_LABEL_LENGTH = 80;
 
 function createEmptyPeriod() {
   return {
+    events: 0,
     totalEvents: 0,
     externalEvents: 0,
     internalEvents: 0,
     pageViews: 0,
+    externalPageViews: 0,
+    internalPageViews: 0,
     visitors: 0,
     externalVisitors: 0,
     internalVisitors: 0
@@ -53,11 +56,15 @@ function toCount(value) {
 
 function normalizePeriod(value) {
   const period = value && typeof value === 'object' ? value : {};
+  const events = toCount(period.events || period.totalEvents);
   return {
-    totalEvents: toCount(period.totalEvents),
+    events,
+    totalEvents: events,
     externalEvents: toCount(period.externalEvents),
     internalEvents: toCount(period.internalEvents),
     pageViews: toCount(period.pageViews),
+    externalPageViews: toCount(period.externalPageViews),
+    internalPageViews: toCount(period.internalPageViews),
     visitors: toCount(period.visitors),
     externalVisitors: toCount(period.externalVisitors),
     internalVisitors: toCount(period.internalVisitors)
@@ -74,7 +81,9 @@ function normalizeBreakdownRows(value, labelKey) {
       if (!label) return null;
       return {
         [labelKey]: label,
-        count: toCount(row?.count)
+        count: toCount(row?.count),
+        externalCount: toCount(row?.externalCount),
+        internalCount: toCount(row?.internalCount)
       };
     })
     .filter(Boolean);

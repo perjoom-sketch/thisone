@@ -2,12 +2,12 @@
 
 ## Purpose
 
-This document audits the current ThisOne analytics classification and summary-dashboard behavior. It is documentation-only and does not propose behavior changes in this PR.
+This document audits the current ThisOne analytics classification and summary-dashboard behavior. It now reflects the traffic-classification split added after the original audit.
 
 The key finding is that the **browser classification setting** and the **dashboard data view** are separate concepts:
 
 - The browser setting controls the `isInternal` value attached to **future events from the current browser/profile**.
-- The analytics summary page reads and renders **shared central aggregate totals** from KV/Redis. It does not filter those totals based on the current browser's classification.
+- The analytics summary page reads **shared central aggregate totals** from KV/Redis and can display them by dashboard view 기준: 전체, 실제 사용자만, 내부 테스트만. This dashboard filter is separate from the current browser's classification setting.
 
 ## 1. Current data flow
 
@@ -82,18 +82,21 @@ After clearing, future events from that browser are sent with `isInternal: false
 
 KV/Redis stores daily aggregate keys under the `analytics:` prefix. These keys are central/shared for the app environment, not per browser. Every browser that opens the summary page reads the same backing keys.
 
-The current write path increments these global/shared counters and sets:
+The current write path increments these global/shared counters and sets both backward-compatible totals and split internal/external counters:
 
 - `analytics:day:{YYYY-MM-DD}:events`
 - `analytics:day:{YYYY-MM-DD}:events:internal` or `analytics:day:{YYYY-MM-DD}:events:external`
 - `analytics:day:{YYYY-MM-DD}:eventName:{eventName}`
+- `analytics:day:{YYYY-MM-DD}:eventName:{eventName}:internal` or `analytics:day:{YYYY-MM-DD}:eventName:{eventName}:external`
 - `analytics:day:{YYYY-MM-DD}:mode:{mode}`
+- `analytics:day:{YYYY-MM-DD}:mode:{mode}:internal` or `analytics:day:{YYYY-MM-DD}:mode:{mode}:external`
 - `analytics:day:{YYYY-MM-DD}:eventNames`
 - `analytics:day:{YYYY-MM-DD}:modes`
 
 For `page_view` events only, it also writes:
 
 - `analytics:day:{YYYY-MM-DD}:pageViews`
+- `analytics:day:{YYYY-MM-DD}:pageViews:internal` or `analytics:day:{YYYY-MM-DD}:pageViews:external`
 - `analytics:day:{YYYY-MM-DD}:visitors`
 - `analytics:day:{YYYY-MM-DD}:visitors:internal` or `analytics:day:{YYYY-MM-DD}:visitors:external`
 
@@ -102,16 +105,14 @@ For `page_view` events only, it also writes:
 Currently split by internal/external:
 
 - total event count via `events:internal` and `events:external`
+- page view count via `pageViews:internal` and `pageViews:external`
 - unique visitor sets for page views via `visitors:internal` and `visitors:external`
+- mode breakdowns via `mode:{mode}:internal` and `mode:{mode}:external`
+- event-name breakdowns via `eventName:{eventName}:internal` and `eventName:{eventName}:external`
 
-Currently **not** split by internal/external:
+Backward-compatible total keys are still written and read. The dashboard therefore supports 전체 totals while also showing 실제 사용자 and 내부 테스트 split views.
 
-- `pageViews` is a single total count only.
-- `mode:{mode}` is a single total count only.
-- `eventName:{eventName}` is a single total count only.
-- `byMode` and `byEventName` breakdowns are therefore not filterable by internal/external with the current aggregate keys.
-
-Important nuance: events are split by internal/external at the total-event level, but event-name and mode breakdowns are not split. Page views are stored as one global total, while visitors are split into internal/external sets.
+Important nuance: historical days stored before this split was deployed may have total `pageViews`, `mode:{mode}`, and `eventName:{eventName}` values without the matching split keys. Those missing split keys are read as `0`; the summary does not infer old split values from totals.
 
 ### How daily aggregates are read
 
@@ -121,13 +122,15 @@ Important nuance: events are split by internal/external at the total-event level
 - external events
 - internal events
 - page views
+- external page views
+- internal page views
 - total visitors
 - external visitors
 - internal visitors
 - known modes
 - known event names
 
-It then reads the per-mode and per-event-name totals and returns:
+It then reads the per-mode and per-event-name total, external, and internal counts and returns:
 
 - `today`
 - `last7Days`
@@ -152,7 +155,13 @@ Therefore:
 
 No. The current browser classification controls the `isInternal` value on future tracking payloads. It does **not** apply a dashboard view filter.
 
-The summary UI displays some internal/external aggregate fields that already exist, such as external/internal visitors and external events. But the page does not switch the whole dashboard between "all", "real users only", and "internal tests only" based on the operator setting.
+The summary UI now has a separate **통계 보기 기준** dashboard filter with three options:
+
+- 전체
+- 실제 사용자만
+- 내부 테스트만
+
+This filter changes which stored aggregate numbers are displayed for period metrics, mode breakdowns, and event-name breakdowns. It is not tied to the current browser classification control.
 
 ### Does changing classification change only future tracking?
 
@@ -172,72 +181,38 @@ It does not mean:
 
 This explains the operator confusion: if Chrome says "internal test" and Edge says "real user", it is natural to expect the dashboard numbers to differ. In the current design, they do not differ because both pages read the same central aggregate summary.
 
-## 6. Recommendation
+## 6. Current dashboard sections
 
-Recommended approach: **Option C first, then Option B.**
+The admin page intentionally separates two controls:
 
-### Option C: extend aggregation before adding a full dashboard filter
+### A. 현재 브라우저 기록 분류
 
-Before adding a dashboard-wide filter, extend aggregation so all displayed metrics can be filtered consistently. At minimum, add split keys for:
+This controls how future events from the current browser/profile are classified. It changes outgoing `isInternal` on new tracking payloads only.
 
-- `externalPageViews`
-- `internalPageViews`
-- `externalEvents`
-- `internalEvents` (already exists at total level)
-- internal/external mode breakdowns
-- internal/external event-name breakdowns
+### B. 통계 보기 기준
 
-The current store already has `events:internal`, `events:external`, `visitors:internal`, and `visitors:external`, but it does not split page views, mode breakdowns, or event-name breakdowns. A full dashboard filter would otherwise have to mix filtered and unfiltered metrics, which would likely create more confusion.
+This controls which already-stored dashboard aggregates are displayed:
 
-### Option B: add a separate dashboard view filter after split data exists
+- 전체: total events, total page views, total visitors, total mode counts, and total event-name counts
+- 실제 사용자만: external events, external page views, external visitors, external mode counts, and external event-name counts
+- 내부 테스트만: internal events, internal page views, internal visitors, internal mode counts, and internal event-name counts
 
-Once the aggregate data supports consistent filtering, add a distinct dashboard filter control:
+The UI includes the helper text: “실제 사용자/내부 테스트 분리 집계는 이 기능 배포 이후 발생한 기록부터 정확히 반영됩니다.”
 
-- 전체
-- 실제 사용자만
-- 내부 테스트만
+## 7. Historical data compatibility
 
-This filter should be visually and textually separate from the current-browser classification setting.
-
-### Option A: short-term wording improvement
-
-As a smaller interim UI PR, keep the shared dashboard but rename the setting to:
-
-> 현재 브라우저 기록 분류
-
-Add explanatory copy:
-
-> 이 설정은 통계 화면의 숫자를 바꾸는 필터가 아닙니다.
-
-This is the lowest-risk UX clarification and can happen before the aggregation/filter work.
-
-## 7. Proposed next PR
-
-Suggested next PR title:
-
-```text
-fix: clarify analytics browser classification setting
-```
-
-Suggested scope:
-
-- Rename the operator setting label to `현재 브라우저 기록 분류`.
-- Add helper text stating that the setting only affects future events from the current browser/profile.
-- Add helper text stating that it is not a dashboard filter and does not change the displayed summary numbers.
-- Do not change tracking logic, KV keys, or summary API behavior in that PR.
-
-A follow-up data/model PR can then add internal/external split aggregate keys for page views and breakdowns before introducing the full dashboard filter.
+Old days can lack split `pageViews`, mode-count, and event-name-count keys. The reader treats those missing split keys as `0` and keeps total keys unchanged for backward compatibility. It does not infer old internal/external values from total counts.
 
 ## Direct answers to audit questions
 
 1. **What does “internal test” setting actually do?** It marks future events from the current browser/profile with `isInternal: true` by writing localStorage/cookie state used by the tracker.
 2. **Does it only affect future events from the current browser?** Yes. It affects future event payloads from the current browser/profile storage context.
-3. **Does it filter the dashboard numbers?** No. It does not filter dashboard totals.
+3. **Does it filter the dashboard numbers?** The browser classification setting does not. The separate `통계 보기 기준` dashboard filter does change which stored aggregate values are displayed.
 4. **Where is `isInternal` calculated?** In `js/thisone_event_tracker.js`, via `isInternalUser()` and `buildEvent()`.
 5. **Where is `isInternal` sent in the tracking payload?** In the browser event JSON sent by `sendEvent()` to `/api/trackEvent`; the server preserves it through `sanitizeEvent()` and aggregate storage.
 6. **How are internal/external visitor counts stored?** For `page_view` events, the visitor ID is added to total visitors plus either `visitors:internal` or `visitors:external` daily sets.
-7. **Are pageViews and events split by internal/external, or only visitors?** Total events are split by `events:internal` and `events:external`; visitors are split; `pageViews` are not split; mode and event-name breakdowns are not split.
+7. **Are pageViews and events split by internal/external, or only visitors?** Total events, page views, visitors, mode breakdowns, and event-name breakdowns are now split by internal/external, while backward-compatible total keys remain.
 8. **Does `analytics-summary.html` read shared central totals regardless of browser classification?** Yes. It fetches `/api/analyticsSummary`, which reads shared KV/Redis aggregates.
-9. **Does changing browser classification change only future tracking, not the dashboard view?** Yes.
+9. **Does changing browser classification change only future tracking, not the dashboard view?** Yes. Use the separate `통계 보기 기준` control to change the dashboard display.
 10. **Is the current UI wording misleading?** Yes. It can imply that the setting changes the dashboard view, when it only changes future event classification.
-11. **Do we need a separate dashboard filter?** Yes, if operators need to view 전체 / 실제 사용자만 / 내부 테스트만. However, the aggregate model should first be extended so page views and breakdowns can be filtered consistently.
+11. **Do we need a separate dashboard filter?** Yes, and the admin page now provides it after extending page-view and breakdown aggregates.

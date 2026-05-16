@@ -233,6 +233,35 @@
       line-height: 1.55;
     }
 
+    .view-filter-field {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.35rem, 1vw, 0.55rem);
+    }
+
+    .view-filter-field label {
+      color: var(--text);
+      font-size: clamp(0.86rem, 1.7vw, 0.98rem);
+      font-weight: 760;
+    }
+
+    .view-filter-field select {
+      width: 100%;
+      border: clamp(0.0625rem, 0.12vw, 0.085rem) solid var(--line);
+      border-radius: clamp(0.65rem, 1.6vw, 0.9rem);
+      padding: clamp(0.6rem, 1.5vw, 0.8rem) clamp(0.7rem, 1.8vw, 1rem);
+      background: var(--panel);
+      color: var(--text);
+      font: inherit;
+      font-size: clamp(0.86rem, 1.7vw, 0.98rem);
+    }
+
+    .view-filter-field select:focus {
+      outline: clamp(0.12rem, 0.35vw, 0.2rem) solid rgba(37, 99, 235, 0.24);
+      outline-offset: clamp(0.1rem, 0.28vw, 0.16rem);
+      border-color: var(--blue);
+    }
+
 
     .reset-panel {
       border-color: #f8d7a3;
@@ -682,6 +711,22 @@
         </div>
       </section>
 
+      <section class="operator-panel" aria-labelledby="dashboardViewTitle">
+        <h2 id="dashboardViewTitle">통계 보기 기준</h2>
+        <p>저장된 중앙 집계 숫자를 전체, 실제 사용자, 내부 테스트 기준으로 나누어 표시합니다.</p>
+        <div class="operator-card">
+          <div class="view-filter-field">
+            <label for="trafficViewFilter">통계 보기 기준</label>
+            <select id="trafficViewFilter" aria-describedby="trafficViewHelp">
+              <option value="all" selected>전체</option>
+              <option value="external">실제 사용자만</option>
+              <option value="internal">내부 테스트만</option>
+            </select>
+          </div>
+          <p id="trafficViewHelp" class="notice operator-message">실제 사용자/내부 테스트 분리 집계는 이 기능 배포 이후 발생한 기록부터 정확히 반영됩니다.</p>
+        </div>
+      </section>
+
 
 
       <section class="operator-panel reset-panel" aria-labelledby="resetAnalyticsTitle">
@@ -717,7 +762,7 @@
 
       <section aria-labelledby="periodTitle">
         <h2 id="periodTitle">집계 요약</h2>
-        <p>전체 이벤트, 실제 사용자, 내부 테스트를 기간별로 분리해서 표시합니다.</p>
+        <p>선택한 통계 보기 기준에 맞춰 방문자, 페이지뷰, 이벤트를 기간별로 표시합니다.</p>
         <div class="summary-help" aria-label="집계 항목 설명">
           <div class="summary-help-row"><strong>방문자</strong><span>하루 기준 중복을 제외한 브라우저 수입니다.</span></div>
           <div class="summary-help-row"><strong>페이지뷰</strong><span>페이지가 열린 횟수입니다. 새로고침도 포함될 수 있습니다.</span></div>
@@ -736,7 +781,7 @@
           <div id="audienceChart" class="chart-list"></div>
         </div>
         <div class="chart-panel" aria-labelledby="dailyVisitorChartTitle">
-          <div class="chart-title" id="dailyVisitorChartTitle">최근 30일 실제 방문자 추이</div>
+          <div class="chart-title" id="dailyVisitorChartTitle">최근 30일 선택 기준 방문자 추이</div>
           <div id="dailyVisitorChart" class="chart-list"></div>
         </div>
       </section>
@@ -795,10 +840,13 @@
     };
 
     const EMPTY_PERIOD = {
+      events: 0,
       totalEvents: 0,
       externalEvents: 0,
       internalEvents: 0,
       pageViews: 0,
+      externalPageViews: 0,
+      internalPageViews: 0,
       visitors: 0,
       externalVisitors: 0,
       internalVisitors: 0
@@ -818,6 +866,16 @@
       ['last7Days', '최근 7일'],
       ['last30Days', '최근 30일']
     ];
+
+    const TRAFFIC_VIEW_LABELS = new Map([
+      ['all', '전체'],
+      ['external', '실제 사용자만'],
+      ['internal', '내부 테스트만']
+    ]);
+
+    let currentSummary = EMPTY_SUMMARY;
+    let currentResponseState = { ok: true, storageConfigured: false, summary: EMPTY_SUMMARY };
+    let currentTrafficView = 'all';
 
     const MODE_LABELS = new Map([
       ['shopping', '쇼핑'],
@@ -1026,20 +1084,54 @@
       return knownMessages.get(message) || message;
     }
 
+    function getPeriodEvents(period, view = currentTrafficView) {
+      if (view === 'external') return toCount(period.externalEvents);
+      if (view === 'internal') return toCount(period.internalEvents);
+      return toCount(period.events || period.totalEvents);
+    }
+
+    function getPeriodPageViews(period, view = currentTrafficView) {
+      if (view === 'external') return toCount(period.externalPageViews);
+      if (view === 'internal') return toCount(period.internalPageViews);
+      return toCount(period.pageViews);
+    }
+
+    function getPeriodVisitors(period, view = currentTrafficView) {
+      if (view === 'external') return toCount(period.externalVisitors);
+      if (view === 'internal') return toCount(period.internalVisitors);
+      return toCount(period.visitors);
+    }
+
+    function getBreakdownCount(item, view = currentTrafficView) {
+      if (view === 'external') return toCount(item?.externalCount);
+      if (view === 'internal') return toCount(item?.internalCount);
+      return toCount(item?.count);
+    }
+
+    function getTrafficViewClassName(view = currentTrafficView) {
+      if (view === 'external') return 'external';
+      if (view === 'internal') return 'internal';
+      return '';
+    }
+
+    function getTrafficViewLabel(view = currentTrafficView) {
+      return TRAFFIC_VIEW_LABELS.get(view) || TRAFFIC_VIEW_LABELS.get('all');
+    }
+
     function periodTotal(summary) {
       return PERIOD_LABELS.reduce((total, [key]) => {
         const period = summary[key] || EMPTY_PERIOD;
-        return total + toCount(period.totalEvents) + toCount(period.pageViews) + toCount(period.visitors);
+        return total + getPeriodEvents(period) + getPeriodPageViews(period) + getPeriodVisitors(period);
       }, 0);
     }
 
     function isSummaryEmpty(summary) {
       const periodCounts = periodTotal(summary);
       const modeCounts = Array.isArray(summary.byMode)
-        ? summary.byMode.reduce((total, item) => total + toCount(item.count), 0)
+        ? summary.byMode.reduce((total, item) => total + getBreakdownCount(item), 0)
         : 0;
       const eventCounts = Array.isArray(summary.byEventName)
-        ? summary.byEventName.reduce((total, item) => total + toCount(item.count), 0)
+        ? summary.byEventName.reduce((total, item) => total + getBreakdownCount(item), 0)
         : 0;
       return periodCounts + modeCounts + eventCounts === 0;
     }
@@ -1120,6 +1212,9 @@
 
       PERIOD_LABELS.forEach(([key, label]) => {
         const period = summary[key] || EMPTY_SUMMARY[key];
+        const selectedVisitors = getPeriodVisitors(period);
+        const selectedPageViews = getPeriodPageViews(period);
+        const selectedEvents = getPeriodEvents(period);
         const row = document.createElement('div');
         row.className = 'metric-row';
 
@@ -1128,19 +1223,19 @@
 
         const eyebrow = document.createElement('span');
         eyebrow.className = 'eyebrow';
-        eyebrow.textContent = label;
+        eyebrow.textContent = `${label} · ${getTrafficViewLabel()}`;
 
         const value = document.createElement('strong');
         value.className = 'value';
-        value.textContent = `${toCount(period.visitors).toLocaleString()} 방문자`;
+        value.textContent = `${selectedVisitors.toLocaleString()} 방문자`;
 
         const detail = document.createElement('span');
         detail.className = 'detail';
-        detail.textContent = `실제 방문자 ${toCount(period.externalVisitors).toLocaleString()} · 내부 방문자 ${toCount(period.internalVisitors).toLocaleString()} · 페이지뷰 ${toCount(period.pageViews).toLocaleString()} · 이벤트 ${toCount(period.totalEvents).toLocaleString()}`;
+        detail.textContent = `페이지뷰 ${selectedPageViews.toLocaleString()} · 이벤트 ${selectedEvents.toLocaleString()} · 전체 방문자 ${toCount(period.visitors).toLocaleString()} · 실제 ${toCount(period.externalVisitors).toLocaleString()} · 내부 ${toCount(period.internalVisitors).toLocaleString()}`;
 
         const pill = document.createElement('span');
-        pill.className = 'pill';
-        pill.textContent = `${toCount(period.externalEvents).toLocaleString()} 실제 이벤트`;
+        pill.className = `pill ${currentTrafficView === 'external' ? 'ready' : currentTrafficView === 'internal' ? 'warn' : ''}`.trim();
+        pill.textContent = `${selectedEvents.toLocaleString()} 이벤트`;
 
         copy.append(eyebrow, value, detail);
         row.append(copy, pill);
@@ -1151,7 +1246,11 @@
     function renderPeriodChart(summary) {
       renderChart(
         'periodChart',
-        PERIOD_LABELS.map(([key, label]) => ({ label, count: summary[key]?.pageViews || summary[key]?.totalEvents })),
+        PERIOD_LABELS.map(([key, label]) => ({
+          label,
+          count: getPeriodPageViews(summary[key] || EMPTY_PERIOD) || getPeriodEvents(summary[key] || EMPTY_PERIOD),
+          className: getTrafficViewClassName()
+        })),
         '아직 기간별 페이지뷰/이벤트 데이터가 없습니다.'
       );
     }
@@ -1173,13 +1272,9 @@
       return document.createElementNS('http://www.w3.org/2000/svg', tagName);
     }
 
-    function getDailyExternalVisitors(row) {
+    function getDailySelectedVisitors(row) {
       if (!row || typeof row !== 'object') return 0;
-      const externalValue = Number(row.externalVisitors);
-      if (Object.prototype.hasOwnProperty.call(row, 'externalVisitors') && Number.isFinite(externalValue) && externalValue >= 0) {
-        return Math.floor(externalValue);
-      }
-      return toCount(row.visitors);
+      return getPeriodVisitors(row);
     }
 
     function renderDailyVisitorChart(summary) {
@@ -1189,7 +1284,7 @@
       const dailyRows = Array.isArray(summary.daily) ? summary.daily.slice(-30) : [];
       const points = dailyRows.map((row) => ({
         date: typeof row?.date === 'string' ? row.date : '',
-        count: getDailyExternalVisitors(row)
+        count: getDailySelectedVisitors(row)
       }));
       const maxValue = points.reduce((max, point) => Math.max(max, point.count), 0);
 
@@ -1233,8 +1328,8 @@
       const description = createSvgElement('desc');
       description.setAttribute('id', 'dailyVisitorChartDescription');
       description.textContent = isSingleVisitorScale
-        ? `최근 30일 실제 방문자 최고값은 ${maxValue.toLocaleString()}명이며, 집계가 적어 추이는 참고용입니다.`
-        : `최근 30일 실제 방문자 최고값은 ${maxValue.toLocaleString()}명입니다.`;
+        ? `최근 30일 선택 기준 방문자 최고값은 ${maxValue.toLocaleString()}명이며, 집계가 적어 추이는 참고용입니다.`
+        : `최근 30일 선택 기준 방문자 최고값은 ${maxValue.toLocaleString()}명입니다.`;
       svg.append(description);
 
       yGuideValues.forEach((value) => {
@@ -1352,10 +1447,20 @@
       }
     }
 
+    function getVisibleBreakdownRows(rows) {
+      return Array.isArray(rows)
+        ? rows.filter((item) => getBreakdownCount(item) > 0)
+        : [];
+    }
+
     function renderBreakdownChart(chartId, rows, type, emptyText) {
       renderChart(
         chartId,
-        Array.isArray(rows) ? rows.map((item) => ({ label: getDisplayInfo(item, type).label, count: item.count })) : [],
+        getVisibleBreakdownRows(rows).map((item) => ({
+          label: getDisplayInfo(item, type).label,
+          count: getBreakdownCount(item),
+          className: getTrafficViewClassName()
+        })),
         emptyText
       );
     }
@@ -1364,7 +1469,9 @@
       const tbody = document.getElementById(tbodyId);
       tbody.replaceChildren();
 
-      if (!Array.isArray(rows) || rows.length === 0) {
+      const visibleRows = getVisibleBreakdownRows(rows);
+
+      if (visibleRows.length === 0) {
         const row = document.createElement('tr');
         const cell = document.createElement('td');
         cell.className = 'empty';
@@ -1375,12 +1482,12 @@
         return;
       }
 
-      rows.forEach((item) => {
+      visibleRows.forEach((item) => {
         const row = document.createElement('tr');
         const label = document.createElement('td');
         const count = document.createElement('td');
         appendDisplayLabel(label, getDisplayInfo(item, type));
-        count.textContent = toCount(item.count).toLocaleString();
+        count.textContent = getBreakdownCount(item).toLocaleString();
         row.append(label, count);
         tbody.append(row);
       });
@@ -1388,6 +1495,8 @@
 
     function renderSummary(response) {
       const summary = response.summary || EMPTY_SUMMARY;
+      currentSummary = summary;
+      currentResponseState = { ...response, summary };
       const emptyState = document.getElementById('emptyState');
       updateStatus(response);
       renderPeriods(summary);
@@ -1406,6 +1515,14 @@
       if (!response.storageConfigured) {
         setText('setupGuidance', '실제 집계를 보려면 UPSTASH_REDIS_REST_URL과 UPSTASH_REDIS_REST_TOKEN을 설정하세요. 이 페이지는 원시 질문, 방문자 ID, IP 주소 또는 민감한 페이로드를 표시하지 않습니다.');
       }
+    }
+
+    function bindTrafficViewFilter() {
+      const filter = document.getElementById('trafficViewFilter');
+      filter?.addEventListener('change', () => {
+        currentTrafficView = TRAFFIC_VIEW_LABELS.has(filter.value) ? filter.value : 'all';
+        renderSummary({ ...currentResponseState, summary: currentSummary });
+      });
     }
 
     async function loadSummary() {
@@ -1431,6 +1548,7 @@
     }
 
     bindInternalUserControls();
+    bindTrafficViewFilter();
     bindAnalyticsResetControls();
     loadSummary();
   </script>

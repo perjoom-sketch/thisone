@@ -12,8 +12,15 @@
   const DOCUMENT_AI_LOADING_STAGE_MS = 1800;
   const EMPTY_INPUT_MESSAGE = '문서나 사진, 질문을 입력해주세요.';
   const UNSUPPORTED_FILE_MESSAGE = '현재는 PDF, JPG, PNG, WebP, 텍스트만 해석할 수 있습니다.';
+  const PLACEHOLDER_DEFAULT = '문서나 사진을 올리고 궁금한 점을 물어보세요';
+  const PLACEHOLDER_CONTEXT = '이 문서를 기준으로 이어서 물어보세요';
   let removePasteListener = null;
   let currentDocContext = null;
+
+  function updateComposerPlaceholder(textarea, context) {
+    if (!textarea) return;
+    textarea.placeholder = context ? PLACEHOLDER_CONTEXT : PLACEHOLDER_DEFAULT;
+  }
 
   const DOCUMENT_AI_UPLOAD_POLICY = {
     id: 'documentAiImage',
@@ -389,12 +396,8 @@
         <h4 class="document-ai-follow-up-title">이 문서를 기준으로 이어서 물어보세요.</h4>
         <div class="document-ai-follow-up-chips">
           <button type="button" class="document-ai-chip" data-follow-up="핵심만 다시 요약해줘">핵심만 다시 요약해줘</button>
-          <button type="button" class="document-ai-chip" data-follow-up="주의사항만 알려줘">주의사항만 알려줘</button>
           <button type="button" class="document-ai-chip" data-follow-up="설정 방법 다시 설명해줘">설정 방법 다시 설명해줘</button>
-        </div>
-        <div class="document-ai-follow-up-input-row">
-          <input type="text" class="document-ai-follow-up-input" id="documentAiFollowUpInput" placeholder="질문을 입력하세요" aria-label="후속 질문 입력창">
-          <button type="button" class="document-ai-action-button" id="documentAiFollowUpSubmit">이어 질문하기</button>
+          <button type="button" class="document-ai-chip" data-follow-up="작업자에게 쉽게 설명해줘">작업자에게 쉽게 설명해줘</button>
         </div>
         <div class="document-ai-follow-up-footer">
           <button type="button" class="document-ai-text-button" id="documentAiFollowUpReset">새 문서로 시작</button>
@@ -521,6 +524,10 @@
         const files = imageInput?.getFiles?.() || [];
         if (files.length === 0) {
           currentDocContext = null;
+          updateComposerPlaceholder(question, null);
+        } else if (currentDocContext) {
+          // New attachments added while context exists — will reset on submit
+          updateComposerPlaceholder(question, null);
         }
       },
       onReject: (_file, message) => setStatus(placeholder, message || UNSUPPORTED_FILE_MESSAGE)
@@ -529,8 +536,10 @@
     button?.addEventListener('click', async () => {
       const text = question?.value?.trim?.() || '';
       const files = imageInput?.getFiles?.() || [];
+      const hasNewAttachments = files.length > 0;
+      const isFollowUp = !hasNewAttachments && currentDocContext;
 
-      if (!text && !files.length) {
+      if (!text && !hasNewAttachments && !isFollowUp) {
         setStatus(placeholder, EMPTY_INPUT_MESSAGE);
         if (result) result.hidden = true;
         if (result) result.innerHTML = '';
@@ -538,22 +547,31 @@
         return;
       }
 
-      if (!imageInput?.isProcessable?.()) {
+      if (!isFollowUp && !text && !hasNewAttachments) {
+        setStatus(placeholder, EMPTY_INPUT_MESSAGE);
+        question?.focus?.();
+        return;
+      }
+
+      if (hasNewAttachments && !imageInput?.isProcessable?.()) {
         setStatus(placeholder, imageInput?.getUnsupportedMessage?.() || UNSUPPORTED_FILE_MESSAGE);
         return;
+      }
+
+      // New attachments reset old context
+      if (hasNewAttachments) {
+        currentDocContext = null;
       }
 
       button.disabled = true;
       if (result) result.hidden = true;
       if (result) result.innerHTML = '';
-      
-      currentDocContext = null;
 
       stopActiveLoadingStatus?.();
       stopActiveLoadingStatus = startStagedLoadingStatus(placeholder, DOCUMENT_AI_LOADING_STAGES);
 
       try {
-        const filesPayload = await filesToPayloads(files);
+        const filesPayload = hasNewAttachments ? await filesToPayloads(files) : [];
         const data = await requestDocumentAI(text, filesPayload);
         stopActiveLoadingStatus?.();
         stopActiveLoadingStatus = null;
@@ -566,7 +584,7 @@
             fileCount: data.attachmentContext.fileCount,
             lastAnswer: data.answer || ''
           };
-        } else {
+        } else if (!isFollowUp) {
           currentDocContext = null;
         }
 
@@ -575,6 +593,10 @@
           attachmentContext: currentDocContext
         });
         hideStatus(placeholder);
+        updateComposerPlaceholder(question, currentDocContext);
+
+        // Clear textarea after successful submit but keep composer visible
+        if (question) question.value = '';
       } catch (error) {
         stopActiveLoadingStatus?.();
         stopActiveLoadingStatus = null;
@@ -607,43 +629,31 @@
 
     result?.addEventListener('click', (event) => {
       if (!(event.target instanceof Element)) return;
-      
+
+      // Chip click → fill main composer textarea, focus it
       const chip = event.target.closest('.document-ai-chip');
       if (chip) {
-        const input = result.querySelector('#documentAiFollowUpInput');
-        if (input) {
-          input.value = chip.dataset.followUp || '';
-          input.focus();
+        if (question) {
+          question.value = chip.dataset.followUp || '';
+          question.focus();
+          question.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
         return;
       }
 
-      if (event.target.id === 'documentAiFollowUpSubmit') {
-        const input = result.querySelector('#documentAiFollowUpInput');
-        const text = input?.value?.trim() || '';
-        if (!text) return;
-        
-        const btn = event.target;
-        const originalText = btn.textContent;
-        btn.textContent = '후속 질문 연결 준비중입니다.';
-        btn.disabled = true;
-        setTimeout(() => {
-          btn.textContent = originalText;
-          btn.disabled = false;
-        }, 1500);
-      }
-
+      // "새 문서로 시작" → full reset
       if (event.target.id === 'documentAiFollowUpReset') {
         currentDocContext = null;
         result.innerHTML = '';
         result.hidden = true;
-        
+
         imageInput?.clear?.();
         if (question) {
           question.value = '';
+          updateComposerPlaceholder(question, null);
           question.focus();
         }
-        
+
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     });

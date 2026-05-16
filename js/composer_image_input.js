@@ -66,12 +66,13 @@
   function getClipboardFiles(clipboardData, policy) {
     if (!clipboardData) return [];
 
-    const files = Array.from(clipboardData.files || []).filter((candidate) => isAcceptedFile(candidate, policy));
-    if (files.length > 0) return files;
+    const itemFiles = Array.from(clipboardData.items || [])
+      .filter((item) => item?.kind === 'file')
+      .map((item) => item.getAsFile?.())
+      .filter((candidate) => isAcceptedFile(candidate, policy));
+    if (itemFiles.length > 0) return itemFiles;
 
-    return Array.from(clipboardData.items || [])
-      .filter((item) => item.kind === 'file')
-      .map((item) => item.getAsFile())
+    return Array.from(clipboardData.files || [])
       .filter((candidate) => isAcceptedFile(candidate, policy));
   }
 

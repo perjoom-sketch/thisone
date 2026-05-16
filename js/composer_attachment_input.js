@@ -138,14 +138,15 @@
     return '첨부 파일';
   }
 
-  function getClipboardFiles(clipboardData) {
+  function getClipboardFiles(clipboardData, accept = COMMON_ACCEPT) {
     if (!clipboardData) return [];
-    const files = Array.from(clipboardData.files || []).filter(Boolean);
-    if (files.length > 0) return files;
-    return Array.from(clipboardData.items || [])
-      .filter((item) => item.kind === 'file')
-      .map((item) => item.getAsFile())
-      .filter(Boolean);
+    const itemFiles = Array.from(clipboardData.items || [])
+      .filter((item) => item?.kind === 'file')
+      .map((item) => item.getAsFile?.())
+      .filter((candidate) => isAcceptedFile(candidate, accept));
+    if (itemFiles.length > 0) return itemFiles;
+    return Array.from(clipboardData.files || [])
+      .filter((candidate) => isAcceptedFile(candidate, accept));
   }
 
 
@@ -344,7 +345,7 @@
 
     function handlePaste(event) {
       if (!active()) return;
-      const files = getClipboardFiles(event.clipboardData);
+      const files = getClipboardFiles(event.clipboardData, options.accept || COMMON_ACCEPT);
       if (files.length) {
         event.preventDefault();
         addFiles(files, null);

@@ -17,11 +17,25 @@
   const PASTED_TEXT_MESSAGE = '붙여넣은 텍스트가 추가되었습니다.';
   let removePasteListener = null;
 
+  const DOCUMENT_AI_UPLOAD_POLICY = {
+    id: 'documentAiImage',
+    label: '해석 파일',
+    uploadLabel: '문서·사진 업로드',
+    mobileUploadLabel: '문서·사진 업로드',
+    accept: 'application/pdf,image/jpeg,image/png,image/webp,text/plain,.pdf,.txt',
+    allowImages: true,
+    allowDocuments: true,
+    previewMode: 'auto',
+    fileChipLabel: '해석 파일',
+    unsupportedMessage: UNSUPPORTED_FILE_MESSAGE
+  };
+
   const SUPPORTED_FILE_TYPES = new Set([
     'application/pdf',
     'image/jpeg',
     'image/png',
-    'image/webp'
+    'image/webp',
+    'text/plain'
   ]);
 
   function isSupportedFile(file) {
@@ -130,7 +144,7 @@
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result || ''));
-      reader.onerror = () => reject(new Error('이미지를 읽을 수 없습니다.'));
+      reader.onerror = () => reject(new Error('파일을 읽을 수 없습니다.'));
       reader.readAsDataURL(file);
     });
   }
@@ -178,11 +192,15 @@
     `;
   }
 
-  async function requestDocumentAI(question, imageDataUrl) {
+  async function requestDocumentAI(question, filePayload) {
     const response = await fetch('/api/documentAi', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question, imageDataUrl })
+      body: JSON.stringify({
+        question,
+        file: filePayload || null,
+        imageDataUrl: filePayload?.type?.startsWith?.('image/') ? filePayload.dataUrl : ''
+      })
     });
 
     const text = await response.text();
@@ -244,13 +262,13 @@
         </div>
 
         <div class="ai-tool-composer document-ai-composer" id="documentAiUpload">
-          ${global.ThisOneComposerImageInput?.render?.({ id: 'documentAiImage', label: '해석 이미지' }) || ''}
+          ${global.ThisOneComposerImageInput?.render?.(DOCUMENT_AI_UPLOAD_POLICY) || ''}
           <div class="ai-tool-input document-ai-composer-top">
             <textarea class="document-ai-question" id="documentAiQuestion" rows="4" aria-label="해석 질문 입력창" placeholder="문서나 사진을 올리면 쉽게 풀어드려요"></textarea>
           </div>
           <div class="ai-tool-control-row document-ai-composer-bottom">
             <div class="ai-tool-left-controls document-ai-composer-left-actions">
-              ${global.ThisOneComposerImageInput?.renderControls?.({ id: 'documentAiImage', plusClass: 'document-ai-upload-action' }) || ''}
+              ${global.ThisOneComposerImageInput?.renderControls?.({ ...DOCUMENT_AI_UPLOAD_POLICY, plusClass: 'document-ai-upload-action' }) || ''}
             </div>
             <div class="ai-tool-right-controls document-ai-composer-right-actions">
               <button class="ai-tool-icon-button ai-tool-help-button document-ai-help-button" id="documentAiHelpButton" type="button" aria-expanded="false" aria-controls="documentAiHelpPanel" aria-label="해석 질문 예시 보기" title="도움말">?</button>
@@ -307,14 +325,16 @@
     global.ThisOneModeTabs?.bind?.(root);
 
     imageInput = global.ThisOneComposerImageInput?.attach?.(root, {
-      id: 'documentAiImage',
+      ...DOCUMENT_AI_UPLOAD_POLICY,
       isActive: () => root.isConnected && document.body.classList.contains('document-ai-mode'),
       beforeOpen: () => {
         if (helpPanel && helpButton) {
           helpPanel.hidden = true;
           helpButton.setAttribute('aria-expanded', 'false');
         }
-      }
+      },
+      onChange: () => hideStatus(placeholder),
+      onReject: (_file, message) => setStatus(placeholder, message || UNSUPPORTED_FILE_MESSAGE)
     });
 
     button?.addEventListener('click', async () => {
@@ -336,8 +356,12 @@
       stopActiveLoadingStatus = startStagedLoadingStatus(placeholder, DOCUMENT_AI_LOADING_STAGES);
 
       try {
-        const imageDataUrl = file ? await fileToDataUrl(file) : '';
-        const data = await requestDocumentAI(text, imageDataUrl);
+        const filePayload = file ? {
+          name: file.name || 'upload',
+          type: file.type || 'application/octet-stream',
+          dataUrl: await fileToDataUrl(file)
+        } : null;
+        const data = await requestDocumentAI(text, filePayload);
         stopActiveLoadingStatus?.();
         stopActiveLoadingStatus = null;
         renderDocumentAIResult(result, data.answer, data.sources);

@@ -185,11 +185,11 @@ body.search-mode .results-view {
   font-family: inherit;
   line-height: 1.2;
   cursor: pointer;
-  border: 1px solid #dc2626;
+  border: 1px solid #e85d2c;
   border-radius: 999rem;
-  background: #ef4444;
+  background: #ff6b35;
   color: #ffffff;
-  box-shadow: 0 0.35rem 0.75rem rgba(239, 68, 68, 0.18);
+  box-shadow: 0 0.35rem 0.75rem rgba(255, 107, 53, 0.18);
   font-size: clamp(0.95rem, 2vw, 1.25rem);
   font-weight: 800;
   letter-spacing: 0.01em;

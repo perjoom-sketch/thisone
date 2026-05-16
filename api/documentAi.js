@@ -1,16 +1,18 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { S3Client, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 
 const GEMINI_MODEL = process.env.MODEL_NAME || 'gemini-2.5-flash';
 const OPENAI_MODEL = 'gpt-5.4-mini';
 const OPENAI_CHAT_COMPLETIONS_URL = 'https://api.openai.com/v1/chat/completions';
 const SERPER_SEARCH_URL = 'https://google.serper.dev/search';
-const GEMINI_TIMEOUT_MS = 20000;
-const OPENAI_TIMEOUT_MS = 20000;
-const SERPER_TIMEOUT_MS = 4000;
+const GEMINI_TIMEOUT_MS = 25000;
+const OPENAI_TIMEOUT_MS = 25000;
+const SERPER_TIMEOUT_MS = 5000;
 const MAX_QUESTION_LENGTH = 4000;
-const MAX_SUMMARY_LENGTH = 1800;
+const MAX_SUMMARY_LENGTH = 2000;
 const MAX_SOURCE_COUNT = 5;
-const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+const MAX_LEGACY_UPLOAD_BYTES = 4 * 1024 * 1024;
+const MAX_R2_UPLOAD_BYTES = 30 * 1024 * 1024;
 const PDF_FAILURE_MESSAGES = {
   file_too_large: '파일 용량이 커서 자동 해석하지 못했습니다. 필요한 페이지만 나누어 올려주세요.',
   timeout: 'PDF 해석 시간이 초과되었습니다. 페이지 수가 많거나 내용이 복잡할 수 있습니다. 필요한 페이지만 나누어 올려주세요.',
@@ -99,6 +101,45 @@ function estimateBase64DecodedBytes(data) {
   return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
 }
 
+const s3Client = new S3Client({
+  region: 'auto',
+  endpoint: process.env.R2_ENDPOINT_URL,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY
+  }
+});
+
+async function downloadFromR2(fileKey) {
+  const command = new GetObjectCommand({
+    Bucket: process.env.R2_BUCKET_NAME,
+    Key: fileKey
+  });
+  const response = await s3Client.send(command);
+  const chunks = [];
+  for await (const chunk of response.Body) {
+    chunks.push(chunk);
+  }
+  const buffer = Buffer.concat(chunks);
+  return {
+    data: buffer.toString('base64'),
+    size: buffer.length
+  };
+}
+
+async function deleteFromR2(fileKey) {
+  if (!fileKey) return;
+  try {
+    const command = new DeleteObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: fileKey
+    });
+    await s3Client.send(command);
+  } catch (error) {
+    console.error(`[Document AI] R2 cleanup failed for ${fileKey}:`, error);
+  }
+}
+
 function parseDataUrl(dataUrl, fallbackType = '') {
   const match = String(dataUrl || '').match(/^data:([^;,]+)(?:;[^,]*)?;base64,(.+)$/);
   if (!match) return null;
@@ -109,9 +150,20 @@ function parseDataUrl(dataUrl, fallbackType = '') {
   return { mimeType, data: match[2], decodedBytes: estimateBase64DecodedBytes(match[2]) };
 }
 
-function parseUploadedFile(file, legacyImageDataUrl = '') {
+async function parseUploadedFile(file, legacyImageDataUrl = '') {
   if (file && typeof file === 'object') {
     const mimeType = normalizeMimeType(file.type);
+    
+    if (file.fileKey) {
+      const { data, size } = await downloadFromR2(file.fileKey);
+      return {
+        name: normalizeText(file.name || '업로드 파일', 160),
+        mimeType,
+        data,
+        decodedBytes: size
+      };
+    }
+
     const parsed = parseDataUrl(file.dataUrl, mimeType);
     if (!parsed || !SUPPORTED_FILE_TYPES.has(parsed.mimeType)) return null;
     return {
@@ -132,17 +184,18 @@ function parseUploadedFile(file, legacyImageDataUrl = '') {
   };
 }
 
-function parseUploadedFiles(filesArray) {
+async function parseUploadedFiles(filesArray) {
   if (!Array.isArray(filesArray)) return [];
-  return filesArray.map((file) => parseUploadedFile(file, ''));
+  const parsedPromises = filesArray.map((file) => parseUploadedFile(file, ''));
+  return Promise.all(parsedPromises);
 }
 
-function parseUploadedFileBundle(filesArray) {
+async function parseUploadedFileBundle(filesArray) {
   if (!Array.isArray(filesArray) || !filesArray.length) {
     return { files: [], hasInvalidFile: false };
   }
 
-  const parsedFiles = parseUploadedFiles(filesArray);
+  const parsedFiles = await parseUploadedFiles(filesArray);
   return {
     files: parsedFiles.filter(Boolean),
     hasInvalidFile: parsedFiles.some((file) => !file)
@@ -210,7 +263,7 @@ function inspectPdfStructure(file) {
 }
 
 function classifyPdfReadFailure(error, file) {
-  if (file?.decodedBytes > MAX_UPLOAD_BYTES) return 'file_too_large';
+  if (file?.decodedBytes > MAX_R2_UPLOAD_BYTES) return 'file_too_large';
 
   const structure = inspectPdfStructure(file);
   if (structure.isProtected) return 'password_or_protected';
@@ -589,8 +642,16 @@ module.exports = async function handler(req, res) {
     const question = normalizeText(body?.question || '');
 
     // Prefer the new multi-file bundle format (files[]) and preserve its order.
-    const uploadedBundle = parseUploadedFileBundle(body?.files);
+    const uploadedBundle = await parseUploadedFileBundle(body?.files);
+    
+    // Collect all received fileKeys for cleanup regardless of processing success
+    const fileKeysToCleanup = (body?.files || [])
+      .map(f => f?.fileKey)
+      .filter(Boolean);
+
     if (uploadedBundle.hasInvalidFile) {
+      // Trigger cleanup even on invalid request
+      await Promise.all(fileKeysToCleanup.map(deleteFromR2));
       return res.status(400).json(buildErrorPayload('현재는 PDF, JPG, PNG, WebP, 텍스트만 해석할 수 있습니다.'));
     }
 
@@ -599,18 +660,21 @@ module.exports = async function handler(req, res) {
     // Fall back to legacy single-file format (file/imageDataUrl) for backward compatibility.
     if (!uploadedFiles.length && body?.file) {
       const imageDataUrl = typeof body?.imageDataUrl === 'string' ? body.imageDataUrl : '';
-      const singleFile = parseUploadedFile(body?.file, imageDataUrl);
+      const singleFile = await parseUploadedFile(body?.file, imageDataUrl);
       uploadedFiles = singleFile ? [singleFile] : [];
     }
 
     if (!question && !uploadedFiles.length) {
+      await Promise.all(fileKeysToCleanup.map(deleteFromR2));
       return res.status(400).json(buildErrorPayload('문서나 사진, 질문을 입력해주세요.'));
     }
 
     // Check file size limits and PDF-specific failures
     let pdfReadInfo = null;
     for (const file of uploadedFiles) {
-      if (file.decodedBytes > MAX_UPLOAD_BYTES) {
+      const limit = MAX_R2_UPLOAD_BYTES; // Use the larger R2 limit for all processed files now
+      if (file.decodedBytes > limit) {
+        await Promise.all(fileKeysToCleanup.map(deleteFromR2));
         const isPdf = file.mimeType === 'application/pdf';
         const errorPayload = buildErrorPayload(isPdf ? PDF_FAILURE_MESSAGES.file_too_large : FILE_TOO_LARGE_MESSAGE);
         if (isPdf) Object.assign(errorPayload, buildPdfReadFailure('file_too_large'));
@@ -618,68 +682,78 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    let imageSummary = null;
     try {
-      imageSummary = await summarizeUploadedBundle(uploadedFiles, question);
-    } catch (error) {
-      // Check if error has pdfFailure info (from summarizeUploadedFile)
-      if (error.pdfFailure) {
-        pdfReadInfo = error.pdfFailure;
-        imageSummary = {
-          documentType: 'PDF 문서',
-          safeSummary: error.pdfFailure.pdfReadFailureMessage,
-          publicKeywords: findPublicTerms(question),
-          pdfReadFailed: true,
-          pdfReadFailureReason: error.pdfFailure.pdfReadFailureReason || '',
-          pdfReadFailureMessage: error.pdfFailure.pdfReadFailureMessage || ''
-        };
-      } else {
-        // Generic error for file summaries
-        imageSummary = {
-          documentType: uploadedFiles.length > 1 ? '문서/사진 묶음' : '이미지/문서',
-          safeSummary: '업로드 내용을 자동으로 확인하지 못했습니다. 질문에 적힌 내용 기준으로 해석합니다.',
-          publicKeywords: findPublicTerms(question),
-          pdfReadFailed: false,
-          pdfReadFailureReason: '',
-          pdfReadFailureMessage: ''
-        };
-      }
-    }
-
-    const serperQuery = buildSerperQuery({ question, imageSummary });
-    let sources = [];
-    let usedSearch = false;
-    if (serperQuery) {
+      let imageSummary = null;
       try {
-        sources = await fetchSerper(serperQuery);
-        usedSearch = sources.length > 0;
+        imageSummary = await summarizeUploadedBundle(uploadedFiles, question);
       } catch (error) {
-        sources = [];
-        usedSearch = false;
+        // Check if error has pdfFailure info (from summarizeUploadedFile)
+        if (error.pdfFailure) {
+          pdfReadInfo = error.pdfFailure;
+          imageSummary = {
+            documentType: 'PDF 문서',
+            safeSummary: error.pdfFailure.pdfReadFailureMessage,
+            publicKeywords: findPublicTerms(question),
+            pdfReadFailed: true,
+            pdfReadFailureReason: error.pdfFailure.pdfReadFailureReason || '',
+            pdfReadFailureMessage: error.pdfFailure.pdfReadFailureMessage || ''
+          };
+        } else {
+          // Generic error for file summaries
+          imageSummary = {
+            documentType: uploadedFiles.length > 1 ? '문서/사진 묶음' : '이미지/문서',
+            safeSummary: '업로드 내용을 자동으로 확인하지 못했습니다. 질문에 적힌 내용 기준으로 해석합니다.',
+            publicKeywords: findPublicTerms(question),
+            pdfReadFailed: false,
+            pdfReadFailureReason: '',
+            pdfReadFailureMessage: ''
+          };
+        }
       }
+
+      const serperQuery = buildSerperQuery({ question, imageSummary });
+      let sources = [];
+      let usedSearch = false;
+      if (serperQuery) {
+        try {
+          sources = await fetchSerper(serperQuery);
+          usedSearch = sources.length > 0;
+        } catch (error) {
+          sources = [];
+          usedSearch = false;
+        }
+      }
+
+      let answer = '';
+      if (pdfReadInfo?.pdfReadStatus === 'failed') {
+        answer = buildPdfFailureAnswer(pdfReadInfo);
+      } else {
+        answer = await generateAnswer({ question, imageSummary, sources });
+      }
+
+      const attachmentContext = imageSummary ? {
+        documentType: imageSummary.documentType || '',
+        safeSummary: imageSummary.safeSummary || '',
+        publicKeywords: imageSummary.publicKeywords || [],
+        fileCount: uploadedFiles.length
+      } : null;
+
+      // Ensure cleanup before returning successful response
+      await Promise.all(fileKeysToCleanup.map(deleteFromR2));
+
+      return res.status(200).json({
+        answer,
+        sources,
+        usedSearch,
+        attachmentContext,
+        ...(pdfReadInfo || {})
+      });
+
+    } catch (error) {
+      // Ensure cleanup on processing error
+      await Promise.all(fileKeysToCleanup.map(deleteFromR2));
+      throw error; // Rethrow to existing outer catch
     }
-
-    let answer = '';
-    if (pdfReadInfo?.pdfReadStatus === 'failed') {
-      answer = buildPdfFailureAnswer(pdfReadInfo);
-    } else {
-      answer = await generateAnswer({ question, imageSummary, sources });
-    }
-
-    const attachmentContext = imageSummary ? {
-      documentType: imageSummary.documentType || '',
-      safeSummary: imageSummary.safeSummary || '',
-      publicKeywords: imageSummary.publicKeywords || [],
-      fileCount: uploadedFiles.length
-    } : null;
-
-    return res.status(200).json({
-      answer,
-      sources,
-      usedSearch,
-      attachmentContext,
-      ...(pdfReadInfo || {})
-    });
   } catch (error) {
     const reason = error?.status === 504 ? 'timeout' : 'unknown';
     const pdfFailure = buildPdfReadFailure(reason);

@@ -139,22 +139,46 @@
     }
   }
 
-  function fileToDataUrl(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ''));
-      reader.onerror = () => reject(new Error('파일을 읽을 수 없습니다.'));
-      reader.readAsDataURL(file);
+  async function uploadFileToR2(file) {
+    const response = await fetch('/api/documentAiPresignUpload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filename: file.name,
+        type: file.type,
+        size: file.size
+      })
     });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || '업로드 준비에 실패했습니다.');
+    }
+
+    const { uploadUrl, fileKey } = await response.json();
+
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file
+    });
+
+    if (!uploadRes.ok) {
+      throw new Error('저장소 업로드에 실패했습니다.');
+    }
+
+    return fileKey;
   }
 
   async function filesToPayloads(files) {
     const payloads = [];
     for (const file of Array.from(files || [])) {
+      const fileKey = await uploadFileToR2(file);
       payloads.push({
         name: file.name || 'upload',
         type: file.type || 'application/octet-stream',
-        dataUrl: await fileToDataUrl(file)
+        fileKey,
+        size: file.size
       });
     }
     return payloads;

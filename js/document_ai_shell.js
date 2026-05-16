@@ -156,7 +156,7 @@
       .join('');
   }
 
-  function renderSources(sources) {
+  function renderSources(sources, options = {}) {
     const usableSources = (Array.isArray(sources) ? sources : [])
       .map((source) => ({
         title: String(source?.title || '').trim(),
@@ -167,7 +167,9 @@
       .slice(0, 5);
 
     if (!usableSources.length) {
-      return '<p class="document-ai-no-sources">공개 출처는 확인하지 못했고, 업로드된 내용 기준으로 정리했습니다.</p>';
+      return options.pdfReadFailed
+        ? '<p class="document-ai-no-sources">PDF 내용을 읽지 못해 공개 출처나 업로드 내용 기반 정리를 표시하지 않습니다.</p>'
+        : '<p class="document-ai-no-sources">공개 출처는 확인하지 못했고, 업로드된 내용 기준으로 정리했습니다.</p>';
     }
 
     return `
@@ -211,8 +213,8 @@
   }
 
   function getSafeDocumentAIServerMessage(data) {
-    const message = String(data?.error || '').trim();
-    if (!message || /[<>]/.test(message) || message.length > 180) return '';
+    const message = String(data?.error || data?.pdfReadFailureMessage || '').trim();
+    if (!message || /[<>]/.test(message) || message.length > 220) return '';
     return message;
   }
 
@@ -249,17 +251,25 @@
       throw new Error(getDocumentAIStatusMessage(response.status));
     }
 
+    if (data?.pdfReadStatus === 'failed') {
+      const serverMessage = getSafeDocumentAIServerMessage(data);
+      const answer = String(data?.answer || '').trim();
+      if (serverMessage && !answer.startsWith(serverMessage)) {
+        data.answer = answer ? `${serverMessage}\n\n${answer}` : serverMessage;
+      }
+    }
+
     return data || { answer: '', sources: [], usedSearch: false };
   }
 
-  function renderDocumentAIResult(result, answer, sources) {
+  function renderDocumentAIResult(result, answer, sources, options = {}) {
     if (!result) return;
     const safeAnswer = String(answer || '').trim();
     result.innerHTML = `
       <article class="document-ai-answer">
         ${safeAnswer ? renderAnswerText(safeAnswer) : '<p>해석 결과가 비어 있습니다. 다시 시도해주세요.</p>'}
       </article>
-      ${renderSources(sources)}
+      ${renderSources(sources, options)}
     `;
     result.hidden = false;
   }
@@ -398,7 +408,9 @@
         const data = await requestDocumentAI(text, filePayload);
         stopActiveLoadingStatus?.();
         stopActiveLoadingStatus = null;
-        renderDocumentAIResult(result, data.answer, data.sources);
+        renderDocumentAIResult(result, data.answer, data.sources, {
+          pdfReadFailed: data.pdfReadStatus === 'failed'
+        });
         hideStatus(placeholder);
       } catch (error) {
         stopActiveLoadingStatus?.();

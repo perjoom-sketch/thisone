@@ -272,6 +272,27 @@
     return data || { answer: '', sources: [], usedSearch: false };
   }
 
+  function renderDocumentAIFollowUp(context) {
+    if (!context) return '';
+    return `
+      <section class="document-ai-follow-up">
+        <h4 class="document-ai-follow-up-title">이 문서를 기준으로 이어서 물어보세요.</h4>
+        <div class="document-ai-follow-up-chips">
+          <button type="button" class="document-ai-chip" data-follow-up="핵심만 다시 요약해줘">핵심만 다시 요약해줘</button>
+          <button type="button" class="document-ai-chip" data-follow-up="주의사항만 알려줘">주의사항만 알려줘</button>
+          <button type="button" class="document-ai-chip" data-follow-up="설정 방법 다시 설명해줘">설정 방법 다시 설명해줘</button>
+        </div>
+        <div class="document-ai-follow-up-input-row">
+          <input type="text" class="document-ai-follow-up-input" id="documentAiFollowUpInput" placeholder="질문을 입력하세요" aria-label="후속 질문 입력창">
+          <button type="button" class="document-ai-action-button" id="documentAiFollowUpSubmit">이어 질문하기</button>
+        </div>
+        <div class="document-ai-follow-up-footer">
+          <button type="button" class="document-ai-text-button" id="documentAiFollowUpReset">새 문서로 시작</button>
+        </div>
+      </section>
+    `;
+  }
+
   function renderDocumentAIResult(result, answer, sources, options = {}) {
     if (!result) return;
     const safeAnswer = String(answer || '').trim();
@@ -280,6 +301,7 @@
         ${safeAnswer ? renderAnswerText(safeAnswer) : '<p>해석 결과가 비어 있습니다. 다시 시도해주세요.</p>'}
       </article>
       ${renderSources(sources, options)}
+      ${options.attachmentContext && !options.pdfReadFailed ? renderDocumentAIFollowUp(options.attachmentContext) : ''}
     `;
     result.hidden = false;
   }
@@ -439,7 +461,8 @@
         }
 
         renderDocumentAIResult(result, data.answer, data.sources, {
-          pdfReadFailed: data.pdfReadStatus === 'failed'
+          pdfReadFailed: data.pdfReadStatus === 'failed',
+          attachmentContext: currentDocContext
         });
         hideStatus(placeholder);
       } catch (error) {
@@ -472,6 +495,48 @@
       question.focus();
     });
 
+    result?.addEventListener('click', (event) => {
+      if (!(event.target instanceof Element)) return;
+      
+      const chip = event.target.closest('.document-ai-chip');
+      if (chip) {
+        const input = result.querySelector('#documentAiFollowUpInput');
+        if (input) {
+          input.value = chip.dataset.followUp || '';
+          input.focus();
+        }
+        return;
+      }
+
+      if (event.target.id === 'documentAiFollowUpSubmit') {
+        const input = result.querySelector('#documentAiFollowUpInput');
+        const text = input?.value?.trim() || '';
+        if (!text) return;
+        
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.textContent = '후속 질문 연결 준비중입니다.';
+        btn.disabled = true;
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.disabled = false;
+        }, 1500);
+      }
+
+      if (event.target.id === 'documentAiFollowUpReset') {
+        currentDocContext = null;
+        result.innerHTML = '';
+        result.hidden = true;
+        
+        imageInput?.clear?.();
+        if (question) {
+          question.value = '';
+          question.focus();
+        }
+        
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
 
     removePasteListener = () => {
       stopActiveLoadingStatus?.();

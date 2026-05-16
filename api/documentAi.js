@@ -11,8 +11,16 @@ const MAX_QUESTION_LENGTH = 4000;
 const MAX_SUMMARY_LENGTH = 1800;
 const MAX_SOURCE_COUNT = 5;
 const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+const PDF_FAILURE_MESSAGES = {
+  file_too_large: '파일 용량이 커서 자동 해석하지 못했습니다. 필요한 페이지만 나누어 올려주세요.',
+  timeout: 'PDF 해석 시간이 초과되었습니다. 페이지 수가 많거나 내용이 복잡할 수 있습니다. 필요한 페이지만 나누어 올려주세요.',
+  password_or_protected: '암호가 걸렸거나 보호된 PDF라 내용을 읽지 못했습니다. 암호를 해제한 파일이나 캡처 이미지를 올려주세요.',
+  scanned_or_image_only: '스캔본 PDF라 글자를 안정적으로 읽지 못했습니다. 필요한 페이지를 이미지로 캡처하거나 텍스트를 복사해 올려주세요.',
+  unsupported_pdf_structure: '이 PDF 구조를 자동 해석하지 못했습니다. 텍스트를 복사하거나 필요한 페이지만 이미지로 올려주세요.',
+  model_read_failed: 'PDF 읽기 과정에서 AI 응답이 실패했습니다. 다시 시도하거나 필요한 페이지만 나누어 올려주세요.',
+  unknown: 'PDF 내용을 자동으로 읽지 못했습니다. 필요한 페이지를 이미지로 캡처하거나 텍스트를 복사해 올려주세요.'
+};
 const FILE_TOO_LARGE_MESSAGE = '파일이 너무 큽니다. 용량을 줄이거나 필요한 페이지만 캡처해서 올려주세요.';
-const PDF_READ_FAILED_MESSAGE = 'PDF 내용을 자동으로 읽지 못했습니다. 필요한 페이지를 이미지로 캡처하거나 텍스트를 복사해 올리면 더 정확히 해석할 수 있습니다.';
 const SUPPORTED_FILE_TYPES = new Set([
   'application/pdf',
   'image/jpeg',
@@ -141,14 +149,76 @@ function decodeBase64Text(data) {
   }
 }
 
-function buildTimeoutPromise(timeoutMs, label) {
-  return new Promise((_, reject) => {
-    setTimeout(() => {
-      const error = new Error(`${label} timeout`);
-      error.status = 504;
-      reject(error);
-    }, timeoutMs);
-  });
+function decodeBase64Buffer(data) {
+  try {
+    return Buffer.from(String(data || ''), 'base64');
+  } catch (error) {
+    return Buffer.alloc(0);
+  }
+}
+
+function buildPdfReadFailure(reason = 'unknown') {
+  const safeReason = Object.prototype.hasOwnProperty.call(PDF_FAILURE_MESSAGES, reason) ? reason : 'unknown';
+  return {
+    pdfReadStatus: 'failed',
+    pdfReadFailureReason: safeReason,
+    pdfReadFailureMessage: PDF_FAILURE_MESSAGES[safeReason]
+  };
+}
+
+function buildPdfReadSuccess() {
+  return {
+    pdfReadStatus: 'read',
+    pdfReadFailureReason: '',
+    pdfReadFailureMessage: ''
+  };
+}
+
+function inspectPdfStructure(file) {
+  const buffer = decodeBase64Buffer(file?.data);
+  if (!buffer.length) return { hasPdfHeader: false, isProtected: false, isLikelyScanned: false };
+
+  const sampleStart = buffer.subarray(0, Math.min(buffer.length, 4096)).toString('latin1');
+  const sample = buffer.subarray(0, Math.min(buffer.length, 250000)).toString('latin1');
+  const isProtected = /\/Encrypt\b|\/StdCF\b|\/Perms\b|\/Filter\s*\/Standard\b/.test(sample);
+  const imageCount = (sample.match(/\/Subtype\s*\/Image\b/g) || []).length;
+  const textSignalCount = (sample.match(/\b(?:Tj|TJ|BT|ET)\b|\/ToUnicode\b|\/Font\b/g) || []).length;
+  const hasPdfHeader = /^%PDF-/.test(sampleStart);
+
+  return {
+    hasPdfHeader,
+    isProtected,
+    isLikelyScanned: imageCount >= 2 && textSignalCount === 0
+  };
+}
+
+function classifyPdfReadFailure(error, file) {
+  if (file?.decodedBytes > MAX_UPLOAD_BYTES) return 'file_too_large';
+
+  const structure = inspectPdfStructure(file);
+  if (structure.isProtected) return 'password_or_protected';
+  if (structure.isLikelyScanned) return 'scanned_or_image_only';
+  if (structure.hasPdfHeader === false) return 'unsupported_pdf_structure';
+
+  const message = String(error?.message || error || '').toLowerCase();
+  if (error?.status === 504 || /timeout|timed out|abort/.test(message)) return 'timeout';
+  if (/password|protected|encrypted|permission|security|decrypt|암호|보호/.test(message)) return 'password_or_protected';
+  if (/scan|scanned|image-only|image only|ocr|no text|스캔/.test(message)) return 'scanned_or_image_only';
+  if (/pdf|parse|parser|malformed|invalid|unsupported|structure|구조|지원/.test(message)) return 'unsupported_pdf_structure';
+  if (/gemini|google|model|candidate|finish|response|503|429|ai|openai/.test(message)) return 'model_read_failed';
+
+  return 'unknown';
+}
+
+function buildPdfFailureAnswer(pdfFailure) {
+  const message = pdfFailure?.pdfReadFailureMessage || PDF_FAILURE_MESSAGES.unknown;
+  return `${message}\n\nPDF 내용을 읽은 것처럼 답변하지 않겠습니다. 필요한 페이지만 나누어 올리거나, 해당 페이지를 이미지로 캡처하거나, 텍스트를 복사해 올려주시면 더 정확히 해석할 수 있습니다.`;
+}
+
+function buildTimeoutError(label) {
+  const error = new Error(`${label} timeout`);
+  error.status = 504;
+  return error;
 }
 
 async function readBody(req) {
@@ -184,11 +254,18 @@ async function callGemini(parts, timeoutMs = GEMINI_TIMEOUT_MS) {
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
-  const result = await Promise.race([
-    model.generateContent(parts),
-    buildTimeoutPromise(timeoutMs, 'Gemini')
-  ]);
-  return result?.response?.text?.() || '';
+  let timeoutId;
+  try {
+    const result = await Promise.race([
+      model.generateContent(parts),
+      new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(buildTimeoutError('Gemini')), timeoutMs);
+      })
+    ]);
+    return result?.response?.text?.() || '';
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 async function callOpenAI(messages, timeoutMs = OPENAI_TIMEOUT_MS) {
@@ -263,6 +340,7 @@ JSON 형식:
     { text: prompt },
     { inlineData: { mimeType: file.mimeType, data: file.data } }
   ]);
+  if (!String(text || '').trim()) throw new Error('Gemini model response was empty');
   const parsed = extractJsonObject(text) || {};
   return {
     documentType: normalizeText(parsed.documentType || (file.mimeType === 'application/pdf' ? 'PDF 문서' : '문서/사진'), 80),
@@ -461,22 +539,30 @@ module.exports = async function handler(req, res) {
     }
 
     if (uploadedFile?.decodedBytes > MAX_UPLOAD_BYTES) {
-      return res.status(413).json(buildErrorPayload(FILE_TOO_LARGE_MESSAGE));
+      const isPdf = uploadedFile.mimeType === 'application/pdf';
+      const errorPayload = buildErrorPayload(isPdf ? PDF_FAILURE_MESSAGES.file_too_large : FILE_TOO_LARGE_MESSAGE);
+      if (isPdf) Object.assign(errorPayload, buildPdfReadFailure('file_too_large'));
+      return res.status(413).json(errorPayload);
     }
 
     let imageSummary = null;
+    let pdfReadInfo = uploadedFile?.mimeType === 'application/pdf' ? buildPdfReadSuccess() : null;
     if (uploadedFile) {
       try {
         imageSummary = await summarizeUploadedFile(uploadedFile, question);
       } catch (error) {
         const isPdf = uploadedFile.mimeType === 'application/pdf';
+        const pdfFailure = isPdf ? buildPdfReadFailure(classifyPdfReadFailure(error, uploadedFile)) : null;
+        if (pdfFailure) pdfReadInfo = pdfFailure;
         imageSummary = {
           documentType: isPdf ? 'PDF 문서' : '이미지/문서',
           safeSummary: isPdf
-            ? PDF_READ_FAILED_MESSAGE
+            ? pdfFailure.pdfReadFailureMessage
             : '업로드 내용을 자동으로 확인하지 못했습니다. 질문에 적힌 내용 기준으로 해석합니다.',
           publicKeywords: findPublicTerms(question),
-          pdfReadFailed: isPdf
+          pdfReadFailed: isPdf,
+          pdfReadFailureReason: pdfFailure?.pdfReadFailureReason || '',
+          pdfReadFailureMessage: pdfFailure?.pdfReadFailureMessage || ''
         };
       }
     }
@@ -494,20 +580,25 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    let answer = await generateAnswer({ question, imageSummary, sources });
-    if (imageSummary?.pdfReadFailed && !answer.includes(PDF_READ_FAILED_MESSAGE)) {
-      answer = `${PDF_READ_FAILED_MESSAGE}\n\n${answer}`;
+    let answer = '';
+    if (pdfReadInfo?.pdfReadStatus === 'failed') {
+      answer = buildPdfFailureAnswer(pdfReadInfo);
+    } else {
+      answer = await generateAnswer({ question, imageSummary, sources });
     }
+
     return res.status(200).json({
       answer,
       sources,
-      usedSearch
+      usedSearch,
+      ...(pdfReadInfo || {})
     });
   } catch (error) {
-    return res.status(error?.status === 504 ? 504 : 500).json(buildErrorPayload(
-      error?.status === 504
-        ? 'PDF 해석 시간이 초과되었습니다. 필요한 페이지만 나누어 올려주세요.'
-        : 'PDF 해석 중 오류가 발생했습니다. 이미지로 캡처하거나 텍스트를 복사해 다시 시도해 주세요.'
-    ));
+    const reason = error?.status === 504 ? 'timeout' : 'unknown';
+    const pdfFailure = buildPdfReadFailure(reason);
+    return res.status(error?.status === 504 ? 504 : 500).json({
+      ...buildErrorPayload(pdfFailure.pdfReadFailureMessage),
+      ...pdfFailure
+    });
   }
 };

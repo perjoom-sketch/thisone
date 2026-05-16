@@ -26,6 +26,10 @@
 
     * { box-sizing: border-box; }
 
+    .print-only {
+      display: none;
+    }
+
     body {
       margin: 0;
       background: radial-gradient(circle at top left, #eef5ff 0, var(--bg) min(38vw, 34rem));
@@ -220,6 +224,18 @@
     .operator-button:focus-visible {
       outline: clamp(0.12rem, 0.35vw, 0.2rem) solid rgba(37, 99, 235, 0.28);
       outline-offset: clamp(0.12rem, 0.35vw, 0.2rem);
+    }
+
+    .print-action-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: clamp(0.85rem, 2vw, 1.1rem);
+    }
+
+    .print-button {
+      border-color: #bfdbfe;
+      background: var(--blue);
+      color: #ffffff;
     }
 
     .operator-message {
@@ -636,6 +652,333 @@
     }
 
 
+
+
+    @media print {
+      @page {
+        size: A4;
+        margin: 10mm;
+      }
+
+      :root {
+        --bg: #ffffff;
+        --panel: #ffffff;
+        --panel-soft: #ffffff;
+        --text: #111111;
+        --muted: #444444;
+        --line: #bdbdbd;
+        --blue: #111111;
+        --blue-soft: #ffffff;
+        --green: #111111;
+        --green-soft: #ffffff;
+        --orange: #111111;
+        --orange-soft: #ffffff;
+        --red: #111111;
+        --red-soft: #ffffff;
+      }
+
+      * {
+        box-shadow: none !important;
+        text-shadow: none !important;
+      }
+
+      html,
+      body {
+        width: 100%;
+        margin: 0;
+        background: #ffffff !important;
+        color: #111111;
+      }
+
+      body {
+        font-size: 10pt;
+        line-height: 1.35;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      main {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      .screen-only,
+      .no-print,
+      button,
+      input,
+      select,
+      textarea,
+      .operator-panel,
+      .reset-panel,
+      .guidance-row,
+      .notice-list,
+      .summary-help,
+      .operator-message,
+      .operator-diagnostic,
+      .print-action-row {
+        display: none !important;
+      }
+
+      .print-only {
+        display: block !important;
+      }
+
+      header,
+      section,
+      .status-row,
+      .metric-row,
+      .table-row,
+      .chart-panel,
+      .chart-empty {
+        background: #ffffff !important;
+        border: 1px solid #bdbdbd;
+        border-radius: 0;
+        box-shadow: none !important;
+      }
+
+      header.screen-only {
+        display: none !important;
+      }
+
+      .print-report-header {
+        margin: 0 0 6mm;
+        padding: 0 0 4mm;
+        border: 0;
+        border-bottom: 2px solid #111111;
+      }
+
+      .print-report-header h1 {
+        margin: 0 0 2mm;
+        color: #111111;
+        font-size: 18pt;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+      }
+
+      .print-report-meta {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2mm 5mm;
+        margin: 0;
+        color: #222222;
+        font-size: 9pt;
+      }
+
+      .print-report-meta span {
+        display: block;
+      }
+
+      .print-report-note {
+        margin: 3mm 0 0;
+        padding: 2mm 3mm;
+        border: 1px solid #bdbdbd;
+        color: #222222;
+        font-size: 9pt;
+      }
+
+      .stack {
+        gap: 5mm;
+        margin-top: 0;
+      }
+
+      section {
+        padding: 4mm;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      h2 {
+        margin: 0 0 2mm;
+        color: #111111;
+        font-size: 13pt;
+      }
+
+      p {
+        margin: 1mm 0 0;
+        color: #333333;
+        font-size: 9pt;
+        line-height: 1.35;
+      }
+
+      .metric-list {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 3mm;
+        margin-top: 3mm;
+      }
+
+      .metric-row {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: 2mm;
+        padding: 3mm;
+        min-height: 0;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .metric-copy,
+      .status-copy,
+      .guidance-copy {
+        width: 100%;
+      }
+
+      .eyebrow {
+        color: #333333;
+        font-size: 7.5pt;
+        letter-spacing: 0.03em;
+      }
+
+      .value {
+        margin-top: 1mm;
+        color: #111111;
+        font-size: 15pt;
+      }
+
+      .detail {
+        display: block;
+        margin-top: 1mm;
+        color: #333333;
+        font-size: 8pt;
+        line-height: 1.35;
+      }
+
+      .pill {
+        min-width: 0;
+        border: 1px solid #999999;
+        border-radius: 999px;
+        padding: 1mm 2mm;
+        background: #ffffff !important;
+        color: #111111 !important;
+        font-size: 8pt;
+      }
+
+      .chart-panel {
+        gap: 2mm;
+        margin-top: 3mm;
+        padding: 3mm;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .chart-title {
+        font-size: 10pt;
+      }
+
+      .chart-list {
+        gap: 1.6mm;
+      }
+
+      .chart-row {
+        grid-template-columns: minmax(26mm, 0.36fr) 1fr minmax(14mm, 0.14fr);
+        gap: 2mm;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .chart-label,
+      .chart-count {
+        font-size: 8pt;
+      }
+
+      .bar-track {
+        min-height: 3mm;
+        border: 1px solid #d0d0d0;
+        background: #ffffff;
+      }
+
+      .bar-fill,
+      .bar-fill.external,
+      .bar-fill.internal {
+        min-height: 3mm;
+        background: #666666;
+      }
+
+      .line-chart {
+        min-height: 42mm;
+        max-height: 48mm;
+      }
+
+      .line-chart-grid {
+        stroke: #d0d0d0;
+      }
+
+      .line-chart-line {
+        stroke: #111111;
+        stroke-width: 2;
+      }
+
+      .line-chart-point {
+        fill: #ffffff;
+        stroke: #111111;
+      }
+
+      .line-chart-label {
+        fill: #222222;
+        font-size: 7pt;
+      }
+
+      .line-chart-date-label {
+        font-size: 6pt;
+      }
+
+      .line-chart-helper,
+      .chart-empty {
+        margin-top: 1mm;
+        padding: 2mm;
+        color: #333333;
+        font-size: 8pt;
+      }
+
+      .table-list {
+        gap: 3mm;
+        margin-top: 3mm;
+      }
+
+      .table-row,
+      .table-wrap,
+      table,
+      tr {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .table-row {
+        padding: 0;
+        border: 0;
+      }
+
+      .table-wrap {
+        overflow: visible;
+      }
+
+      table {
+        font-size: 8.5pt;
+      }
+
+      th,
+      td {
+        padding: 1.8mm 2mm;
+        border: 1px solid #d0d0d0;
+      }
+
+      th {
+        color: #111111;
+        background: #f2f2f2;
+        font-size: 8pt;
+      }
+
+      .label-primary,
+      .label-note,
+      code {
+        color: #111111;
+      }
+    }
+
+
     @media (max-width: 640px) {
       main {
         width: min(96vw, 68rem);
@@ -672,13 +1015,25 @@
 </head>
 <body>
   <main>
-    <header>
+    <header class="print-report-header print-only" aria-label="인쇄용 보고서 머리말">
+      <h1>디스원 사용 통계 보고서</h1>
+      <div class="print-report-meta">
+        <span>기준: <strong id="printTrafficView">전체</strong></span>
+        <span>출력일: <strong id="printGeneratedAt">-</strong></span>
+        <span>저장소 상태: <strong id="printStorageStatus">확인 중</strong></span>
+      </div>
+      <p class="print-report-note">이 보고서는 원시 질문, 문서 내용, 이미지 데이터, IP 주소를 포함하지 않습니다.</p>
+    </header>
+    <header class="screen-only">
       <span class="eyebrow">내부 관리자 도구</span>
       <h1>디스원 사용 통계</h1>
       <p>디스원 운영 준비를 위해 집계된 이벤트 수만 확인하는 내부용 페이지입니다.</p>
       <div class="notice-list" aria-label="개인정보 및 광고주 지표 안내">
         <p class="notice">이 화면은 원시 질문이나 문서 내용을 보여주지 않고, 집계된 이벤트 수만 표시합니다.</p>
         <p class="notice warn">광고주용 수치에서는 <code>isInternal=true</code> 내부 테스트 이벤트를 반드시 제외해야 합니다.</p>
+      </div>
+      <div class="print-action-row">
+        <button type="button" id="printReportButton" class="operator-button print-button">인쇄 / PDF 저장</button>
       </div>
       <div class="status-row" aria-live="polite">
         <div class="status-copy">
@@ -772,6 +1127,14 @@
         </div>
         <div id="emptyState" class="chart-empty" hidden>아직 읽을 수 있는 저장소가 설정되지 않아 실제 집계는 표시되지 않습니다.</div>
         <div id="periodMetrics" class="metric-list"></div>
+        <div class="table-row print-only" aria-label="실제 사용자와 내부 테스트 분리 수치">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>기간</th><th>실제 방문자</th><th>내부 방문자</th><th>실제 페이지뷰</th><th>내부 페이지뷰</th><th>실제 이벤트</th><th>내부 이벤트</th></tr></thead>
+              <tbody id="trafficSplitRows"></tbody>
+            </table>
+          </div>
+        </div>
         <div class="chart-panel" aria-labelledby="periodChartTitle">
           <div class="chart-title" id="periodChartTitle">기간별 이벤트 막대 그래프</div>
           <div id="periodChart" class="chart-list"></div>
@@ -1082,6 +1445,29 @@
       if (element) element.textContent = value;
     }
 
+    function formatReportTimestamp(date = new Date()) {
+      const pad = (value) => String(value).padStart(2, '0');
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
+    function updatePrintReportMeta(response = currentResponseState) {
+      const configured = Boolean(response.storageConfigured);
+      setText('printTrafficView', getTrafficViewLabel());
+      setText('printGeneratedAt', formatReportTimestamp());
+      setText('printStorageStatus', configured ? 'Redis 집계 저장소 설정됨' : '저장소 미설정');
+    }
+
+    function bindPrintReportButton() {
+      document.getElementById('printReportButton')?.addEventListener('click', () => {
+        updatePrintReportMeta();
+        window.print();
+      });
+
+      window.addEventListener('beforeprint', () => {
+        updatePrintReportMeta();
+      });
+    }
+
     function translateMessage(message, configured) {
       if (!message) {
         return configured
@@ -1253,6 +1639,31 @@
         copy.append(eyebrow, value, detail);
         row.append(copy, pill);
         container.append(row);
+      });
+    }
+
+    function renderTrafficSplitRows(summary) {
+      const tbody = document.getElementById('trafficSplitRows');
+      if (!tbody) return;
+      tbody.replaceChildren();
+
+      PERIOD_LABELS.forEach(([key, label]) => {
+        const period = summary[key] || EMPTY_PERIOD;
+        const row = document.createElement('tr');
+        [
+          label,
+          toCount(period.externalVisitors).toLocaleString(),
+          toCount(period.internalVisitors).toLocaleString(),
+          toCount(period.externalPageViews).toLocaleString(),
+          toCount(period.internalPageViews).toLocaleString(),
+          toCount(period.externalEvents).toLocaleString(),
+          toCount(period.internalEvents).toLocaleString()
+        ].forEach((value) => {
+          const cell = document.createElement('td');
+          cell.textContent = value;
+          row.append(cell);
+        });
+        tbody.append(row);
       });
     }
 
@@ -1510,9 +1921,11 @@
       const summary = response.summary || EMPTY_SUMMARY;
       currentSummary = summary;
       currentResponseState = { ...response, summary };
+      updatePrintReportMeta(currentResponseState);
       const emptyState = document.getElementById('emptyState');
       updateStatus(response);
       renderPeriods(summary);
+      renderTrafficSplitRows(summary);
       renderPeriodChart(summary);
       renderAudienceChart(summary);
       renderDailyVisitorChart(summary);
@@ -1563,6 +1976,8 @@
     bindInternalUserControls();
     bindTrafficViewFilter();
     bindAnalyticsResetControls();
+    bindPrintReportButton();
+    updatePrintReportMeta();
     loadSummary();
   </script>
 </body>

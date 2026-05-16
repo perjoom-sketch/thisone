@@ -25,7 +25,8 @@
       previewMode: options.previewMode || (allowDocuments ? 'auto' : 'image'),
       uploadLabel: options.uploadLabel || '',
       mobileUploadLabel: options.mobileUploadLabel || '',
-      unsupportedMessage: options.unsupportedMessage || DEFAULT_UNSUPPORTED_MESSAGE
+      unsupportedMessage: options.unsupportedMessage || DEFAULT_UNSUPPORTED_MESSAGE,
+      maxFiles: Math.max(1, Number(options.maxFiles || 1))
     };
   }
 
@@ -62,40 +63,28 @@
     return /^image\//.test(file?.type || '');
   }
 
-  function getClipboardFile(clipboardData, policy) {
-    if (!clipboardData) return null;
+  function getClipboardFiles(clipboardData, policy) {
+    if (!clipboardData) return [];
 
-    const files = Array.from(clipboardData.files || []);
-    const directFile = files.find((candidate) => isAcceptedFile(candidate, policy));
-    if (directFile) return directFile;
+    const files = Array.from(clipboardData.files || []).filter((candidate) => isAcceptedFile(candidate, policy));
+    if (files.length > 0) return files;
 
     return Array.from(clipboardData.items || [])
       .filter((item) => item.kind === 'file')
       .map((item) => item.getAsFile())
-      .find((candidate) => isAcceptedFile(candidate, policy)) || null;
+      .filter((candidate) => isAcceptedFile(candidate, policy));
   }
+
 
   function render(options = {}) {
     const id = options.id || 'composerImage';
-    const label = options.label || '이미지';
-    const chipLabel = options.fileChipLabel || '선택한 파일';
     return `
       <div class="composer-img-preview img-preview" id="${escapeHtml(id)}Preview" aria-live="polite">
-        <div class="pv-item" id="${escapeHtml(id)}PreviewItem">
-          <img class="pv-img" id="${escapeHtml(id)}PreviewImg" src="" alt="${escapeHtml(label)} 미리보기">
-          <div class="composer-file-chip" id="${escapeHtml(id)}FileChip" hidden>
-            <span class="composer-file-chip-icon" aria-hidden="true">📄</span>
-            <span class="composer-file-chip-text">
-              <span class="composer-file-chip-label">${escapeHtml(chipLabel)}</span>
-              <span class="composer-file-chip-name" id="${escapeHtml(id)}FileName"></span>
-              <span class="composer-file-chip-type" id="${escapeHtml(id)}FileType"></span>
-            </span>
-          </div>
-          <button class="pv-del" id="${escapeHtml(id)}Remove" type="button" aria-label="선택한 파일 제거" title="선택한 파일 제거">✕</button>
-        </div>
+        <div class="composer-attachment-list" id="${escapeHtml(id)}PreviewList"></div>
       </div>
     `;
   }
+
 
   function isMobileLike() {
     try {
@@ -122,7 +111,7 @@
         <div class="composer-plus-menu ${escapeHtml(menuClass)}" id="${escapeHtml(id)}Menu" role="menu" hidden>
           <button class="composer-plus-menu-item ${escapeHtml(itemClass)}" id="${escapeHtml(id)}UploadButton" type="button" role="menuitem"><span aria-hidden="true">${icon}</span><span>${escapeHtml(uploadLabel)}</span></button>
         </div>
-        <input class="composer-image-file-input" id="${escapeHtml(id)}UploadInput" type="file" accept="${escapeHtml(policy.accept)}" hidden>
+        <input class="composer-image-file-input" id="${escapeHtml(id)}UploadInput" type="file" accept="${escapeHtml(policy.accept)}" multiple hidden>
       </div>
     `;
   }
@@ -138,15 +127,10 @@
     const uploadButton = root.querySelector(`#${id}UploadButton`);
     const uploadInput = root.querySelector(`#${id}UploadInput`);
     const preview = root.querySelector(`#${id}Preview`);
-    const previewItem = root.querySelector(`#${id}PreviewItem`);
-    const previewImg = root.querySelector(`#${id}PreviewImg`);
-    const fileChip = root.querySelector(`#${id}FileChip`);
-    const fileName = root.querySelector(`#${id}FileName`);
-    const fileType = root.querySelector(`#${id}FileType`);
-    const removeButton = root.querySelector(`#${id}Remove`);
+    const previewList = root.querySelector(`#${id}PreviewList`);
     let selectedFileInput = null;
-    let selectedFile = null;
-    let selectedFilePreviewUrl = '';
+    let selectedFiles = [];
+    let selectedFilePreviewUrls = [];
 
     function setPlusMenuOpen(isOpen) {
       if (!plusButton || !plusMenu) return;
@@ -161,31 +145,31 @@
       fileInput.click();
     }
 
-    function revokePreviewUrl() {
-      if (!selectedFilePreviewUrl) return;
-      URL.revokeObjectURL(selectedFilePreviewUrl);
-      selectedFilePreviewUrl = '';
+    function revokePreviewUrls() {
+      selectedFilePreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+      selectedFilePreviewUrls = [];
     }
 
     function resetPreview() {
-      revokePreviewUrl();
-      if (previewImg) {
-        previewImg.removeAttribute('src');
-        previewImg.hidden = false;
-      }
-      if (fileChip) fileChip.hidden = true;
-      if (fileName) fileName.textContent = '';
-      if (fileType) fileType.textContent = '';
-      if (previewItem) previewItem.classList.remove('is-file-chip');
+      revokePreviewUrls();
+      if (previewList) previewList.innerHTML = '';
       if (preview) preview.classList.remove('show');
+    }
+
+    function getFiles() {
+      return selectedFiles.slice();
+    }
+
+    function emitChange() {
+      if (typeof options.onChange === 'function') options.onChange(selectedFiles[0] || null, { files: getFiles() });
     }
 
     function clear() {
       if (selectedFileInput) selectedFileInput.value = '';
       selectedFileInput = null;
-      selectedFile = null;
+      selectedFiles = [];
       resetPreview();
-      if (typeof options.onChange === 'function') options.onChange(null);
+      emitChange();
     }
 
     function reject(file) {
@@ -193,54 +177,104 @@
       if (typeof options.onReject === 'function') options.onReject(file, policy.unsupportedMessage);
     }
 
-    function renderSelectedFile(file) {
+    function renderSelectedFiles() {
       resetPreview();
-      if (isImageFile(file) && policy.previewMode !== 'file') {
-        if (previewImg) {
-          selectedFilePreviewUrl = URL.createObjectURL(file);
-          previewImg.src = selectedFilePreviewUrl;
-          previewImg.hidden = false;
+      if (!selectedFiles.length) return;
+      selectedFiles.forEach((file, index) => {
+        const item = document.createElement('div');
+        item.className = 'pv-item composer-attachment-item';
+        const fileName = escapeHtml(file.name || '업로드 파일');
+        const removeLabel = escapeHtml(`${file.name || '첨부 파일'} 제거`);
+        if (isImageFile(file) && policy.previewMode !== 'file') {
+          const previewUrl = URL.createObjectURL(file);
+          selectedFilePreviewUrls.push(previewUrl);
+          item.innerHTML = `
+            <img class="pv-img" src="${escapeHtml(previewUrl)}" alt="${fileName} 미리보기">
+            <span class="composer-attachment-order" aria-label="첨부 순서">${index + 1}</span>
+            <button class="pv-del" type="button" data-attachment-remove-index="${index}" aria-label="${removeLabel}" title="${removeLabel}">✕</button>
+          `;
+        } else {
+          item.classList.add('is-file-chip');
+          item.innerHTML = `
+            <div class="composer-file-chip">
+              <span class="composer-file-chip-icon" aria-hidden="true">📄</span>
+              <span class="composer-file-chip-text">
+                <span class="composer-file-chip-label">선택한 파일</span>
+                <span class="composer-file-chip-name">${fileName}</span>
+                <span class="composer-file-chip-type">${escapeHtml(file.type || '파일')}</span>
+              </span>
+              <span class="composer-attachment-order" aria-label="첨부 순서">${index + 1}</span>
+            </div>
+            <button class="pv-del" type="button" data-attachment-remove-index="${index}" aria-label="${removeLabel}" title="${removeLabel}">✕</button>
+          `;
         }
-        if (fileChip) fileChip.hidden = true;
-        if (previewItem) previewItem.classList.remove('is-file-chip');
-      } else {
-        if (previewImg) previewImg.hidden = true;
-        if (fileChip) fileChip.hidden = false;
-        if (fileName) fileName.textContent = file.name || '업로드 파일';
-        if (fileType) fileType.textContent = file.type || '파일';
-        if (previewItem) previewItem.classList.add('is-file-chip');
-      }
+        previewList?.appendChild(item);
+      });
       if (preview) preview.classList.add('show');
     }
 
-    function setFile(file, fileInput) {
-      if (!file) {
+    function removeFile(index) {
+      if (index < 0 || index >= selectedFiles.length) return false;
+      selectedFiles = selectedFiles.filter((_file, fileIndex) => fileIndex !== index);
+      if (!selectedFiles.length && selectedFileInput) {
+        selectedFileInput.value = '';
+        selectedFileInput = null;
+      }
+      renderSelectedFiles();
+      emitChange();
+      return true;
+    }
+
+    function normalizeAcceptedFiles(files) {
+      return Array.from(files || []).filter(Boolean);
+    }
+
+    function setFiles(files, fileInput) {
+      const incoming = normalizeAcceptedFiles(files);
+      if (!incoming.length) {
         clear();
         return false;
       }
-
-      if (!isAcceptedFile(file, policy)) {
+      const rejectedFile = incoming.find((file) => !isAcceptedFile(file, policy));
+      if (rejectedFile) {
         if (fileInput) fileInput.value = '';
-        reject(file);
+        reject(rejectedFile);
         return false;
       }
-
       if (!fileInput && uploadInput) uploadInput.value = '';
-
       selectedFileInput = fileInput || null;
-      selectedFile = file;
-      renderSelectedFile(file);
+      selectedFiles = incoming.slice(0, policy.maxFiles);
+      renderSelectedFiles();
       setPlusMenuOpen(false);
-      if (typeof options.onChange === 'function') options.onChange(file);
+      emitChange();
+      return true;
+    }
+
+    function addFiles(files, fileInput) {
+      const incoming = normalizeAcceptedFiles(files);
+      if (!incoming.length) return false;
+      if (policy.maxFiles <= 1) return setFiles(incoming.slice(0, 1), fileInput);
+      const rejectedFile = incoming.find((file) => !isAcceptedFile(file, policy));
+      if (rejectedFile) {
+        if (fileInput) fileInput.value = '';
+        reject(rejectedFile);
+        return false;
+      }
+      if (!fileInput && uploadInput) uploadInput.value = '';
+      selectedFileInput = fileInput || selectedFileInput;
+      selectedFiles = selectedFiles.concat(incoming).slice(0, policy.maxFiles);
+      renderSelectedFiles();
+      setPlusMenuOpen(false);
+      emitChange();
       return true;
     }
 
     function handlePaste(event) {
       if (!active()) return;
-      const file = getClipboardFile(event.clipboardData, policy);
-      if (!file) return;
+      const files = getClipboardFiles(event.clipboardData, policy);
+      if (!files.length) return;
       event.preventDefault();
-      setFile(file, null);
+      addFiles(files, null);
     }
 
     function handleDocumentClick(event) {
@@ -255,16 +289,24 @@
       setPlusMenuOpen(!!plusMenu?.hidden);
     });
     uploadButton?.addEventListener('click', () => openFilePicker(uploadInput));
-    uploadInput?.addEventListener('change', () => setFile(uploadInput.files?.[0] || null, uploadInput));
-    removeButton?.addEventListener('click', clear);
+    uploadInput?.addEventListener('change', () => setFiles(uploadInput.files || [], uploadInput));
+    previewList?.addEventListener('click', (event) => {
+      const target = event.target instanceof Element ? event.target.closest('[data-attachment-remove-index]') : null;
+      if (!target) return;
+      removeFile(Number(target.getAttribute('data-attachment-remove-index')));
+    });
     document.addEventListener('paste', handlePaste);
     document.addEventListener('click', handleDocumentClick);
 
     return {
       clear,
       closeMenu: () => setPlusMenuOpen(false),
-      getFile: () => selectedFile,
-      setFile: (file) => setFile(file, null),
+      getFiles,
+      getFile: () => selectedFiles[0] || null,
+      setFiles: (files) => setFiles(files, null),
+      addFiles: (files) => addFiles(files, null),
+      setFile: (file) => setFiles(file ? [file] : [], null),
+      removeFile,
       cleanup: () => {
         document.removeEventListener('paste', handlePaste);
         document.removeEventListener('click', handleDocumentClick);
@@ -272,6 +314,7 @@
       }
     };
   }
+
 
   global.ThisOneComposerImageInput = { render, renderControls, attach };
 })(window);

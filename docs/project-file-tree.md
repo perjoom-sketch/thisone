@@ -60,6 +60,7 @@
 │   ├── aliexpress-integration-suspended.md
 │   ├── analytics-event-tracking.md
 │   ├── piki-transparent-asset-workflow.md
+│   ├── question-understanding-layer.md
 │   ├── project-file-tree.md
 │   ├── rental-search-flow.md
 │   ├── service-image-input-behavior-audit.md
@@ -101,6 +102,7 @@
 │   ├── categoryRole.js
 │   ├── intentDetector.js
 │   ├── queryNormalizer.js
+│   ├── questionUnderstanding.js
 │   ├── ranking.js
 │   ├── recurringOffer.js
 │   ├── rental_policy.js
@@ -140,7 +142,7 @@
 - `api/`: Vercel 서버리스 API 엔드포인트 모음.
 - `js/`: 브라우저에서 실행되는 프런트엔드 기능 모듈.
 - `styles/`: 메인 UI, 검색 행, 현대화 테마 관련 CSS.
-- `lib/`: API와 서버 로직에서 공유하는 검색, 랭킹, 분석, 정규화 유틸리티.
+- `lib/`: API와 서버 로직에서 공유하는 검색, 랭킹, 분석, 정규화, 질문 이해 유틸리티.
 - `tools/`: 운영자/개발자용 진단 및 요약 HTML 도구 페이지.
 - `docs/`: 설계 원칙, 감사 기록, 데이터 스키마, 작업 흐름 문서.
 - `ads/`: ThisOne 배너 광고 이미지 자산.
@@ -164,7 +166,7 @@
 - `api/documentAi.js`: 문서/증명서 관련 AI 질의 응답 서비스를 제공한다.
 - `api/homeMeal.js`: 집밥/식단 관련 AI 서비스 엔드포인트.
 - `api/inquiry.js`: 사용자 문의 접수 또는 조회 API.
-- `api/instantAnswer.js`: 즉답형 AI 응답 서비스를 제공한다.
+- `api/instantAnswer.js`: 즉답형 AI 응답 서비스를 제공하며, 질문 이해 분석 결과를 1차 검색과 추가 조사 쿼리에 사용한다.
 - `api/intentInfer.js`: 사용자 검색어의 의도와 카테고리를 추론한다.
 - `api/logStore.js`: 로그 저장 또는 조회를 위한 API.
 - `api/loveme.js`: LoveMe 서비스용 백엔드 API.

@@ -58,6 +58,7 @@
 │   └── synthetic-queries.json
 ├── docs/
 │   ├── aliexpress-integration-suspended.md
+│   ├── answer-quality-feedback-loop.md
 │   ├── analytics-event-tracking.md
 │   ├── piki-transparent-asset-workflow.md
 │   ├── question-understanding-layer.md
@@ -98,6 +99,7 @@
 │   └── web_search_shell.js
 ├── lib/
 │   ├── analyticsStore.js
+│   ├── answerQualityLog.js
 │   ├── canonicalIntent.js
 │   ├── categoryRole.js
 │   ├── intentDetector.js
@@ -143,9 +145,9 @@
 - `api/`: Vercel 서버리스 API 엔드포인트 모음.
 - `js/`: 브라우저에서 실행되는 프런트엔드 기능 모듈.
 - `styles/`: 메인 UI, 검색 행, 현대화 테마 관련 CSS.
-- `lib/`: API와 서버 로직에서 공유하는 검색, 랭킹, 분석, 정규화, 질문 이해, 조사 전략 유틸리티.
+- `lib/`: API와 서버 로직에서 공유하는 검색, 랭킹, 분석, 정규화, 질문 이해, 조사 전략, 답변 품질 로깅 유틸리티.
 - `tools/`: 운영자/개발자용 진단 및 요약 HTML 도구 페이지.
-- `docs/`: 설계 원칙, 감사 기록, 데이터 스키마, 작업 흐름 문서.
+- `docs/`: 설계 원칙, 감사 기록, 데이터 스키마, 작업 흐름, 답변 품질 피드백 루프 문서.
 - `ads/`: ThisOne 배너 광고 이미지 자산.
 - `assets/`: 로고와 Piki 캐릭터 이미지 자산.
 - `data/`: 카테고리 매핑, 검색 키워드 DB, 합성 검색어 데이터.
@@ -167,7 +169,7 @@
 - `api/documentAi.js`: 문서/증명서 관련 AI 질의 응답 서비스를 제공한다.
 - `api/homeMeal.js`: 집밥/식단 관련 AI 서비스 엔드포인트.
 - `api/inquiry.js`: 사용자 문의 접수 또는 조회 API.
-- `api/instantAnswer.js`: 즉답형 AI 응답 서비스를 제공하며, 질문 이해 분석 결과와 조사 전략 레이어를 1차 검색·추가 조사 흐름에 사용한다.
+- `api/instantAnswer.js`: 즉답형 AI 응답 서비스를 제공하며, 질문 이해 분석 결과와 조사 전략 레이어를 1차 검색·추가 조사 흐름에 사용하고, 최종 답변 후 비민감 품질 메타데이터를 기록한다.
 - `api/intentInfer.js`: 사용자 검색어의 의도와 카테고리를 추론한다.
 - `api/logStore.js`: 로그 저장 또는 조회를 위한 API.
 - `api/loveme.js`: LoveMe 서비스용 백엔드 API.

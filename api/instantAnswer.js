@@ -1,6 +1,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { analyzeQuestion } = require('../lib/questionUnderstanding');
 const { planResearch } = require('../lib/researchStrategy');
+const { logAnswerQuality } = require('../lib/answerQualityLog');
 
 const AI_CONFIG = { MODEL_NAME: process.env.MODEL_NAME || 'gemini-2.5-flash' };
 const OPENAI_MODEL = 'gpt-5.4-mini';
@@ -210,14 +211,16 @@ async function searchSerper(query) {
   return pickUsefulSources(data?.organic || []);
 }
 
-async function searchSerperQueries(queries, analysis) {
+async function searchSerperQueries(queries, analysis, diagnostics = {}) {
   let sources = [];
+  if (diagnostics) diagnostics.attempted = true;
   for (const query of queries) {
     try {
       const nextSources = await searchSerper(query);
       sources = mergeSources(sources, nextSources);
       if (hasUsefulEvidence(sources, analysis)) break;
     } catch (searchError) {
+      if (diagnostics) diagnostics.failed = true;
       console.warn('[api/instantAnswer] Serper failed:', searchError.message);
     }
   }
@@ -555,6 +558,69 @@ ${joinBullets(unconfirmedSummary, '공식 출처로 확인되지 않은 소속, 
 ${joinBullets(checkItems, '관련 공식 기관 안내, 담당 부서 문의처, 최신 공지에서 같은 명칭과 절차를 다시 확인하세요.')}`;
 }
 
+function hasRepeatedAwkwardSections(answer) {
+  const text = String(answer || '');
+  const conclusionMatches = text.match(/결론/g) || [];
+  return text.includes('결론 아닙니다') || conclusionMatches.length > 3;
+}
+
+function buildAnswerQualityMetadata({
+  analysis,
+  researchPlan,
+  sources,
+  usedSearch,
+  usedDeeperResearch,
+  reviewUsed,
+  reviewExpected,
+  reviewFailed,
+  fallback,
+  finalAnswer,
+  searchFailed
+}) {
+  const sourceList = Array.isArray(sources) ? sources : [];
+  const sourceQuality = researchPlan?.sourceQuality || 'none';
+  const hasOfficialSource = sourceList.some(isOfficialSource);
+  const issueFlags = [];
+
+  if (sourceList.length === 0 && usedSearch) issueFlags.push('no_sources');
+  if (analysis?.needsOfficialSource && !hasOfficialSource) issueFlags.push('official_source_missing');
+  if (fallback) issueFlags.push('fallback_used');
+  if (searchFailed) issueFlags.push('search_failed');
+  if (isWeakSourceQuality(sourceQuality)) issueFlags.push('weak_sources');
+  if (reviewExpected && reviewFailed) issueFlags.push('model_review_failed');
+  if (hasRepeatedAwkwardSections(finalAnswer)) issueFlags.push('repeated_sections');
+
+  const answerLength = String(finalAnswer || '').length;
+  if (answerLength > 0 && answerLength < 80) issueFlags.push('answer_too_short');
+  if (answerLength > 3000) issueFlags.push('answer_too_long');
+
+  return {
+    mode: 'instant-answer',
+    createdAt: new Date().toISOString(),
+    taskType: analysis?.taskType || 'unknown',
+    evidencePreference: analysis?.evidencePreference || 'general',
+    resolutionStrategy: analysis?.resolutionStrategy || analysis?.answerStrategy || 'normal',
+    sourceQuality,
+    usedSearch: Boolean(usedSearch),
+    usedDeeperResearch: Boolean(usedDeeperResearch),
+    reviewUsed: Boolean(reviewUsed),
+    fallbackUsed: Boolean(fallback),
+    sourceCount: sourceList.length,
+    hasOfficialSource,
+    answerLength,
+    status: fallback ? 'fallback' : 'ok',
+    issueFlags
+  };
+}
+
+async function safeLogAnswerQuality(metadata) {
+  try {
+    await logAnswerQuality(metadata);
+  } catch (error) {
+    console.warn('[api/instantAnswer] Answer quality logging failed:', error?.message || error);
+  }
+}
+
 function ensureSourceCaveat(answer, analysis, researchPlan) {
   const sourceQuality = researchPlan?.sourceQuality || 'none';
   if (!analysis?.needsSearch || !isWeakSourceQuality(sourceQuality)) return answer;
@@ -686,7 +752,9 @@ async function buildAnswer(question, sources, usedSearch, analysis, hasEnoughEvi
   if (analysis?.needsSearch && !hasEnoughEvidence && !reviewRequired) {
     return {
       answer: buildCarefulFallbackAnswer(question, usedSearch, analysis, hasEnoughEvidence, researchPlan),
-      reviewUsed: false
+      reviewUsed: false,
+      reviewExpected: reviewRequired,
+      reviewFailed: false
     };
   }
 
@@ -701,7 +769,9 @@ async function buildAnswer(question, sources, usedSearch, analysis, hasEnoughEvi
     try {
       return {
         answer: await openaiAnswer(question, sources, usedSearch, analysis, researchPlan),
-        reviewUsed: false
+        reviewUsed: false,
+        reviewExpected: reviewRequired,
+        reviewFailed: reviewRequired
       };
     } catch (openaiError) {
       console.warn('[api/instantAnswer] OpenAI failed:', openaiError.message);
@@ -709,7 +779,9 @@ async function buildAnswer(question, sources, usedSearch, analysis, hasEnoughEvi
 
     return {
       answer: buildCarefulFallbackAnswer(question, usedSearch, analysis, hasEnoughEvidence, researchPlan),
-      reviewUsed: false
+      reviewUsed: false,
+      reviewExpected: reviewRequired,
+      reviewFailed: reviewRequired
     };
   }
 
@@ -725,20 +797,26 @@ async function buildAnswer(question, sources, usedSearch, analysis, hasEnoughEvi
       });
       return {
         answer: synthesizeReviewedAnswer({ draftAnswer: geminiDraft, review, sources, analysis, researchPlan }),
-        reviewUsed: true
+        reviewUsed: true,
+        reviewExpected: reviewRequired,
+        reviewFailed: false
       };
     } catch (reviewError) {
       console.warn('[api/instantAnswer] OpenAI review failed:', reviewError.message);
       return {
         answer: ensureSourceCaveat(geminiDraft, analysis, researchPlan),
-        reviewUsed: false
+        reviewUsed: false,
+        reviewExpected: reviewRequired,
+        reviewFailed: true
       };
     }
   }
 
   return {
     answer: ensureSourceCaveat(geminiDraft, analysis, researchPlan),
-    reviewUsed: false
+    reviewUsed: false,
+    reviewExpected: reviewRequired,
+    reviewFailed: reviewRequired
   };
 }
 
@@ -761,10 +839,11 @@ async function handler(req, res) {
   let escalatedAnalysis = analysis;
   let researchPlan = planResearch(analysis, sources);
   const shouldSearch = shouldUsePublicSearch(question, analysis);
+  const searchDiagnostics = { attempted: false, failed: false };
 
   if (shouldSearch) {
     const firstQueries = analysis.searchQueries.length ? analysis.searchQueries : [buildSafePublicQuery(question)];
-    sources = await searchSerperQueries(firstQueries, analysis);
+    sources = await searchSerperQueries(firstQueries, analysis, searchDiagnostics);
     usedSearch = sources.length > 0;
 
     researchPlan = planResearch(analysis, sources);
@@ -773,7 +852,7 @@ async function handler(req, res) {
       fallback = true;
       usedDeeperResearch = true;
       escalatedAnalysis = analyzeQuestion({ text: question, mode: 'instant-answer' }, { firstSearchWeak: true });
-      const deeperSources = await searchSerperQueries(researchPlan.nextQueries, escalatedAnalysis);
+      const deeperSources = await searchSerperQueries(researchPlan.nextQueries, escalatedAnalysis, searchDiagnostics);
       sources = mergeSources(sources, deeperSources);
       usedSearch = sources.length > 0;
       researchPlan = planResearch(escalatedAnalysis, sources);
@@ -785,6 +864,20 @@ async function handler(req, res) {
   if (escalatedAnalysis.needsSearch && !hasEnoughEvidence) fallback = true;
   const answerQuestion = escalatedAnalysis.rewrittenQuestion || question;
   const answerResult = await buildAnswer(answerQuestion, sources, usedSearch, escalatedAnalysis, hasEnoughEvidence, researchPlan, { usedDeeperResearch });
+  await safeLogAnswerQuality(buildAnswerQualityMetadata({
+    analysis: escalatedAnalysis,
+    researchPlan,
+    sources,
+    usedSearch: searchDiagnostics.attempted,
+    usedDeeperResearch,
+    reviewUsed: answerResult.reviewUsed,
+    reviewExpected: answerResult.reviewExpected,
+    reviewFailed: answerResult.reviewFailed,
+    fallback,
+    finalAnswer: answerResult.answer,
+    searchFailed: searchDiagnostics.failed
+  }));
+
   return res.status(200).json({
     answer: answerResult.answer,
     sources: usedSearch ? sources : [],
@@ -809,5 +902,7 @@ module.exports._private = {
   shouldUseMultiModelReview,
   parseReviewContent,
   synthesizeReviewedAnswer,
-  buildAnalysisSummary
+  buildAnalysisSummary,
+  hasRepeatedAwkwardSections,
+  buildAnswerQualityMetadata
 };

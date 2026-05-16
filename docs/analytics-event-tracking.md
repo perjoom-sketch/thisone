@@ -43,6 +43,8 @@ Current event payloads may include:
 - `userAgentCategory`
 - anonymous `visitorId` generated in localStorage with key `thisone_visitor_id`
 
+The browser-side tracker computes `isInternal` immediately before every event is sent by calling the shared `isInternalUser()` helper. That helper returns `true` only when `localStorage.thisone_internal_user === "true"` or a visible `thisone_internal_user=true` cookie exists. The companion `setInternalUser(false)` helper removes the localStorage marker and expires the host-only cookie plus `.thisone.me`, `thisone.me`, and `www.thisone.me` cookie variants so real-user classification is unambiguous after clearing internal mode.
+
 ## Persistent aggregate storage configuration
 
 By default, analytics events are written as structured server logs only. ThisOne uses Vercel KV for persistent key-value storage, and Vercel KV can expose REST credentials with Vercel-style variable names:
@@ -102,7 +104,7 @@ The first admin-facing analytics summary page is available at:
 
 This page is an internal readiness and aggregate inspection tool only. It is not linked from public navigation and is not an advertiser-facing dashboard. It fetches `GET /api/analyticsSummary` and renders only aggregate counts for today, the last 7 days, the last 30 days, mode breakdowns, and event-name breakdowns.
 
-The analytics admin page is excluded from tracked ThisOne service usage. Loading or refreshing `/tools/analytics-summary.html` must not emit `page_view` events, create visitor counts, or increment `events`, `pageViews`, `visitors`, `externalVisitors`, or `internalVisitors`. Admin controls on this page can still set/check the internal-user flag, fetch summaries, and call reset controls, but those admin page views and admin actions should not affect advertiser-facing metrics.
+The analytics admin page is excluded from tracked ThisOne service usage. Loading or refreshing `/tools/analytics-summary.html` must not emit `page_view` events, create visitor counts, or increment `events`, `pageViews`, `visitors`, `externalVisitors`, or `internalVisitors`. Admin controls on this page use the same tracker helpers as event sending to classify this browser as internal test traffic or real user traffic, fetch summaries, and call reset controls, but those admin page views and admin actions should not affect advertiser-facing metrics. The page shows only localStorage/cookie/final `isInternal` diagnostics for this classification and must not expose visitor IDs or raw queries.
 
 Vercel KV or Upstash-compatible Redis storage is required for real counts. If neither `KV_REST_API_URL` + `KV_REST_API_TOKEN` nor `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` is configured, the API returns `ok: true`, `storageConfigured: false`, and a zero-count placeholder message instead of inventing data or scraping logs.
 
@@ -212,16 +214,17 @@ The preferred operator flow is now the admin settings panel on:
 /tools/analytics-summary.html
 ```
 
-Open the page, find **운영자 설정**, then click **이 브라우저를 내부 테스트로 설정**. The panel writes the current browser's local `thisone_internal_user` flag, writes the shared `.thisone.me` cookie, and updates the visible status to **현재 브라우저: 내부 테스트로 집계됨**. This setting is stored in the current browser/device; the shared cookie keeps the setting consistent when the operator moves between the apex and `www` hosts in that browser.
+Open the page, find **운영자 설정**, then click **이 브라우저의 사용 기록을 내부 테스트로 분류**. The panel calls `window.ThisOneEventTracker.setInternalUser(true)`, which writes the current browser's local `thisone_internal_user` flag, writes the shared `.thisone.me` cookie, optionally writes a host-only cookie, and updates the visible status to **현재 브라우저: 내부 테스트로 분류됨**. This setting is stored in the current browser/device; the shared cookie keeps the setting consistent when the operator moves between the apex and `www` hosts in that browser.
 
-Use localStorage directly only as a fallback, and set the shared cookie at the same time when the current host supports `.thisone.me` cookies:
+Use localStorage directly only as a fallback, and set the shared and host-only cookies at the same time when the current host supports `.thisone.me` cookies:
 
 ```js
 localStorage.setItem("thisone_internal_user", "true");
 document.cookie = "thisone_internal_user=true; Domain=.thisone.me; Path=/; Max-Age=31536000; SameSite=Lax; Secure";
+document.cookie = "thisone_internal_user=true; Path=/; Max-Age=31536000; SameSite=Lax; Secure";
 ```
 
-Or use the helper fallback:
+Prefer the shared tracker helper:
 
 ```js
 window.ThisOneEventTracker.setInternalUser(true);
@@ -229,17 +232,19 @@ window.ThisOneEventTracker.setInternalUser(true);
 
 ## How to remove internal mode
 
-The preferred operator flow is to open `/tools/analytics-summary.html`, find **운영자 설정**, then click **내부 테스트 설정 해제**. The panel removes the current browser's local flag, expires the shared `.thisone.me` cookie, expires any host-only cookie with the same name, and updates the visible status to **현재 브라우저: 실제 사용자로 집계됨**.
+The preferred operator flow is to open `/tools/analytics-summary.html`, find **운영자 설정**, then click **이 브라우저의 사용 기록을 실제 사용자로 분류**. The panel calls `window.ThisOneEventTracker.setInternalUser(false)`, removes the current browser's local flag, expires the shared `.thisone.me` cookie, expires explicit `thisone.me` and `www.thisone.me` cookie variants, expires any host-only cookie with the same name, and updates the visible status to **현재 브라우저: 실제 사용자로 분류됨**.
 
-Use localStorage directly only as a fallback, and expire both the shared and host-only cookies at the same time:
+Use localStorage directly only as a fallback, and expire the shared, explicit host-domain, and host-only cookies at the same time:
 
 ```js
 localStorage.removeItem("thisone_internal_user");
-document.cookie = "thisone_internal_user=; Domain=.thisone.me; Path=/; Max-Age=0; SameSite=Lax; Secure";
 document.cookie = "thisone_internal_user=; Path=/; Max-Age=0; SameSite=Lax; Secure";
+document.cookie = "thisone_internal_user=; Domain=.thisone.me; Path=/; Max-Age=0; SameSite=Lax; Secure";
+document.cookie = "thisone_internal_user=; Domain=thisone.me; Path=/; Max-Age=0; SameSite=Lax; Secure";
+document.cookie = "thisone_internal_user=; Domain=www.thisone.me; Path=/; Max-Age=0; SameSite=Lax; Secure";
 ```
 
-Or use the helper fallback:
+Prefer the shared tracker helper:
 
 ```js
 window.ThisOneEventTracker.setInternalUser(false);

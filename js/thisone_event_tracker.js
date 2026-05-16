@@ -5,6 +5,7 @@
   const VISITOR_STORAGE_KEY = 'thisone_visitor_id';
   const INTERNAL_COOKIE_NAME = 'thisone_internal_user';
   const INTERNAL_COOKIE_DOMAIN = '.thisone.me';
+  const INTERNAL_COOKIE_CLEAR_DOMAINS = [INTERNAL_COOKIE_DOMAIN, 'thisone.me', 'www.thisone.me'];
   const ENDPOINT = '/api/trackEvent';
   const ALLOWED_EVENT_NAMES = new Set([
     'page_view',
@@ -43,25 +44,48 @@
     const doc = safeDocument();
     if (!doc) return false;
 
+    let wroteCookie = false;
+
     try {
       doc.cookie = `${INTERNAL_COOKIE_NAME}=${value}; Domain=${INTERNAL_COOKIE_DOMAIN}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
-      return true;
+      wroteCookie = true;
     } catch (error) {
-      return false;
+      wroteCookie = false;
     }
+
+    try {
+      doc.cookie = `${INTERNAL_COOKIE_NAME}=${value}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
+      wroteCookie = true;
+    } catch (error) {
+      // Keep the shared cookie result if the optional host-only cookie cannot be written.
+    }
+
+    return wroteCookie;
   }
 
   function clearCookie() {
     const doc = safeDocument();
     if (!doc) return false;
 
+    let clearedCookie = false;
+
     try {
-      doc.cookie = `${INTERNAL_COOKIE_NAME}=; Domain=${INTERNAL_COOKIE_DOMAIN}; Path=/; Max-Age=0; SameSite=Lax; Secure`;
       doc.cookie = `${INTERNAL_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax; Secure`;
-      return true;
+      clearedCookie = true;
     } catch (error) {
-      return false;
+      clearedCookie = false;
     }
+
+    INTERNAL_COOKIE_CLEAR_DOMAINS.forEach((domain) => {
+      try {
+        doc.cookie = `${INTERNAL_COOKIE_NAME}=; Domain=${domain}; Path=/; Max-Age=0; SameSite=Lax; Secure`;
+        clearedCookie = true;
+      } catch (error) {
+        // Continue clearing every known domain variant.
+      }
+    });
+
+    return clearedCookie;
   }
 
   function hasInternalUserCookie() {
@@ -109,6 +133,17 @@
 
   function isInternalUser() {
     return hasInternalUserLocalStorage() || hasInternalUserCookie();
+  }
+
+  function getInternalUserDiagnostics() {
+    const localStorageValue = hasInternalUserLocalStorage();
+    const sharedCookieValue = hasInternalUserCookie();
+
+    return {
+      localStorage: localStorageValue,
+      sharedCookie: sharedCookieValue,
+      isInternal: localStorageValue || sharedCookieValue
+    };
   }
 
 
@@ -367,6 +402,7 @@
   global.ThisOneEventTracker = {
     setInternalUser,
     isInternalUser,
+    getInternalUserDiagnostics,
     getVisitorId,
     track,
     _private: {
@@ -376,7 +412,8 @@
       trackPageView,
       isAnalyticsAdminPage,
       hasInternalUserCookie,
-      hasInternalUserLocalStorage
+      hasInternalUserLocalStorage,
+      getInternalUserDiagnostics
     }
   };
 

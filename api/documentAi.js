@@ -132,6 +132,13 @@ function parseUploadedFile(file, legacyImageDataUrl = '') {
   };
 }
 
+function parseUploadedFiles(filesArray) {
+  if (!Array.isArray(filesArray)) return [];
+  return filesArray
+    .map((file) => parseUploadedFile(file, ''))
+    .filter(Boolean);
+}
+
 function buildErrorPayload(error, answer = error) {
   return {
     error,
@@ -212,7 +219,7 @@ function classifyPdfReadFailure(error, file) {
 
 function buildPdfFailureAnswer(pdfFailure) {
   const message = pdfFailure?.pdfReadFailureMessage || PDF_FAILURE_MESSAGES.unknown;
-  return `${message}\n\nPDF 내용을 읽은 것처럼 답변하지 않겠습니다. 필요한 페이지만 나누어 올리거나, 해당 페이지를 이미지로 캡처하거나, 텍스트를 복사해 올려주시면 더 정확히 해석할 수 있습니다.`;
+  return `${message}\n\nPDF 내용을 읽은 것처럼 답변하지 않겠습니다. 필요한 페이지만 나누어 올리거나, 해당 페이지를 이미지로 캡처하거나, 텍스트를 복사해 올려주세요.`;
 }
 
 function buildTimeoutError(label) {
@@ -349,6 +356,49 @@ JSON 형식:
       .map((item) => removeSensitiveForSearch(item).slice(0, 80))
       .filter(Boolean)
       .slice(0, 6)
+  };
+}
+
+async function summarizeUploadedBundle(files, question) {
+  if (!Array.isArray(files) || !files.length) {
+    return {
+      documentType: '문서/사진',
+      safeSummary: '지원되는 파일 형식이 아니어서 업로드 내용을 확인하지 못했습니다.',
+      publicKeywords: []
+    };
+  }
+
+  const summaries = [];
+  for (const file of files) {
+    try {
+      const summary = await summarizeUploadedFile(file, question);
+      summaries.push(summary);
+    } catch (error) {
+      if (file.decodedBytes > MAX_UPLOAD_BYTES) {
+        throw error;
+      }
+      if (file.mimeType === 'application/pdf') {
+        const pdfFailure = buildPdfReadFailure(classifyPdfReadFailure(error, file));
+        throw Object.assign(new Error(pdfFailure.pdfReadFailureMessage), { pdfFailure });
+      }
+      throw error;
+    }
+  }
+
+  if (summaries.length === 1) {
+    return summaries[0];
+  }
+
+  const documentTypes = summaries.map((s) => s.documentType).filter(Boolean);
+  const allSafeSummaries = summaries.map((s) => s.safeSummary).filter(Boolean);
+  const allKeywords = summaries.flatMap((s) => s.publicKeywords || []);
+
+  const uniqueKeywords = Array.from(new Set(allKeywords)).slice(0, 6);
+
+  return {
+    documentType: documentTypes.join(', ') || '문서/사진 묶음',
+    safeSummary: allSafeSummaries.join('\n\n---\n\n') || '업로드 내용을 확인하지 못했습니다.',
+    publicKeywords: uniqueKeywords
   };
 }
 
@@ -527,42 +577,64 @@ module.exports = async function handler(req, res) {
   try {
     const body = await readBody(req);
     const question = normalizeText(body?.question || '');
-    const imageDataUrl = typeof body?.imageDataUrl === 'string' ? body.imageDataUrl : '';
-    const uploadedFile = parseUploadedFile(body?.file, imageDataUrl);
 
-    if (body?.file && !uploadedFile) {
-      return res.status(400).json(buildErrorPayload('현재는 PDF, JPG, PNG, WebP, 텍스트만 해석할 수 있습니다.'));
+    // Support new multi-file format (files[])
+    let uploadedFiles = parseUploadedFiles(body?.files);
+
+    // Fallback to legacy single-file format (file) for backward compatibility
+    if (!uploadedFiles.length && body?.file) {
+      const imageDataUrl = typeof body?.imageDataUrl === 'string' ? body.imageDataUrl : '';
+      const singleFile = parseUploadedFile(body?.file, imageDataUrl);
+      uploadedFiles = singleFile ? [singleFile] : [];
     }
 
-    if (!question && !uploadedFile) {
+    // Check for invalid/unsupported files in the new format
+    if (body?.files && Array.isArray(body.files)) {
+      const invalidFile = body.files.find((f) => !parseUploadedFile(f, ''));
+      if (invalidFile) {
+        return res.status(400).json(buildErrorPayload('현재는 PDF, JPG, PNG, WebP, 텍스트만 해석할 수 있습니다.'));
+      }
+    }
+
+    if (!question && !uploadedFiles.length) {
       return res.status(400).json(buildErrorPayload('문서나 사진, 질문을 입력해주세요.'));
     }
 
-    if (uploadedFile?.decodedBytes > MAX_UPLOAD_BYTES) {
-      const isPdf = uploadedFile.mimeType === 'application/pdf';
-      const errorPayload = buildErrorPayload(isPdf ? PDF_FAILURE_MESSAGES.file_too_large : FILE_TOO_LARGE_MESSAGE);
-      if (isPdf) Object.assign(errorPayload, buildPdfReadFailure('file_too_large'));
-      return res.status(413).json(errorPayload);
+    // Check file size limits and PDF-specific failures
+    let pdfReadInfo = null;
+    for (const file of uploadedFiles) {
+      if (file.decodedBytes > MAX_UPLOAD_BYTES) {
+        const isPdf = file.mimeType === 'application/pdf';
+        const errorPayload = buildErrorPayload(isPdf ? PDF_FAILURE_MESSAGES.file_too_large : FILE_TOO_LARGE_MESSAGE);
+        if (isPdf) Object.assign(errorPayload, buildPdfReadFailure('file_too_large'));
+        return res.status(413).json(errorPayload);
+      }
     }
 
     let imageSummary = null;
-    let pdfReadInfo = uploadedFile?.mimeType === 'application/pdf' ? buildPdfReadSuccess() : null;
-    if (uploadedFile) {
-      try {
-        imageSummary = await summarizeUploadedFile(uploadedFile, question);
-      } catch (error) {
-        const isPdf = uploadedFile.mimeType === 'application/pdf';
-        const pdfFailure = isPdf ? buildPdfReadFailure(classifyPdfReadFailure(error, uploadedFile)) : null;
-        if (pdfFailure) pdfReadInfo = pdfFailure;
+    try {
+      imageSummary = await summarizeUploadedBundle(uploadedFiles, question);
+    } catch (error) {
+      // Check if error has pdfFailure info (from summarizeUploadedFile)
+      if (error.pdfFailure) {
+        pdfReadInfo = error.pdfFailure;
         imageSummary = {
-          documentType: isPdf ? 'PDF 문서' : '이미지/문서',
-          safeSummary: isPdf
-            ? pdfFailure.pdfReadFailureMessage
-            : '업로드 내용을 자동으로 확인하지 못했습니다. 질문에 적힌 내용 기준으로 해석합니다.',
+          documentType: 'PDF 문서',
+          safeSummary: error.pdfFailure.pdfReadFailureMessage,
           publicKeywords: findPublicTerms(question),
-          pdfReadFailed: isPdf,
-          pdfReadFailureReason: pdfFailure?.pdfReadFailureReason || '',
-          pdfReadFailureMessage: pdfFailure?.pdfReadFailureMessage || ''
+          pdfReadFailed: true,
+          pdfReadFailureReason: error.pdfFailure.pdfReadFailureReason || '',
+          pdfReadFailureMessage: error.pdfFailure.pdfReadFailureMessage || ''
+        };
+      } else {
+        // Generic error for file summaries
+        imageSummary = {
+          documentType: uploadedFiles.length > 1 ? '문서/사진 묶음' : '이미지/문서',
+          safeSummary: '업로드 내용을 자동으로 확인하지 못했습니다. 질문에 적힌 내용 기준으로 해석합니다.',
+          publicKeywords: findPublicTerms(question),
+          pdfReadFailed: false,
+          pdfReadFailureReason: '',
+          pdfReadFailureMessage: ''
         };
       }
     }

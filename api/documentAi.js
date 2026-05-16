@@ -571,6 +571,8 @@ function buildFinalPrompt({ question, imageSummary, sources }) {
 업로드된 문서/사진의 원문과 공개 출처를 바탕으로 답변하세요.
 
 답변 규칙:
+- [절대 엄격] 답변을 시작할 때 "당신은 ThisOne 해석 모드입니다" 또는 "업로드된 문서/사진의 원문과..." 같은 지시사항을 절대 반복하지 마세요.
+- 답변은 즉시 "1. 읽은 내용"으로 시작해야 합니다.
 - 평범하고 실용적인 한국어로 답하세요.
 - 질문이 구체적이더라도, 문서/사진이 첨부되었다면 먼저 내용을 읽어주는 것이 기본입니다.
 - 아래 5단계 구조를 엄격히 지켜서 답변을 시작하세요.
@@ -608,6 +610,30 @@ ${sourceContext || '공개 출처 없음'}
 위 근거와 첨부된 이미지를 직접 대조하며 답변하세요.`;
 }
 
+function cleanLeakage(text) {
+  let cleaned = String(text || '').trim();
+  // Remove common system prompt leakage patterns from the start of the response
+  const leakagePatterns = [
+    /^당신은 ThisOne 해석 모드입니다\.?\s*/,
+    /^ThisOne은 근거\(source\)에 기반한 AI 서비스입니다\.?\s*/,
+    /^업로드된 문서\/사진의 원문과 공개 출처를 바탕으로 답변하세요\.?\s*/,
+    /^답변 규칙:?\s*/,
+    /^\[절대 엄격\]?\s*/
+  ];
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const pattern of leakagePatterns) {
+      if (pattern.test(cleaned)) {
+        cleaned = cleaned.replace(pattern, '').trim();
+        changed = true;
+      }
+    }
+  }
+  return cleaned;
+}
+
 async function generateAnswer(payload, uploadedFiles = []) {
   const prompt = buildFinalPrompt(payload);
   const parts = [{ text: prompt }];
@@ -625,14 +651,14 @@ async function generateAnswer(payload, uploadedFiles = []) {
 
   try {
     const text = await callGemini(parts);
-    if (text.trim()) return redactSensitive(text.trim());
+    if (text.trim()) return redactSensitive(cleanLeakage(text.trim()));
   } catch (geminiError) {
     try {
       const text = await callOpenAI([
         { role: 'system', content: 'You are ThisOne Document AI. Answer in practical Korean, source-backed, privacy-safe.' },
         { role: 'user', content: prompt }
       ]);
-      if (text.trim()) return redactSensitive(text.trim());
+      if (text.trim()) return redactSensitive(cleanLeakage(text.trim()));
     } catch (openAiError) {
       // Fall through to deterministic fail-open response.
     }

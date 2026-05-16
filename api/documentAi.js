@@ -1,4 +1,10 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const {
+  buildSafePublicSearchQuery,
+  classifyDocumentAnswerBasis,
+  createDocumentSession,
+  normalizeDocumentSession
+} = require('../lib/documentQaStrategy');
 
 const GEMINI_MODEL = process.env.MODEL_NAME || 'gemini-2.5-flash';
 const OPENAI_MODEL = 'gpt-5.4-mini';
@@ -261,16 +267,16 @@ function findPublicTerms(text) {
     .slice(0, 5);
 }
 
-function buildSerperQuery({ question, imageSummary }) {
+function buildSerperQuery({ question, imageSummary, documentSession }) {
   const candidateText = [
     question,
-    imageSummary?.documentType,
-    imageSummary?.safeSummary,
-    ...(imageSummary?.publicKeywords || [])
+    imageSummary?.documentType || documentSession?.documentType,
+    imageSummary?.safeSummary || documentSession?.safeSummary,
+    ...((imageSummary?.publicKeywords || documentSession?.publicKeywords) || [])
   ].join(' ');
 
   const publicTerms = [
-    ...(imageSummary?.publicKeywords || []),
+    ...((imageSummary?.publicKeywords || documentSession?.publicKeywords) || []),
     ...findPublicTerms(candidateText)
   ]
     .map(removeSensitiveForSearch)
@@ -345,9 +351,10 @@ function buildSourceContext(sources) {
   ].filter(Boolean).join('\n')).join('\n\n');
 }
 
-function buildFinalPrompt({ question, imageSummary, sources }) {
+function buildFinalPrompt({ question, imageSummary, documentSession, sources, strategy }) {
   const safeQuestion = redactSensitive(normalizeText(question));
-  const safeSummary = imageSummary?.safeSummary ? redactSensitive(imageSummary.safeSummary) : '';
+  const activeDocument = imageSummary || documentSession || null;
+  const safeSummary = activeDocument?.safeSummary ? redactSensitive(activeDocument.safeSummary) : '';
   const sourceContext = buildSourceContext(sources);
 
   return `당신은 ThisOne 해석 모드입니다. ThisOne은 source-backed AI 서비스입니다.
@@ -359,25 +366,36 @@ AI는 진실의 출처가 아니며, 업로드된 내용과 공개 출처가 근
 - 공개 출처가 있는 내용과 업로드 내용에서 보이는 내용을 구분하세요.
 - 공개 출처로 확인하지 못한 내용을 단정하지 마세요.
 - 법률/의료/금융 등 고위험 내용은 일반 설명으로 제한하고 필요 시 기관/전문가 확인을 권하세요.
-- 가능하면 아래 구조를 쓰되, 불필요한 항목은 짧게 처리하세요.
-  1. 이게 무엇인지
-  2. 문서/사진에서 보이는 핵심
-  3. 공개 출처로 확인한 내용
-  4. 지금 해야 할 일
-  5. 주의할 점
+- 문서 사실과 공개 출처 사실을 절대 섞어 쓰지 마세요.
+- 답변에는 가능한 한 아래 구조와 표현을 쓰세요.
+  1. 문서에서 확인한 내용
+  2. 문서만으로는 부족한 부분
+  3. 공개 출처로 보충 확인한 내용
+  4. 최종 해석
+  5. 지금 해야 할 일
+- 각 섹션에서 다음 문구를 명시적으로 사용하세요: "문서에서 확인되는 내용은…", "문서만으로는 확인되지 않는 부분은…", "공개 출처 기준으로는…"
+- 공개 출처가 없고 문서도 부족하면 이 문장을 그대로 포함하세요: "문서만으로는 이 부분을 확정하기 어렵고, 공개 출처도 확인하지 못했습니다."
 
 사용자 질문/입력:
 ${safeQuestion || '(질문 없음)'}
 
-업로드 문서/사진 안전 요약:
-문서/사진 종류: ${imageSummary?.documentType || '없음'}
+문서 세션 안전 컨텍스트:
+문서 세션 ID: ${activeDocument?.documentSessionId || '새 업로드/없음'}
+파일명: ${activeDocument?.fileName || '없음'}
+문서/사진 종류: ${activeDocument?.documentType || '없음'}
 요약: ${safeSummary || '업로드 요약 없음'}
+
+답변 근거 분류:
+문서 근거 상태: ${strategy?.documentBasis || 'document_missing'}
+공개 검색 필요 여부: ${strategy?.publicSupplementNeeded ? '필요' : '불필요'}
+이유: ${strategy?.reason || '없음'}
 
 공개 출처 검색 결과:
 ${sourceContext || '공개 출처 없음'}
 
 위 근거만 사용해 답변하세요.`;
 }
+
 
 async function generateAnswer(payload) {
   const prompt = buildFinalPrompt(payload);
@@ -397,19 +415,25 @@ async function generateAnswer(payload) {
   }
 
   const lines = [];
-  lines.push('1. 이게 무엇인지');
-  lines.push(payload.imageSummary?.documentType ? `${payload.imageSummary.documentType}로 보입니다.` : '입력하신 내용을 기준으로 해석했습니다.');
+  const activeDocument = payload.imageSummary || payload.documentSession || null;
+  lines.push('1. 문서에서 확인한 내용');
+  lines.push(activeDocument?.safeSummary ? `문서에서 확인되는 내용은 ${activeDocument.safeSummary}` : '문서에서 확인되는 내용은 충분하지 않습니다.');
   lines.push('');
-  lines.push('2. 문서/사진에서 보이는 핵심');
-  lines.push(payload.imageSummary?.safeSummary || redactSensitive(normalizeText(payload.question, 700)) || '확인할 수 있는 내용이 많지 않습니다.');
+  lines.push('2. 문서만으로는 부족한 부분');
+  lines.push(payload.strategy?.documentBasis === 'document_supported' ? '문서만으로는 확인되지 않는 부분은 현재 질문 기준으로 크지 않습니다.' : '문서만으로는 확인되지 않는 부분은 질문의 일반 절차, 공식 기준, 예외 조건입니다.');
   lines.push('');
-  lines.push('3. 공개 출처로 확인한 내용');
-  lines.push(payload.sources?.length ? '아래 공개 출처의 요약을 함께 참고했습니다.' : '공개 출처는 확인하지 못했고, 업로드된 내용 기준으로 정리했습니다.');
+  if (payload.strategy?.publicSupplementNeeded || payload.sources?.length) {
+    lines.push('3. 공개 출처로 보충 확인한 내용');
+    lines.push(payload.sources?.length ? '공개 출처 기준으로는 아래 참고 출처의 요약을 함께 확인했습니다.' : '문서만으로는 이 부분을 확정하기 어렵고, 공개 출처도 확인하지 못했습니다.');
+  } else {
+    lines.push('3. 공개 출처로 보충 확인한 내용');
+    lines.push('공개 출처 기준으로는 추가 확인이 필요하지 않아 문서 내용 중심으로 정리했습니다.');
+  }
   lines.push('');
-  lines.push('4. 지금 해야 할 일');
-  lines.push('민감정보는 가린 상태로 원문을 다시 확인하고, 제출/신청/납부처럼 마감이 있는 항목이 있는지 먼저 확인하세요.');
+  lines.push('4. 최종 해석');
+  lines.push('문서 내용은 1차 근거로 보고, 문서에 없는 절차나 기준은 공식 기관/제공처에서 확인해야 합니다.');
   lines.push('');
-  lines.push('5. 주의할 점');
+  lines.push('5. 지금 해야 할 일');
   lines.push('중요한 법률·의료·금융 판단은 해당 기관이나 전문가에게 최종 확인하세요.');
   return lines.join('\n');
 }
@@ -425,9 +449,14 @@ module.exports = async function handler(req, res) {
     const question = normalizeText(body?.question || '');
     const imageDataUrl = typeof body?.imageDataUrl === 'string' ? body.imageDataUrl : '';
     const uploadedFile = parseUploadedFile(body?.file, imageDataUrl);
+    const incomingSession = normalizeDocumentSession(body?.documentSession);
 
     if (body?.file && !uploadedFile) {
       return res.status(400).json({ error: '현재는 PDF, JPG, PNG, WebP, 텍스트만 해석할 수 있습니다.' });
+    }
+
+    if (body?.documentSession && !incomingSession) {
+      return res.status(400).json({ error: '현재 문서 정보를 다시 사용할 수 없습니다. 파일을 다시 올려주세요.' });
     }
 
     if (!question && !uploadedFile) {
@@ -445,9 +474,33 @@ module.exports = async function handler(req, res) {
           publicKeywords: findPublicTerms(question)
         };
       }
+      imageSummary = createDocumentSession({
+        fileName: uploadedFile.name,
+        fileType: uploadedFile.mimeType,
+        documentType: imageSummary.documentType,
+        safeSummary: imageSummary.safeSummary,
+        publicKeywords: imageSummary.publicKeywords
+      });
     }
 
-    const serperQuery = buildSerperQuery({ question, imageSummary });
+    const activeDocumentSession = imageSummary || incomingSession || null;
+    if (activeDocumentSession) activeDocumentSession.lastUsedAt = new Date().toISOString();
+
+    const strategy = classifyDocumentAnswerBasis({
+      question,
+      documentSession: activeDocumentSession,
+      hasUploadedFile: Boolean(uploadedFile)
+    });
+
+    let serperQuery = '';
+    if (strategy.publicSupplementNeeded) {
+      serperQuery = buildSafePublicSearchQuery({
+        question,
+        documentSession: activeDocumentSession,
+        fallbackTerms: findPublicTerms(`${question} ${activeDocumentSession?.documentType || ''}`)
+      }) || buildSerperQuery({ question, imageSummary, documentSession: activeDocumentSession });
+    }
+
     let sources = [];
     let usedSearch = false;
     if (serperQuery) {
@@ -460,11 +513,21 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    const answer = await generateAnswer({ question, imageSummary, sources });
+    const answer = await generateAnswer({
+      question,
+      imageSummary,
+      documentSession: activeDocumentSession,
+      sources,
+      strategy
+    });
     return res.status(200).json({
       answer,
       sources,
-      usedSearch
+      usedSearch,
+      answerBasis: strategy.answerBasis,
+      documentBasis: strategy.documentBasis,
+      publicSearchAttempted: Boolean(serperQuery),
+      documentSession: activeDocumentSession
     });
   } catch (error) {
     return res.status(500).json({

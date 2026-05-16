@@ -261,3 +261,24 @@ refactor: introduce shared attachment input component
 ```
 
 That PR should only introduce the shared component while preserving current behavior. It should not migrate every mode at once, should not broaden accepted file types, and should not change API payloads. The safest implementation shape is an adapter-compatible component that can emulate current `ThisOneComposerImageInput` defaults while requiring explicit policies for any new mode migrations.
+
+## Interpretation follow-up document session foundation
+
+For document-grounded Q&A, 해석 mode may keep an active document session in browser memory after a successful upload. The browser-memory session is intentionally short-lived and disappears on refresh. It should include only:
+
+```js
+{
+  documentSessionId,
+  fileName,
+  fileType,
+  documentType,
+  safeSummary,
+  publicKeywords,
+  createdAt,
+  lastUsedAt
+}
+```
+
+The attachment component and mode shell must not store raw file contents, data URLs, base64 payloads, or full extracted document text in `localStorage`, analytics, KV, or any long-lived client store. Follow-up requests can send the safe session context without requiring another upload, but a new file upload replaces the active session only after the backend returns a fresh safe session.
+
+The UI should show an active document chip with “현재 문서: {fileName}”, tell the user they can continue asking about the document, and provide “문서 지우기”. Clearing the chip removes the in-memory session; subsequent questions must not claim access to the old document.

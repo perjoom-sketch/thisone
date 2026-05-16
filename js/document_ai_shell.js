@@ -192,13 +192,31 @@
     `;
   }
 
-  async function requestDocumentAI(question, filePayload) {
+  function normalizeDocumentSession(session) {
+    if (!session || typeof session !== 'object') return null;
+    const documentSessionId = String(session.documentSessionId || '').trim();
+    const safeSummary = String(session.safeSummary || '').trim();
+    if (!documentSessionId || !safeSummary) return null;
+    return {
+      documentSessionId,
+      fileName: String(session.fileName || '업로드 문서').slice(0, 160),
+      fileType: String(session.fileType || '').slice(0, 120),
+      documentType: String(session.documentType || '문서/사진').slice(0, 80),
+      safeSummary: safeSummary.slice(0, 1800),
+      publicKeywords: Array.isArray(session.publicKeywords) ? session.publicKeywords.map((item) => String(item || '').slice(0, 80)).filter(Boolean).slice(0, 6) : [],
+      createdAt: String(session.createdAt || ''),
+      lastUsedAt: String(session.lastUsedAt || '')
+    };
+  }
+
+  async function requestDocumentAI(question, filePayload, documentSession) {
     const response = await fetch('/api/documentAi', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         question,
         file: filePayload || null,
+        documentSession: filePayload ? null : (normalizeDocumentSession(documentSession) || null),
         imageDataUrl: filePayload?.type?.startsWith?.('image/') ? filePayload.dataUrl : ''
       })
     });
@@ -289,6 +307,8 @@
 
         <p class="ai-tool-voice-status" id="documentAiVoiceStatus" aria-live="polite" hidden></p>
 
+        <div class="document-ai-session" id="documentAiSession" aria-live="polite" hidden></div>
+
         <div class="document-ai-privacy" role="note" aria-label="개인정보 안내">
           <strong>개인정보 안내</strong>
           <p>개인정보는 가리고 올려주세요.</p>
@@ -310,6 +330,8 @@
     const helpPanel = document.getElementById('documentAiHelpPanel');
     const micButton = document.getElementById('documentAiMicButton');
     const voiceStatus = document.getElementById('documentAiVoiceStatus');
+    const sessionChip = document.getElementById('documentAiSession');
+    let activeDocumentSession = null;
     let imageInput = null;
     let stopActiveLoadingStatus = null;
     global.ThisOneAIToolVoice?.attach?.({
@@ -320,6 +342,38 @@
     });
     function setDragOver(isDragOver) {
       upload?.classList.toggle('is-drag-over', isDragOver);
+    }
+
+    function updateQuestionPlaceholder() {
+      if (!question) return;
+      question.placeholder = activeDocumentSession
+        ? '이 문서에 대해 궁금한 점을 이어서 물어보세요'
+        : '문서나 사진을 올리면 쉽게 풀어드려요';
+    }
+
+    function renderActiveDocumentSession() {
+      if (!sessionChip) return;
+      if (!activeDocumentSession) {
+        sessionChip.hidden = true;
+        sessionChip.innerHTML = '';
+        updateQuestionPlaceholder();
+        return;
+      }
+      sessionChip.hidden = false;
+      sessionChip.innerHTML = `
+        <div class="document-ai-session-text">
+          <strong>현재 문서: ${escapeHtml(activeDocumentSession.fileName || '업로드 문서')}</strong>
+          <span>이 문서에 대해 이어서 질문할 수 있습니다.</span>
+        </div>
+        <button class="document-ai-session-clear" id="documentAiSessionClear" type="button">문서 지우기</button>
+      `;
+      sessionChip.querySelector('#documentAiSessionClear')?.addEventListener('click', () => {
+        activeDocumentSession = null;
+        imageInput?.clear?.();
+        renderActiveDocumentSession();
+        setStatus(placeholder, '현재 문서를 지웠습니다. 다시 질문하려면 파일을 올려주세요.');
+      });
+      updateQuestionPlaceholder();
     }
 
     global.ThisOneModeTabs?.bind?.(root);
@@ -337,11 +391,13 @@
       onReject: (_file, message) => setStatus(placeholder, message || UNSUPPORTED_FILE_MESSAGE)
     });
 
+    renderActiveDocumentSession();
+
     button?.addEventListener('click', async () => {
       const text = question?.value?.trim?.() || '';
       const file = imageInput?.getFile?.() || null;
 
-      if (!text && !file) {
+      if (!text && !file && !activeDocumentSession) {
         setStatus(placeholder, EMPTY_INPUT_MESSAGE);
         if (result) result.hidden = true;
         if (result) result.innerHTML = '';
@@ -361,7 +417,15 @@
           type: file.type || 'application/octet-stream',
           dataUrl: await fileToDataUrl(file)
         } : null;
-        const data = await requestDocumentAI(text, filePayload);
+        if (!filePayload && activeDocumentSession && !normalizeDocumentSession(activeDocumentSession)) {
+          throw new Error('현재 문서 정보를 다시 사용할 수 없습니다. 파일을 다시 올려주세요.');
+        }
+        const data = await requestDocumentAI(text, filePayload, activeDocumentSession);
+        if (data.documentSession) {
+          activeDocumentSession = normalizeDocumentSession(data.documentSession);
+          renderActiveDocumentSession();
+          if (filePayload) imageInput?.clear?.();
+        }
         stopActiveLoadingStatus?.();
         stopActiveLoadingStatus = null;
         renderDocumentAIResult(result, data.answer, data.sources);

@@ -2524,6 +2524,66 @@ body.search-mode .results-view {
   block-size: var(--shopping-composer-right-button-size);
 }
 
+
+.document-ai-session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(0.6rem, 2vw, 0.9rem);
+  padding: clamp(0.75rem, 2vw, 1rem);
+  border: 0.0625rem solid #bfdbfe;
+  border-radius: clamp(0.85rem, 2vw, 1rem);
+  background: #ffffff;
+  color: #334155;
+}
+
+.document-ai-session[hidden] {
+  display: none;
+}
+
+.document-ai-session-text {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.2rem, 0.8vw, 0.35rem);
+  min-width: 0;
+}
+
+.document-ai-session-text strong,
+.document-ai-session-text span {
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
+.document-ai-session-text strong {
+  color: #1d4ed8;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+}
+
+.document-ai-session-text span {
+  color: #64748b;
+  font-size: clamp(0.82rem, 1.8vw, 0.94rem);
+}
+
+.document-ai-session-clear {
+  flex: 0 0 auto;
+  padding: clamp(0.5rem, 1.5vw, 0.65rem) clamp(0.7rem, 2vw, 0.9rem);
+  border: 0.0625rem solid #bfdbfe;
+  border-radius: 999rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-family: inherit;
+  font-size: clamp(0.82rem, 1.8vw, 0.94rem);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.document-ai-session-clear:hover,
+.document-ai-session-clear:focus-visible {
+  border-color: #60a5fa;
+  background: #dbeafe;
+  outline: none;
+}
+
 .document-ai-privacy {
   display: flex;
   flex-direction: column;
@@ -2652,6 +2712,14 @@ body.search-mode .results-view {
 
   .document-ai-composer-bottom {
     gap: var(--shopping-composer-control-gap);
+  }
+
+  .document-ai-session {
+    align-items: flex-start;
+  }
+
+  .document-ai-session-clear {
+    white-space: nowrap;
   }
 
   .document-ai-submit {

@@ -205,3 +205,26 @@ Before implementing any service, define that service’s:
 - AI interpretation and recommendation behavior.
 - Fallback behavior when evidence is unavailable, weak, or conflicting.
 - Tests for source-backed and AI-only/private-input paths.
+
+## Document-grounded Q&A principle
+
+Interpretation mode treats an uploaded document or image as the primary evidence for follow-up Q&A. A safe in-memory document session may carry only non-raw context: session id, file metadata, document type, privacy-redacted summary, public-safe keywords, and timestamps. It must not persist raw file bytes, base64 data, full extracted document text, or private identifiers.
+
+When a user asks a follow-up question, the answer strategy must classify the basis before answering:
+
+- `document_supported`: the safe document session contains enough information to answer from the uploaded material.
+- `document_partial`: the document has relevant context but does not fully answer the question.
+- `document_missing`: the document does not contain enough relevant information.
+- `public_supplement_needed`: public sources are needed for law, procedure, official meaning, eligibility, deadlines, risk, rights, obligations, product/manual interpretation, terminology, policy, or general background.
+
+The answer must keep evidence separated:
+
+1. 문서에서 확인한 내용
+2. 문서만으로는 부족한 부분
+3. 공개 출처로 보충 확인한 내용
+4. 최종 해석
+5. 지금 해야 할 일
+
+Required language includes: “문서에서 확인되는 내용은…”, “문서만으로는 확인되지 않는 부분은…”, and “공개 출처 기준으로는…”. Public-source facts must never be described as if they were written in the uploaded document.
+
+Supplemental search is secondary evidence only. Search queries must use safe public keywords and must remove names, phone numbers, addresses, account numbers, resident-registration numbers, case numbers, raw document text, and other private identifiers. If the document is insufficient and public search fails, the answer must say: “문서만으로는 이 부분을 확정하기 어렵고, 공개 출처도 확인하지 못했습니다.” Then it should provide safe practical next steps.

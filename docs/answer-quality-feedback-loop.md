@@ -32,6 +32,7 @@ Do not store:
 - visitorId
 - raw model outputs
 - raw Serper JSON
+- full final answer text
 
 Allowed metadata includes structured signals such as:
 
@@ -89,7 +90,8 @@ The foundation can record these flags:
 - `repeated_sections`: final answer appears to repeat awkward headings such as repeated `결론` sections.
 - `json_error_hidden`: reserved for future hidden JSON parse/recovery failures.
 - `official_source_missing`: an official source was needed but no official/public source domain was present.
-- `unsupported_claim_risk`: reserved for future model-review unsupported-claim signals.
+- `unsupported_claim_risk`: the answer appears to make a stronger claim than weak or missing official evidence can support.
+- `overconfident_conclusion`: the conclusion uses strong certainty language while source quality is weak or required official evidence is missing.
 
 ## Future report page ideas
 
@@ -102,6 +104,7 @@ A later operator report page can summarize:
 - repeated answer-structure problems
 - search-provider failure rates
 - review-failure patterns by task type or resolution strategy
+- unsupported claim risk and overconfident conclusion cases
 
 ## Feedback-loop direction
 

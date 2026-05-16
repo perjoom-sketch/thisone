@@ -561,7 +561,40 @@ ${joinBullets(checkItems, '관련 공식 기관 안내, 담당 부서 문의처,
 function hasRepeatedAwkwardSections(answer) {
   const text = String(answer || '');
   const conclusionMatches = text.match(/결론/g) || [];
-  return text.includes('결론 아닙니다') || conclusionMatches.length > 3;
+  return text.includes('결론 아닙니다')
+    || text.includes('확인된 내용은 확인되었습니다')
+    || conclusionMatches.length > 3;
+}
+
+function isDifficultOrOfficialQuestion(analysis) {
+  const text = [
+    analysis?.taskType,
+    analysis?.evidencePreference,
+    analysis?.resolutionStrategy,
+    ...(analysis?.institutionWords || []),
+    ...(analysis?.roleWords || [])
+  ].join(' ');
+
+  return Boolean(analysis?.needsOfficialSource || analysis?.needsSearch)
+    || /official|public|legal|law|affiliation|status|authority|role|medical|financial|공식|공공|기관|법|소속|권한|공무원/.test(text);
+}
+
+function isSimpleQuestion(analysis) {
+  const text = [
+    analysis?.taskType,
+    analysis?.evidencePreference,
+    analysis?.resolutionStrategy
+  ].join(' ');
+
+  return !isDifficultOrOfficialQuestion(analysis)
+    && !analysis?.needsSearch
+    && !analysis?.needsOfficialSource
+    && !/legal|medical|financial|official|public|법|의학|금융|공식|공공/.test(text);
+}
+
+function hasStrongConclusionLanguage(answer) {
+  const text = String(answer || '');
+  return /(정식 직원|공무원은 아닙니다|공무원이 아닙니다|확실합니다|분명합니다|반드시|무조건|절대|단정할 수 있습니다|해당합니다|아닙니다)/.test(text);
 }
 
 function buildAnswerQualityMetadata({
@@ -591,8 +624,18 @@ function buildAnswerQualityMetadata({
   if (hasRepeatedAwkwardSections(finalAnswer)) issueFlags.push('repeated_sections');
 
   const answerLength = String(finalAnswer || '').length;
-  if (answerLength > 0 && answerLength < 80) issueFlags.push('answer_too_short');
-  if (answerLength > 3000) issueFlags.push('answer_too_long');
+  const difficultOrOfficial = isDifficultOrOfficialQuestion(analysis);
+  const simpleQuestion = isSimpleQuestion(analysis);
+  const weakSources = isWeakSourceQuality(sourceQuality);
+  const missingRequiredOfficialSource = Boolean(analysis?.needsOfficialSource && !hasOfficialSource);
+
+  if (answerLength > 0 && answerLength < (difficultOrOfficial ? 220 : 80)) issueFlags.push('answer_too_short');
+  if (answerLength > (simpleQuestion ? 1800 : 3000)) issueFlags.push('answer_too_long');
+
+  if (hasStrongConclusionLanguage(finalAnswer) && (weakSources || missingRequiredOfficialSource)) {
+    issueFlags.push('unsupported_claim_risk');
+    issueFlags.push('overconfident_conclusion');
+  }
 
   return {
     mode: 'instant-answer',
@@ -904,5 +947,8 @@ module.exports._private = {
   synthesizeReviewedAnswer,
   buildAnalysisSummary,
   hasRepeatedAwkwardSections,
+  isDifficultOrOfficialQuestion,
+  isSimpleQuestion,
+  hasStrongConclusionLanguage,
   buildAnswerQualityMetadata
 };

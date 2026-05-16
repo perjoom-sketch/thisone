@@ -13,6 +13,16 @@ const SERPER_TIMEOUT_MS = 4000;
 const GEMINI_TIMEOUT_MS = 20000;
 const OPENAI_TIMEOUT_MS = 20000;
 
+const SENSITIVE_REVIEW_KEYWORDS = [
+  '법', '법률', '소송', '고소', '고발', '판결', '계약', '임대차', '전세', '보증금',
+  '공공기관', '정부', '고용노동부', '노동부', '공무원', '공문', '위촉', '민간', '소속', '직원',
+  '안전', '보건', '산재', '위험', '사고', '노동', '근로', '해고', '임금', '퇴직금', '실업급여',
+  '병원', '의사', '약', '약국', '증상', '통증', '의학', '건강',
+  '금융', '대출', '이자', '세금', '보험', '투자', '환급',
+  '신고', '자격', '대상', '조건', 'eligibility',
+  '과태료', '벌금', '처벌', '단속', '감독', 'fine', 'penalty', 'official', 'medical', 'financial'
+];
+
 const PUBLIC_CONTEXT_KEYWORDS = [
   '기본증명서', '가족관계증명서', '등본', '초본', '서류', '증명서', '발급', '신청', '절차', '방법',
   '법', '법률', '소송', '내용증명', '보증금', '월세', '전세', '임대차', '계약', '신고', '분쟁', '기관',
@@ -224,6 +234,245 @@ function buildSourceContext(sources) {
   ].join('\n')).join('\n\n');
 }
 
+
+function buildAnalysisSummary(analysis, researchPlan, usedDeeperResearch = false) {
+  return {
+    taskType: analysis?.taskType || 'unknown',
+    evidencePreference: analysis?.evidencePreference || 'general',
+    resolutionStrategy: analysis?.resolutionStrategy || analysis?.answerStrategy || 'normal',
+    sourceQuality: researchPlan?.sourceQuality || 'none',
+    usedDeeperResearch: Boolean(usedDeeperResearch)
+  };
+}
+
+function isWeakSourceQuality(sourceQuality) {
+  return sourceQuality === 'weak' || sourceQuality === 'none';
+}
+
+function appearsSensitiveForReview(question, analysis) {
+  const text = [
+    question,
+    analysis?.originalText,
+    analysis?.taskType,
+    ...(analysis?.roleWords || []),
+    ...(analysis?.institutionWords || [])
+  ].join(' ').toLowerCase();
+
+  return hasAnyKeyword(text, SENSITIVE_REVIEW_KEYWORDS)
+    || ['affiliation/status', 'authority/role', 'eligibility'].includes(analysis?.taskType);
+}
+
+function shouldUseMultiModelReview({ question, analysis, researchPlan, usedDeeperResearch }) {
+  const resolutionStrategy = analysis?.resolutionStrategy;
+  const sourceQuality = researchPlan?.sourceQuality || 'none';
+  const weakSources = isWeakSourceQuality(sourceQuality);
+
+  const sensitiveTopic = appearsSensitiveForReview(question, analysis);
+
+  if (resolutionStrategy === 'multi_model_review') return true;
+  if (resolutionStrategy === 'hybrid' && weakSources) return true;
+  if (analysis?.needsOfficialSource && weakSources) return true;
+  if (usedDeeperResearch && (analysis?.needsOfficialSource || sensitiveTopic)) return true;
+  if (sensitiveTopic) return true;
+  return false;
+}
+
+function stripMarkdownJsonFence(text) {
+  return String(text || '')
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+}
+
+function parseReviewContent(content) {
+  const text = String(content || '').trim();
+  if (!text) return { parsed: null, notes: '' };
+
+  const candidates = [stripMarkdownJsonFence(text)];
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (jsonMatch) candidates.push(stripMarkdownJsonFence(jsonMatch[0]));
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate);
+      return { parsed, notes: '' };
+    } catch (error) {
+      // Plain-text review notes are allowed; do not fail the request.
+    }
+  }
+
+  return { parsed: null, notes: text.slice(0, 2000) };
+}
+
+function buildReviewerPrompt({ question, analysis, researchPlan, sources, draftAnswer, usedDeeperResearch }) {
+  const summary = buildAnalysisSummary(analysis, researchPlan, usedDeeperResearch);
+  return `다음은 ThisOne 즉답의 1차 답변 초안입니다. 당신의 역할은 최종 답변 작성이 아니라 검토자입니다.
+
+검토 기준:
+- 사용자의 놓친 의도
+- 출처로 뒷받침되지 않는 주장
+- 과도한 단정/자신감
+- 빠진 주의사항
+- 아직 확인되지 않은 부분
+
+반드시 가능한 한 JSON만 반환하세요. 링크나 출처를 새로 만들지 마세요. 검토 메모를 사실처럼 확정하지 마세요.
+
+반환 형식:
+{
+  "missingIntent": string[],
+  "unsupportedClaims": string[],
+  "overconfidenceWarnings": string[],
+  "unconfirmedPoints": string[],
+  "suggestedFixes": string[],
+  "safeToAnswer": boolean
+}
+
+사용자 원문 질문:
+${analysis?.originalText || question}
+
+내부 재작성 질문:
+${analysis?.rewrittenQuestion || question}
+
+질문 분석 요약:
+${JSON.stringify(summary, null, 2)}
+
+출처 품질/조사 상태:
+- sourceQuality: ${researchPlan?.sourceQuality || 'none'}
+- usedDeeperResearch: ${Boolean(usedDeeperResearch)}
+- researchReason: ${researchPlan?.reason || '없음'}
+
+공개 출처 요약:
+${buildSourceContext(sources)}
+
+Gemini 1차 답변 초안:
+${draftAnswer}`;
+}
+
+async function openaiReviewAnswer({ question, sources, analysis, researchPlan, draftAnswer, usedDeeperResearch }) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');
+
+  const data = await fetchWithTimeout(OPENAI_CHAT_COMPLETIONS_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: OPENAI_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: '너는 ThisOne 즉답 검토자다. 답변을 새로 쓰지 말고, 근거·불확실성·누락 의도만 엄격히 점검한다. 가능한 한 JSON만 반환한다.'
+        },
+        { role: 'user', content: buildReviewerPrompt({ question, analysis, researchPlan, sources, draftAnswer, usedDeeperResearch }) }
+      ],
+      temperature: 0
+    })
+  }, OPENAI_TIMEOUT_MS, 'OpenAI review');
+
+  const content = data?.choices?.[0]?.message?.content || '';
+  if (!content.trim()) throw new Error('OpenAI review returned empty content');
+  return parseReviewContent(content);
+}
+
+function arrayFromReview(review, key) {
+  const value = review?.parsed?.[key];
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => normalizeText(item, 220)).filter(Boolean).slice(0, 4);
+}
+
+function firstUsefulSentence(text) {
+  const clean = String(text || '')
+    .replace(/^\s*\d+\.\s*[^\n]+\n/gm, '')
+    .replace(/\[[^\]]+\]\([^)]*\)/g, '')
+    .replace(/https?:\/\/\S+/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const sentence = clean.split(/(?<=[.!?。！？다요함임됨음])\s+/).find((part) => part.trim().length >= 8) || clean;
+  return normalizeText(sentence, 320) || '현재 확인 가능한 범위 안에서만 조심스럽게 답해야 합니다.';
+}
+
+function sourceSummaryBullets(sources, sourceQuality) {
+  if (!Array.isArray(sources) || sources.length === 0) {
+    return ['현재 답변에 직접 근거로 삼을 공개 출처를 충분히 확인하지 못했습니다.'];
+  }
+
+  const prefix = isWeakSourceQuality(sourceQuality)
+    ? '참고 가능한 공개 검색 결과는 있으나 공식·충분한 근거로 확정하기는 어렵습니다'
+    : '답변 근거로 참고할 공개 출처가 확인되었습니다';
+  return [
+    `${prefix}.`,
+    ...sources.slice(0, 3).map((source) => `- ${source.title || source.domain} (${source.domain || '도메인 미확인'})`)
+  ];
+}
+
+function affiliationCheckList(analysis) {
+  if (analysis?.taskType !== 'affiliation/status' && analysis?.taskType !== 'authority/role') return [];
+  return [
+    '현장에서 제시하는 신분증의 발급 주체',
+    '방문·점검 공문 또는 안내문',
+    '명함의 소속기관과 운영기관명',
+    '위촉장 또는 위탁/수행기관 표시',
+    '고용노동부·안전보건공단·지자체 등 공식 문의처에서 같은 명칭을 확인할 수 있는지'
+  ];
+}
+
+function joinBullets(items, fallback) {
+  const clean = (items || []).map((item) => normalizeText(item, 260)).filter(Boolean);
+  if (!clean.length) return fallback;
+  return clean.map((item) => `- ${item}`).join('\n');
+}
+
+function synthesizeReviewedAnswer({ draftAnswer, review, sources, analysis, researchPlan }) {
+  const sourceQuality = researchPlan?.sourceQuality || 'none';
+  const weakSources = isWeakSourceQuality(sourceQuality);
+  const caveat = weakSources ? '공개 출처를 충분히 확인하지 못해 일반적인 기준으로 정리했습니다. ' : '';
+  const conclusion = firstUsefulSentence(draftAnswer);
+  const missingIntent = arrayFromReview(review, 'missingIntent');
+  const unsupportedClaims = arrayFromReview(review, 'unsupportedClaims');
+  const overconfidenceWarnings = arrayFromReview(review, 'overconfidenceWarnings');
+  const unconfirmedPoints = arrayFromReview(review, 'unconfirmedPoints');
+  const suggestedFixes = arrayFromReview(review, 'suggestedFixes');
+  const reviewSignals = [missingIntent, unsupportedClaims, overconfidenceWarnings, unconfirmedPoints, suggestedFixes]
+    .reduce((count, items) => count + items.length, 0);
+  const unconfirmedSummary = [
+    missingIntent.length ? '사용자의 세부 의도 중 추가 확인이 필요한 부분이 있을 수 있습니다.' : '',
+    unsupportedClaims.length ? '초안의 일부 표현은 공개 출처만으로 확정하기 어려워 단정하지 않았습니다.' : '',
+    overconfidenceWarnings.length ? '소속·권한·절차처럼 공식 문서가 필요한 부분은 가능성으로만 봐야 합니다.' : '',
+    unconfirmedPoints.length ? '기관별 명칭, 운영 주체, 권한 범위는 아직 확인되지 않은 항목으로 남겨야 합니다.' : ''
+  ].filter(Boolean);
+  const checkItems = [
+    ...affiliationCheckList(analysis),
+    suggestedFixes.length ? '검토에서 표시된 미확인 지점은 공식 안내나 담당 기관 답변으로 다시 확인하기' : ''
+  ].filter(Boolean);
+  const plainReviewNote = review?.notes || reviewSignals
+    ? '검토 결과를 사실로 확정하지 않고, 확인된 내용과 미확인 부분을 분리했습니다.'
+    : '';
+
+  return `1. 결론
+${caveat}${conclusion}
+
+2. 확인된 내용
+${sourceSummaryBullets(sources, sourceQuality).join('\n')}
+
+3. 합리적 해석
+${firstUsefulSentence(draftAnswer)} ${plainReviewNote}
+
+4. 확인되지 않은 부분
+${joinBullets(unconfirmedSummary, '공식 출처로 확인되지 않은 소속, 권한, 대상, 기한, 예외 조건은 단정하지 않는 것이 안전합니다.')}
+
+5. 지금 확인할 것
+${joinBullets(checkItems, '관련 공식 기관 안내, 담당 부서 문의처, 최신 공지에서 같은 명칭과 절차를 다시 확인하세요.')}`;
+}
+
+function ensureSourceCaveat(answer, analysis, researchPlan) {
+  const sourceQuality = researchPlan?.sourceQuality || 'none';
+  if (!analysis?.needsSearch || !isWeakSourceQuality(sourceQuality)) return answer;
+  if (String(answer || '').includes('공개 출처를 충분히 확인하지 못해')) return answer;
+  return `공개 출처를 충분히 확인하지 못해 일반적인 기준으로 정리했습니다.\n\n${answer}`;
+}
+
 function buildSystemPrompt({ usedSearch, researchPlan }) {
   return `너는 ThisOne 즉답이다. 한국어로 짧고 실용적으로 답한다.
 ThisOne은 source-backed AI 서비스다. AI는 진실의 출처가 아니고, 공개 출처/사용자 질문을 해석해 정리한다.
@@ -335,24 +584,71 @@ function buildCarefulFallbackAnswer(question, usedSearch, analysis, hasEnoughEvi
   return `1. 결론\n지금 질문은 일반 정보 확인이 필요한 내용일 수 있습니다. ${usedSearch ? '확인된 공개 검색 요약을 바탕으로' : '공개 출처 없이 질문 내용 기준으로'} 조심스럽게 판단해야 합니다.\n\n2. 이유\n상황·지역·기관·시점에 따라 답이 달라질 수 있어 단정하기 어렵습니다.\n\n3. 지금 할 일\n관련 공식 기관, 전문가, 약사/의사/변호사 등 해당 분야 담당자에게 최신 기준을 확인하세요.\n\n4. 주의할 점\nAI 답변은 최종 근거가 아니며, 중요한 결정에는 공식 안내를 우선하세요.`;
 }
 
-async function buildAnswer(question, sources, usedSearch, analysis, hasEnoughEvidence = usedSearch, researchPlan) {
-  if (analysis?.needsSearch && !hasEnoughEvidence) {
-    return buildCarefulFallbackAnswer(question, usedSearch, analysis, hasEnoughEvidence, researchPlan);
+async function buildAnswer(question, sources, usedSearch, analysis, hasEnoughEvidence = usedSearch, researchPlan, options = {}) {
+  const reviewRequired = shouldUseMultiModelReview({
+    question: analysis?.originalText || question,
+    analysis,
+    researchPlan,
+    usedDeeperResearch: options.usedDeeperResearch
+  });
+
+  if (analysis?.needsSearch && !hasEnoughEvidence && !reviewRequired) {
+    return {
+      answer: buildCarefulFallbackAnswer(question, usedSearch, analysis, hasEnoughEvidence, researchPlan),
+      reviewUsed: false
+    };
   }
 
+  let geminiDraft = '';
   try {
-    return await geminiAnswer(question, sources, usedSearch, analysis, researchPlan);
+    geminiDraft = await geminiAnswer(question, sources, usedSearch, analysis, researchPlan);
   } catch (geminiError) {
     console.warn('[api/instantAnswer] Gemini failed:', geminiError.message);
   }
 
-  try {
-    return await openaiAnswer(question, sources, usedSearch, analysis, researchPlan);
-  } catch (openaiError) {
-    console.warn('[api/instantAnswer] OpenAI failed:', openaiError.message);
+  if (!geminiDraft) {
+    try {
+      return {
+        answer: await openaiAnswer(question, sources, usedSearch, analysis, researchPlan),
+        reviewUsed: false
+      };
+    } catch (openaiError) {
+      console.warn('[api/instantAnswer] OpenAI failed:', openaiError.message);
+    }
+
+    return {
+      answer: buildCarefulFallbackAnswer(question, usedSearch, analysis, hasEnoughEvidence, researchPlan),
+      reviewUsed: false
+    };
   }
 
-  return buildCarefulFallbackAnswer(question, usedSearch, analysis, hasEnoughEvidence, researchPlan);
+  if (reviewRequired && process.env.OPENAI_API_KEY) {
+    try {
+      const review = await openaiReviewAnswer({
+        question,
+        sources,
+        analysis,
+        researchPlan,
+        draftAnswer: geminiDraft,
+        usedDeeperResearch: options.usedDeeperResearch
+      });
+      return {
+        answer: synthesizeReviewedAnswer({ draftAnswer: geminiDraft, review, sources, analysis, researchPlan }),
+        reviewUsed: true
+      };
+    } catch (reviewError) {
+      console.warn('[api/instantAnswer] OpenAI review failed:', reviewError.message);
+      return {
+        answer: ensureSourceCaveat(geminiDraft, analysis, researchPlan),
+        reviewUsed: false
+      };
+    }
+  }
+
+  return {
+    answer: ensureSourceCaveat(geminiDraft, analysis, researchPlan),
+    reviewUsed: false
+  };
 }
 
 async function handler(req, res) {
@@ -370,6 +666,7 @@ async function handler(req, res) {
   let sources = [];
   let usedSearch = false;
   let fallback = false;
+  let usedDeeperResearch = false;
   let escalatedAnalysis = analysis;
   let researchPlan = planResearch(analysis, sources);
   const shouldSearch = shouldUsePublicSearch(question, analysis);
@@ -383,6 +680,7 @@ async function handler(req, res) {
 
     if (researchPlan.shouldEscalate && researchPlan.nextQueries.length) {
       fallback = true;
+      usedDeeperResearch = true;
       escalatedAnalysis = analyzeQuestion({ text: question, mode: 'instant-answer' }, { firstSearchWeak: true });
       const deeperSources = await searchSerperQueries(researchPlan.nextQueries, escalatedAnalysis);
       sources = mergeSources(sources, deeperSources);
@@ -395,13 +693,15 @@ async function handler(req, res) {
   const hasEnoughEvidence = researchPlan.sourceQuality === 'good';
   if (escalatedAnalysis.needsSearch && !hasEnoughEvidence) fallback = true;
   const answerQuestion = escalatedAnalysis.rewrittenQuestion || question;
-  const answer = await buildAnswer(answerQuestion, sources, usedSearch, escalatedAnalysis, hasEnoughEvidence, researchPlan);
+  const answerResult = await buildAnswer(answerQuestion, sources, usedSearch, escalatedAnalysis, hasEnoughEvidence, researchPlan, { usedDeeperResearch });
   return res.status(200).json({
-    answer,
+    answer: answerResult.answer,
     sources: usedSearch ? sources : [],
     usedSearch,
     fallback,
-    statusMessages: fallback ? escalatedAnalysis.interimMessages : undefined
+    statusMessages: fallback ? escalatedAnalysis.interimMessages : undefined,
+    reviewUsed: answerResult.reviewUsed || undefined,
+    analysisSummary: answerResult.reviewUsed ? buildAnalysisSummary(escalatedAnalysis, researchPlan, usedDeeperResearch) : undefined
   });
 }
 
@@ -414,5 +714,9 @@ module.exports._private = {
   pickUsefulSources,
   hasUsefulEvidence,
   searchSerperQueries,
-  planResearch
+  planResearch,
+  shouldUseMultiModelReview,
+  parseReviewContent,
+  synthesizeReviewedAnswer,
+  buildAnalysisSummary
 };

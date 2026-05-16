@@ -194,10 +194,15 @@
       line-height: 1.35;
     }
 
-    .operator-actions {
+    .operator-actions,
+    .header-actions {
       display: flex;
       flex-wrap: wrap;
       gap: clamp(0.4rem, 1vw, 0.6rem);
+    }
+
+    .print-report-header {
+      display: none;
     }
 
     .operator-button {
@@ -733,6 +738,71 @@
         min-width: min(34vw, 8rem);
       }
     }
+    @media print {
+      @page { margin: 12mm; }
+
+      body {
+        background: #fff;
+        color: #111;
+      }
+
+      main {
+        width: 100%;
+        padding: 0;
+      }
+
+      .print-report-header {
+        display: block;
+        margin-bottom: 0.8rem;
+      }
+
+      .print-report-header h2 {
+        font-size: 1.25rem;
+      }
+
+      .print-report-header p {
+        margin-top: 0.15rem;
+        color: #333;
+        font-size: 0.85rem;
+        line-height: 1.4;
+      }
+
+      .operator-panel,
+      .reset-panel,
+      .guidance-section,
+      .guidance-row,
+      .header-actions,
+      .compact-details,
+      button,
+      input,
+      select {
+        display: none !important;
+      }
+
+      header,
+      section,
+      .status-row,
+      .metric-row,
+      .table-row,
+      .chart-panel {
+        box-shadow: none;
+        border: 1px solid #ccc;
+        break-inside: avoid;
+      }
+
+      .stack,
+      .metric-list,
+      .table-list,
+      .chart-panel {
+        gap: 0.5rem;
+      }
+
+      .metric-list {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -741,6 +811,14 @@
       <span class="eyebrow">내부 관리자 도구</span>
       <h1>디스원 사용 통계</h1>
       <p>디스원 내부 통계입니다. 원시 질문, 문서, 이미지, IP는 표시하지 않습니다.</p>
+      <div class="print-report-header" aria-hidden="true">
+        <h2>디스원 사용 통계 보고서</h2>
+        <p>출력일: <span id="printGeneratedAt">-</span></p>
+        <p>기준: <span id="printTrafficView">현재 통계 보기 기준</span></p>
+      </div>
+      <div class="header-actions">
+        <button type="button" id="printReportButton" class="operator-button primary">인쇄 / PDF 저장</button>
+      </div>
       <div class="status-row" aria-live="polite">
         <div class="status-copy">
           <span class="eyebrow">저장소 상태</span>
@@ -880,7 +958,7 @@
         </div>
       </section>
 
-      <section aria-labelledby="guidanceTitle">
+      <section class="guidance-section" aria-labelledby="guidanceTitle">
         <h2 id="guidanceTitle">설정 안내</h2>
         <details class="compact-details">
           <summary>설정 안내 보기</summary>
@@ -1596,6 +1674,31 @@
       }
     }
 
+    function formatPrintDate(date) {
+      const pad = (value) => String(value).padStart(2, '0');
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
+    function updatePrintReportHeader() {
+      const generatedAt = document.getElementById('printGeneratedAt');
+      const trafficView = document.getElementById('printTrafficView');
+      if (generatedAt) {
+        generatedAt.textContent = formatPrintDate(new Date());
+      }
+      if (trafficView) {
+        trafficView.textContent = `현재 통계 보기 기준: ${TRAFFIC_VIEW_LABELS.get(currentTrafficView) || '전체'}`;
+      }
+    }
+
+    function bindPrintReportButton() {
+      document.getElementById('printReportButton')?.addEventListener('click', () => {
+        updatePrintReportHeader();
+        window.print();
+      });
+      window.addEventListener('beforeprint', updatePrintReportHeader);
+      updatePrintReportHeader();
+    }
+
     function bindTrafficViewFilter() {
       const filter = document.getElementById('trafficViewFilter');
       filter?.addEventListener('change', () => {
@@ -1627,6 +1730,7 @@
     }
 
     bindInternalUserControls();
+    bindPrintReportButton();
     bindTrafficViewFilter();
     bindAnalyticsResetControls();
     loadSummary();
